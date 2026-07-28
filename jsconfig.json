@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "es2022",
+    "moduleResolution": "node",
+    "checkJs": false
+  },
+  "include": [
+    "js/**/*.js",
+    "sw.js",
+    "node_modules/phaser/types/phaser.d.ts"
+  ]
+}
