@@ -282,6 +282,121 @@
             50% { opacity: 0.4; }
         }
 
+        #ranking-btn {
+            position: absolute;
+            top: calc(20px + env(safe-area-inset-top, 0px));
+            left: calc(20px + env(safe-area-inset-left, 0px));
+            font-size: 24px;
+            background: rgba(0, 0, 0, 0.4);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 26px 34px;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+            z-index: 500;
+            display: none;
+            min-width: 320px;
+            max-width: 90vw;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            color: #ffcc00;
+            font-size: 24px;
+            margin-bottom: 14px;
+        }
+
+        .modal p {
+            font-size: 16px;
+            margin: 8px 0;
+        }
+
+        .modal button {
+            margin-top: 14px;
+            padding: 12px 30px;
+            font-size: 16px;
+            background: #4ecdc4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .modal .btn-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .modal .btn-secondary {
+            background: #666;
+        }
+
+        #ranking-list {
+            list-style: none;
+            margin: 0 0 10px;
+            padding: 0;
+            text-align: left;
+        }
+
+        #ranking-list li {
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 4px 10px;
+            font-size: 16px;
+        }
+
+        #ranking-list li.me {
+            background: rgba(255, 204, 0, 0.15);
+            border-radius: 6px;
+            color: #ffcc00;
+        }
+
+        #ranking-me {
+            color: #4ecdc4;
+        }
+
+        #ranking-status {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        #nickname-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 18px;
+            border: none;
+            border-radius: 6px;
+            text-align: center;
+            margin: 10px 0 4px;
+        }
+
+        #nickname-error {
+            color: #ff6b6b;
+            font-size: 14px;
+            min-height: 18px;
+            margin: 4px 0 0;
+        }
+
+        #online-status,
+        #win-online-status {
+            color: #4ecdc4;
+            font-size: 15px;
+            min-height: 18px;
+        }
+
         #mute-btn {
             position: fixed;
             top: 20px;
@@ -325,6 +440,7 @@
         <h1>GAME OVER</h1>
         <p>Distância: <span class="final-score" id="final-score">0</span>m</p>
         <p id="record-message"></p>
+        <p id="online-status"></p>
         <button onclick="location.reload()">Jogar Novamente</button>
     </div>
 
@@ -332,6 +448,7 @@
         <h1>VOCÊ ESCAPOU!</h1>
         <p>Distância: <span class="final-score" id="win-final-score">0</span>m</p>
         <p id="win-record-message"></p>
+        <p id="win-online-status"></p>
         <button onclick="location.reload()">Jogar Novamente</button>
     </div>
 
@@ -358,6 +475,26 @@
         <p class="start-cta">TOQUE PARA COMEÇAR</p>
         <span class="start-footer footer-left">Designed by Thomas</span>
         <span class="start-footer footer-right" id="game-version">v1.1.0</span>
+        <button id="ranking-btn" aria-label="Ranking mundial">🏆</button>
+    </div>
+
+    <div id="ranking-modal" class="modal">
+        <h2>🏆 TOP 10 MUNDIAL</h2>
+        <ol id="ranking-list"></ol>
+        <p id="ranking-me"></p>
+        <p id="ranking-status"></p>
+        <button id="ranking-close">Fechar</button>
+    </div>
+
+    <div id="nickname-modal" class="modal">
+        <h2>🌍 Novo recorde!</h2>
+        <p>Qual seu apelido para o ranking mundial?</p>
+        <input id="nickname-input" maxlength="12" autocomplete="off" placeholder="3 a 12 caracteres">
+        <p id="nickname-error"></p>
+        <div class="btn-row">
+            <button id="nickname-save">Salvar</button>
+            <button id="nickname-skip" class="btn-secondary">Agora não</button>
+        </div>
     </div>
 
     <button id="mute-btn" aria-label="Som">🔊</button>

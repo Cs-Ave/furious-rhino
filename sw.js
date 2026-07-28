@@ -10,6 +10,7 @@ const ASSETS = [
   './icon-512.png',
   './icon-maskable-512.png',
   './js/game.js',
+  './js/firebase-config.js',
   './js/utils/Constants.js',
   './js/utils/StorageManager.js',
   './js/art/ArtManifest.js',
@@ -31,6 +32,7 @@ const ASSETS = [
   './js/systems/FurySystem.js',
   './js/systems/AudioSystem.js',
   './js/systems/TuningPanel.js',
+  './js/systems/LeaderboardSystem.js',
   './js/scenes/BootScene.js',
   './js/scenes/GameScene.js',
   './js/entities/Rhino.js',
@@ -54,6 +56,12 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+  // Chamadas de dados do Firestore (googleapis.com) e requests não-GET vão
+  // direto à rede, sem passar pelo cache (o SDK em gstatic.com continua
+  // cacheável — bom para offline)
+  const url = new URL(e.request.url);
+  if (e.request.method !== 'GET' || url.hostname.endsWith('googleapis.com')) return;
+
   e.respondWith(
     fetch(e.request)
       .then((res) => {

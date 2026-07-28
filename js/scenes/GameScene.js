@@ -5,6 +5,7 @@ import { SpawnManager } from '../systems/SpawnManager.js';
 import { FurySystem } from '../systems/FurySystem.js';
 import { AudioSystem } from '../systems/AudioSystem.js';
 import { initTuningPanel } from '../systems/TuningPanel.js';
+import { LeaderboardSystem } from '../systems/LeaderboardSystem.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -62,10 +63,148 @@ export class GameScene extends Phaser.Scene {
   setupStartScreen() {
     document.getElementById('start-record').textContent = StorageManager.getRecord();
 
+    // Handler nomeado com guarda em vez de {once:true}: com um modal aberto
+    // (ranking/apelido), nenhuma tecla ou toque pode iniciar a corrida
     const overlay = document.getElementById('start-screen');
-    const start = () => this.startRun();
-    overlay.addEventListener('pointerdown', start, { once: true });
-    window.addEventListener('keydown', start, { once: true });
+    const start = () => {
+      if (document.body.classList.contains('modal-open')) return;
+      overlay.removeEventListener('pointerdown', start);
+      window.removeEventListener('keydown', start);
+      this.startRun();
+    };
+    overlay.addEventListener('pointerdown', start);
+    window.addEventListener('keydown', start);
+
+    this.setupLeaderboardUI();
+  }
+
+  setupLeaderboardUI() {
+    const rankingBtn = document.getElementById('ranking-btn');
+    const rankingModal = document.getElementById('ranking-modal');
+    const nickModal = document.getElementById('nickname-modal');
+    const nickInput = document.getElementById('nickname-input');
+
+    // Toques nos modais/botão não podem vazar para o start do overlay
+    // (mesmo padrão do #install-hint)
+    rankingBtn.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+    rankingModal.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+    nickModal.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+
+    rankingBtn.addEventListener('click', () => this.openRanking());
+    document.getElementById('ranking-close').addEventListener('click', () => {
+      this.closeModal(rankingModal);
+    });
+
+    document.getElementById('nickname-save').addEventListener('click', () => this.saveNickname());
+    document.getElementById('nickname-skip').addEventListener('click', () => this.closeNicknameModal(false));
+    nickInput.addEventListener('keydown', (ev) => {
+      ev.stopPropagation();
+      if (ev.key === 'Enter') this.saveNickname();
+    });
+  }
+
+  openModal(el) {
+    el.style.display = 'block';
+    document.body.classList.add('modal-open');
+  }
+
+  closeModal(el) {
+    el.style.display = 'none';
+    document.body.classList.remove('modal-open');
+  }
+
+  async openRanking() {
+    const modal = document.getElementById('ranking-modal');
+    const list = document.getElementById('ranking-list');
+    const me = document.getElementById('ranking-me');
+    const status = document.getElementById('ranking-status');
+    this.openModal(modal);
+    list.innerHTML = '';
+    me.textContent = '';
+
+    if (!LeaderboardSystem.isConfigured()) {
+      status.textContent = 'Ranking online ainda não configurado.';
+      return;
+    }
+    status.textContent = 'Carregando…';
+    const data = await LeaderboardSystem.fetchTop10();
+    if (!data) {
+      status.textContent = 'Sem conexão — tente de novo.';
+      return;
+    }
+    if (data.entries.length === 0) {
+      status.textContent = 'Ninguém no ranking ainda. Seja o primeiro!';
+      return;
+    }
+    status.textContent = '';
+
+    const myId = StorageManager.getOrCreatePlayerId();
+    data.entries.forEach((entry, i) => {
+      const li = document.createElement('li');
+      if (entry.id === myId) li.classList.add('me');
+      const name = document.createElement('span');
+      name.textContent = `${i + 1}. ${entry.name}`; // textContent: nome vem de terceiros
+      const score = document.createElement('span');
+      score.textContent = `${entry.score}m`;
+      li.append(name, score);
+      list.appendChild(li);
+    });
+
+    if (data.myBest > 0) {
+      me.textContent = data.myRank !== null
+        ? `Sua posição: #${data.myRank} — ${data.myBest}m`
+        : `Seu melhor: ${data.myBest}m`;
+    } else {
+      me.textContent = 'Jogue para entrar no ranking!';
+    }
+  }
+
+  async submitScore(distance) {
+    this.pendingScore = distance;
+    if (!StorageManager.getPlayerName()) {
+      this.openNicknameModal();
+      return;
+    }
+    const ok = await LeaderboardSystem.submit(distance);
+    if (ok) this.showOnlineStatus('🌍 Enviado ao ranking mundial!');
+  }
+
+  showOnlineStatus(msg) {
+    const id = this.won ? 'win-online-status' : 'online-status';
+    document.getElementById(id).textContent = msg;
+  }
+
+  openNicknameModal() {
+    const input = document.getElementById('nickname-input');
+    document.getElementById('nickname-error').textContent = '';
+    input.value = StorageManager.getPlayerName();
+    this.openModal(document.getElementById('nickname-modal'));
+    // O Phaser captura setas/espaço globalmente e quebraria a digitação
+    this.input.keyboard.disableGlobalCapture();
+    input.focus();
+  }
+
+  saveNickname() {
+    const input = document.getElementById('nickname-input');
+    const name = input.value.trim();
+    if (name.length < 3 || name.length > 12) {
+      document.getElementById('nickname-error').textContent =
+        'O apelido precisa ter de 3 a 12 caracteres.';
+      return;
+    }
+    StorageManager.setPlayerName(name);
+    this.closeNicknameModal(true);
+  }
+
+  closeNicknameModal(submit) {
+    this.closeModal(document.getElementById('nickname-modal'));
+    this.input.keyboard.enableGlobalCapture();
+    // "Agora não": bestSent não avança — repergunta no próximo recorde
+    if (submit && this.pendingScore) {
+      LeaderboardSystem.submit(this.pendingScore).then((ok) => {
+        if (ok) this.showOnlineStatus('🌍 Enviado ao ranking mundial!');
+      });
+    }
   }
 
   startRun() {
@@ -365,6 +504,10 @@ export class GameScene extends Phaser.Scene {
         const record = StorageManager.getRecord();
         document.getElementById('record-message').textContent = `Recorde: ${record}m`;
       }
+    }
+
+    if (LeaderboardSystem.shouldSubmit(distance)) {
+      this.submitScore(distance); // fire-and-forget: rede nunca trava o fim de jogo
     }
   }
 }
