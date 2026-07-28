@@ -1,5 +1,5 @@
 import { TextureFactory } from '../systems/TextureFactory.js';
-import { SVG_TEXTURES } from '../art/SvgSprites.js';
+import { ART_MANIFEST } from '../art/ArtManifest.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -7,14 +7,10 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    // Phaser decodes data-URIs with atob(), so the payload must be base64
-    // (the SVG strings are pure ASCII, safe for btoa)
-    for (const [key, def] of Object.entries(SVG_TEXTURES)) {
-      this.load.svg(
-        key,
-        'data:image/svg+xml;base64,' + btoa(def.svg),
-        { width: def.w, height: def.h }
-      );
+    // Os sprites vivem em art/*.svg (editáveis em qualquer editor de SVG);
+    // as dimensões de rasterização vêm do manifesto gerado
+    for (const [key, size] of Object.entries(ART_MANIFEST)) {
+      this.load.svg(key, 'art/' + key + '.svg', { width: size.w, height: size.h });
     }
   }
 

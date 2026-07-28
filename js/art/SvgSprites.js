@@ -1,5 +1,8 @@
-// Cartoon character art as inline SVG strings, rasterized by Phaser's SVG
-// loader in BootScene.preload(). No external asset files.
+// APOSENTADO do runtime na v1.2.0: a fonte da verdade agora são os arquivos
+// art/*.svg (edite-os direto em qualquer editor de SVG — Inkscape, Boxy SVG).
+// Este arquivo permanece apenas como o gerador original da arte:
+//   npm run export-art            → grava só os art/*.svg que faltam
+//   npm run export-art -- --force → REGENERA tudo e APAGA edições manuais
 
 // Shared rhino palette — light tones on purpose: the fury tint multiplies
 // (white -> red), so light grays show the red flush without going dark.

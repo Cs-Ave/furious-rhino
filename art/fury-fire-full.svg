@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" width="60" height="60">
+  <g opacity="1">
+    <!-- outer flame -->
+    <path d="M30 4 Q34 14 42 20 Q52 28 50 40 Q48 54 30 56 Q12 54 10 40 Q8 28 18 20 Q26 14 26 8 Q28 5 30 4 Z"
+          fill="#e8442a" stroke="#7a1c0c" stroke-width="3" stroke-linejoin="round"/>
+    <!-- side lick -->
+    <path d="M44 18 Q48 14 47 9 Q52 15 50 22 Q48 26 44 24 Z" fill="#e8442a" stroke="#7a1c0c" stroke-width="2.5" stroke-linejoin="round"/>
+    <!-- mid flame -->
+    <path d="M30 18 Q33 26 39 31 Q45 37 42 45 Q39 52 30 53 Q21 52 18 45 Q15 37 21 31 Q27 26 30 18 Z"
+          fill="#f5851f"/>
+    <!-- hot core -->
+    <path d="M30 32 Q35 38 34 44 Q33 50 30 50 Q27 50 26 44 Q25 38 30 32 Z" fill="#ffd94a"/>
+  </g>
+</svg>

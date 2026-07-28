@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 32" width="44" height="32">
+  <!-- tail feathers -->
+  <path d="M8 16 L0 10 L4 16 L0 20 Z" fill="#3a6fc0" stroke="#26518f" stroke-width="1.5"/>
+  <!-- body -->
+  <ellipse cx="22" cy="18" rx="14" ry="10" fill="#4f8fe8" stroke="#26518f" stroke-width="2.5"/>
+  <ellipse cx="24" cy="22" rx="8" ry="5" fill="#ffffff"/>
+  <path d="M18 20 Q12 30 26 29 Q30 25 24 18 Z" fill="#3a6fc0" stroke="#26518f" stroke-width="2" stroke-linejoin="round"/>
+  <!-- head -->
+  <circle cx="34" cy="12" r="7" fill="#4f8fe8" stroke="#26518f" stroke-width="2.5"/>
+  <path d="M40 11 L44 13 L40 15 Z" fill="#f5a623" stroke="#c47f10" stroke-width="1"/>
+  <circle cx="35" cy="10" r="1.8" fill="#101820"/>
+</svg>
