@@ -30,6 +30,7 @@ const ASSETS = [
   './js/systems/SpawnManager.js',
   './js/systems/FurySystem.js',
   './js/systems/AudioSystem.js',
+  './js/systems/TuningPanel.js',
   './js/scenes/BootScene.js',
   './js/scenes/GameScene.js',
   './js/entities/Rhino.js',

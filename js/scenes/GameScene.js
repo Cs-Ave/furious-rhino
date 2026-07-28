@@ -4,6 +4,7 @@ import { Rhino } from '../entities/Rhino.js';
 import { SpawnManager } from '../systems/SpawnManager.js';
 import { FurySystem } from '../systems/FurySystem.js';
 import { AudioSystem } from '../systems/AudioSystem.js';
+import { initTuningPanel } from '../systems/TuningPanel.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -54,6 +55,8 @@ export class GameScene extends Phaser.Scene {
     this.windEmitter.setDepth(4);
 
     this.cameras.main.startFollow(this.rhino.getSprite(), true, 0.1, 0, -200);
+
+    if (this.registry.get('debug')) initTuningPanel(this);
   }
 
   setupStartScreen() {
