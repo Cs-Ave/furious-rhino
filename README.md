@@ -1,7 +1,5 @@
 # 🦏 FURIOUS RHINO
 
-##<teste de update>
-
 Um rinoceronte rabujento decide fugir do zoológico — investindo contra as paredes de forma contínua e em linha reta, enquanto os outros animais tentam (sem sucesso) ficar no caminho.
 
 **▶️ Jogue agora: https://cs-ave.github.io/furious-rhino/**
