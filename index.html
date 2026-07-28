@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FURIOUS RHINO</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#7ec8f0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #1a1a1a;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            overscroll-behavior: none;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            display: block;
+            max-width: 100vw;
+            max-height: 100vh;
+        }
+
+        #ui {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 18px;
+            z-index: 100;
+        }
+
+        .score {
+            margin-bottom: 10px;
+        }
+
+        .record {
+            color: #ffcc00;
+        }
+
+        #game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 40px;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+            z-index: 200;
+            display: none;
+            min-width: 300px;
+        }
+
+        #game-over h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            color: #ff6b6b;
+        }
+
+        #game-over p {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+
+        #game-over .final-score {
+            color: #4ecdc4;
+            font-size: 24px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        #game-over .record-beat {
+            color: #ffcc00;
+            font-size: 20px;
+            margin-top: 15px;
+        }
+
+        #game-over button {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 16px;
+            background: #4ecdc4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #game-over button:hover {
+            background: #45b8af;
+        }
+
+        #game-win {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 40px;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+            z-index: 200;
+            display: none;
+            min-width: 300px;
+        }
+
+        #game-win h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            color: #4ecdc4;
+        }
+
+        #game-win p {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+
+        #game-win .final-score {
+            color: #ffcc00;
+            font-size: 24px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+
+        #game-win button {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 16px;
+            background: #4ecdc4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #game-win button:hover {
+            background: #45b8af;
+        }
+
+        .touch-guides {
+            position: fixed;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            padding: 0 20px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+        }
+
+        .touch-guide {
+            text-align: center;
+        }
+
+        /* HUD only appears after the run starts */
+        body:not(.started) #ui,
+        body:not(.started) .touch-guides {
+            display: none;
+        }
+
+        #start-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 18px;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            text-align: center;
+        }
+
+        #start-screen h1 {
+            font-size: clamp(40px, 9vw, 84px);
+            color: #ff9944;
+            text-shadow: 4px 4px 0 #7a1c0c;
+            transform: rotate(-3deg);
+            letter-spacing: 2px;
+        }
+
+        .start-controls p {
+            font-size: 16px;
+            margin: 6px 0;
+            color: #d7e7f5;
+        }
+
+        #start-screen .record {
+            color: #ffcc00;
+            font-size: 18px;
+        }
+
+        .start-cta {
+            font-size: 22px;
+            color: #4ecdc4;
+            animation: pulse 1.2s infinite;
+        }
+
+        @keyframes pulse {
+            50% { opacity: 0.4; }
+        }
+
+        #mute-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 250;
+            font-size: 24px;
+            background: rgba(0, 0, 0, 0.4);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+
+        #rotate-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 400;
+            background: #1a1a1a;
+            color: white;
+            font-size: 28px;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        @media (orientation: portrait) {
+            #rotate-overlay { display: flex; }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+
+    <div id="ui">
+        <div class="score">Pontuação: <span id="score">0</span></div>
+        <div class="record">Recorde: <span id="record">0</span></div>
+    </div>
+
+    <div id="game-over">
+        <h1>GAME OVER</h1>
+        <p>Distância: <span class="final-score" id="final-score">0</span>m</p>
+        <p id="record-message"></p>
+        <button onclick="location.reload()">Jogar Novamente</button>
+    </div>
+
+    <div id="game-win">
+        <h1>VOCÊ ESCAPOU!</h1>
+        <p>Distância: <span class="final-score" id="win-final-score">0</span>m</p>
+        <p id="win-record-message"></p>
+        <button onclick="location.reload()">Jogar Novamente</button>
+    </div>
+
+    <div class="touch-guides">
+        <div class="touch-guide">
+            <div>← ESQUERDA</div>
+            <div>Pulo</div>
+        </div>
+        <div class="touch-guide">
+            <div>DIREITA →</div>
+            <div>Investida</div>
+        </div>
+    </div>
+
+    <div id="start-screen">
+        <h1>FURIOUS RHINO</h1>
+        <div class="start-controls">
+            <p>📱 Toque na ESQUERDA: Pulo &nbsp;|&nbsp; DIREITA: Investida</p>
+            <p>⌨️ Seta ← Pulo &nbsp;|&nbsp; Seta → Investida</p>
+            <p>Quebre as paredes trincadas com a investida e fuja do zoológico!</p>
+        </div>
+        <p class="record">Recorde: <span id="start-record">0</span>m</p>
+        <p class="start-cta">TOQUE PARA COMEÇAR</p>
+    </div>
+
+    <button id="mute-btn" aria-label="Som">🔊</button>
+
+    <div id="rotate-overlay">Gire o celular 📱↔️</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.85.2/dist/phaser.min.js"></script>
+    <script type="module" src="js/game.js"></script>
+</body>
+</html>

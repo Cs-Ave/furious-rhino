@@ -1,0 +1,367 @@
+import { Constants } from '../utils/Constants.js';
+import { StorageManager } from '../utils/StorageManager.js';
+import { Rhino } from '../entities/Rhino.js';
+import { SpawnManager } from '../systems/SpawnManager.js';
+import { FurySystem } from '../systems/FurySystem.js';
+import { AudioSystem } from '../systems/AudioSystem.js';
+
+export class GameScene extends Phaser.Scene {
+  constructor() {
+    super('GameScene');
+  }
+
+  create() {
+    this.physics.world.setFPS(60);
+    // Ceiling-only world bounds: stops the infinite jump from flying the
+    // rhino out of the scene (no side walls, no world floor)
+    this.physics.world.setBounds(
+      0, 0, Constants.WIN_DISTANCE_PX + 1000, Constants.GAME_HEIGHT,
+      false, false, true, false
+    );
+    this.cameras.main.setBounds(0, 0, Constants.WIN_DISTANCE_PX + 1000, Constants.GAME_HEIGHT);
+    this.cameras.main.setLerp(0.1, 0);
+
+    this.createBackground();
+
+    this.rhino = new Rhino(this, 100, Constants.GAME_HEIGHT - 100);
+    this.spawnManager = new SpawnManager(this);
+    this.furySystem = new FurySystem(this);
+
+    this.createGround();
+    this.setupInput();
+    this.setupCollisions();
+    this.createDashIcon();
+
+    this.gameOver = false;
+    this.won = false;
+
+    // Hold everything until the start-screen tap (which also unlocks audio)
+    this.started = false;
+    this.audio = new AudioSystem();
+    this.audio.bindMuteButton(document.getElementById('mute-btn'));
+    this.physics.pause();
+    this.setupStartScreen();
+
+    // Manual-emission wind streaks trailing the rhino during a dash
+    this.windEmitter = this.add.particles(0, 0, 'wind-streak', {
+      speedX: { min: -350, max: -220 },
+      speedY: { min: -30, max: 30 },
+      alpha: { start: 0.9, end: 0 },
+      scaleX: { start: 1, end: 1.6 },
+      lifespan: 250,
+      frequency: -1,
+    });
+    this.windEmitter.setDepth(4);
+
+    this.cameras.main.startFollow(this.rhino.getSprite(), true, 0.1, 0, -200);
+  }
+
+  setupStartScreen() {
+    document.getElementById('start-record').textContent = StorageManager.getRecord();
+
+    const overlay = document.getElementById('start-screen');
+    const start = () => this.startRun();
+    overlay.addEventListener('pointerdown', start, { once: true });
+    window.addEventListener('keydown', start, { once: true });
+  }
+
+  startRun() {
+    if (this.startTriggered) return;
+    this.startTriggered = true;
+    const overlay = document.getElementById('start-screen');
+    if (overlay) overlay.style.display = 'none';
+    document.body.classList.add('started');
+
+    // Audio must init synchronously inside the user gesture
+    this.audio.init();
+    this.audio.startMusic();
+
+    this.physics.resume();
+    // Small grace so a stray click right after the overlay hides can't jump
+    this.time.delayedCall(150, () => { this.started = true; });
+
+    // Fullscreen + landscape lock: fire-and-forget, silently ignored on iOS
+    (async () => {
+      try {
+        await document.documentElement.requestFullscreen();
+        await screen.orientation.lock('landscape');
+      } catch (e) { /* unsupported (iOS/desktop) — portrait CSS overlay covers it */ }
+    })();
+  }
+
+  createBackground() {
+    this.add.image(640, 360, 'bg-sky').setScrollFactor(0).setDepth(-20);
+    // Fixed-to-camera tileSprites scrolled manually in update() — avoids
+    // creating world-width objects for a 16000px level
+    this.bgFar = this.add.tileSprite(640, 410, 1280, 420, 'bg-far')
+      .setScrollFactor(0).setDepth(-19);
+    this.bgNear = this.add.tileSprite(640, 490, 1280, 260, 'bg-near')
+      .setScrollFactor(0).setDepth(-18);
+    this.bgClouds = this.add.tileSprite(640, 130, 1280, 200, 'bg-clouds')
+      .setScrollFactor(0).setDepth(-19.5);
+  }
+
+  createGround() {
+    const width = Constants.WIN_DISTANCE_PX + 4000;
+    const ground = this.add.tileSprite(width / 2, Constants.GAME_HEIGHT - 50, width, 100, 'ground');
+    this.physics.add.existing(ground, true);
+
+    this.physics.add.collider(this.rhino.getSprite(), ground);
+  }
+
+  setupInput() {
+    this.leftPointerId = null;
+
+    this.input.on('pointerdown', (pointer) => {
+      if (!this.started || this.gameOver || this.won) return;
+
+      if (pointer.x < this.scale.width / 2) {
+        this.leftPointerId = pointer.id;
+        this.rhino.onLeftPress();
+        this.audio.playJump(this.rhino.jumpCount);
+      } else {
+        if (this.rhino.onRightPress()) this.audio.playDash();
+      }
+    });
+
+    this.input.on('pointerup', (pointer) => {
+      if (pointer.id === this.leftPointerId) {
+        this.leftPointerId = null;
+        this.rhino.onLeftRelease();
+      }
+    });
+
+    // Keyboard for desktop: left arrow = jump, right arrow = dash
+    this.input.keyboard.on('keydown-LEFT', (event) => {
+      if (event.repeat || !this.started || this.gameOver || this.won) return;
+      this.rhino.onLeftPress();
+      this.audio.playJump(this.rhino.jumpCount);
+    });
+    this.input.keyboard.on('keyup-LEFT', () => {
+      this.rhino.onLeftRelease();
+    });
+    this.input.keyboard.on('keydown-RIGHT', (event) => {
+      if (event.repeat || !this.started || this.gameOver || this.won) return;
+      if (this.rhino.onRightPress()) this.audio.playDash();
+    });
+  }
+
+  setupCollisions() {
+    this.physics.add.overlap(
+      this.rhino.getSprite(),
+      this.spawnManager.getWallsGroup(),
+      this.onWallHit,
+      null,
+      this
+    );
+
+    this.physics.add.overlap(
+      this.rhino.getSprite(),
+      this.spawnManager.getSpikesGroup(),
+      this.onSpikeHit,
+      null,
+      this
+    );
+
+    this.physics.add.overlap(
+      this.rhino.getSprite(),
+      this.spawnManager.getAnimalsGroup(),
+      this.onAnimalHit,
+      null,
+      this
+    );
+  }
+
+  onWallHit(rhino, wall) {
+    if (this.gameOver || this.won) return;
+    if (wall.broken) return;
+
+    const bounds = wall.getCrackBounds();
+    // Rhino sprite origin is (0.5, 1): y is the bottom edge
+    const rhinoTop = rhino.y - rhino.displayHeight;
+    const rhinoBottom = rhino.y;
+
+    const aligned = rhinoBottom > bounds.top && rhinoTop < bounds.bottom;
+    const isDashing = this.rhino.dashState === 'active';
+
+    if (aligned && isDashing) {
+      wall.break();
+      const crackCenterY = (bounds.top + bounds.bottom) / 2;
+      this.audio.playBreak();
+      this.createExplosion(wall.x, crackCenterY);
+      this.createBreakParticles(wall.x, crackCenterY);
+    } else {
+      this.endGame(false);
+    }
+  }
+
+  onSpikeHit(rhino, spike) {
+    if (this.gameOver || this.won) return;
+    this.endGame(false);
+  }
+
+  onAnimalHit(rhino, animal) {
+    if (this.gameOver || this.won) return;
+    if (animal.knockedOut) return;
+
+    const isDashing = this.rhino.dashState === 'active';
+    if (isDashing) {
+      animal.knockback();
+      this.audio.playSqueal();
+      this.createExplosion(animal.x, animal.y);
+    } else {
+      this.endGame(false);
+    }
+  }
+
+  createExplosion(x, y) {
+    const flash = this.add.image(x, y, 'explosion-flash')
+      .setScale(0.5).setDepth(6);
+    this.tweens.add({
+      targets: flash,
+      scale: 2.5,
+      alpha: 0,
+      duration: 300,
+      ease: 'Cubic.easeOut',
+      onComplete: () => flash.destroy(),
+    });
+
+    // radial debris burst
+    for (let i = 0; i < 6; i++) {
+      const angle = (Math.PI * 2 * i) / 6 + Phaser.Math.FloatBetween(-0.3, 0.3);
+      const speed = Phaser.Math.Between(150, 300);
+      const chunk = this.add.image(x, y, 'debris-chunk')
+        .setRotation(Phaser.Math.FloatBetween(0, Math.PI * 2));
+      this.physics.add.existing(chunk);
+      chunk.body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed - 150);
+      chunk.body.setAngularVelocity(Phaser.Math.Between(-500, 500));
+      this.tweens.add({
+        targets: chunk,
+        alpha: 0,
+        duration: 500,
+        onComplete: () => chunk.destroy(),
+      });
+    }
+
+    this.cameras.main.shake(150, 0.03);
+  }
+
+  createBreakParticles(x, y) {
+    for (let i = 0; i < 10; i++) {
+      const px = x + Phaser.Math.Between(-20, 20);
+      const py = y + Phaser.Math.Between(-50, 50);
+      const particle = this.add.image(px, py, 'debris-chunk')
+        .setRotation(Phaser.Math.FloatBetween(0, Math.PI * 2))
+        .setScale(Phaser.Math.FloatBetween(0.7, 1.4));
+      this.physics.add.existing(particle);
+      particle.body.setVelocity(
+        Phaser.Math.Between(-200, 200),
+        Phaser.Math.Between(-300, -100)
+      );
+      particle.body.setAngularVelocity(Phaser.Math.Between(-500, 500));
+      this.tweens.add({
+        targets: particle,
+        alpha: 0,
+        duration: 600,
+        onComplete: () => particle.destroy(),
+      });
+    }
+  }
+
+  createDashIcon() {
+    const baseIconX = Constants.GAME_WIDTH - Constants.HUD_MARGIN - 60;
+    const baseIconY = Constants.HUD_MARGIN + 30;
+
+    this.dashIconEmpty = this.add.sprite(baseIconX, baseIconY, 'rhino-face-empty');
+    this.dashIconEmpty.setOrigin(0.5, 0.5);
+    this.dashIconEmpty.setScrollFactor(0);
+    this.dashIconEmpty.setDepth(100);
+
+    this.dashIconFull = this.add.sprite(baseIconX, baseIconY, 'rhino-face-full');
+    this.dashIconFull.setOrigin(0.5, 0.5);
+    this.dashIconFull.setScrollFactor(0);
+    this.dashIconFull.setDepth(101);
+  }
+
+  updateDashIcon() {
+    const progress = this.rhino.getDashCooldownRatio();
+    const h = Constants.DASH_ICON_SIZE * progress;
+    const y = Constants.DASH_ICON_SIZE - h;
+
+    this.dashIconFull.setCrop(0, y, Constants.DASH_ICON_SIZE, h);
+  }
+
+  update(time, delta) {
+    if (!this.started || this.gameOver || this.won) return;
+
+    this.bgClouds.tilePositionX = this.cameras.main.scrollX * 0.05 + time * 0.005;
+    this.bgFar.tilePositionX = this.cameras.main.scrollX * 0.15;
+    this.bgNear.tilePositionX = this.cameras.main.scrollX * 0.4;
+
+    this.rhino.update(time, delta);
+
+    // Wind streaks while dashing
+    if (this.rhino.dashState === 'active') {
+      const sprite = this.rhino.getSprite();
+      for (let i = 0; i < 3; i++) {
+        this.windEmitter.emitParticleAt(
+          sprite.x - Phaser.Math.Between(20, 60),
+          sprite.y - Phaser.Math.Between(8, 56)
+        );
+      }
+    }
+    this.furySystem.update(this.rhino);
+    this.audio.setIntensity(this.rhino.getFuryRatio());
+    this.spawnManager.update(this.cameras.main, this.rhino.getFuryRatio());
+    this.updateDashIcon();
+
+    this.updateScoreDisplay();
+
+    if (this.rhino.getSprite().x >= Constants.WIN_DISTANCE_PX) {
+      this.endGame(true);
+    }
+
+    if (this.rhino.getSprite().y > Constants.GAME_HEIGHT + 100) {
+      this.endGame(false);
+    }
+  }
+
+  updateScoreDisplay() {
+    document.getElementById('score').textContent = this.rhino.getDistance();
+    const record = StorageManager.getRecord();
+    document.getElementById('record').textContent = record;
+  }
+
+  endGame(won) {
+    this.gameOver = true;
+    this.won = won;
+    this.physics.pause();
+
+    this.audio.stopMusic();
+    if (won) this.audio.playFanfare();
+    else this.audio.playDeathSting();
+
+    const distance = this.rhino.getDistance();
+    const isNewRecord = StorageManager.isNewRecord(distance);
+    StorageManager.saveRecord(distance);
+
+    if (won) {
+      document.getElementById('game-win').style.display = 'block';
+      document.getElementById('win-final-score').textContent = distance;
+      if (isNewRecord) {
+        document.getElementById('win-record-message').textContent = '🎉 NOVO RECORDE!';
+      } else {
+        document.getElementById('win-record-message').textContent = 'Você escapou!';
+      }
+    } else {
+      document.getElementById('game-over').style.display = 'block';
+      document.getElementById('final-score').textContent = distance;
+      if (isNewRecord) {
+        document.getElementById('record-message').textContent = '🎉 NOVO RECORDE!';
+      } else {
+        const record = StorageManager.getRecord();
+        document.getElementById('record-message').textContent = `Recorde: ${record}m`;
+      }
+    }
+  }
+}
