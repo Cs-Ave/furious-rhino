@@ -2,8 +2,10 @@
 // Estas chaves são públicas por design — a proteção real são as Security
 // Rules do Firestore (ver README/plano). Preencher com o config do projeto.
 export const firebaseConfig = {
-  apiKey: '',
-  authDomain: '',
-  projectId: '',
-  appId: '',
+  apiKey: 'AIzaSyDw8FXJbmwEDO_3ejURnHVCe2Tob1I15Ic',
+  authDomain: 'furious-rhino.firebaseapp.com',
+  projectId: 'furious-rhino',
+  storageBucket: 'furious-rhino.firebasestorage.app',
+  messagingSenderId: '235327528425',
+  appId: '1:235327528425:web:d9282cf51cbe3ca1f47f78',
 };
