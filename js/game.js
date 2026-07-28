@@ -26,6 +26,12 @@ const config = {
 
 const game = new Phaser.Game(config);
 
+// iOS Safari: o viewport é recalculado com atraso ao girar o aparelho;
+// força o Scale Manager a se re-medir depois da rotação
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => game.scale.refresh(), 300);
+});
+
 // Offline play: register the service worker (secure contexts only —
 // on a LAN IP over http the SW simply won't register, game still works)
 if ('serviceWorker' in navigator &&
