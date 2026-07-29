@@ -58,4 +58,45 @@ export class StorageManager {
   static setBestSent(meters) {
     localStorage.setItem(this.BEST_SENT_KEY, meters.toString());
   }
+
+  // --- Medalhas e contadores acumulados (v1.2.1) ---
+  static MEDALS_KEY = 'furious_rhino_medals';
+  static ANIMALS_TOTAL_KEY = 'furious_rhino_animals_total';
+  static LAST_RANK_KEY = 'furious_rhino_last_rank';
+
+  static getMedals() {
+    try {
+      return JSON.parse(localStorage.getItem(this.MEDALS_KEY)) || [];
+    } catch (e) {
+      return []; // JSON corrompido — recomeça sem travar o jogo
+    }
+  }
+
+  static addMedals(ids) {
+    const merged = [...new Set([...this.getMedals(), ...ids])];
+    localStorage.setItem(this.MEDALS_KEY, JSON.stringify(merged));
+  }
+
+  // Total de animais atropelados somando todas as corridas
+  static getAnimalsTotal() {
+    const stored = localStorage.getItem(this.ANIMALS_TOTAL_KEY);
+    return stored ? parseInt(stored, 10) : 0;
+  }
+
+  static addAnimalsHit(count) {
+    const total = this.getAnimalsTotal() + count;
+    localStorage.setItem(this.ANIMALS_TOTAL_KEY, total.toString());
+    return total;
+  }
+
+  // Última posição vista no ranking online — cacheada para a tela de
+  // início mostrar sem nenhum custo de rede
+  static getLastRank() {
+    const stored = localStorage.getItem(this.LAST_RANK_KEY);
+    return stored ? parseInt(stored, 10) : 0;
+  }
+
+  static setLastRank(rank) {
+    localStorage.setItem(this.LAST_RANK_KEY, rank.toString());
+  }
 }

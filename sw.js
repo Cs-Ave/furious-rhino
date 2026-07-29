@@ -37,6 +37,7 @@ const ASSETS = [
   './js/systems/AudioSystem.js',
   './js/systems/TuningPanel.js',
   './js/systems/LeaderboardSystem.js',
+  './js/systems/MedalSystem.js',
   './js/scenes/BootScene.js',
   './js/scenes/GameScene.js',
   './js/entities/Rhino.js',

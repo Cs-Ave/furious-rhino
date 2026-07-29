@@ -6,6 +6,7 @@ import { FurySystem } from '../systems/FurySystem.js';
 import { AudioSystem } from '../systems/AudioSystem.js';
 import { initTuningPanel } from '../systems/TuningPanel.js';
 import { LeaderboardSystem } from '../systems/LeaderboardSystem.js';
+import { MedalSystem, MEDALS } from '../systems/MedalSystem.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -36,6 +37,9 @@ export class GameScene extends Phaser.Scene {
 
     this.gameOver = false;
     this.won = false;
+    // Contadores da corrida atual (critérios de medalha)
+    this.runWallsBroken = 0;
+    this.runAnimalsHit = 0;
 
     // Hold everything until the start-screen tap (which also unlocks audio)
     this.started = false;
@@ -336,6 +340,7 @@ export class GameScene extends Phaser.Scene {
 
     if (aligned && isDashing) {
       wall.break();
+      this.runWallsBroken++;
       const crackCenterY = (bounds.top + bounds.bottom) / 2;
       this.audio.playBreak();
       this.createExplosion(wall.x, crackCenterY);
@@ -357,6 +362,7 @@ export class GameScene extends Phaser.Scene {
     const isDashing = this.rhino.dashState === 'active';
     if (isDashing) {
       animal.knockback();
+      this.runAnimalsHit++;
       this.audio.playSqueal();
       this.createExplosion(animal.x, animal.y);
     } else {
@@ -493,6 +499,8 @@ export class GameScene extends Phaser.Scene {
 
     const distance = this.rhino.getDistance();
     const isNewRecord = StorageManager.isNewRecord(distance);
+    // Antes do saveRecord, senão "tinha recorde anterior" seria sempre true
+    const hadPreviousRecord = StorageManager.getRecord() > 0;
     StorageManager.saveRecord(distance);
 
     if (won) {
@@ -512,6 +520,19 @@ export class GameScene extends Phaser.Scene {
         const record = StorageManager.getRecord();
         document.getElementById('record-message').textContent = `Recorde: ${record}m`;
       }
+    }
+
+    // Medalhas: avaliar e anunciar (persistidas — "Jogar Novamente" recarrega)
+    const animalsTotal = StorageManager.addAnimalsHit(this.runAnimalsHit);
+    const newMedals = MedalSystem.evaluateRun({
+      distance, won, isNewRecord, hadPreviousRecord,
+      wallsBroken: this.runWallsBroken, animalsTotal,
+    });
+    if (newMedals.length) {
+      const id = won ? 'win-medal-message' : 'medal-message';
+      document.getElementById(id).textContent =
+        '🏅 Medalha nova: ' + newMedals.map((m) => `${m.emoji} ${m.name}`).join(' · ');
+      if (!won) this.audio.playFanfare(); // na vitória a fanfarra já tocou acima
     }
 
     if (LeaderboardSystem.shouldSubmit(distance)) {
