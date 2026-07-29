@@ -33,6 +33,19 @@ export async function initTuningPanel(scene) {
   dificuldade.add(Constants, 'MIN_SAFE_GAP', 300, 1200, 10);
   dificuldade.add(Constants, 'INITIAL_GAP', 400, 1600, 10);
   dificuldade.add(Constants, 'SPAWN_LOOKAHEAD_PX', 200, 1500, 25);
+  dificuldade.add(Constants, 'ANIMAL_EXTRA_LEAD_PX', 0, 800, 25);
+
+  // Velocidades/pulos são lidos por frame em Animal.preUpdate — os sliders
+  // valem na hora até para animais já em tela
+  const animais = gui.addFolder('Animais');
+  for (const t of Constants.ANIMAL_TYPES) {
+    animais.add(Constants.ANIMAL_BEHAVIOR[t], 'speed', 0, 400, 5).name(`${t} vel`);
+  }
+  animais.add(Constants.ANIMAL_BEHAVIOR.monkey, 'jumpV', -900, -200, 10).name('macaco pulo');
+  animais.add(Constants.ANIMAL_BEHAVIOR.monkey, 'jumpIntervalMs', 0, 2000, 50).name('macaco intervalo');
+  animais.add(Constants.ANIMAL_BEHAVIOR.zebra, 'jumpV', -1100, -400, 10).name('zebra pulo');
+  animais.add(Constants.ANIMAL_BEHAVIOR.zebra, 'jumpIntervalMs', 0, 2000, 50).name('zebra intervalo');
+  animais.close();
 
   const furia = gui.addFolder('Fúria');
   furia.add(Constants, 'FURY_FULL_DISTANCE_PX', 2000, 30000, 500);

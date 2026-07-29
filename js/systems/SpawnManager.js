@@ -75,6 +75,9 @@ export class SpawnManager {
       } else if (type === 'spike') {
         this.spawnSpike(this.nextSpawnX);
       } else {
+        // O animal anda contra o rino: o vão antes dele encolhe até o
+        // encontro — nasce mais à frente para compensar
+        this.nextSpawnX += Constants.ANIMAL_EXTRA_LEAD_PX;
         this.spawnAnimal(this.nextSpawnX);
       }
 
