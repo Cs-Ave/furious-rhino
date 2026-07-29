@@ -38,8 +38,31 @@ export async function initTuningPanel(scene) {
   furia.add(Constants, 'FURY_FULL_DISTANCE_PX', 2000, 30000, 500);
 
   const debug = gui.addFolder('Debug');
-  const state = { hitboxes: false };
+  const state = { hitboxes: false, pausado: false };
   debug.add(state, 'hitboxes').name('Hitboxes').onChange((on) => setHitboxes(scene, on));
+
+  // scene.pause() congela update/física/animações/tweens da cena, mas o
+  // render continua — a tela fica visível, e o painel (DOM) segue clicável
+  const pauseCtrl = debug.add(state, 'pausado').name('Pausar').onChange((on) => {
+    if (on) scene.scene.pause();
+    else scene.scene.resume();
+  });
+
+  debug.add({
+    passo: () => {
+      if (!state.pausado) {
+        // primeiro clique fora da pausa: entra no modo pausado
+        state.pausado = true;
+        pauseCtrl.updateDisplay();
+        scene.scene.pause();
+        return;
+      }
+      // religa a cena por exatamente 1 tick e pausa de novo após o update
+      scene.scene.resume();
+      scene.events.once('postupdate', () => scene.scene.pause());
+    },
+  }, 'passo').name('Avançar 1 frame');
+
   debug.add({ reiniciar: () => location.reload() }, 'reiniciar').name('Reiniciar (?debug=1)');
 }
 
