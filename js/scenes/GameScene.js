@@ -68,6 +68,14 @@ export class GameScene extends Phaser.Scene {
   setupStartScreen() {
     document.getElementById('start-record').textContent = StorageManager.getRecord();
 
+    // Última posição conhecida no ranking (cacheada — zero rede no load)
+    const rank = StorageManager.getLastRank();
+    if (rank > 0) {
+      document.getElementById('start-rank-pos').textContent = rank;
+      document.getElementById('start-rank').hidden = false;
+    }
+    this.setupMedalStrip();
+
     // Handler nomeado com guarda em vez de {once:true}: com um modal aberto
     // (ranking/apelido), nenhuma tecla ou toque pode iniciar a corrida
     const overlay = document.getElementById('start-screen');
@@ -106,6 +114,45 @@ export class GameScene extends Phaser.Scene {
       ev.stopPropagation();
       if (ev.key === 'Enter') this.saveNickname();
     });
+  }
+
+  // Faixa de medalhas na tela de início + modal com nomes/descrições
+  setupMedalStrip() {
+    const strip = document.getElementById('medal-strip');
+    const modal = document.getElementById('medals-modal');
+    const list = document.getElementById('medals-list');
+    const owned = new Set(StorageManager.getMedals());
+
+    strip.textContent = '';
+    list.textContent = '';
+    for (const medal of MEDALS) {
+      const span = document.createElement('span');
+      span.textContent = medal.emoji;
+      span.title = medal.name;
+      if (!owned.has(medal.id)) span.classList.add('locked');
+      strip.appendChild(span);
+
+      const li = document.createElement('li');
+      if (!owned.has(medal.id)) li.classList.add('locked');
+      const emoji = document.createElement('span');
+      emoji.className = 'm-emoji';
+      emoji.textContent = medal.emoji;
+      const text = document.createElement('span');
+      const name = document.createElement('b');
+      name.textContent = `${medal.name} — `;
+      const desc = document.createElement('span');
+      desc.className = 'm-desc';
+      desc.textContent = medal.desc;
+      text.append(name, desc);
+      li.append(emoji, text);
+      list.appendChild(li);
+    }
+
+    // Toques na faixa/modal não podem vazar para o start do overlay
+    strip.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+    modal.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+    strip.addEventListener('click', () => this.openModal(modal));
+    document.getElementById('medals-close').addEventListener('click', () => this.closeModal(modal));
   }
 
   openModal(el) {

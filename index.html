@@ -206,29 +206,198 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            gap: 18px;
+            gap: 14px;
             background: rgba(0, 0, 0, 0.85);
             color: white;
             text-align: center;
         }
 
+        /* Título "3D" sem webfont: contorno + sombras em camadas */
         #start-screen h1 {
             font-size: clamp(40px, 9vw, 84px);
+            font-weight: 900;
             color: #ff9944;
-            text-shadow: 4px 4px 0 #7a1c0c;
+            -webkit-text-stroke: 2px #7a1c0c;
+            text-shadow: 3px 3px 0 #7a1c0c, 6px 6px 0 rgba(0, 0, 0, 0.45);
             transform: rotate(-3deg);
             letter-spacing: 2px;
+            animation: stomp 2.4s ease-in-out infinite;
         }
 
-        .start-controls p {
-            font-size: 16px;
-            margin: 6px 0;
+        @keyframes stomp {
+            50% { transform: rotate(-3deg) scale(1.03); }
+        }
+
+        .start-hero {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+        }
+
+        .hint-card {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1.5px solid rgba(78, 205, 196, 0.5);
+            border-radius: 12px;
+            padding: 10px 16px;
+            min-width: 130px;
+        }
+
+        .hint-side {
+            font-size: 13px;
+            color: #4ecdc4;
+            letter-spacing: 1px;
+        }
+
+        .hint-action {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 4px 0;
+        }
+
+        .hint-detail {
+            font-size: 12px;
+            color: rgba(215, 231, 245, 0.7);
+        }
+
+        /* Rino animado sem JS: 3 frames empilhados; cada keyframe segura o
+           frame no ciclo 0-1-2-1 do jogo (steps mantém o valor do trecho) */
+        .rhino-anim {
+            position: relative;
+            width: 144px;
+            height: 96px;
+            animation: rhino-bob 0.48s ease-in-out infinite;
+        }
+
+        .rhino-anim img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            visibility: hidden;
+        }
+
+        .rhino-anim .f0 { animation: rhino-f0 0.48s steps(1) infinite; }
+        .rhino-anim .f1 { animation: rhino-f1 0.48s steps(1) infinite; }
+        .rhino-anim .f2 { animation: rhino-f2 0.48s steps(1) infinite; }
+
+        @keyframes rhino-f0 {
+            0% { visibility: visible; }
+            25% { visibility: hidden; }
+        }
+
+        @keyframes rhino-f1 {
+            0% { visibility: hidden; }
+            25% { visibility: visible; }
+            50% { visibility: hidden; }
+            75% { visibility: visible; }
+        }
+
+        @keyframes rhino-f2 {
+            0% { visibility: hidden; }
+            50% { visibility: visible; }
+            75% { visibility: hidden; }
+        }
+
+        @keyframes rhino-bob {
+            50% { transform: translateY(-4px); }
+        }
+
+        .start-tagline {
+            font-size: 14px;
             color: #d7e7f5;
+        }
+
+        .start-stats {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            font-size: 18px;
         }
 
         #start-screen .record {
             color: #ffcc00;
             font-size: 18px;
+        }
+
+        #start-rank {
+            color: #4ecdc4;
+        }
+
+        #medal-strip {
+            display: flex;
+            gap: 8px;
+            font-size: 26px;
+            cursor: pointer;
+            padding: 4px 10px;
+        }
+
+        #medal-strip .locked {
+            filter: grayscale(1);
+            opacity: 0.3;
+        }
+
+        #medals-list {
+            list-style: none;
+            margin: 0 0 6px;
+            padding: 0;
+            text-align: left;
+        }
+
+        #medals-list li {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            padding: 5px 8px;
+            font-size: 15px;
+        }
+
+        #medals-list li.locked {
+            opacity: 0.45;
+        }
+
+        #medals-list .m-emoji {
+            font-size: 24px;
+        }
+
+        #medals-list .m-desc {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 13px;
+        }
+
+        /* Celular paisagem (~360px de altura CSS): compactar para caber tudo */
+        @media (max-height: 430px) {
+            #start-screen { gap: 8px; }
+
+            #start-screen h1 {
+                font-size: clamp(26px, 7vh, 44px);
+            }
+
+            .start-tagline,
+            .hint-detail {
+                display: none;
+            }
+
+            .rhino-anim {
+                width: 108px;
+                height: 72px;
+            }
+
+            .hint-card {
+                min-width: 110px;
+                padding: 8px 12px;
+            }
+
+            .start-stats { font-size: 15px; }
+
+            #medal-strip {
+                font-size: 20px;
+                padding: 2px 10px;
+            }
+
+            #install-hint {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
         }
 
         .start-cta {
@@ -510,13 +679,30 @@
 
     <div id="start-screen">
         <h1>FURIOUS RHINO</h1>
-        <div class="start-controls">
-            <p>📱 Toque na ESQUERDA: Pulo &nbsp;|&nbsp; DIREITA: Investida</p>
-            <p>⌨️ Seta ← Pulo &nbsp;|&nbsp; Seta → Investida</p>
-            <p>Quebre as paredes trincadas com a investida e fuja do zoológico!</p>
+        <div class="start-hero">
+            <div class="hint-card">
+                <div class="hint-side">← ESQUERDA</div>
+                <div class="hint-action">⬆️ Pulo</div>
+                <div class="hint-detail">segure para subir mais alto</div>
+            </div>
+            <div class="rhino-anim" aria-hidden="true">
+                <img src="art/rhino-run-0.svg" alt="" class="f0">
+                <img src="art/rhino-run-1.svg" alt="" class="f1">
+                <img src="art/rhino-run-2.svg" alt="" class="f2">
+            </div>
+            <div class="hint-card">
+                <div class="hint-side">DIREITA →</div>
+                <div class="hint-action">💨 Investida</div>
+                <div class="hint-detail">quebra paredes trincadas</div>
+            </div>
         </div>
+        <p class="start-tagline">Fuja do zoológico! No teclado: ← pulo &nbsp;|&nbsp; → investida</p>
         <div id="install-hint"></div>
-        <p class="record">Recorde: <span id="start-record">0</span>m</p>
+        <div class="start-stats">
+            <span class="record">🏅 Recorde: <span id="start-record">0</span>m</span>
+            <span id="start-rank" hidden>🌍 #<span id="start-rank-pos"></span> do mundo</span>
+        </div>
+        <div id="medal-strip" role="button" aria-label="Ver medalhas"></div>
         <p class="start-cta">TOQUE PARA COMEÇAR</p>
         <span class="start-footer footer-left">Designed by Thomas</span>
         <span class="start-footer footer-right" id="game-version">v1.2.0</span>
@@ -540,6 +726,12 @@
             <button id="nickname-save">Salvar</button>
             <button id="nickname-skip" class="btn-secondary">Agora não</button>
         </div>
+    </div>
+
+    <div id="medals-modal" class="modal">
+        <h2>🏅 MEDALHAS</h2>
+        <ul id="medals-list"></ul>
+        <button id="medals-close">Fechar</button>
     </div>
 
     <button id="mute-btn" aria-label="Som">🔊</button>

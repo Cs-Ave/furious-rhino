@@ -49,9 +49,26 @@ export class LeaderboardSystem {
         updatedAt: fs.serverTimestamp(),
       });
       StorageManager.setBestSent(meters);
+      this.fetchMyRank(); // fire-and-forget: atualiza o cache da posição
       return true;
     } catch (e) {
       return false; // offline ou regra rejeitou — tenta de novo na próxima corrida
+    }
+  }
+
+  // Posição = quantos scores maiores + 1 (1 leitura agregada). Cacheia em
+  // localStorage para a tela de início mostrar sem custo de rede.
+  static async fetchMyRank() {
+    try {
+      const { fs, db } = await getDb();
+      const countSnap = await fs.getCountFromServer(
+        fs.query(fs.collection(db, 'scores'), fs.where('score', '>', StorageManager.getBestSent()))
+      );
+      const rank = countSnap.data().count + 1;
+      StorageManager.setLastRank(rank);
+      return rank;
+    } catch (e) {
+      return null; // sem posição exata — o ranking mostra só o melhor score
     }
   }
 
@@ -70,15 +87,7 @@ export class LeaderboardSystem {
       }));
 
       const myBest = StorageManager.getBestSent();
-      let myRank = null;
-      if (myBest > 0) {
-        try {
-          const countSnap = await fs.getCountFromServer(
-            fs.query(scores, fs.where('score', '>', myBest))
-          );
-          myRank = countSnap.data().count + 1;
-        } catch (e) { /* sem posição exata — mostra só o melhor score */ }
-      }
+      const myRank = myBest > 0 ? await this.fetchMyRank() : null;
       return { entries, myRank, myBest };
     } catch (e) {
       return null;
