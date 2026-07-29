@@ -101,4 +101,20 @@ export const Constants = {
 
   // Animal types
   ANIMAL_TYPES: ['lion', 'zebra', 'monkey', 'giraffe', 'bird'],
+
+  // Comportamento por espécie: todos avançam contra o rino (velocidade para
+  // a esquerda, em px/s). jumpV negativo = impulso do pulo; airTexture = pose
+  // congelada no ar. Sub-objetos mutáveis lidos por frame em Animal.preUpdate
+  // — o TuningPanel liga sliders direto aqui (efeito ao vivo).
+  ANIMAL_BEHAVIOR: {
+    lion:    { speed: 160, anim: 'lion-run' },
+    giraffe: { speed: 130, anim: 'giraffe-run' },
+    monkey:  { speed: 120, jumpV: -380, jumpIntervalMs: 250, airTexture: 'animal-monkey-air' },
+    zebra:   { speed: 110, jumpV: -760, jumpIntervalMs: 450, airTexture: 'animal-zebra-air' },
+    bird:    { speed: 180, anim: 'bird-flap', bobVy: 60 },
+  },
+
+  // Animais andam contra o fluxo: o vão ANTES deles encolhe até o encontro
+  // (~gap × vAnimal/(vRino+vAnimal)) — espaço extra no spawn compensa
+  ANIMAL_EXTRA_LEAD_PX: 350,
 };

@@ -249,6 +249,14 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.existing(ground, true);
 
     this.physics.add.collider(this.rhino.getSprite(), ground);
+
+    // Animais terrestres pisam no chão (pulos do macaco/zebra com arco real);
+    // abatidos pelo dash e o pássaro atravessam e reciclam fora da tela
+    this.physics.add.collider(
+      this.spawnManager.getAnimalsGroup(), ground, null,
+      (animal) => animal.active && !animal.knockedOut && animal.animalType !== 'bird',
+      this
+    );
   }
 
   setupInput() {
