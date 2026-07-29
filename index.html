@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>FURIOUS RHINO</title>
+    <meta name="description" content="Um rinoceronte rabugento foge do zoológico quebrando paredes! Jogue grátis no navegador.">
+    <!-- Preview do link compartilhado (WhatsApp etc.): crawlers não executam
+         JS, então as URLs precisam ser absolutas e fixas -->
+    <meta property="og:title" content="FURIOUS RHINO">
+    <meta property="og:description" content="Um rinoceronte rabugento foge do zoológico quebrando paredes! Consegue me vencer?">
+    <meta property="og:image" content="https://cs-ave.github.io/furious-rhino/icon-512.png">
+    <meta property="og:url" content="https://cs-ave.github.io/furious-rhino/">
+    <meta property="og:type" content="website">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#7ec8f0">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -334,7 +342,7 @@
             cursor: pointer;
         }
 
-        .modal .btn-row {
+        .btn-row {
             display: flex;
             gap: 10px;
             justify-content: center;
@@ -404,6 +412,26 @@
             min-height: 18px;
         }
 
+        #share-status,
+        #win-share-status {
+            color: #4ecdc4;
+            font-size: 15px;
+            min-height: 18px;
+            margin: 4px 0;
+        }
+
+        #game-over .btn-share,
+        #game-win .btn-share {
+            background: #ff9944;
+            color: #3a1c00;
+            font-weight: bold;
+        }
+
+        #game-over .btn-share:hover,
+        #game-win .btn-share:hover {
+            background: #e8863a;
+        }
+
         #mute-btn {
             position: fixed;
             top: 20px;
@@ -449,7 +477,11 @@
         <p id="record-message"></p>
         <p id="online-status"></p>
         <p id="medal-message"></p>
-        <button onclick="location.reload()">Jogar Novamente</button>
+        <p id="share-status"></p>
+        <div class="btn-row">
+            <button onclick="location.reload()">Jogar Novamente</button>
+            <button id="share-btn" class="btn-share">📤 Compartilhar</button>
+        </div>
     </div>
 
     <div id="game-win">
@@ -458,7 +490,11 @@
         <p id="win-record-message"></p>
         <p id="win-online-status"></p>
         <p id="win-medal-message"></p>
-        <button onclick="location.reload()">Jogar Novamente</button>
+        <p id="win-share-status"></p>
+        <div class="btn-row">
+            <button onclick="location.reload()">Jogar Novamente</button>
+            <button id="win-share-btn" class="btn-share">📤 Compartilhar</button>
+        </div>
     </div>
 
     <div class="touch-guides">

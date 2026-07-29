@@ -47,6 +47,7 @@ export class GameScene extends Phaser.Scene {
     this.audio.bindMuteButton(document.getElementById('mute-btn'));
     this.physics.pause();
     this.setupStartScreen();
+    this.setupShareButtons();
 
     // Manual-emission wind streaks trailing the rhino during a dash
     this.windEmitter = this.add.particles(0, 0, 'wind-streak', {
@@ -176,6 +177,42 @@ export class GameScene extends Phaser.Scene {
   showOnlineStatus(msg) {
     const id = this.won ? 'win-online-status' : 'online-status';
     document.getElementById(id).textContent = msg;
+  }
+
+  setupShareButtons() {
+    // Sem nenhuma API (ex.: LAN via http, sem contexto seguro): esconde
+    const supported = Boolean(navigator.share || navigator.clipboard);
+    for (const id of ['share-btn', 'win-share-btn']) {
+      const btn = document.getElementById(id);
+      if (!supported) {
+        btn.style.display = 'none';
+      } else {
+        btn.addEventListener('click', () => this.shareResult());
+      }
+    }
+  }
+
+  showShareStatus(msg) {
+    const id = this.won ? 'win-share-status' : 'share-status';
+    document.getElementById(id).textContent = msg;
+  }
+
+  // Folha nativa de compartilhar no celular; sem ela, copia o convite
+  async shareResult() {
+    const url = location.origin + location.pathname; // sem ?debug etc.
+    const text = `Corri ${this.finalDistance}m fugindo do zoológico no FURIOUS RHINO! 🦏 Consegue me vencer?`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ text, url });
+      } catch (e) { /* usuário cancelou (AbortError) — silêncio */ }
+    } else if (navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(`${text} ${url}`);
+        this.showShareStatus('🔗 Link copiado!');
+      } catch (e) {
+        this.showShareStatus('Não foi possível copiar.');
+      }
+    }
   }
 
   openNicknameModal() {
@@ -502,6 +539,7 @@ export class GameScene extends Phaser.Scene {
     // Antes do saveRecord, senão "tinha recorde anterior" seria sempre true
     const hadPreviousRecord = StorageManager.getRecord() > 0;
     StorageManager.saveRecord(distance);
+    this.finalDistance = distance; // usado pelo botão Compartilhar
 
     if (won) {
       document.getElementById('game-win').style.display = 'block';
