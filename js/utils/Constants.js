@@ -89,14 +89,14 @@ export const Constants = {
   POOL_SIZES: {
     crackedWalls: 8,
     spikes: 6,
-    animals: 5,
+    animals: 6,
   },
 
-  // Obstacle spawn weights (adjusted by fury)
+  // Roleta de spawn (frações cumulativas; sobra vira animal)
   SPAWN_WEIGHTS: {
-    wall: 0.6,
-    spike: 0.2,
-    animal: 0.2,
+    wall: 0.55,
+    spike: 0.15,
+    animal: 0.3,
   },
 
   // Animal types

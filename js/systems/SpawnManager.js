@@ -65,9 +65,10 @@ export class SpawnManager {
       }
 
       const roll = Math.random();
+      const weights = Constants.SPAWN_WEIGHTS;
       let type;
-      if (roll < 0.65) type = 'wall';
-      else if (roll < 0.85) type = 'spike';
+      if (roll < weights.wall) type = 'wall';
+      else if (roll < weights.wall + weights.spike) type = 'spike';
       else type = 'animal';
 
       if (type === 'wall') {
