@@ -102,13 +102,21 @@ const FACE_EMPTY = faceSvg({
   inner: '#555555', outline: '#3d3d3d', dark: '#2c2c2c', pupil: '#555555',
 });
 
-const LION = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 56" width="70" height="56">
+// Pernas dos animais terrestres: mesma regra do rino — entre frames de
+// animação SÓ os membros mudam (rotação com pivô no topo da perna), para a
+// origem e a hitbox nunca deslocarem.
+const LION_LEGS_STAND = `  <rect x="14" y="38" width="7" height="16" rx="3" fill="#e8a33d" stroke="#5a3a10" stroke-width="2"/>
+  <rect x="30" y="38" width="7" height="16" rx="3" fill="#e8a33d" stroke="#5a3a10" stroke-width="2"/>`;
+const LION_LEGS_RUN = `  <rect x="14" y="38" width="7" height="16" rx="3" fill="#e8a33d" stroke="#5a3a10" stroke-width="2" transform="rotate(18 17.5 38)"/>
+  <rect x="30" y="38" width="7" height="16" rx="3" fill="#e8a33d" stroke="#5a3a10" stroke-width="2" transform="rotate(-18 33.5 38)"/>`;
+
+function lionSvg(legs) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 56" width="70" height="56">
   <!-- tail -->
   <path d="M10 30 Q2 26 4 18" fill="none" stroke="#e8a33d" stroke-width="4" stroke-linecap="round"/>
   <circle cx="4" cy="16" r="4" fill="#a35c1f"/>
   <!-- legs -->
-  <rect x="14" y="38" width="7" height="16" rx="3" fill="#e8a33d" stroke="#5a3a10" stroke-width="2"/>
-  <rect x="30" y="38" width="7" height="16" rx="3" fill="#e8a33d" stroke="#5a3a10" stroke-width="2"/>
+${legs}
   <!-- body -->
   <ellipse cx="27" cy="32" rx="20" ry="13" fill="#e8a33d" stroke="#5a3a10" stroke-width="2.5"/>
   <!-- scalloped mane -->
@@ -122,15 +130,27 @@ const LION = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 56" width=
   <circle cx="41" cy="24" r="2" fill="#2e1d08"/>
   <circle cx="51" cy="24" r="2" fill="#2e1d08"/>
 </svg>`;
+}
 
-const ZEBRA = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 76 50" width="76" height="50">
+const LION = lionSvg(LION_LEGS_STAND);
+const LION_RUN_1 = lionSvg(LION_LEGS_RUN);
+
+const ZEBRA_LEGS_STAND = `  <rect x="14" y="32" width="6" height="17" rx="2" fill="#ffffff" stroke="#1c1c1c" stroke-width="2"/>
+  <rect x="26" y="33" width="6" height="16" rx="2" fill="#ffffff" stroke="#1c1c1c" stroke-width="2"/>
+  <rect x="42" y="33" width="6" height="16" rx="2" fill="#ffffff" stroke="#1c1c1c" stroke-width="2"/>
+  <rect x="52" y="32" width="6" height="17" rx="2" fill="#ffffff" stroke="#1c1c1c" stroke-width="2"/>`;
+// Salto: dianteiras (lado da cabeça) esticadas para a frente, traseiras para trás
+const ZEBRA_LEGS_AIR = `  <rect x="14" y="32" width="6" height="17" rx="2" fill="#ffffff" stroke="#1c1c1c" stroke-width="2" transform="rotate(24 17 32)"/>
+  <rect x="26" y="33" width="6" height="16" rx="2" fill="#ffffff" stroke="#1c1c1c" stroke-width="2" transform="rotate(18 29 33)"/>
+  <rect x="42" y="33" width="6" height="16" rx="2" fill="#ffffff" stroke="#1c1c1c" stroke-width="2" transform="rotate(-18 45 33)"/>
+  <rect x="52" y="32" width="6" height="17" rx="2" fill="#ffffff" stroke="#1c1c1c" stroke-width="2" transform="rotate(-24 55 32)"/>`;
+
+function zebraSvg(legs) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 76 50" width="76" height="50">
   <!-- tail -->
   <path d="M8 22 Q3 26 5 33" fill="none" stroke="#1c1c1c" stroke-width="3" stroke-linecap="round"/>
   <!-- legs -->
-  <rect x="14" y="32" width="6" height="17" rx="2" fill="#ffffff" stroke="#1c1c1c" stroke-width="2"/>
-  <rect x="26" y="33" width="6" height="16" rx="2" fill="#ffffff" stroke="#1c1c1c" stroke-width="2"/>
-  <rect x="42" y="33" width="6" height="16" rx="2" fill="#ffffff" stroke="#1c1c1c" stroke-width="2"/>
-  <rect x="52" y="32" width="6" height="17" rx="2" fill="#ffffff" stroke="#1c1c1c" stroke-width="2"/>
+${legs}
   <!-- body -->
   <ellipse cx="36" cy="24" rx="26" ry="13" fill="#ffffff" stroke="#1c1c1c" stroke-width="2.5"/>
   <!-- neck + head -->
@@ -147,16 +167,28 @@ const ZEBRA = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 76 50" width
   <path d="M45 12 Q43 23 46 34" fill="none" stroke="#1c1c1c" stroke-width="4" stroke-linecap="round"/>
   <path d="M53 14 Q51 22 54 30" fill="none" stroke="#1c1c1c" stroke-width="4" stroke-linecap="round"/>
 </svg>`;
+}
 
-const MONKEY = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 56" width="48" height="56">
+const ZEBRA = zebraSvg(ZEBRA_LEGS_STAND);
+const ZEBRA_AIR = zebraSvg(ZEBRA_LEGS_AIR);
+
+// Macaco sentado (chão) vs. esticado no ar: só cauda e braços mudam
+const MONKEY_TAIL_SIT = `  <path d="M34 40 Q46 36 42 26 Q39 19 44 14" fill="none" stroke="#8a5a2b" stroke-width="4" stroke-linecap="round"/>`;
+const MONKEY_ARMS_SIT = `  <path d="M12 38 Q8 46 14 50" fill="none" stroke="#8a5a2b" stroke-width="5" stroke-linecap="round"/>
+  <path d="M32 38 Q36 46 30 50" fill="none" stroke="#8a5a2b" stroke-width="5" stroke-linecap="round"/>`;
+const MONKEY_TAIL_AIR = `  <path d="M34 40 Q44 40 46 32 Q47 25 43 19" fill="none" stroke="#8a5a2b" stroke-width="4" stroke-linecap="round"/>`;
+const MONKEY_ARMS_AIR = `  <path d="M12 38 Q4 34 6 25" fill="none" stroke="#8a5a2b" stroke-width="5" stroke-linecap="round"/>
+  <path d="M32 38 Q40 34 38 25" fill="none" stroke="#8a5a2b" stroke-width="5" stroke-linecap="round"/>`;
+
+function monkeySvg(tail, arms) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 56" width="48" height="56">
   <!-- S-curled tail -->
-  <path d="M34 40 Q46 36 42 26 Q39 19 44 14" fill="none" stroke="#8a5a2b" stroke-width="4" stroke-linecap="round"/>
+${tail}
   <!-- body (sitting) -->
   <ellipse cx="22" cy="42" rx="14" ry="12" fill="#8a5a2b" stroke="#4c2e10" stroke-width="2.5"/>
   <ellipse cx="22" cy="46" rx="8" ry="6" fill="#d9b98c"/>
   <!-- arms -->
-  <path d="M12 38 Q8 46 14 50" fill="none" stroke="#8a5a2b" stroke-width="5" stroke-linecap="round"/>
-  <path d="M32 38 Q36 46 30 50" fill="none" stroke="#8a5a2b" stroke-width="5" stroke-linecap="round"/>
+${arms}
   <!-- ears -->
   <circle cx="8" cy="16" r="6" fill="#8a5a2b" stroke="#4c2e10" stroke-width="2.5"/>
   <circle cx="36" cy="16" r="6" fill="#8a5a2b" stroke="#4c2e10" stroke-width="2.5"/>
@@ -171,14 +203,24 @@ const MONKEY = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 56" widt
   <ellipse cx="22" cy="22" rx="2" ry="1.3" fill="#4c2e10"/>
   <path d="M19 25 Q22 27 25 25" fill="none" stroke="#4c2e10" stroke-width="1.5" stroke-linecap="round"/>
 </svg>`;
+}
 
-const GIRAFFE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 90" width="60" height="90">
+const MONKEY = monkeySvg(MONKEY_TAIL_SIT, MONKEY_ARMS_SIT);
+const MONKEY_AIR = monkeySvg(MONKEY_TAIL_AIR, MONKEY_ARMS_AIR);
+
+const GIRAFFE_LEGS_STAND = `  <rect x="16" y="66" width="6" height="23" rx="2" fill="#f2c869" stroke="#7a4c14" stroke-width="2"/>
+  <rect x="27" y="67" width="6" height="22" rx="2" fill="#f2c869" stroke="#7a4c14" stroke-width="2"/>
+  <rect x="38" y="66" width="6" height="23" rx="2" fill="#f2c869" stroke="#7a4c14" stroke-width="2"/>`;
+const GIRAFFE_LEGS_RUN = `  <rect x="16" y="66" width="6" height="23" rx="2" fill="#f2c869" stroke="#7a4c14" stroke-width="2" transform="rotate(-12 19 66)"/>
+  <rect x="27" y="67" width="6" height="22" rx="2" fill="#f2c869" stroke="#7a4c14" stroke-width="2" transform="rotate(14 30 67)"/>
+  <rect x="38" y="66" width="6" height="23" rx="2" fill="#f2c869" stroke="#7a4c14" stroke-width="2" transform="rotate(-14 41 66)"/>`;
+
+function giraffeSvg(legs) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 90" width="60" height="90">
   <!-- tail -->
   <path d="M12 56 Q6 62 8 70" fill="none" stroke="#b97a2f" stroke-width="3" stroke-linecap="round"/>
   <!-- legs -->
-  <rect x="16" y="66" width="6" height="23" rx="2" fill="#f2c869" stroke="#7a4c14" stroke-width="2"/>
-  <rect x="27" y="67" width="6" height="22" rx="2" fill="#f2c869" stroke="#7a4c14" stroke-width="2"/>
-  <rect x="38" y="66" width="6" height="23" rx="2" fill="#f2c869" stroke="#7a4c14" stroke-width="2"/>
+${legs}
   <!-- body -->
   <ellipse cx="30" cy="58" rx="19" ry="13" fill="#f2c869" stroke="#7a4c14" stroke-width="2.5"/>
   <!-- long neck -->
@@ -199,6 +241,10 @@ const GIRAFFE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 90" wid
   <path d="M38 38 q5 -2 6 2 q-1 5 -6 4 q-3 -3 0 -6 Z" fill="#b97a2f"/>
   <path d="M40 24 q4 -2 5 2 q-1 4 -5 3 q-3 -2 0 -5 Z" fill="#b97a2f"/>
 </svg>`;
+}
+
+const GIRAFFE = giraffeSvg(GIRAFFE_LEGS_STAND);
+const GIRAFFE_RUN_1 = giraffeSvg(GIRAFFE_LEGS_RUN);
 
 function birdSvg(wing) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 32" width="44" height="32">
@@ -256,9 +302,13 @@ export const SVG_TEXTURES = {
   'fury-fire-full': { w: 60, h: 60, svg: FIRE_FULL },
   'fury-fire-empty': { w: 60, h: 60, svg: FIRE_EMPTY },
   'animal-lion': { w: 70, h: 56, svg: LION },
+  'animal-lion-run-1': { w: 70, h: 56, svg: LION_RUN_1 },
   'animal-zebra': { w: 76, h: 50, svg: ZEBRA },
+  'animal-zebra-air': { w: 76, h: 50, svg: ZEBRA_AIR },
   'animal-monkey': { w: 48, h: 56, svg: MONKEY },
+  'animal-monkey-air': { w: 48, h: 56, svg: MONKEY_AIR },
   'animal-giraffe': { w: 60, h: 90, svg: GIRAFFE },
+  'animal-giraffe-run-1': { w: 60, h: 90, svg: GIRAFFE_RUN_1 },
   'animal-bird': { w: 44, h: 32, svg: BIRD_UP },
   'animal-bird-flap': { w: 44, h: 32, svg: BIRD_DOWN },
 };

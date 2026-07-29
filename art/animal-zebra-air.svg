@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 76 50" width="76" height="50">
+  <!-- tail -->
+  <path d="M8 22 Q3 26 5 33" fill="none" stroke="#1c1c1c" stroke-width="3" stroke-linecap="round"/>
+  <!-- legs -->
+  <rect x="14" y="32" width="6" height="17" rx="2" fill="#ffffff" stroke="#1c1c1c" stroke-width="2" transform="rotate(24 17 32)"/>
+  <rect x="26" y="33" width="6" height="16" rx="2" fill="#ffffff" stroke="#1c1c1c" stroke-width="2" transform="rotate(18 29 33)"/>
+  <rect x="42" y="33" width="6" height="16" rx="2" fill="#ffffff" stroke="#1c1c1c" stroke-width="2" transform="rotate(-18 45 33)"/>
+  <rect x="52" y="32" width="6" height="17" rx="2" fill="#ffffff" stroke="#1c1c1c" stroke-width="2" transform="rotate(-24 55 32)"/>
+  <!-- body -->
+  <ellipse cx="36" cy="24" rx="26" ry="13" fill="#ffffff" stroke="#1c1c1c" stroke-width="2.5"/>
+  <!-- neck + head -->
+  <path d="M56 18 Q62 8 70 8 Q76 10 74 16 Q72 22 64 24 Q58 24 56 18 Z" fill="#ffffff" stroke="#1c1c1c" stroke-width="2.5"/>
+  <path d="M70 14 L75 17 L71 19 Z" fill="#4a4a4a"/>
+  <circle cx="68" cy="13" r="1.8" fill="#1c1c1c"/>
+  <path d="M63 7 L61 2 L66 5 Z" fill="#1c1c1c"/>
+  <!-- mane -->
+  <path d="M56 17 Q58 10 62 7 L64 10 Q60 13 59 19 Z" fill="#1c1c1c"/>
+  <!-- stripes -->
+  <path d="M18 13 Q16 24 19 35" fill="none" stroke="#1c1c1c" stroke-width="4" stroke-linecap="round"/>
+  <path d="M27 11 Q25 24 28 36" fill="none" stroke="#1c1c1c" stroke-width="4" stroke-linecap="round"/>
+  <path d="M36 11 Q34 24 37 36" fill="none" stroke="#1c1c1c" stroke-width="4" stroke-linecap="round"/>
+  <path d="M45 12 Q43 23 46 34" fill="none" stroke="#1c1c1c" stroke-width="4" stroke-linecap="round"/>
+  <path d="M53 14 Q51 22 54 30" fill="none" stroke="#1c1c1c" stroke-width="4" stroke-linecap="round"/>
+</svg>

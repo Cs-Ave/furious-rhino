@@ -9,9 +9,13 @@ export const ART_MANIFEST = {
   'fury-fire-full': { w: 60, h: 60 },
   'fury-fire-empty': { w: 60, h: 60 },
   'animal-lion': { w: 70, h: 56 },
+  'animal-lion-run-1': { w: 70, h: 56 },
   'animal-zebra': { w: 76, h: 50 },
+  'animal-zebra-air': { w: 76, h: 50 },
   'animal-monkey': { w: 48, h: 56 },
+  'animal-monkey-air': { w: 48, h: 56 },
   'animal-giraffe': { w: 60, h: 90 },
+  'animal-giraffe-run-1': { w: 60, h: 90 },
   'animal-bird': { w: 44, h: 32 },
   'animal-bird-flap': { w: 44, h: 32 },
 };

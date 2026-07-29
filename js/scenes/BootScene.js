@@ -42,5 +42,27 @@ export class BootScene extends Phaser.Scene {
       frameRate: 8,
       repeat: -1,
     });
+
+    // Corrida dos animais terrestres (2 frames: parado/passada).
+    // Macaco e zebra não têm anim: trocam de textura por estado (chão/ar).
+    this.anims.create({
+      key: 'lion-run',
+      frames: [
+        { key: 'animal-lion', frame: '__BASE' },
+        { key: 'animal-lion-run-1', frame: '__BASE' },
+      ],
+      frameRate: 10,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: 'giraffe-run',
+      frames: [
+        { key: 'animal-giraffe', frame: '__BASE' },
+        { key: 'animal-giraffe-run-1', frame: '__BASE' },
+      ],
+      frameRate: 8,
+      repeat: -1,
+    });
   }
 }
