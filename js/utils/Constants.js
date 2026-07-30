@@ -90,6 +90,8 @@ export const Constants = {
     crackedWalls: 8,
     spikes: 6,
     animals: 6,
+    towers: 4,
+    darts: 8,
   },
 
   // Animal types

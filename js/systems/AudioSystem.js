@@ -161,6 +161,34 @@ export class AudioSystem {
     o.stop(t + 0.42); lfo.stop(t + 0.42);
   }
 
+  // "Thwip" pneumático do dardo tranquilizante: sopro de ruído curto
+  // + sine descendente (nada de sample, como todo o resto)
+  playDart() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.value = 2;
+    filter.frequency.setValueAtTime(2500, t);
+    filter.frequency.exponentialRampToValueAtTime(600, t + 0.12);
+    const gN = this.envGain(this.sfxGain);
+    filter.connect(gN);
+    gN.gain.linearRampToValueAtTime(0.35, t + 0.01);
+    gN.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+    const n = this.noise(filter);
+    n.start(t);
+    n.stop(t + 0.15);
+
+    const g = this.envGain(this.sfxGain);
+    const o = this.osc('sine', 900, g);
+    o.frequency.exponentialRampToValueAtTime(300, t + 0.1);
+    g.gain.linearRampToValueAtTime(0.25, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    o.start(t);
+    o.stop(t + 0.14);
+  }
+
   playDeathSting() {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;

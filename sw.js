@@ -44,6 +44,8 @@ const ASSETS = [
   './js/entities/CrackedWall.js',
   './js/entities/Spike.js',
   './js/entities/Animal.js',
+  './js/entities/TranqTower.js',
+  './js/entities/TranqDart.js',
   'https://cdn.jsdelivr.net/npm/phaser@3.85.2/dist/phaser.min.js',
 ];
 

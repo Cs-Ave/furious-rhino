@@ -7,6 +7,8 @@ export class TextureFactory {
     this.generateWalls(scene);
     this.generateSpikes(scene);
     this.generateSpikeTower(scene);
+    this.generateTranqTower(scene);
+    this.generateTranqDart(scene);
     this.generateGround(scene);
     this.generateSky(scene);
     this.generateClouds(scene);
@@ -199,6 +201,75 @@ export class TextureFactory {
     this.drawSpikeRow(g, 0);
 
     g.generateTexture('spike-tower', 100, 120);
+    g.destroy();
+  }
+
+  // ------------------------------------------------------------ tranq tower
+
+  // Torreta medieval de pedra (equipamento do zoo para sedar o fujão):
+  // blocos cinza, ameias no topo, seteira escura na altura do peito do rino
+  // e bandeirinha verde com cruz veterinária.
+  static generateTranqTower(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    const stone = 0x8f99a3, stoneDark = 0x747e88, joint = 0x59626b, slit = 0x23272c;
+
+    // corpo de pedra com fiadas de blocos alternadas
+    g.fillStyle(stone, 1);
+    g.fillRect(6, 14, 72, 106);
+    for (let y = 14; y < 120; y += 16) {
+      const off = (Math.floor(y / 16) % 2) * 18;
+      g.fillStyle(stoneDark, 1);
+      for (let x = 6 + off; x < 78; x += 36) {
+        g.fillRect(x, y, Math.min(16, 78 - x), 14);
+      }
+    }
+    g.lineStyle(2, joint, 0.7);
+    for (let y = 14; y <= 118; y += 16) g.lineBetween(6, y, 78, y);
+    g.fillStyle(joint, 0.9);
+    g.fillRect(6, 14, 3, 106);
+    g.fillRect(75, 14, 3, 106);
+
+    // ameias (3 merlões)
+    [4, 33, 62].forEach((x) => {
+      g.fillStyle(stone, 1);
+      g.fillRect(x, 0, 18, 16);
+      g.lineStyle(2, joint, 0.8);
+      g.strokeRect(x, 0, 18, 16);
+    });
+
+    // seteira escura de onde sai o dardo (peito do rino no chão: y≈85 aqui)
+    g.fillStyle(slit, 1);
+    g.fillRect(36, 70, 10, 32);
+    g.fillCircle(41, 70, 5);
+
+    // bandeirinha verde com cruz veterinária branca
+    g.lineStyle(3, 0x4a3524, 1);
+    g.lineBetween(70, 0, 70, 14);
+    g.fillStyle(0x3fa34d, 1);
+    g.fillTriangle(69, 0, 69, 11, 50, 5);
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(58, 4, 7, 2);
+    g.fillRect(60.5, 1.5, 2, 7);
+
+    g.generateTexture('tranq-tower', 84, 120);
+    g.destroy();
+  }
+
+  // Dardo tranquilizante: seringa com líquido verde, agulha na frente
+  // (voa para a esquerda) e penacho vermelho na cauda
+  static generateTranqDart(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(0xcfd4da, 1);
+    g.fillRect(0, 4, 7, 2);
+    g.fillStyle(0xe8f4ec, 1);
+    g.fillRect(7, 2, 13, 6);
+    g.fillStyle(0x46c46a, 1);
+    g.fillRect(9, 3, 9, 4);
+    g.lineStyle(1, 0x33363b, 1);
+    g.strokeRect(7, 2, 13, 6);
+    g.fillStyle(0xd6453c, 1);
+    g.fillTriangle(20, 5, 28, 0, 28, 10);
+    g.generateTexture('tranq-dart', 28, 10);
     g.destroy();
   }
 

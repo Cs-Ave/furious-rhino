@@ -2,6 +2,8 @@ import { Constants } from '../utils/Constants.js';
 import { CrackedWall } from '../entities/CrackedWall.js';
 import { Spike } from '../entities/Spike.js';
 import { Animal } from '../entities/Animal.js';
+import { TranqTower } from '../entities/TranqTower.js';
+import { TranqDart } from '../entities/TranqDart.js';
 
 export class SpawnManager {
   constructor(scene) {
@@ -32,6 +34,20 @@ export class SpawnManager {
       this.animalsGroup.add(animal);
       animal.deactivate();
     }
+
+    this.towersGroup = scene.add.group();
+    for (let i = 0; i < Constants.POOL_SIZES.towers; i++) {
+      const tower = new TranqTower(scene, -500, 0);
+      this.towersGroup.add(tower);
+      tower.deactivate();
+    }
+
+    this.dartsGroup = scene.add.group();
+    for (let i = 0; i < Constants.POOL_SIZES.darts; i++) {
+      const dart = new TranqDart(scene, -500, 0);
+      this.dartsGroup.add(dart);
+      dart.deactivate();
+    }
   }
 
   update(camera) {
@@ -55,6 +71,14 @@ export class SpawnManager {
         animal.deactivate();
       }
     });
+
+    this.towersGroup.children.entries.forEach(tower => {
+      if (tower.active && tower.x < limit) tower.deactivate();
+    });
+
+    this.dartsGroup.children.entries.forEach(dart => {
+      if (dart.active && dart.x < limit) dart.deactivate();
+    });
   }
 
   spawnObstacles(camera) {
@@ -72,8 +96,7 @@ export class SpawnManager {
       } else if (roll < tier.wallW + tier.spikeW) {
         this.spawnSpike(this.nextSpawnX);
       } else if (roll < tier.wallW + tier.spikeW + tier.towerW) {
-        // Torre de tranquilizantes (Etapa 3); por ora a fatia vira espinho elevado
-        this.spawnSpike(this.nextSpawnX, 'tower');
+        this.spawnTower(this.nextSpawnX);
       } else {
         // O animal anda contra o rino: o vão antes dele encolhe até o
         // encontro — nasce mais à frente para compensar
@@ -128,6 +151,19 @@ export class SpawnManager {
     animal.reset(x, y);
   }
 
+  spawnTower(x) {
+    const tower = this.towersGroup.getFirst(false);
+    if (!tower) return;
+    tower.reset(x);
+  }
+
+  // Chamado pela TranqTower no momento do disparo
+  fireDart(x, y, vx) {
+    const dart = this.dartsGroup.getFirst(false);
+    if (!dart) return;
+    dart.fire(x, y, vx);
+  }
+
   getWallsGroup() {
     return this.crackedWallsGroup;
   }
@@ -138,5 +174,13 @@ export class SpawnManager {
 
   getAnimalsGroup() {
     return this.animalsGroup;
+  }
+
+  getTowersGroup() {
+    return this.towersGroup;
+  }
+
+  getDartsGroup() {
+    return this.dartsGroup;
   }
 }

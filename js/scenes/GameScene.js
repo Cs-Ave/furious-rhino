@@ -408,6 +408,55 @@ export class GameScene extends Phaser.Scene {
       null,
       this
     );
+
+    this.physics.add.overlap(
+      this.rhino.getSprite(),
+      this.spawnManager.getTowersGroup(),
+      this.onTowerHit,
+      null,
+      this
+    );
+
+    this.physics.add.overlap(
+      this.rhino.getSprite(),
+      this.spawnManager.getDartsGroup(),
+      this.onDartHit,
+      null,
+      this
+    );
+  }
+
+  onTowerHit(rhino, tower) {
+    if (this.gameOver || this.won) return;
+
+    if (this.rhino.dashState === 'active') {
+      // Dash derruba a torre — para de atirar na hora
+      this.audio.playBreak();
+      this.createExplosion(tower.x, tower.y + 60);
+      tower.deactivate();
+    } else {
+      this.endGame(false, 'wall');
+    }
+  }
+
+  onDartHit(rhino, dart) {
+    if (this.gameOver || this.won) return;
+
+    if (this.rhino.dashState === 'active') {
+      // O dardo estoura no chifre: mini flash sem shake de câmera
+      const flash = this.add.image(dart.x, dart.y, 'explosion-flash')
+        .setScale(0.35).setDepth(6);
+      this.tweens.add({
+        targets: flash,
+        scale: 1.2,
+        alpha: 0,
+        duration: 200,
+        onComplete: () => flash.destroy(),
+      });
+      dart.deactivate();
+    } else {
+      this.endGame(false, 'dart');
+    }
   }
 
   onWallHit(rhino, wall) {
@@ -430,13 +479,13 @@ export class GameScene extends Phaser.Scene {
       this.createExplosion(wall.x, crackCenterY);
       this.createBreakParticles(wall.x, crackCenterY);
     } else {
-      this.endGame(false);
+      this.endGame(false, 'wall');
     }
   }
 
   onSpikeHit(rhino, spike) {
     if (this.gameOver || this.won) return;
-    this.endGame(false);
+    this.endGame(false, 'spike');
   }
 
   onAnimalHit(rhino, animal) {
@@ -450,7 +499,7 @@ export class GameScene extends Phaser.Scene {
       this.audio.playSqueal();
       this.createExplosion(animal.x, animal.y);
     } else {
-      this.endGame(false);
+      this.endGame(false, 'animal');
     }
   }
 
@@ -565,7 +614,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.rhino.getSprite().y > Constants.GAME_HEIGHT + 100) {
-      this.endGame(false);
+      this.endGame(false, 'fall');
     }
   }
 
@@ -575,9 +624,11 @@ export class GameScene extends Phaser.Scene {
     document.getElementById('record').textContent = record;
   }
 
-  endGame(won) {
+  // cause: 'wall' | 'spike' | 'animal' | 'dart' | 'fall' (só derrotas)
+  endGame(won, cause = null) {
     this.gameOver = true;
     this.won = won;
+    this.deathCause = cause;
     this.physics.pause();
 
     this.audio.stopMusic();
@@ -591,8 +642,9 @@ export class GameScene extends Phaser.Scene {
     StorageManager.saveRecord(distance);
     this.finalDistance = distance; // usado pelo botão Compartilhar
 
+    // Overlays são só PREENCHIDOS aqui; a exibição fica no showEndOverlay
+    // (o fim por dardo espera o rino adormecer; a vitória, a cutscene)
     if (won) {
-      document.getElementById('game-win').style.display = 'block';
       document.getElementById('win-final-score').textContent = distance;
       if (isNewRecord) {
         document.getElementById('win-record-message').textContent = '🎉 NOVO RECORDE!';
@@ -600,7 +652,8 @@ export class GameScene extends Phaser.Scene {
         document.getElementById('win-record-message').textContent = 'Você escapou!';
       }
     } else {
-      document.getElementById('game-over').style.display = 'block';
+      document.getElementById('game-over-title').textContent =
+        cause === 'dart' ? 'TRANQUILIZADO! 💤' : 'GAME OVER';
       document.getElementById('final-score').textContent = distance;
       if (isNewRecord) {
         document.getElementById('record-message').textContent = '🎉 NOVO RECORDE!';
@@ -626,5 +679,25 @@ export class GameScene extends Phaser.Scene {
     if (LeaderboardSystem.shouldSubmit(distance)) {
       this.submitScore(distance); // fire-and-forget: rede nunca trava o fim de jogo
     }
+
+    if (!won && cause === 'dart') {
+      this.playTranqSleep();
+      this.time.delayedCall(600, () => this.showEndOverlay());
+    } else {
+      this.showEndOverlay();
+    }
+  }
+
+  showEndOverlay() {
+    document.getElementById(this.won ? 'game-win' : 'game-over').style.display = 'block';
+  }
+
+  // O rino apaga: tint azulado e tomba devagar antes do overlay.
+  // Física pausada — tweens e timers da cena continuam rodando.
+  playTranqSleep() {
+    const sprite = this.rhino.getSprite();
+    sprite.anims.pause();
+    sprite.setTint(0x9db8ff);
+    this.tweens.add({ targets: sprite, angle: -80, duration: 550, ease: 'Quad.easeIn' });
   }
 }
