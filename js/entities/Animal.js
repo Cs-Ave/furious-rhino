@@ -60,9 +60,9 @@ export class Animal extends Phaser.Physics.Arcade.Sprite {
     if (this.knockedOut || !this.body.enable) return;
 
     const behavior = Constants.ANIMAL_BEHAVIOR[this.animalType];
-    // Reaplicada por frame (mesmo padrão do FurySystem com o rino): os
-    // sliders do TuningPanel valem na hora para animais já em tela
-    this.body.setVelocityX(-behavior.speed);
+    // Reaplicada por frame (mesmo padrão do FurySystem com o rino): sliders
+    // do TuningPanel e o multiplicador do tier valem na hora em tela
+    this.body.setVelocityX(-behavior.speed * Constants.TIER_STATE.animalSpeedMult);
 
     if (behavior.jumpV) {
       // Saltadores: no chão, agenda e dispara o próximo pulo; no ar fica

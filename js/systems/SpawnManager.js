@@ -34,9 +34,9 @@ export class SpawnManager {
     }
   }
 
-  update(camera, furyRatio) {
+  update(camera) {
     this.recycleOffscreen(camera);
-    this.spawnObstacles(camera, furyRatio);
+    this.spawnObstacles(camera);
   }
 
   recycleOffscreen(camera) {
@@ -57,33 +57,34 @@ export class SpawnManager {
     });
   }
 
-  spawnObstacles(camera, furyRatio) {
+  spawnObstacles(camera) {
     while (this.nextSpawnX < camera.scrollX + camera.width + Constants.SPAWN_LOOKAHEAD_PX) {
       if (this.nextSpawnX >= Constants.WIN_DISTANCE_PX - 500) {
         this.nextSpawnX = Constants.WIN_DISTANCE_PX + 1000;
         break;
       }
 
+      // O obstáculo nasce com a dificuldade do LUGAR onde vai ficar
+      const tier = Constants.getTierFor(this.nextSpawnX);
       const roll = Math.random();
-      const weights = Constants.SPAWN_WEIGHTS;
-      let type;
-      if (roll < weights.wall) type = 'wall';
-      else if (roll < weights.wall + weights.spike) type = 'spike';
-      else type = 'animal';
-
-      if (type === 'wall') {
+      if (roll < tier.wallW) {
         this.spawnWall(this.nextSpawnX);
-      } else if (type === 'spike') {
+      } else if (roll < tier.wallW + tier.spikeW) {
         this.spawnSpike(this.nextSpawnX);
+      } else if (roll < tier.wallW + tier.spikeW + tier.towerW) {
+        // Torre de tranquilizantes (Etapa 3); por ora a fatia vira espinho elevado
+        this.spawnSpike(this.nextSpawnX, 'tower');
       } else {
         // O animal anda contra o rino: o vão antes dele encolhe até o
         // encontro — nasce mais à frente para compensar
-        this.nextSpawnX += Constants.ANIMAL_EXTRA_LEAD_PX;
+        this.nextSpawnX += tier.animalLeadPx;
         this.spawnAnimal(this.nextSpawnX);
       }
 
-      const minGap = Math.max(Constants.MIN_SAFE_GAP, Constants.INITIAL_GAP * (1 - furyRatio * 0.5));
-      this.nextSpawnX += minGap + Math.random() * 150;
+      this.nextSpawnX += Math.max(
+        Constants.MIN_SAFE_GAP,
+        tier.gapMin + Math.random() * tier.gapRand
+      );
     }
   }
 
@@ -97,13 +98,14 @@ export class SpawnManager {
     wall.reset(x);
   }
 
-  spawnSpike(x) {
+  spawnSpike(x, variantOverride = null) {
     const spike = this.spikesGroup.getFirst(false);
     if (!spike) return;
 
     // Ground top is at GAME_HEIGHT - 100 (y=620); both variants touch it
     const groundTop = Constants.GAME_HEIGHT - 100;
-    if (Math.random() < 0.3) {
+    const variant = variantOverride || (Math.random() < 0.3 ? 'tower' : 'ground');
+    if (variant === 'tower') {
       spike.reset(x, groundTop - 120, 'tower');
     } else {
       spike.reset(x, groundTop - 60, 'ground');

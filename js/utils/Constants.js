@@ -19,8 +19,8 @@ export const Constants = {
   FURY_FULL_DISTANCE_PX: 28000,
   SPAWN_LOOKAHEAD_PX: 600,
   RECYCLE_MARGIN_PX: 200,
-  MIN_SAFE_GAP: 650,
-  INITIAL_GAP: 900,
+  // Piso absoluto de vão = ciclo do dash (1,2s) × velocidade máxima (450 px/s)
+  MIN_SAFE_GAP: 540,
 
   // Gravity
   GRAVITY: 1400,
@@ -92,13 +92,6 @@ export const Constants = {
     animals: 6,
   },
 
-  // Roleta de spawn (frações cumulativas; sobra vira animal)
-  SPAWN_WEIGHTS: {
-    wall: 0.55,
-    spike: 0.15,
-    animal: 0.3,
-  },
-
   // Animal types
   ANIMAL_TYPES: ['lion', 'zebra', 'monkey', 'giraffe', 'bird'],
 
@@ -114,7 +107,28 @@ export const Constants = {
     bird:    { speed: 180, anim: 'bird-flap', bobVy: 60 },
   },
 
-  // Animais andam contra o fluxo: o vão ANTES deles encolhe até o encontro
-  // (~gap × vAnimal/(vRino+vAnimal)) — espaço extra no spawn compensa
-  ANIMAL_EXTRA_LEAD_PX: 350,
+  // 4 tiers de dificuldade, um a cada 200m (8000px de mundo). Objetos
+  // mutáveis lidos a cada spawn/frame — o TuningPanel liga sliders direto
+  // aqui. wallW/spikeW/towerW: frações da roleta de spawn (sobra = animal).
+  // animalLeadPx: animais andam contra o fluxo, o vão antes deles encolhe
+  // até o encontro — espaço extra no spawn compensa.
+  DIFFICULTY_TIERS: [
+    { gapMin: 900, gapRand: 150, animalSpeedMult: 1.0,  animalLeadPx: 350, wallW: 0.55, spikeW: 0.20, towerW: 0,    comboChance: 0,    towerIntervalMs: 2200, dartSpeed: 460 },
+    { gapMin: 760, gapRand: 140, animalSpeedMult: 1.15, animalLeadPx: 400, wallW: 0.45, spikeW: 0.15, towerW: 0.10, comboChance: 0.15, towerIntervalMs: 2200, dartSpeed: 460 },
+    { gapMin: 640, gapRand: 120, animalSpeedMult: 1.35, animalLeadPx: 450, wallW: 0.36, spikeW: 0.14, towerW: 0.15, comboChance: 0.25, towerIntervalMs: 1700, dartSpeed: 540 },
+    { gapMin: 560, gapRand: 100, animalSpeedMult: 1.6,  animalLeadPx: 500, wallW: 0.30, spikeW: 0.12, towerW: 0.18, comboChance: 0.35, towerIntervalMs: 1300, dartSpeed: 620 },
+  ],
+
+  // Tier vigente para uma posição x do mundo (0–3)
+  getTierIndex(x) {
+    return Math.min(3, Math.floor(x / 8000));
+  },
+
+  getTierFor(x) {
+    return this.DIFFICULTY_TIERS[this.getTierIndex(x)];
+  },
+
+  // Estado por frame: GameScene.update escreve a partir da posição do rino;
+  // Animal.preUpdate lê — animais já em tela aceleram na troca de tier
+  TIER_STATE: { animalSpeedMult: 1 },
 };

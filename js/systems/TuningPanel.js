@@ -31,9 +31,21 @@ export async function initTuningPanel(scene) {
 
   const dificuldade = gui.addFolder('Dificuldade');
   dificuldade.add(Constants, 'MIN_SAFE_GAP', 300, 1200, 10);
-  dificuldade.add(Constants, 'INITIAL_GAP', 400, 1600, 10);
   dificuldade.add(Constants, 'SPAWN_LOOKAHEAD_PX', 200, 1500, 25);
-  dificuldade.add(Constants, 'ANIMAL_EXTRA_LEAD_PX', 0, 800, 25);
+
+  // Cada tier é um objeto mutável lido a cada spawn/frame — efeito ao vivo
+  const tiers = gui.addFolder('Tiers');
+  Constants.DIFFICULTY_TIERS.forEach((t, i) => {
+    const f = tiers.addFolder(`Tier ${i + 1} (${i * 200}-${(i + 1) * 200}m)`);
+    f.add(t, 'gapMin', 300, 1200, 10);
+    f.add(t, 'animalSpeedMult', 0.5, 2.5, 0.05);
+    f.add(t, 'animalLeadPx', 0, 800, 25);
+    f.add(t, 'comboChance', 0, 1, 0.05);
+    f.add(t, 'towerIntervalMs', 400, 4000, 100);
+    f.add(t, 'dartSpeed', 200, 1000, 20);
+    f.close();
+  });
+  tiers.close();
 
   // Velocidades/pulos são lidos por frame em Animal.preUpdate — os sliders
   // valem na hora até para animais já em tela
@@ -75,6 +87,15 @@ export async function initTuningPanel(scene) {
       scene.events.once('postupdate', () => scene.scene.pause());
     },
   }, 'passo').name('Avançar 1 frame');
+
+  // Teleporte para testar o tier 4 sem jogar 60s. body.reset zera a
+  // velocidade — o FurySystem reaplica a horizontal no frame seguinte
+  debug.add({
+    pular: () => {
+      const sprite = scene.rhino.getSprite();
+      sprite.body.reset(24000, Constants.GAME_HEIGHT - 200);
+    },
+  }, 'pular').name('Pular p/ 600m');
 
   debug.add({ reiniciar: () => location.reload() }, 'reiniciar').name('Reiniciar (?debug=1)');
 }

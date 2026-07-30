@@ -552,7 +552,10 @@ export class GameScene extends Phaser.Scene {
     }
     this.furySystem.update(this.rhino);
     this.audio.setIntensity(this.rhino.getFuryRatio());
-    this.spawnManager.update(this.cameras.main, this.rhino.getFuryRatio());
+    // Animais leem o multiplicador do tier vigente por frame (padrão live)
+    Constants.TIER_STATE.animalSpeedMult =
+      Constants.getTierFor(this.rhino.getSprite().x).animalSpeedMult;
+    this.spawnManager.update(this.cameras.main);
     this.updateDashIcon();
 
     this.updateScoreDisplay();
