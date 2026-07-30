@@ -449,6 +449,16 @@
             right: calc(14px + env(safe-area-inset-right, 0px));
         }
 
+        .footer-center {
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
+        .footer-center a {
+            color: rgba(255, 255, 255, 0.45);
+        }
+
         #install-hint {
             display: none;
             max-width: 420px;
@@ -895,7 +905,8 @@
         <div id="medal-strip" role="button" aria-label="Ver medalhas"></div>
         <p class="start-cta">TOQUE PARA COMEÇAR</p>
         <span class="start-footer footer-left">Designed by Thomas</span>
-        <span class="start-footer footer-right" id="game-version">v1.2.1</span>
+        <span class="start-footer footer-center">Estatísticas anônimas são coletadas · <a href="./?stats">/?stats</a></span>
+        <span class="start-footer footer-right" id="game-version">v1.3.0</span>
         <button id="ranking-btn" aria-label="Ranking mundial">🏆</button>
     </div>
 

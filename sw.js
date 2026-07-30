@@ -1,6 +1,6 @@
 // Network-first service worker: always serves fresh files while online
 // (essential during development), falls back to cache for offline play.
-const CACHE = 'furious-rhino-v9';
+const CACHE = 'furious-rhino-v10';
 const ASSETS = [
   './',
   './index.html',
@@ -38,6 +38,8 @@ const ASSETS = [
   './js/systems/TuningPanel.js',
   './js/systems/LeaderboardSystem.js',
   './js/systems/MedalSystem.js',
+  './js/systems/StatsSystem.js',
+  './js/stats/StatsDashboard.js',
   './js/scenes/BootScene.js',
   './js/scenes/GameScene.js',
   './js/entities/Rhino.js',
@@ -63,11 +65,15 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // Chamadas de dados do Firestore (googleapis.com) e requests não-GET vão
-  // direto à rede, sem passar pelo cache (o SDK em gstatic.com continua
-  // cacheável — bom para offline)
+  // Chamadas de dados do Firestore (googleapis.com), consultas de geo-IP e
+  // requests não-GET vão direto à rede, sem passar pelo cache (o SDK em
+  // gstatic.com continua cacheável — bom para offline). Sem o bypass do
+  // geo, a cláusula `res.type === 'cors'` abaixo congelaria a localização.
   const url = new URL(e.request.url);
-  if (e.request.method !== 'GET' || url.hostname.endsWith('googleapis.com')) return;
+  if (e.request.method !== 'GET' ||
+      url.hostname.endsWith('googleapis.com') ||
+      url.hostname === 'get.geojs.io' ||
+      url.hostname === 'ipwho.is') return;
 
   e.respondWith(
     fetch(e.request)
