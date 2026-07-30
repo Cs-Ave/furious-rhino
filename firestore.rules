@@ -1,0 +1,85 @@
+rules_version = '2';
+
+// Security Rules do Firestore do FURIOUS RHINO.
+// ⚠️ Este arquivo NÃO é aplicado automaticamente: publique o conteúdo em
+// console.firebase.google.com → projeto furious-rhino → Firestore → Regras.
+// Ordem crítica de release: publicar as rules ANTES do deploy do código
+// (são retrocompatíveis; a ordem inversa rejeita writes EM SILÊNCIO).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Ranking público — 1 doc por aparelho, só melhora
+    match /scores/{playerId} {
+      function validEntry() {
+        return request.resource.data.keys().hasOnly(['name', 'score', 'updatedAt'])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() >= 3
+          && request.resource.data.name.size() <= 12
+          && request.resource.data.score is int
+          && request.resource.data.score >= 1
+          && request.resource.data.score <= 800
+          && request.resource.data.updatedAt == request.time;
+      }
+      allow read: if true;
+      allow create: if validEntry() && playerId.size() >= 16 && playerId.size() <= 40;
+      allow update: if validEntry() && request.resource.data.score > resource.data.score;
+      allow delete: if false;
+    }
+
+    // Telemetria — escrita pelo jogo; leitura PÚBLICA (o painel /?stats
+    // agrega no cliente). Docs anônimos: chave é UUID aleatório, sem nome
+    // e sem IP. Totais acumulados por aparelho, sempre monotônicos.
+    match /stats/{playerId} {
+      function nn(f) {
+        return request.resource.data[f] is int
+          && request.resource.data[f] >= 0
+          && request.resource.data[f] <= 100000000;
+      }
+      function optStr(f, max) {
+        return !(f in request.resource.data)
+          || (request.resource.data[f] is string
+              && request.resource.data[f].size() >= 1
+              && request.resource.data[f].size() <= max);
+      }
+      function mono(f) {
+        return request.resource.data[f] >= resource.data[f];
+      }
+      function validStats() {
+        return request.resource.data.keys().hasOnly(
+            ['attempts', 'playTimeS', 'wins', 'bestM',
+             'deathsT1', 'deathsT2', 'deathsT3', 'deathsT4',
+             'deathWall', 'deathSpike', 'deathAnimal', 'deathDart', 'deathFall',
+             'device', 'os', 'osVersion', 'browser', 'browserVersion',
+             'model', 'screen', 'standalone', 'lang', 'gameVersion',
+             'country', 'region', 'city', 'updatedAt'])
+          && request.resource.data.keys().hasAll(
+            ['attempts', 'playTimeS', 'wins', 'bestM',
+             'deathsT1', 'deathsT2', 'deathsT3', 'deathsT4',
+             'deathWall', 'deathSpike', 'deathAnimal', 'deathDart', 'deathFall',
+             'updatedAt'])
+          && nn('attempts') && request.resource.data.attempts >= 1
+          && nn('playTimeS') && nn('wins')
+          && nn('bestM') && request.resource.data.bestM <= 800
+          && nn('deathsT1') && nn('deathsT2') && nn('deathsT3') && nn('deathsT4')
+          && nn('deathWall') && nn('deathSpike') && nn('deathAnimal')
+          && nn('deathDart') && nn('deathFall')
+          && optStr('device', 10) && optStr('os', 16) && optStr('osVersion', 16)
+          && optStr('browser', 16) && optStr('browserVersion', 16)
+          && optStr('model', 24) && optStr('screen', 20)
+          && optStr('lang', 12) && optStr('gameVersion', 10)
+          && (!('standalone' in request.resource.data)
+              || request.resource.data.standalone is bool)
+          && optStr('country', 3) && optStr('region', 40) && optStr('city', 40)
+          && request.resource.data.updatedAt == request.time;
+      }
+      allow read: if true;
+      allow create: if validStats() && playerId.size() >= 16 && playerId.size() <= 40;
+      allow update: if validStats()
+        && mono('attempts') && mono('playTimeS') && mono('wins') && mono('bestM')
+        && mono('deathsT1') && mono('deathsT2') && mono('deathsT3') && mono('deathsT4')
+        && mono('deathWall') && mono('deathSpike') && mono('deathAnimal')
+        && mono('deathDart') && mono('deathFall');
+      allow delete: if false;
+    }
+  }
+}

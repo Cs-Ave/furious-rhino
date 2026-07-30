@@ -26,6 +26,20 @@ Funciona no navegador do celular (paisagem) e no PC. Pode ser instalado como app
 - **Áudio 100% procedural**: efeitos e música generativa via Web Audio API — zero arquivos de som
 - **PWA**: instalável, com service worker para jogar offline
 
+## Backend (Firestore)
+
+O jogo usa o Firebase Firestore (plano Spark, sem servidor próprio) com duas coleções:
+
+| Coleção | Conteúdo | Leitura | Escrita |
+|---|---|---|---|
+| `scores/{playerId}` | Ranking mundial (nome + melhor score) | Pública | Só melhora o próprio score |
+| `stats/{playerId}` | Telemetria anônima (tentativas, tempo, mortes por tier/causa, dispositivo, geo aproximada) | Pública (painel `/?stats`) | Totais monotônicos do próprio doc |
+
+- As **Security Rules** estão versionadas em [`firestore.rules`](firestore.rules) e precisam ser publicadas **manualmente**: [console do Firebase](https://console.firebase.google.com/project/furious-rhino/firestore) → Firestore → Regras → colar → Publicar.
+- **⚠️ Ordem de release**: publique as rules **ANTES** de fazer deploy de uma versão que dependa delas. As rules são retrocompatíveis com o cliente anterior; a ordem inversa faz o Firestore rejeitar os writes novos **em silêncio** (o jogo engole erros de rede por design).
+- Os docs de `stats` podem ser inspecionados no console em Firestore → Dados → `stats`, ou de forma agregada no painel público **`/?stats`** do próprio jogo.
+- Privacidade: os docs são chaveados por UUID aleatório do aparelho; **nenhum IP é armazenado** (a geolocalização aproximada país/região/cidade vem de uma consulta de IP feita no cliente e só o resultado é gravado).
+
 ## Rodando localmente
 
 ```bash
