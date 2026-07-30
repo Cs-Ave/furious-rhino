@@ -10,7 +10,8 @@ const MAX_SCORE = 800; // WIN_DISTANCE_PX 32000 / PIXELS_PER_METER 40
 
 let dbPromise = null;
 
-function getDb() {
+// Exportado: StatsSystem e o painel /?stats compartilham a mesma conexão
+export function getDb() {
   if (!dbPromise) {
     dbPromise = (async () => {
       const [{ initializeApp }, fs] = await Promise.all([

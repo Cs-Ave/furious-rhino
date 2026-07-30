@@ -7,6 +7,7 @@ import { AudioSystem } from '../systems/AudioSystem.js';
 import { initTuningPanel } from '../systems/TuningPanel.js';
 import { LeaderboardSystem } from '../systems/LeaderboardSystem.js';
 import { MedalSystem, MEDALS } from '../systems/MedalSystem.js';
+import { StatsSystem } from '../systems/StatsSystem.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -67,6 +68,7 @@ export class GameScene extends Phaser.Scene {
 
   setupStartScreen() {
     document.getElementById('start-record').textContent = StorageManager.getRecord();
+    document.getElementById('start-attempts').textContent = StorageManager.getAttempts();
 
     // Última posição conhecida no ranking (cacheada — zero rede no load)
     const rank = StorageManager.getLastRank();
@@ -298,6 +300,10 @@ export class GameScene extends Phaser.Scene {
   startRun() {
     if (this.startTriggered) return;
     this.startTriggered = true;
+
+    // Persiste JÁ: "Jogar Novamente" recarrega a página e apagaria memória
+    StorageManager.addAttempt();
+    this.runStartedAt = Date.now();
     const overlay = document.getElementById('start-screen');
     if (overlay) overlay.style.display = 'none';
     document.body.classList.add('started');
@@ -683,6 +689,19 @@ export class GameScene extends Phaser.Scene {
     if (LeaderboardSystem.shouldSubmit(distance)) {
       this.submitScore(distance); // fire-and-forget: rede nunca trava o fim de jogo
     }
+
+    // Telemetria: acumula os totais locais e espelha no Firestore
+    const runS = Math.min(7200, Math.max(0,
+      Math.round((Date.now() - (this.runStartedAt || Date.now())) / 1000)));
+    StorageManager.addPlayTimeS(runS);
+    if (won) StorageManager.addWin();
+    else StorageManager.addDeath(Constants.getTierIndex(this.rhino.getSprite().x), cause || 'wall');
+    StatsSystem.send(); // fire-and-forget, mesmo contrato do ranking
+
+    // Nº da corrida que acabou de terminar (o addAttempt do startRun já contou)
+    const attemptId = won ? 'win-attempt-message' : 'attempt-message';
+    document.getElementById(attemptId).textContent =
+      `Tentativa nº ${StorageManager.getAttempts()}`;
 
     if (won) {
       this.playVictoryCutscene();

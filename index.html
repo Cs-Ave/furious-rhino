@@ -594,6 +594,16 @@
             margin: 4px 0 0;
         }
 
+        .attempt-line {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            min-height: 16px;
+        }
+
+        #start-attempts-wrap {
+            color: #d7e7f5;
+        }
+
         #online-status,
         #win-online-status {
             color: #4ecdc4;
@@ -691,6 +701,7 @@
     <div id="game-over">
         <h1 id="game-over-title">GAME OVER</h1>
         <p>Distância: <span class="final-score" id="final-score">0</span>m</p>
+        <p id="attempt-message" class="attempt-line"></p>
         <p id="record-message"></p>
         <p id="online-status"></p>
         <p id="medal-message"></p>
@@ -704,6 +715,7 @@
     <div id="game-win">
         <h1>VOCÊ ESCAPOU!</h1>
         <p>Distância: <span class="final-score" id="win-final-score">0</span>m</p>
+        <p id="win-attempt-message" class="attempt-line"></p>
         <p id="win-record-message"></p>
         <p id="win-online-status"></p>
         <p id="win-medal-message"></p>
@@ -748,6 +760,7 @@
         <div id="install-hint"></div>
         <div class="start-stats">
             <span class="record">🏅 Recorde: <span id="start-record">0</span>m</span>
+            <span id="start-attempts-wrap">🎮 Tentativas: <span id="start-attempts">0</span></span>
             <span id="start-rank" hidden>🌍 #<span id="start-rank-pos"></span> do mundo</span>
         </div>
         <div id="medal-strip" role="button" aria-label="Ver medalhas"></div>

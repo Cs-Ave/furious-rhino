@@ -89,6 +89,79 @@ export class StorageManager {
     return total;
   }
 
+  // --- Telemetria local (v1.3.0): totais acumulados por aparelho ---
+  // Persistidos NA HORA do evento: "Jogar Novamente" recarrega a página,
+  // então nada pode ficar só em memória.
+  static ATTEMPTS_KEY = 'furious_rhino_attempts';
+  static PLAYTIME_KEY = 'furious_rhino_playtime_s';
+  static WINS_KEY = 'furious_rhino_wins';
+  static DEATHS_KEY = 'furious_rhino_deaths';
+  static GEO_KEY = 'furious_rhino_geo';
+
+  static getAttempts() {
+    const stored = localStorage.getItem(this.ATTEMPTS_KEY);
+    return stored ? parseInt(stored, 10) : 0;
+  }
+
+  static addAttempt() {
+    const total = this.getAttempts() + 1;
+    localStorage.setItem(this.ATTEMPTS_KEY, total.toString());
+    return total;
+  }
+
+  static getPlayTimeS() {
+    const stored = localStorage.getItem(this.PLAYTIME_KEY);
+    return stored ? parseInt(stored, 10) : 0;
+  }
+
+  static addPlayTimeS(seconds) {
+    const total = this.getPlayTimeS() + seconds;
+    localStorage.setItem(this.PLAYTIME_KEY, total.toString());
+    return total;
+  }
+
+  static getWins() {
+    const stored = localStorage.getItem(this.WINS_KEY);
+    return stored ? parseInt(stored, 10) : 0;
+  }
+
+  static addWin() {
+    const total = this.getWins() + 1;
+    localStorage.setItem(this.WINS_KEY, total.toString());
+    return total;
+  }
+
+  // Mortes por tier (t1..t4) e por causa (wall/spike/animal/dart/fall)
+  static getDeaths() {
+    const empty = { t1: 0, t2: 0, t3: 0, t4: 0, wall: 0, spike: 0, animal: 0, dart: 0, fall: 0 };
+    try {
+      return { ...empty, ...(JSON.parse(localStorage.getItem(this.DEATHS_KEY)) || {}) };
+    } catch (e) {
+      return empty; // JSON corrompido — recomeça sem travar o jogo
+    }
+  }
+
+  static addDeath(tierIdx, cause) {
+    const deaths = this.getDeaths();
+    const tierKey = `t${tierIdx + 1}`;
+    if (tierKey in deaths) deaths[tierKey]++;
+    if (cause in deaths) deaths[cause]++;
+    localStorage.setItem(this.DEATHS_KEY, JSON.stringify(deaths));
+    return deaths;
+  }
+
+  static getGeo() {
+    try {
+      return JSON.parse(localStorage.getItem(this.GEO_KEY));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static setGeo(geo) {
+    localStorage.setItem(this.GEO_KEY, JSON.stringify(geo));
+  }
+
   // Última posição vista no ranking online — cacheada para a tela de
   // início mostrar sem nenhum custo de rede
   static getLastRank() {
