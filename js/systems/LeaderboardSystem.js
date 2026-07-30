@@ -6,7 +6,7 @@ import { StorageManager } from '../utils/StorageManager.js';
 // envia um score — zero custo no load do jogo e zero quebra offline.
 // Nenhum método propaga erro de rede: falhou, o jogo segue normal.
 const SDK = 'https://www.gstatic.com/firebasejs/12.16.0';
-const MAX_SCORE = 400; // WIN_DISTANCE_PX 16000 / PIXELS_PER_METER 40
+const MAX_SCORE = 800; // WIN_DISTANCE_PX 32000 / PIXELS_PER_METER 40
 
 let dbPromise = null;
 

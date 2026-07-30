@@ -48,7 +48,7 @@ export async function initTuningPanel(scene) {
   animais.close();
 
   const furia = gui.addFolder('Fúria');
-  furia.add(Constants, 'FURY_FULL_DISTANCE_PX', 2000, 30000, 500);
+  furia.add(Constants, 'FURY_FULL_DISTANCE_PX', 2000, 32000, 500);
 
   const debug = gui.addFolder('Debug');
   const state = { hitboxes: false, pausado: false };

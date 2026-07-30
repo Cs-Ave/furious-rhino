@@ -322,7 +322,7 @@ export class GameScene extends Phaser.Scene {
   createBackground() {
     this.add.image(640, 360, 'bg-sky').setScrollFactor(0).setDepth(-20);
     // Fixed-to-camera tileSprites scrolled manually in update() — avoids
-    // creating world-width objects for a 16000px level
+    // creating world-width objects for a 32000px level
     this.bgFar = this.add.tileSprite(640, 410, 1280, 420, 'bg-far')
       .setScrollFactor(0).setDepth(-19);
     this.bgNear = this.add.tileSprite(640, 490, 1280, 260, 'bg-near')
