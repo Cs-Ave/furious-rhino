@@ -71,6 +71,33 @@
             color: #ffcc00;
         }
 
+        /* Barra de progresso da fuga: 4 divisões = tiers de dificuldade */
+        #progress-track {
+            position: relative;
+            width: 160px;
+            height: 6px;
+            margin-top: 6px;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        #progress-fill {
+            height: 100%;
+            width: 0;
+            background: #4ecdc4;
+        }
+
+        #progress-marks {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg,
+                transparent calc(25% - 1px), rgba(0, 0, 0, 0.5) calc(25% - 1px) calc(25% + 1px),
+                transparent calc(25% + 1px) calc(50% - 1px), rgba(0, 0, 0, 0.5) calc(50% - 1px) calc(50% + 1px),
+                transparent calc(50% + 1px) calc(75% - 1px), rgba(0, 0, 0, 0.5) calc(75% - 1px) calc(75% + 1px),
+                transparent calc(75% + 1px));
+        }
+
         #game-over {
             position: fixed;
             top: 50%;
@@ -638,6 +665,10 @@
     <div id="ui">
         <div class="score">Pontuação: <span id="score">0</span></div>
         <div class="record">Recorde: <span id="record">0</span></div>
+        <div id="progress-track">
+            <div id="progress-fill"></div>
+            <div id="progress-marks"></div>
+        </div>
     </div>
 
     <div id="game-over">

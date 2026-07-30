@@ -622,6 +622,10 @@ export class GameScene extends Phaser.Scene {
     document.getElementById('score').textContent = this.rhino.getDistance();
     const record = StorageManager.getRecord();
     document.getElementById('record').textContent = record;
+
+    // Barra de progresso da fuga (0–800m; as 4 marcas são os tiers)
+    const pct = Math.min(100, (this.rhino.getSprite().x / Constants.WIN_DISTANCE_PX) * 100);
+    document.getElementById('progress-fill').style.width = `${pct}%`;
   }
 
   // cause: 'wall' | 'spike' | 'animal' | 'dart' | 'fall' (só derrotas)
