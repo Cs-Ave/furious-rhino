@@ -41,7 +41,9 @@ async function bootGame() {
   const game = new Phaser.Game(config);
 
   // ?debug=1 liga o painel de tuning + hitboxes (ver TuningPanel.js)
-  game.registry.set('debug', new URLSearchParams(location.search).get('debug') === '1');
+  const debugOn = new URLSearchParams(location.search).get('debug') === '1';
+  game.registry.set('debug', debugOn);
+  if (debugOn) window.game = game; // acesso pelo console/testes automatizados
 
   // iOS Safari: o viewport é recalculado com atraso ao girar o aparelho;
   // força o Scale Manager a se re-medir depois da rotação
