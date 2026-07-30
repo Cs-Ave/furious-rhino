@@ -684,10 +684,139 @@
         @media (orientation: portrait) {
             #rotate-overlay { display: flex; }
         }
+
+        /* ---------------- Painel público de estatísticas (/?stats) ---------------- */
+
+        body.stats-mode {
+            height: auto;
+            min-height: 100dvh;
+            overflow-y: auto;
+            touch-action: auto;
+            overscroll-behavior: auto;
+        }
+
+        body.stats-mode #game-container,
+        body.stats-mode #start-screen,
+        body.stats-mode #mute-btn,
+        body.stats-mode #rotate-overlay {
+            display: none !important;
+        }
+
+        #stats-page {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 24px 16px 48px;
+            color: #d7e7f5;
+        }
+
+        #stats-page h1 {
+            color: #ff9944;
+            font-size: 26px;
+            margin-bottom: 4px;
+        }
+
+        #stats-page .stats-sub {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        #stats-page h2 {
+            color: #4ecdc4;
+            font-size: 17px;
+            margin: 26px 0 10px;
+        }
+
+        #stats-page a {
+            color: #4ecdc4;
+        }
+
+        .stat-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(78, 205, 196, 0.25);
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+
+        .stat-card .v {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffcc00;
+        }
+
+        .stat-card .l {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 2px;
+        }
+
+        .bar-row {
+            display: grid;
+            grid-template-columns: 150px 1fr 60px;
+            align-items: center;
+            gap: 10px;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .bar-row .bar-label {
+            text-align: right;
+            color: rgba(255, 255, 255, 0.75);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .bar-row .bar-track {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            height: 16px;
+            overflow: hidden;
+        }
+
+        .bar-row .bar-fill {
+            height: 100%;
+            background: #4ecdc4;
+            border-radius: 4px;
+        }
+
+        .bar-row .bar-value {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 13px;
+        }
+
+        #stats-page .stats-status {
+            margin: 30px 0;
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        #stats-page button {
+            margin-top: 12px;
+            padding: 10px 24px;
+            font-size: 15px;
+            background: #4ecdc4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 560px) {
+            .bar-row { grid-template-columns: 110px 1fr 48px; }
+        }
     </style>
 </head>
 <body>
     <div id="game-container"></div>
+
+    <div id="stats-page" hidden></div>
 
     <div id="ui">
         <div class="score">Pontuação: <span id="score">0</span></div>
@@ -850,7 +979,14 @@
         });
       })();
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.85.2/dist/phaser.min.js"></script>
+    <script>
+      // /?stats abre o painel de estatísticas: 1,2 MB de Phaser não são
+      // necessários lá. document.write durante o parse é síncrono — no modo
+      // jogo o global Phaser existe antes de js/game.js (módulo) rodar.
+      if (!new URLSearchParams(location.search).has('stats')) {
+        document.write('<script src="https://cdn.jsdelivr.net/npm/phaser@3.85.2/dist/phaser.min.js"><\/script>');
+      }
+    </script>
     <script type="module" src="js/game.js"></script>
 </body>
 </html>
