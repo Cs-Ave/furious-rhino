@@ -628,6 +628,23 @@
             background: #e8863a;
         }
 
+        /* Texto da cutscene de vitória (mesma cara "3D" do título) */
+        #victory-banner {
+            position: fixed;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 180;
+            font-size: clamp(44px, 10vw, 92px);
+            font-weight: 900;
+            color: #ffcc00;
+            -webkit-text-stroke: 2px #7a1c0c;
+            text-shadow: 3px 3px 0 #7a1c0c, 6px 6px 0 rgba(0, 0, 0, 0.45);
+            letter-spacing: 2px;
+            animation: pulse 0.8s infinite;
+            pointer-events: none;
+        }
+
         #mute-btn {
             position: fixed;
             top: 20px;
@@ -764,6 +781,8 @@
         <ul id="medals-list"></ul>
         <button id="medals-close">Fechar</button>
     </div>
+
+    <div id="victory-banner" hidden>🎉 LIVRE!</div>
 
     <button id="mute-btn" aria-label="Som">🔊</button>
 

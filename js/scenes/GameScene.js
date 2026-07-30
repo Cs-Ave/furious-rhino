@@ -684,12 +684,117 @@ export class GameScene extends Phaser.Scene {
       this.submitScore(distance); // fire-and-forget: rede nunca trava o fim de jogo
     }
 
-    if (!won && cause === 'dart') {
+    if (won) {
+      this.playVictoryCutscene();
+    } else if (cause === 'dart') {
       this.playTranqSleep();
       this.time.delayedCall(600, () => this.showEndOverlay());
     } else {
       this.showEndOverlay();
     }
+  }
+
+  // Comemoração da fuga (~4s, pulável com 1 toque). Física pausada — a
+  // coreografia roda só em tweens/timers/particles, que continuam vivos.
+  playVictoryCutscene() {
+    this.cutsceneTweens = [];
+    this.cutsceneTimers = [];
+    const sprite = this.rhino.getSprite();
+    sprite.anims.pause();
+
+    // Skip: o handler normal de input early-returna com won=true
+    this.cutsceneSkip = () => this.endVictoryCutscene();
+    this.input.once('pointerdown', this.cutsceneSkip);
+
+    // Freada: poeira nos pés
+    for (let i = 0; i < 8; i++) {
+      const p = this.add.image(
+        sprite.x - Phaser.Math.Between(0, 50),
+        Constants.GAME_HEIGHT - 100 + Phaser.Math.Between(-6, 4),
+        'debris-chunk'
+      ).setTint(0xb08454).setDepth(5);
+      this.cutsceneTweens.push(this.tweens.add({
+        targets: p,
+        x: p.x - Phaser.Math.Between(30, 90),
+        y: p.y - Phaser.Math.Between(10, 40),
+        alpha: 0,
+        duration: 500,
+        onComplete: () => p.destroy(),
+      }));
+    }
+
+    // 3 pulinhos com squash & stretch
+    this.cutsceneTweens.push(this.tweens.add({
+      targets: sprite,
+      y: sprite.y - 90,
+      duration: 280,
+      yoyo: true,
+      repeat: 2,
+      ease: 'Quad.easeOut',
+    }));
+    this.cutsceneTweens.push(this.tweens.add({
+      targets: sprite,
+      scaleY: 1.12,
+      scaleX: 0.92,
+      duration: 280,
+      yoyo: true,
+      repeat: 2,
+      ease: 'Quad.easeOut',
+    }));
+
+    // Confete em coordenadas de tela (cai por ~2,5s)
+    this.confettiEmitter = this.add.particles(0, 0, 'confetti', {
+      x: { min: 0, max: Constants.GAME_WIDTH },
+      y: -10,
+      speedY: { min: 150, max: 300 },
+      speedX: { min: -40, max: 40 },
+      rotate: { min: 0, max: 360 },
+      scale: { min: 0.7, max: 1.3 },
+      lifespan: 2600,
+      quantity: 4,
+      frequency: 40,
+      tint: [0xff4444, 0xffcc00, 0x4ecdc4, 0x6aae3a, 0xff9944, 0xffffff],
+    }).setScrollFactor(0).setDepth(150);
+    this.cutsceneTimers.push(this.time.delayedCall(2500, () => this.confettiEmitter.stop()));
+
+    // Fogos: flashes coloridos no alto, escalonados (sem debris/shake)
+    const fireworkTints = [0xff5555, 0xffd94a, 0x4ecdc4, 0xbb77ff, 0x6aae3a];
+    [600, 1100, 1500, 1900, 2300].forEach((delay, i) => {
+      this.cutsceneTimers.push(this.time.delayedCall(delay, () => {
+        const fx = this.add.image(
+          Phaser.Math.Between(200, Constants.GAME_WIDTH - 200),
+          Phaser.Math.Between(80, 300),
+          'explosion-flash'
+        ).setScrollFactor(0).setDepth(151).setScale(0.5).setTint(fireworkTints[i]);
+        this.tweens.add({
+          targets: fx,
+          scale: 3,
+          alpha: 0,
+          duration: 500,
+          ease: 'Cubic.easeOut',
+          onComplete: () => fx.destroy(),
+        });
+      }));
+    });
+
+    document.getElementById('victory-banner').hidden = false;
+
+    this.cutsceneTimers.push(this.time.delayedCall(4000, () => this.endVictoryCutscene()));
+  }
+
+  // Fim natural OU skip: mata tweens/timers/emitter e abre o overlay.
+  // Idempotente — o delayedCall final e o toque podem correr juntos.
+  endVictoryCutscene() {
+    if (this.cutsceneDone) return;
+    this.cutsceneDone = true;
+
+    this.input.off('pointerdown', this.cutsceneSkip);
+    this.cutsceneTweens.forEach((t) => t.stop());
+    this.cutsceneTimers.forEach((t) => t.remove(false));
+    if (this.confettiEmitter) this.confettiEmitter.destroy();
+    document.getElementById('victory-banner').hidden = true;
+
+    this.showEndOverlay();
   }
 
   showEndOverlay() {

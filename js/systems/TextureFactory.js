@@ -18,6 +18,7 @@ export class TextureFactory {
     this.generateSmoke(scene);
     this.generateWindStreak(scene);
     this.generateExplosionFlash(scene);
+    this.generateConfetti(scene);
   }
 
   // ---------------------------------------------------------------- walls
@@ -473,6 +474,15 @@ export class TextureFactory {
     g.fillStyle(0xffffff, 0.95);
     g.fillCircle(32, 32, 12);
     g.generateTexture('explosion-flash', 64, 64);
+    g.destroy();
+  }
+
+  // Retângulo branco: o emitter da cutscene tinge cada partícula de uma cor
+  static generateConfetti(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(0, 0, 8, 5);
+    g.generateTexture('confetti', 8, 5);
     g.destroy();
   }
 
