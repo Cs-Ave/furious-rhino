@@ -90,6 +90,19 @@ export class SpawnManager {
 
       // O obstáculo nasce com a dificuldade do LUGAR onde vai ficar
       const tier = Constants.getTierFor(this.nextSpawnX);
+
+      // Combo: 2 obstáculos em sequência com offsets FIXOS (justiça).
+      // Perto da chegada não — o corte de spawn não pode partir um par.
+      if (Math.random() < tier.comboChance &&
+          this.nextSpawnX < Constants.WIN_DISTANCE_PX - 1500) {
+        this.nextSpawnX += this.spawnCombo(Constants.getTierIndex(this.nextSpawnX));
+        this.nextSpawnX += Math.max(
+          Constants.MIN_SAFE_GAP,
+          tier.gapMin + Math.random() * tier.gapRand
+        );
+        continue;
+      }
+
       const roll = Math.random();
       if (roll < tier.wallW) {
         this.spawnWall(this.nextSpawnX);
@@ -135,20 +148,51 @@ export class SpawnManager {
     }
   }
 
-  spawnAnimal(x) {
+  // typeOverride/yOverride: usados pelos combos para fixar espécie e altura
+  spawnAnimal(x, typeOverride = null, yOverride = null) {
     const animal = this.animalsGroup.getFirst(false);
     if (!animal) return;
 
-    const type = Constants.ANIMAL_TYPES[Math.floor(Math.random() * Constants.ANIMAL_TYPES.length)];
+    const type = typeOverride ||
+      Constants.ANIMAL_TYPES[Math.floor(Math.random() * Constants.ANIMAL_TYPES.length)];
     animal.setType(type);
 
     // Ground species stand on the ground (top at y=620); the bird flies at jump height
     const groundTop = Constants.GAME_HEIGHT - 100;
     const spec = Constants.ANIMAL_SPECS[type];
-    const y = type === 'bird'
-      ? Phaser.Math.Between(410, 520)
-      : groundTop - (spec.h * Constants.ANIMAL_SCALE) / 2;
+    const y = yOverride !== null
+      ? yOverride
+      : type === 'bird'
+        ? Phaser.Math.Between(410, 520)
+        : groundTop - (spec.h * Constants.ANIMAL_SCALE) / 2;
     animal.reset(x, y);
+  }
+
+  // Pares fixos; retorna o comprimento do par (o chamador soma o gap depois).
+  // wall-animal: dash quebra a parede, o cooldown força PULAR o animal.
+  // spike-bird (tiers 3-4): espinho no chão + pássaro em altura fixa.
+  // tower-spike: espinho elevado + espinho no chão — 1 pulo carregado limpa os dois.
+  spawnCombo(tierIdx) {
+    const patterns = tierIdx >= 2
+      ? ['wall-animal', 'spike-bird', 'tower-spike']
+      : ['wall-animal', 'tower-spike'];
+    const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+    const x = this.nextSpawnX;
+
+    if (pattern === 'wall-animal') {
+      this.spawnWall(x);
+      const types = ['lion', 'monkey', 'zebra'];
+      this.spawnAnimal(x + 280, types[Math.floor(Math.random() * types.length)]);
+      return 280;
+    }
+    if (pattern === 'spike-bird') {
+      this.spawnSpike(x, 'ground');
+      this.spawnAnimal(x + 220, 'bird', 470);
+      return 220;
+    }
+    this.spawnSpike(x, 'tower');
+    this.spawnSpike(x + 180, 'ground');
+    return 180;
   }
 
   spawnTower(x) {
