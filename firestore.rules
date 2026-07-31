@@ -28,63 +28,50 @@ service cloud.firestore {
 
     // Telemetria — escrita pelo jogo; leitura PÚBLICA (o painel /?stats
     // agrega no cliente). Docs anônimos: chave é UUID aleatório, sem nome
-    // e sem IP. Totais acumulados por aparelho, sempre monotônicos.
+    // e sem IP. Totais acumulados por aparelho, monotônicos nos núcleos.
+    //
+    // ⚠️ Estrutura ANINHADA de propósito (deaths/client/geo são mapas):
+    // rules com dezenas de cláusulas sobre 20+ campos soltos estouram o
+    // orçamento de avaliação do Firestore e passam a NEGAR writes legítimos
+    // (constatado na prática: 19 campos passavam, 20 falhavam). Manter as
+    // regras desta coleção ENXUTAS.
     match /stats/{playerId} {
-      function nn(f) {
+      function core(f) {
         return request.resource.data[f] is int
           && request.resource.data[f] >= 0
           && request.resource.data[f] <= 100000000;
       }
-      function optStr(f, max) {
-        return !(f in request.resource.data)
-          || (request.resource.data[f] is string
-              && request.resource.data[f].size() >= 1
-              && request.resource.data[f].size() <= max);
-      }
-      function mono(f) {
-        return request.resource.data[f] >= resource.data[f];
-      }
       function validStats() {
         return request.resource.data.keys().hasOnly(
-            ['attempts', 'playTimeS', 'wins', 'bestM',
-             'deathsT1', 'deathsT2', 'deathsT3', 'deathsT4',
-             'deathWall', 'deathSpike', 'deathAnimal', 'deathDart',
-             'deathTower', 'deathFall',
-             'device', 'os', 'osVersion', 'browser', 'browserVersion',
-             'model', 'screen', 'standalone', 'lang', 'gameVersion',
-             'country', 'region', 'city', 'updatedAt'])
+            ['attempts', 'playTimeS', 'wins', 'bestM', 'deaths',
+             'client', 'geo', 'standalone', 'gameVersion', 'updatedAt'])
           && request.resource.data.keys().hasAll(
-            ['attempts', 'playTimeS', 'wins', 'bestM',
-             'deathsT1', 'deathsT2', 'deathsT3', 'deathsT4',
-             'deathWall', 'deathSpike', 'deathAnimal', 'deathDart', 'deathFall',
-             'updatedAt'])
-          && nn('attempts') && request.resource.data.attempts >= 1
-          && nn('playTimeS') && nn('wins')
-          && nn('bestM') && request.resource.data.bestM <= 800
-          && nn('deathsT1') && nn('deathsT2') && nn('deathsT3') && nn('deathsT4')
-          && nn('deathWall') && nn('deathSpike') && nn('deathAnimal')
-          && nn('deathDart') && nn('deathFall')
-          // deathTower é OPCIONAL (v1.3.1+): clientes 1.3.0 não o enviam
-          && (!('deathTower' in request.resource.data) || nn('deathTower'))
-          && optStr('device', 10) && optStr('os', 16) && optStr('osVersion', 16)
-          && optStr('browser', 16) && optStr('browserVersion', 16)
-          && optStr('model', 24) && optStr('screen', 20)
-          && optStr('lang', 12) && optStr('gameVersion', 10)
+            ['attempts', 'playTimeS', 'wins', 'bestM', 'deaths', 'updatedAt'])
+          && core('attempts') && request.resource.data.attempts >= 1
+          && core('playTimeS') && core('wins')
+          && core('bestM') && request.resource.data.bestM <= 800
+          && request.resource.data.deaths is map
+          && request.resource.data.deaths.size() <= 12
+          && (!('client' in request.resource.data)
+              || (request.resource.data.client is map
+                  && request.resource.data.client.size() <= 10))
+          && (!('geo' in request.resource.data)
+              || (request.resource.data.geo is map
+                  && request.resource.data.geo.size() <= 4))
           && (!('standalone' in request.resource.data)
               || request.resource.data.standalone is bool)
-          && optStr('country', 3) && optStr('region', 40) && optStr('city', 40)
+          && (!('gameVersion' in request.resource.data)
+              || (request.resource.data.gameVersion is string
+                  && request.resource.data.gameVersion.size() <= 10))
           && request.resource.data.updatedAt == request.time;
       }
       allow read: if true;
       allow create: if validStats() && playerId.size() >= 16 && playerId.size() <= 40;
       allow update: if validStats()
-        && mono('attempts') && mono('playTimeS') && mono('wins') && mono('bestM')
-        && mono('deathsT1') && mono('deathsT2') && mono('deathsT3') && mono('deathsT4')
-        && mono('deathWall') && mono('deathSpike') && mono('deathAnimal')
-        && mono('deathDart') && mono('deathFall')
-        // monotônico só quando o campo existe nos dois lados (docs antigos não têm)
-        && (!('deathTower' in request.resource.data) || !('deathTower' in resource.data)
-            || request.resource.data.deathTower >= resource.data.deathTower);
+        && request.resource.data.attempts >= resource.data.attempts
+        && request.resource.data.playTimeS >= resource.data.playTimeS
+        && request.resource.data.wins >= resource.data.wins
+        && request.resource.data.bestM >= resource.data.bestM;
       allow delete: if false;
     }
   }

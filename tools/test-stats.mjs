@@ -65,30 +65,29 @@ eq('mesmas causas no storage e na página', causas, Object.keys(aggregate([]).ca
 const rules = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), '..', 'firestore.rules'), 'utf8'
 );
-const nomeCampo = {
-  wall: 'deathWall', spike: 'deathSpike', animal: 'deathAnimal',
-  dart: 'deathDart', tower: 'deathTower', fall: 'deathFall',
-};
-eq('todas as causas existem nas firestore.rules',
-  causas.filter((c) => rules.includes(nomeCampo[c])).sort(), causas);
+// Esquema aninhado: as rules validam o MAPA deaths (não cada causa) com um
+// teto de chaves — o storage precisa caber nesse teto
+eq('rules aceitam o mapa deaths', rules.includes("'deaths'"), true);
+eq('mapa de mortes cabe no teto das rules (size <= 12)',
+  Object.keys(StorageManager.getDeaths()).length <= 12, true);
 
 // ---------- 4. Agregação da página ----------
 const docs = [
-  { // doc antigo (pré-1.3.1): sem deathTower, sem device/país
+  { // doc LEGADO achatado (v1.3.0): sem deathTower, sem device/país
     attempts: 5, wins: 1, playTimeS: 120, bestM: 400,
     deathsT1: 2, deathsT2: 0, deathsT3: 0, deathsT4: 0,
     deathWall: 1, deathSpike: 0, deathAnimal: 0, deathDart: 0, deathFall: 1,
   },
-  { // doc novo com torre, geo e device
+  { // doc NOVO aninhado (v1.3.1+): mapas deaths/client/geo
     attempts: 3, wins: 0, playTimeS: 90, bestM: 337, standalone: true,
-    deathsT1: 0, deathsT2: 2, deathsT3: 1, deathsT4: 0,
-    deathWall: 0, deathSpike: 0, deathAnimal: 1, deathDart: 1, deathTower: 1, deathFall: 0,
-    device: 'desktop', os: 'Windows', osVersion: '11', browser: 'Chrome',
-    country: 'BR', region: 'Rio de Janeiro', city: 'Rio de Janeiro', gameVersion: '1.3.1',
+    gameVersion: '1.3.1',
+    deaths: { t1: 0, t2: 2, t3: 1, t4: 0, wall: 0, spike: 0, animal: 1, dart: 1, tower: 1, fall: 0 },
+    client: { device: 'desktop', os: 'Windows', osVersion: '11', browser: 'Chrome' },
+    geo: { country: 'BR', region: 'Rio de Janeiro', city: 'Rio de Janeiro' },
   },
   { // doc malformado: valores errados não podem contaminar as somas
     attempts: 'abc', wins: null, playTimeS: NaN, bestM: 'x',
-    deathsT1: '5', deathWall: {}, deathTower: '9',
+    deaths: 'lixo', deathsT1: '5', deathWall: {}, client: 42, geo: null,
   },
 ];
 const agg = aggregate(docs);

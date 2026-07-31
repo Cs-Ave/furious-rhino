@@ -120,40 +120,40 @@ export class StatsSystem {
       const [geo, device] = await Promise.all([this.getGeo(), this.buildDeviceInfo()]);
       const { fs, db } = await getDb();
 
-      const deaths = StorageManager.getDeaths();
+      // Estrutura ANINHADA (deaths/client/geo como mapas): campos soltos
+      // demais estouram o orçamento de avaliação das rules do Firestore e
+      // o write é negado — ver comentário em firestore.rules
       const data = {
         attempts: StorageManager.getAttempts(),
         playTimeS: StorageManager.getPlayTimeS(),
         wins: StorageManager.getWins(),
         bestM: Math.min(StorageManager.getRecord(), 800),
-        deathsT1: deaths.t1,
-        deathsT2: deaths.t2,
-        deathsT3: deaths.t3,
-        deathsT4: deaths.t4,
-        deathWall: deaths.wall,
-        deathSpike: deaths.spike,
-        deathAnimal: deaths.animal,
-        deathDart: deaths.dart,
-        deathTower: deaths.tower,
-        deathFall: deaths.fall,
+        deaths: StorageManager.getDeaths(), // {t1..t4, wall..tower..fall}
         standalone: Boolean(
           window.matchMedia('(display-mode: standalone)').matches ||
           window.matchMedia('(display-mode: fullscreen)').matches ||
           navigator.standalone === true
         ),
+        gameVersion: Constants.VERSION,
         updatedAt: fs.serverTimestamp(),
       };
 
-      // Strings opcionais só entram não-vazias: as rules exigem size()>=1 e
-      // `undefined` faria o setDoc lançar antes mesmo da rede
+      // Strings opcionais só entram não-vazias (`undefined` faria o setDoc
+      // lançar antes mesmo da rede); mapas vazios ficam de fora
+      const client = {};
       for (const [key, value] of Object.entries({
         device: device.device, os: device.os, osVersion: device.osVersion,
         browser: device.browser, browserVersion: device.browserVersion,
         model: device.model, screen: device.screen, lang: device.lang,
-        gameVersion: device.gameVersion,
-        country: geo && geo.country, region: geo && geo.region, city: geo && geo.city,
       })) {
-        if (typeof value === 'string' && value) data[key] = value;
+        if (typeof value === 'string' && value) client[key] = value;
+      }
+      if (Object.keys(client).length) data.client = client;
+
+      if (geo && geo.country) {
+        data.geo = { country: geo.country };
+        if (geo.region) data.geo.region = geo.region;
+        if (geo.city) data.geo.city = geo.city;
       }
 
       const playerId = StorageManager.getOrCreatePlayerId();

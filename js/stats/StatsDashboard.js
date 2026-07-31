@@ -66,21 +66,31 @@ export function aggregate(docs) {
   const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
 
   for (const d of docs) {
+    // Dois formatos convivem: docs v1.3.1+ aninham deaths/client/geo em
+    // mapas; docs v1.3.0 têm tudo achatado (deathsT1, device, country...)
+    const deaths = (d.deaths && typeof d.deaths === 'object') ? d.deaths : {
+      t1: d.deathsT1, t2: d.deathsT2, t3: d.deathsT3, t4: d.deathsT4,
+      wall: d.deathWall, spike: d.deathSpike, animal: d.deathAnimal,
+      dart: d.deathDart, tower: d.deathTower, fall: d.deathFall,
+    };
+    const client = (d.client && typeof d.client === 'object') ? d.client : d;
+    const geo = (d.geo && typeof d.geo === 'object') ? d.geo : d;
+
     agg.attempts += num(d.attempts);
     agg.wins += num(d.wins);
     agg.playTimeS += num(d.playTimeS);
     if (d.standalone === true) agg.standalone++;
 
-    agg.deathsTier[0] += num(d.deathsT1);
-    agg.deathsTier[1] += num(d.deathsT2);
-    agg.deathsTier[2] += num(d.deathsT3);
-    agg.deathsTier[3] += num(d.deathsT4);
-    agg.causes.wall += num(d.deathWall);
-    agg.causes.spike += num(d.deathSpike);
-    agg.causes.animal += num(d.deathAnimal);
-    agg.causes.dart += num(d.deathDart);
-    agg.causes.tower += num(d.deathTower); // opcional: docs pré-1.3.1 não têm
-    agg.causes.fall += num(d.deathFall);
+    agg.deathsTier[0] += num(deaths.t1);
+    agg.deathsTier[1] += num(deaths.t2);
+    agg.deathsTier[2] += num(deaths.t3);
+    agg.deathsTier[3] += num(deaths.t4);
+    agg.causes.wall += num(deaths.wall);
+    agg.causes.spike += num(deaths.spike);
+    agg.causes.animal += num(deaths.animal);
+    agg.causes.dart += num(deaths.dart);
+    agg.causes.tower += num(deaths.tower); // docs pré-1.3.1 não têm
+    agg.causes.fall += num(deaths.fall);
 
     const best = num(d.bestM);
     if (best >= 200) agg.funnel.m200++;
@@ -88,13 +98,13 @@ export function aggregate(docs) {
     if (best >= 600) agg.funnel.m600++;
     if (num(d.wins) > 0) agg.funnel.escaped++;
 
-    inc(agg.device, str(d.device) || 'desconhecido');
-    inc(agg.os, str(d.os) ? `${str(d.os)} ${majorVersion(d.osVersion)}`.trim() : 'desconhecido');
-    inc(agg.browser, str(d.browser) || 'desconhecido');
-    if (str(d.model)) inc(agg.model, str(d.model));
-    if (str(d.screen)) inc(agg.screen, str(d.screen));
-    inc(agg.country, str(d.country) || '??');
-    if (str(d.city)) inc(agg.city, str(d.region) ? `${str(d.city)} (${str(d.region)})` : str(d.city));
+    inc(agg.device, str(client.device) || 'desconhecido');
+    inc(agg.os, str(client.os) ? `${str(client.os)} ${majorVersion(client.osVersion)}`.trim() : 'desconhecido');
+    inc(agg.browser, str(client.browser) || 'desconhecido');
+    if (str(client.model)) inc(agg.model, str(client.model));
+    if (str(client.screen)) inc(agg.screen, str(client.screen));
+    inc(agg.country, str(geo.country) || '??');
+    if (str(geo.city)) inc(agg.city, str(geo.region) ? `${str(geo.city)} (${str(geo.region)})` : str(geo.city));
     inc(agg.version, str(d.gameVersion) || 'pré-1.3.0');
   }
   return agg;
