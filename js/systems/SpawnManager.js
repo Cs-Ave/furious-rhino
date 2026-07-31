@@ -208,11 +208,11 @@ export class SpawnManager {
     tower.reset(x);
   }
 
-  // Chamado pela TranqTower no momento do disparo (mira em 360°)
-  fireDart(x, y, vx, vy = 0) {
+  // Chamado pela TranqTower no momento do disparo (mira em 360° / morteiro)
+  fireDart(x, y, vx, vy = 0, gravity = false) {
     const dart = this.dartsGroup.getFirst(false);
     if (!dart) return;
-    dart.fire(x, y, vx, vy);
+    dart.fire(x, y, vx, vy, gravity);
   }
 
   getWallsGroup() {

@@ -95,7 +95,7 @@ export const Constants = {
     spikes: 6,
     animals: 6,
     towers: 4,
-    darts: 8,
+    darts: 12,
   },
 
   // Animal types

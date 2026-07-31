@@ -22,6 +22,7 @@ export class TranqTower extends Phaser.Physics.Arcade.Sprite {
     this.setPosition(x, Constants.GAME_HEIGHT - 100 - 120);
     this.body.enable = true;
     this.nextShotAt = 0;
+    this.shotIndex = 0;
     this.clearTint();
     this.setActive(true).setVisible(true);
   }
@@ -55,16 +56,26 @@ export class TranqTower extends Phaser.Physics.Arcade.Sprite {
 
     if (time >= this.nextShotAt) {
       this.clearTint();
-      // Mira no rino onde ele estiver: frente, por cima ou já tendo passado
       const rhino = this.scene.rhino.getSprite();
       const mx = this.x;
       const my = this.y + 38; // seteira
-      const dx = rhino.x - mx;
-      const dy = rhino.y - 30 - my; // centro do corpo (origem do rino é o pé)
-      const len = Math.hypot(dx, dy) || 1;
-      this.scene.spawnManager.fireDart(
-        mx, my, (dx / len) * tier.dartSpeed, (dy / len) * tier.dartSpeed
-      );
+      this.shotIndex = (this.shotIndex || 0) + 1;
+
+      if (this.shotIndex % 2 === 0) {
+        // Morteiro: dardo PARA CIMA em arco (gravidade), caindo no caminho
+        // do rino — sobe ~175px e aterrissa ~200px para o lado dele em ~1,1s
+        const side = rhino.x >= mx ? 1 : -1;
+        this.scene.spawnManager.fireDart(mx, my, side * 180, -700, true);
+      } else {
+        // Tiro reto mirado: frente na aproximação, para cima se ele estiver
+        // pulando a torre, nas costas se já passou sem derrubá-la
+        const dx = rhino.x - mx;
+        const dy = rhino.y - 30 - my; // centro do corpo (origem do rino é o pé)
+        const len = Math.hypot(dx, dy) || 1;
+        this.scene.spawnManager.fireDart(
+          mx, my, (dx / len) * tier.dartSpeed, (dy / len) * tier.dartSpeed
+        );
+      }
       this.scene.audio.playDart();
       this.nextShotAt = time + tier.towerIntervalMs;
     }
