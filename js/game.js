@@ -4,7 +4,19 @@
 // jogo importa tudo dinamicamente, só quando o global existe.
 if (new URLSearchParams(location.search).has('stats')) {
   document.body.classList.add('stats-mode');
-  import('./stats/StatsDashboard.js').then((m) => m.render());
+  (async () => {
+    // Espelha os totais DESTE aparelho antes de agregar: quem morre e vem
+    // direto para cá não perde nada (o envio do fim de corrida morre se a
+    // página navegar antes de completar)
+    try {
+      const [{ StatsSystem }, { StorageManager }] = await Promise.all([
+        import('./systems/StatsSystem.js'),
+        import('./utils/StorageManager.js'),
+      ]);
+      if (StorageManager.getAttempts() > 0) await StatsSystem.send();
+    } catch (e) { /* offline — o painel mostra o que houver no servidor */ }
+    (await import('./stats/StatsDashboard.js')).render();
+  })();
 } else {
   bootGame();
 }
