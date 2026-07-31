@@ -78,6 +78,11 @@ export class GameScene extends Phaser.Scene {
     }
     this.setupMedalStrip();
 
+    // Reenvia os totais com a página parada: o envio do fim de corrida
+    // morre se o jogador clicar "Jogar Novamente" rápido (reload mata o
+    // fetch em voo) — aqui ele sempre completa e cura docs defasados
+    if (StorageManager.getAttempts() > 0) StatsSystem.send();
+
     // Handler nomeado com guarda em vez de {once:true}: com um modal aberto
     // (ranking/apelido), nenhuma tecla ou toque pode iniciar a corrida
     const overlay = document.getElementById('start-screen');
