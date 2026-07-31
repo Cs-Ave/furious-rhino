@@ -134,6 +134,7 @@ export class StatsSystem {
         deathSpike: deaths.spike,
         deathAnimal: deaths.animal,
         deathDart: deaths.dart,
+        deathTower: deaths.tower,
         deathFall: deaths.fall,
         standalone: Boolean(
           window.matchMedia('(display-mode: standalone)').matches ||

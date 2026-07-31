@@ -48,7 +48,8 @@ service cloud.firestore {
         return request.resource.data.keys().hasOnly(
             ['attempts', 'playTimeS', 'wins', 'bestM',
              'deathsT1', 'deathsT2', 'deathsT3', 'deathsT4',
-             'deathWall', 'deathSpike', 'deathAnimal', 'deathDart', 'deathFall',
+             'deathWall', 'deathSpike', 'deathAnimal', 'deathDart',
+             'deathTower', 'deathFall',
              'device', 'os', 'osVersion', 'browser', 'browserVersion',
              'model', 'screen', 'standalone', 'lang', 'gameVersion',
              'country', 'region', 'city', 'updatedAt'])
@@ -63,6 +64,8 @@ service cloud.firestore {
           && nn('deathsT1') && nn('deathsT2') && nn('deathsT3') && nn('deathsT4')
           && nn('deathWall') && nn('deathSpike') && nn('deathAnimal')
           && nn('deathDart') && nn('deathFall')
+          // deathTower é OPCIONAL (v1.3.1+): clientes 1.3.0 não o enviam
+          && (!('deathTower' in request.resource.data) || nn('deathTower'))
           && optStr('device', 10) && optStr('os', 16) && optStr('osVersion', 16)
           && optStr('browser', 16) && optStr('browserVersion', 16)
           && optStr('model', 24) && optStr('screen', 20)
@@ -78,7 +81,10 @@ service cloud.firestore {
         && mono('attempts') && mono('playTimeS') && mono('wins') && mono('bestM')
         && mono('deathsT1') && mono('deathsT2') && mono('deathsT3') && mono('deathsT4')
         && mono('deathWall') && mono('deathSpike') && mono('deathAnimal')
-        && mono('deathDart') && mono('deathFall');
+        && mono('deathDart') && mono('deathFall')
+        // monotônico só quando o campo existe nos dois lados (docs antigos não têm)
+        && (!('deathTower' in request.resource.data) || !('deathTower' in resource.data)
+            || request.resource.data.deathTower >= resource.data.deathTower);
       allow delete: if false;
     }
   }

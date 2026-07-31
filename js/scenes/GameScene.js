@@ -441,7 +441,7 @@ export class GameScene extends Phaser.Scene {
       this.createExplosion(tower.x, tower.y + 60);
       tower.deactivate();
     } else {
-      this.endGame(false, 'wall');
+      this.endGame(false, 'tower');
     }
   }
 
@@ -634,7 +634,7 @@ export class GameScene extends Phaser.Scene {
     document.getElementById('progress-fill').style.width = `${pct}%`;
   }
 
-  // cause: 'wall' | 'spike' | 'animal' | 'dart' | 'fall' (só derrotas)
+  // cause: 'wall' | 'spike' | 'animal' | 'dart' | 'tower' | 'fall' (só derrotas)
   endGame(won, cause = null) {
     this.gameOver = true;
     this.won = won;

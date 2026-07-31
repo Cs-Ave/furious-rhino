@@ -5,7 +5,8 @@
   "main": "sw.js",
   "scripts": {
     "export-art": "node tools/export-art.mjs",
-    "make-icons": "node tools/make-icons.mjs"
+    "make-icons": "node tools/make-icons.mjs",
+    "test-stats": "node tools/test-stats.mjs"
   },
   "repository": {
     "type": "git",

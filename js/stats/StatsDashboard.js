@@ -41,7 +41,8 @@ export async function render() {
   draw(root, aggregate(docs));
 }
 
-function aggregate(docs) {
+// Exportada para o grupo de testes (tools/test-stats.mjs)
+export function aggregate(docs) {
   const agg = {
     players: docs.length,
     attempts: 0,
@@ -49,7 +50,7 @@ function aggregate(docs) {
     playTimeS: 0,
     standalone: 0,
     deathsTier: [0, 0, 0, 0],
-    causes: { wall: 0, spike: 0, animal: 0, dart: 0, fall: 0 },
+    causes: { wall: 0, spike: 0, animal: 0, dart: 0, tower: 0, fall: 0 },
     funnel: { m200: 0, m400: 0, m600: 0, escaped: 0 },
     device: new Map(),
     os: new Map(),
@@ -78,6 +79,7 @@ function aggregate(docs) {
     agg.causes.spike += num(d.deathSpike);
     agg.causes.animal += num(d.deathAnimal);
     agg.causes.dart += num(d.deathDart);
+    agg.causes.tower += num(d.deathTower); // opcional: docs pré-1.3.1 não têm
     agg.causes.fall += num(d.deathFall);
 
     const best = num(d.bestM);
@@ -148,6 +150,7 @@ function draw(root, agg) {
     ['🔺 Espinho', agg.causes.spike],
     ['🦁 Animal', agg.causes.animal],
     ['💉 Dardo', agg.causes.dart],
+    ['🏰 Torre', agg.causes.tower],
     ['🕳️ Queda', agg.causes.fall],
   ]));
 

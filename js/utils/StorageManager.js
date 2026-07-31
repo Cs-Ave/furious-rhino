@@ -131,9 +131,9 @@ export class StorageManager {
     return total;
   }
 
-  // Mortes por tier (t1..t4) e por causa (wall/spike/animal/dart/fall)
+  // Mortes por tier (t1..t4) e por causa (wall/spike/animal/dart/tower/fall)
   static getDeaths() {
-    const empty = { t1: 0, t2: 0, t3: 0, t4: 0, wall: 0, spike: 0, animal: 0, dart: 0, fall: 0 };
+    const empty = { t1: 0, t2: 0, t3: 0, t4: 0, wall: 0, spike: 0, animal: 0, dart: 0, tower: 0, fall: 0 };
     try {
       return { ...empty, ...(JSON.parse(localStorage.getItem(this.DEATHS_KEY)) || {}) };
     } catch (e) {
