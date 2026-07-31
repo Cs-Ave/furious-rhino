@@ -76,8 +76,15 @@ export class SpawnManager {
       if (tower.active && tower.x < limit) tower.deactivate();
     });
 
+    // Dardos agora voam em qualquer direção — reciclar por qualquer borda,
+    // senão os que sobem/vão para trás nunca voltam ao pool
     this.dartsGroup.children.entries.forEach(dart => {
-      if (dart.active && dart.x < limit) dart.deactivate();
+      if (dart.active && (
+        dart.x < limit ||
+        dart.x > camera.scrollX + camera.width + 200 ||
+        dart.y < -60 ||
+        dart.y > Constants.GAME_HEIGHT + 60
+      )) dart.deactivate();
     });
   }
 
@@ -201,11 +208,11 @@ export class SpawnManager {
     tower.reset(x);
   }
 
-  // Chamado pela TranqTower no momento do disparo
-  fireDart(x, y, vx) {
+  // Chamado pela TranqTower no momento do disparo (mira em 360°)
+  fireDart(x, y, vx, vy = 0) {
     const dart = this.dartsGroup.getFirst(false);
     if (!dart) return;
-    dart.fire(x, y, vx);
+    dart.fire(x, y, vx, vy);
   }
 
   getWallsGroup() {

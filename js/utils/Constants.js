@@ -119,11 +119,15 @@ export const Constants = {
   // animalLeadPx: animais andam contra o fluxo, o vão antes deles encolhe
   // até o encontro — espaço extra no spawn compensa.
   DIFFICULTY_TIERS: [
-    { gapMin: 900, gapRand: 150, animalSpeedMult: 1.0,  animalLeadPx: 350, wallW: 0.55, spikeW: 0.20, towerW: 0,    comboChance: 0,    towerIntervalMs: 2200, dartSpeed: 460 },
-    { gapMin: 760, gapRand: 140, animalSpeedMult: 1.15, animalLeadPx: 400, wallW: 0.45, spikeW: 0.15, towerW: 0.10, comboChance: 0.15, towerIntervalMs: 2200, dartSpeed: 460 },
-    { gapMin: 640, gapRand: 120, animalSpeedMult: 1.35, animalLeadPx: 450, wallW: 0.36, spikeW: 0.14, towerW: 0.15, comboChance: 0.25, towerIntervalMs: 1700, dartSpeed: 540 },
-    { gapMin: 560, gapRand: 100, animalSpeedMult: 1.6,  animalLeadPx: 500, wallW: 0.30, spikeW: 0.12, towerW: 0.18, comboChance: 0.35, towerIntervalMs: 1300, dartSpeed: 620 },
+    { gapMin: 900, gapRand: 150, animalSpeedMult: 1.0,  animalLeadPx: 350, wallW: 0.55, spikeW: 0.20, towerW: 0,    comboChance: 0,    towerIntervalMs: 1200, dartSpeed: 460 },
+    { gapMin: 760, gapRand: 140, animalSpeedMult: 1.15, animalLeadPx: 400, wallW: 0.45, spikeW: 0.15, towerW: 0.10, comboChance: 0.15, towerIntervalMs: 1000, dartSpeed: 460 },
+    { gapMin: 640, gapRand: 120, animalSpeedMult: 1.35, animalLeadPx: 450, wallW: 0.36, spikeW: 0.14, towerW: 0.15, comboChance: 0.25, towerIntervalMs: 800,  dartSpeed: 540 },
+    { gapMin: 560, gapRand: 100, animalSpeedMult: 1.6,  animalLeadPx: 500, wallW: 0.30, spikeW: 0.12, towerW: 0.18, comboChance: 0.35, towerIntervalMs: 650,  dartSpeed: 620 },
   ],
+
+  // 1º disparo da torre ao entrar em cena: só o tempo do telegraph —
+  // "atira imediatamente quando entra na tela"
+  TOWER_FIRST_SHOT_MS: 300,
 
   // Tier vigente para uma posição x do mundo (0–3)
   getTierIndex(x) {

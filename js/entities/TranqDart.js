@@ -11,23 +11,26 @@ export class TranqDart extends Phaser.Physics.Arcade.Sprite {
     this.scene.add.existing(this);
   }
 
-  fire(x, y, vx) {
+  fire(x, y, vx, vy = 0) {
     this.setPosition(x, y);
     this.body.enable = true;
-    this.body.setVelocity(vx, 0);
+    this.body.setVelocity(vx, vy);
+    // A textura aponta para a esquerda: rotação 0 = voar em -x
+    this.baseRot = Math.atan2(vy, vx) + Math.PI;
     this.setActive(true).setVisible(true);
   }
 
   preUpdate(time, delta) {
     super.preUpdate(time, delta);
     if (!this.body.enable) return;
-    // Leve oscilação (±4°) para parecer flecha em voo
-    this.setRotation(Math.sin(time * 0.02) * 0.07);
+    // Leve oscilação (±4°) em torno do ângulo do voo, para parecer flecha
+    this.setRotation(this.baseRot + Math.sin(time * 0.02) * 0.07);
   }
 
   deactivate() {
     this.body.enable = false;
     this.body.setVelocity(0, 0);
+    this.baseRot = 0;
     this.setRotation(0);
     this.setActive(false).setVisible(false);
   }
