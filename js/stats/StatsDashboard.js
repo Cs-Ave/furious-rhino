@@ -161,7 +161,7 @@ function draw(root, agg) {
     ['🦁 Animal', agg.causes.animal],
     ['💉 Dardo', agg.causes.dart],
     ['🏰 Torre', agg.causes.tower],
-    ['🕳️ Queda', agg.causes.fall],
+    ['🕳️ Anomalias de física', agg.causes.fall],
   ]));
 
   // 4. Dispositivos
