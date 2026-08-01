@@ -14,10 +14,18 @@ export async function initTuningPanel(scene) {
   const GUI = mod.GUI ?? mod.default;
   const gui = new GUI({ title: 'Tuning' });
 
-  // Abaixo do #mute-btn (top:20 right:20); toques no painel não podem
+  // À ESQUERDA (pedido do usuário), abaixo do HUD (#ui em top:20 left:20,
+  // ~110px de altura com a barra de progresso); toques no painel não podem
   // vazar para o start screen nem para o input do jogo
-  Object.assign(gui.domElement.style, { top: '70px', right: '10px', zIndex: 600 });
+  Object.assign(gui.domElement.style, { top: '140px', left: '10px', right: 'auto', zIndex: 600 });
   gui.domElement.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+
+  // Foto dos valores iniciais — base do exportador de ajustes
+  const baseline = JSON.parse(JSON.stringify({
+    root: Object.fromEntries(ROOT_KEYS.map((k) => [k, Constants[k]])),
+    tiers: Constants.DIFFICULTY_TIERS,
+    behavior: Constants.ANIMAL_BEHAVIOR,
+  }));
 
   const fisica = gui.addFolder('Física do Rino');
   fisica.add(Constants, 'RUN_SPEED', 100, 600, 10);
@@ -97,7 +105,58 @@ export async function initTuningPanel(scene) {
     },
   }, 'pular').name('Pular p/ 600m');
 
+  // Baixa um .txt SÓ com o que mudou, no formato do Constants.js e com
+  // instruções de onde aplicar — colar direto no VS Code
+  debug.add({ exportar: () => exportTuning(baseline) }, 'exportar').name('💾 Exportar ajustes');
+
   debug.add({ reiniciar: () => location.reload() }, 'reiniciar').name('Reiniciar (?debug=1)');
+}
+
+// Constantes de raiz expostas nos sliders (o exportador compara só estas)
+const ROOT_KEYS = [
+  'RUN_SPEED', 'JUMP_MIN_V', 'JUMP_MAX_V', 'JUMP_CHARGE_MS',
+  'FALL_EXTRA_GRAVITY', 'DASH_SPEED', 'DASH_ACTIVE_MS', 'DASH_COOLDOWN_MS',
+  'MIN_SAFE_GAP', 'SPAWN_LOOKAHEAD_PX', 'FURY_FULL_DISTANCE_PX',
+];
+
+function exportTuning(baseline) {
+  const lines = [];
+  const pad = (s) => s.padEnd(44);
+
+  for (const k of Object.keys(baseline.root)) {
+    if (Constants[k] !== baseline.root[k]) {
+      lines.push(`${pad(`${k}: ${Constants[k]},`)}// era ${baseline.root[k]} — raiz do objeto Constants`);
+    }
+  }
+  Constants.DIFFICULTY_TIERS.forEach((tier, i) => {
+    for (const [k, v] of Object.entries(tier)) {
+      if (typeof v === 'number' && v !== baseline.tiers[i][k]) {
+        lines.push(`${pad(`DIFFICULTY_TIERS[${i}].${k}: ${v},`)}// era ${baseline.tiers[i][k]} — tier ${i + 1} do array DIFFICULTY_TIERS`);
+      }
+    }
+  });
+  for (const [species, behavior] of Object.entries(Constants.ANIMAL_BEHAVIOR)) {
+    for (const [k, v] of Object.entries(behavior)) {
+      if (typeof v === 'number' && v !== baseline.behavior[species][k]) {
+        lines.push(`${pad(`ANIMAL_BEHAVIOR.${species}.${k}: ${v},`)}// era ${baseline.behavior[species][k]} — objeto ANIMAL_BEHAVIOR`);
+      }
+    }
+  }
+
+  const texto = [
+    `// FURIOUS RHINO — ajustes do TuningPanel (${new Date().toLocaleString('pt-BR')})`,
+    '// Como aplicar: abra js/utils/Constants.js no VS Code e substitua o valor',
+    '// de cada parâmetro abaixo no lugar indicado no comentário da linha.',
+    '',
+    ...(lines.length ? lines : ['// Nenhum parâmetro foi alterado nesta sessão.']),
+    '',
+  ].join('\n');
+
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([texto], { type: 'text/plain' }));
+  a.download = 'furious-rhino-tuning.txt';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
 
 function setHitboxes(scene, on) {
