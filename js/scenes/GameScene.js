@@ -718,6 +718,7 @@ export class GameScene extends Phaser.Scene {
 
   // cause: 'wall' | 'spike' | 'animal' | 'dart' | 'tower' | 'fall' (só derrotas)
   endGame(won, cause = null) {
+    if (this.gameOver) return; // reentrada dobraria mortes/envios
     this.gameOver = true;
     this.won = won;
     this.deathCause = cause;

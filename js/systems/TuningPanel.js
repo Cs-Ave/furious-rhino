@@ -105,6 +105,13 @@ export async function initTuningPanel(scene) {
     },
   }, 'pular').name('Pular p/ 600m');
 
+  debug.add({
+    pular790: () => {
+      const sprite = scene.rhino.getSprite();
+      sprite.body.reset(31600, Constants.GAME_HEIGHT - 200);
+    },
+  }, 'pular790').name('Pular p/ 790m (portão)');
+
   // Baixa um .txt SÓ com o que mudou, no formato do Constants.js e com
   // instruções de onde aplicar — colar direto no VS Code
   debug.add({ exportar: () => exportTuning(baseline) }, 'exportar').name('💾 Exportar ajustes');
