@@ -83,10 +83,10 @@ const docs = [
     deathsT1: 2, deathsT2: 0, deathsT3: 0, deathsT4: 0,
     deathWall: 1, deathSpike: 0, deathAnimal: 0, deathDart: 0, deathFall: 1,
   },
-  { // doc NOVO aninhado (v1.3.1+): mapas deaths/client/geo
-    attempts: 3, wins: 0, playTimeS: 90, bestM: 337, standalone: true,
-    gameVersion: '1.3.1',
-    deaths: { t1: 0, t2: 2, t3: 1, t4: 0, wall: 0, spike: 0, animal: 1, dart: 1, tower: 1, fall: 0 },
+  { // doc NOVO aninhado (v1.4+): corredor do modo infinito (1150m)
+    attempts: 3, wins: 1, playTimeS: 90, bestM: 1150, standalone: true,
+    gameVersion: '1.4.0',
+    deaths: { t1: 0, t2: 2, t3: 1, t4: 0, t5: 1, t6: 0, wall: 0, spike: 0, animal: 1, dart: 1, tower: 1, fall: 0 },
     client: { device: 'desktop', os: 'Windows', osVersion: '11', browser: 'Chrome' },
     geo: { country: 'BR', region: 'Rio de Janeiro', city: 'Rio de Janeiro' },
   },
@@ -98,15 +98,16 @@ const docs = [
 const agg = aggregate(docs);
 eq('jogadores', agg.players, 3);
 eq('execuções somadas', agg.attempts, 8);
-eq('fugas somadas', agg.wins, 1);
+eq('fugas somadas', agg.wins, 2);
 eq('tempo total somado', agg.playTimeS, 210);
-eq('mortes por etapa [t1,t2,t3,t4]', agg.deathsTier, [2, 2, 1, 0]);
+eq('mortes por etapa [t1..t6]', agg.deathsTier, [2, 2, 1, 0, 1, 0]);
 eq('mortes por causa (objeto)', agg.causes,
   { wall: 1, spike: 0, animal: 1, dart: 1, tower: 1, fall: 1 });
-eq('funil 200m', agg.funnel.m200, 2);
-eq('funil 400m', agg.funnel.m400, 1);
-eq('funil 600m', agg.funnel.m600, 0);
-eq('funil escapou', agg.funnel.escaped, 1);
+// Funil dinâmico: degraus de 200m até o máximo percorrido (1150 → 1200)
+eq('funil: nº de degraus (200..1200)', agg.funnelSteps.length, 6);
+eq('funil: contagens por degrau', agg.funnelSteps.map(([, v]) => v), [2, 2, 1, 1, 1, 0]);
+eq('funil: degrau dos 800m destacado', agg.funnelSteps[3][0].includes('800m'), true);
+eq('funil: escaparam (cruzaram o portão)', agg.escaped, 2);
 eq('PWA instalado', agg.standalone, 1);
 eq('cidade formatada com região', agg.city.get('Rio de Janeiro (Rio de Janeiro)'), 1);
 eq('país ausente vira ??', agg.country.get('??'), 2);

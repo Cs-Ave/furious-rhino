@@ -1,9 +1,12 @@
 import { getDb } from '../systems/LeaderboardSystem.js';
 
-// Painel público /?stats: baixa a coleção `stats` (leitura liberada nas
-// rules) e agrega TUDO no cliente — sem lib de gráfico, só DOM + barras CSS,
-// no mesmo espírito zero-build do jogo. Conteúdo de terceiros (cidades,
-// modelos) entra sempre via textContent.
+// Painel público /?stats: baixa as coleções `stats` e `scores` (leitura
+// liberada nas rules) e agrega TUDO no cliente — sem lib de gráfico, só
+// DOM + barras CSS, no mesmo espírito zero-build do jogo. Conteúdo de
+// terceiros (nomes, cidades, modelos) entra sempre via textContent.
+// Filtro por jogador: padrão agregado; trocar não refaz rede (cache).
+let cache = null; // { docs, names, topScore }
+
 export async function render() {
   const root = document.getElementById('stats-page');
   root.hidden = false;
@@ -20,25 +23,82 @@ export async function render() {
   const status = el('p', 'stats-status', 'Carregando estatísticas…');
   root.append(status);
 
-  let docs;
-  try {
-    const { fs, db } = await getDb();
-    const snap = await fs.getDocs(fs.collection(db, 'stats'));
-    docs = snap.docs.map((d) => d.data());
-  } catch (e) {
-    status.textContent = 'Não foi possível carregar as estatísticas. Verifique a conexão e tente de novo.';
-    const retry = el('button', null, 'Tentar novamente');
-    retry.addEventListener('click', () => render());
-    root.append(retry);
-    return;
+  if (!cache) {
+    try {
+      const { fs, db } = await getDb();
+      const [statsSnap, scoresSnap] = await Promise.all([
+        fs.getDocs(fs.collection(db, 'stats')),
+        fs.getDocs(fs.collection(db, 'scores')),
+      ]);
+
+      const names = new Map();
+      let topScore = null;
+      for (const d of scoresSnap.docs) {
+        const data = d.data();
+        names.set(d.id, String(data.name || ''));
+        const score = Number(data.score) || 0;
+        if (!topScore || score > topScore.score) {
+          topScore = { name: String(data.name || '???'), score };
+        }
+      }
+      cache = {
+        docs: statsSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+        names,
+        topScore,
+      };
+    } catch (e) {
+      status.textContent = 'Não foi possível carregar as estatísticas. Verifique a conexão e tente de novo.';
+      const retry = el('button', null, 'Tentar novamente');
+      retry.addEventListener('click', () => { cache = null; render(); });
+      root.append(retry);
+      return;
+    }
   }
 
   status.remove();
-  if (docs.length === 0) {
+  if (cache.docs.length === 0) {
     root.append(el('p', 'stats-status', 'Nenhum dado ainda — jogue uma corrida!'));
     return;
   }
-  draw(root, aggregate(docs));
+
+  // Filtro por jogador (padrão: agregado geral)
+  const bar = el('div', 'stats-filter');
+  const label = el('label', null, 'Jogador: ');
+  label.htmlFor = 'stats-player';
+  const select = document.createElement('select');
+  select.id = 'stats-player';
+  const optAll = document.createElement('option');
+  optAll.value = '';
+  optAll.textContent = `🌍 Todos (${cache.docs.length} jogador${cache.docs.length > 1 ? 'es' : ''})`;
+  select.append(optAll);
+  for (const doc of cache.docs) {
+    const opt = document.createElement('option');
+    opt.value = doc.id;
+    // textContent: nomes vêm de terceiros
+    opt.textContent = cache.names.get(doc.id) || `Anônimo (${doc.id.slice(0, 8)})`;
+    select.append(opt);
+  }
+  bar.append(label, select);
+  root.append(bar);
+
+  const content = el('div', 'stats-content', '');
+  root.append(content);
+
+  const drawSelection = () => {
+    content.textContent = '';
+    const sel = select.value;
+    const docs = sel ? cache.docs.filter((d) => d.id === sel) : cache.docs;
+    // Card do recorde: geral (top-1 do ranking) ou do jogador filtrado
+    const record = sel
+      ? {
+          name: cache.names.get(sel) || 'Anônimo',
+          score: Math.max(0, ...docs.map((d) => num(d.bestM))),
+        }
+      : cache.topScore;
+    draw(content, aggregate(docs), record);
+  };
+  select.addEventListener('change', drawSelection);
+  drawSelection();
 }
 
 // Exportada para o grupo de testes (tools/test-stats.mjs)
@@ -49,9 +109,10 @@ export function aggregate(docs) {
     wins: 0,
     playTimeS: 0,
     standalone: 0,
-    deathsTier: [0, 0, 0, 0],
+    deathsTier: [0, 0, 0, 0, 0, 0],
     causes: { wall: 0, spike: 0, animal: 0, dart: 0, tower: 0, fall: 0 },
-    funnel: { m200: 0, m400: 0, m600: 0, escaped: 0 },
+    funnelSteps: [],
+    escaped: 0,
     device: new Map(),
     os: new Map(),
     browser: new Map(),
@@ -63,7 +124,7 @@ export function aggregate(docs) {
   };
 
   const inc = (map, key) => map.set(key, (map.get(key) || 0) + 1);
-  const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
+  const bests = [];
 
   for (const d of docs) {
     // Dois formatos convivem: docs v1.3.1+ aninham deaths/client/geo em
@@ -85,18 +146,17 @@ export function aggregate(docs) {
     agg.deathsTier[1] += num(deaths.t2);
     agg.deathsTier[2] += num(deaths.t3);
     agg.deathsTier[3] += num(deaths.t4);
+    agg.deathsTier[4] += num(deaths.t5); // modo infinito (docs antigos → 0)
+    agg.deathsTier[5] += num(deaths.t6);
     agg.causes.wall += num(deaths.wall);
     agg.causes.spike += num(deaths.spike);
     agg.causes.animal += num(deaths.animal);
     agg.causes.dart += num(deaths.dart);
-    agg.causes.tower += num(deaths.tower); // docs pré-1.3.1 não têm
+    agg.causes.tower += num(deaths.tower);
     agg.causes.fall += num(deaths.fall);
 
-    const best = num(d.bestM);
-    if (best >= 200) agg.funnel.m200++;
-    if (best >= 400) agg.funnel.m400++;
-    if (best >= 600) agg.funnel.m600++;
-    if (num(d.wins) > 0) agg.funnel.escaped++;
+    bests.push(num(d.bestM));
+    if (num(d.wins) > 0) agg.escaped++;
 
     inc(agg.device, str(client.device) || 'desconhecido');
     inc(agg.os, str(client.os) ? `${str(client.os)} ${majorVersion(client.osVersion)}`.trim() : 'desconhecido');
@@ -107,7 +167,20 @@ export function aggregate(docs) {
     if (str(geo.city)) inc(agg.city, str(geo.region) ? `${str(geo.city)} (${str(geo.region)})` : str(geo.city));
     inc(agg.version, str(d.gameVersion) || 'pré-1.3.0');
   }
+
+  // Funil dinâmico: degraus de 200m até o MÁXIMO percorrido (modo infinito)
+  const maxBest = Math.max(0, ...bests, 0);
+  const top = Math.max(800, Math.ceil(maxBest / 200) * 200);
+  for (let m = 200; m <= top; m += 200) {
+    const label = m === 800 ? '800m 🗽 (o portão!)' : `${m}m`;
+    agg.funnelSteps.push([label, bests.filter((b) => b >= m).length]);
+  }
+
   return agg;
+}
+
+function num(v) {
+  return typeof v === 'number' && isFinite(v) ? v : 0;
 }
 
 function str(v) {
@@ -118,17 +191,20 @@ function majorVersion(v) {
   return str(v).split('.')[0] || '';
 }
 
-function draw(root, agg) {
+function draw(root, agg, record) {
   // 1. Visão geral
   root.append(el('h2', null, '🦏 Visão geral'));
   const cards = el('div', 'stat-cards');
   const avgAttempts = agg.attempts / agg.players;
   const winRate = agg.attempts > 0 ? (agg.wins / agg.attempts) * 100 : 0;
+  if (record && record.score > 0) {
+    cards.append(card(`${record.score}m`, `🏆 recorde — ${record.name}`));
+  }
   cards.append(
     card(agg.players, 'jogadores'),
     card(agg.attempts, 'execuções'),
-    card(agg.wins, 'fugas (vitórias)'),
-    card(`${winRate.toFixed(1)}%`, 'vitórias por execução'),
+    card(agg.wins, 'fugas (cruzaram o portão)'),
+    card(`${winRate.toFixed(1)}%`, 'fugas por execução'),
     card(formatTime(agg.playTimeS), 'tempo total jogado'),
     card(formatTime(agg.playTimeS / agg.players), 'tempo médio/jogador'),
     card(avgAttempts.toFixed(1), 'tentativas médias/jogador'),
@@ -136,14 +212,13 @@ function draw(root, agg) {
   );
   root.append(cards);
 
-  // 2. Funil por etapa: até onde os jogadores chegam
+  // 2. Funil dinâmico por 200m: até onde os jogadores chegam
   root.append(el('h2', null, '🏁 Progresso: quantos jogadores já alcançaram…'));
-  root.append(barChart([
-    ['200m (fim do tier 1)', agg.funnel.m200],
-    ['400m (fim do tier 2)', agg.funnel.m400],
-    ['600m (fim do tier 3)', agg.funnel.m600],
-    ['800m (escapou!)', agg.funnel.escaped],
-  ], agg.players, (v) => `${v} (${((v / agg.players) * 100).toFixed(0)}%)`));
+  root.append(barChart(
+    agg.funnelSteps,
+    agg.players,
+    (v) => `${v} (${((v / agg.players) * 100).toFixed(0)}%)`
+  ));
 
   // 3. Onde o jogo mata
   root.append(el('h2', null, '💀 Mortes por etapa do jogo'));
@@ -152,6 +227,8 @@ function draw(root, agg) {
     ['Tier 2 (200–400m)', agg.deathsTier[1]],
     ['Tier 3 (400–600m)', agg.deathsTier[2]],
     ['Tier 4 (600–800m)', agg.deathsTier[3]],
+    ['Tier 5 (800–1000m ∞)', agg.deathsTier[4]],
+    ['Tier 6 (1000m+ ∞)', agg.deathsTier[5]],
   ]));
 
   root.append(el('h2', null, '⚔️ Mortes por causa'));
@@ -191,7 +268,7 @@ function draw(root, agg) {
   root.append(barChart(topEntries(agg.version, 8)));
 
   const refresh = el('button', null, '🔄 Atualizar');
-  refresh.addEventListener('click', () => render());
+  refresh.addEventListener('click', () => { cache = null; render(); });
   root.append(refresh);
 }
 
