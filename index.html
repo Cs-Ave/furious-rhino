@@ -71,6 +71,25 @@
             color: #ffcc00;
         }
 
+        /* Modo infinito: barra dourada + selo ∞ depois do portão */
+        #progress-fill.infinite {
+            background: #ffcc00;
+        }
+
+        #progress-infinity {
+            display: block;
+            margin-top: 4px;
+            font-size: 12px;
+            color: #ffcc00;
+            letter-spacing: 1px;
+        }
+
+        #gate-escape-message {
+            color: #ffcc00;
+            font-size: 15px;
+            min-height: 18px;
+        }
+
         /* Barra de progresso da fuga: 4 divisões = tiers de dificuldade */
         #progress-track {
             position: relative;
@@ -835,12 +854,14 @@
             <div id="progress-fill"></div>
             <div id="progress-marks"></div>
         </div>
+        <span id="progress-infinity" hidden>∞ modo infinito</span>
     </div>
 
     <div id="game-over">
         <h1 id="game-over-title">GAME OVER</h1>
         <p>Distância: <span class="final-score" id="final-score">0</span>m</p>
         <p id="attempt-message" class="attempt-line"></p>
+        <p id="gate-escape-message"></p>
         <p id="record-message"></p>
         <p id="online-status"></p>
         <p id="medal-message"></p>
@@ -933,6 +954,15 @@
         <h2>🏅 MEDALHAS</h2>
         <ul id="medals-list"></ul>
         <button id="medals-close">Fechar</button>
+    </div>
+
+    <div id="gate-modal" class="modal">
+        <h2>🚪 O portão está aberto!</h2>
+        <p>Você chegou aos 800m. A liberdade te espera — ou a lenda.</p>
+        <div class="btn-row">
+            <button id="gate-exit">🗽 Sair do zoológico</button>
+            <button id="gate-continue" class="btn-secondary">🏃 Continuar correndo</button>
+        </div>
     </div>
 
     <div id="victory-banner" hidden>🎉 LIVRE!</div>

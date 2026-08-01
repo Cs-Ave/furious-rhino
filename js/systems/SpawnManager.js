@@ -90,18 +90,25 @@ export class SpawnManager {
 
   spawnObstacles(camera) {
     while (this.nextSpawnX < camera.scrollX + camera.width + Constants.SPAWN_LOOKAHEAD_PX) {
-      if (this.nextSpawnX >= Constants.WIN_DISTANCE_PX - 500) {
+      // Zona livre do portão (respiro para a escolha dos 800m): o corte só
+      // vale DENTRO da janela — pós-portão o spawn retoma em WIN+1000 com o
+      // tier do modo infinito. (Sem a janela, o corte re-armaria p/ sempre.)
+      if (this.nextSpawnX >= Constants.WIN_DISTANCE_PX - 500 &&
+          this.nextSpawnX < Constants.WIN_DISTANCE_PX + 1000) {
         this.nextSpawnX = Constants.WIN_DISTANCE_PX + 1000;
         break;
       }
+      // Fim do mundo (LENDA): últimos 1500px livres para a chegada
+      if (this.nextSpawnX >= Constants.WORLD_END_PX - 1500) break;
 
       // O obstáculo nasce com a dificuldade do LUGAR onde vai ficar
       const tier = Constants.getTierFor(this.nextSpawnX);
 
       // Combo: 2 obstáculos em sequência com offsets FIXOS (justiça).
-      // Perto da chegada não — o corte de spawn não pode partir um par.
-      if (Math.random() < tier.comboChance &&
-          this.nextSpawnX < Constants.WIN_DISTANCE_PX - 1500) {
+      // Perto do portão não — a zona livre não pode partir um par.
+      const nearGate = this.nextSpawnX >= Constants.WIN_DISTANCE_PX - 1500 &&
+                       this.nextSpawnX < Constants.WIN_DISTANCE_PX + 1000;
+      if (Math.random() < tier.comboChance && !nearGate) {
         this.nextSpawnX += this.spawnCombo(Constants.getTierIndex(this.nextSpawnX));
         this.nextSpawnX += Math.max(
           Constants.MIN_SAFE_GAP,

@@ -17,12 +17,13 @@ export class GameScene extends Phaser.Scene {
   create() {
     this.physics.world.setFPS(60);
     // Ceiling-only world bounds: stops the infinite jump from flying the
-    // rhino out of the scene (no side walls, no world floor)
+    // rhino out of the scene (no side walls, no world floor).
+    // O mundo vai até WORLD_END_PX (modo infinito) — float32 preciso até lá.
     this.physics.world.setBounds(
-      0, 0, Constants.WIN_DISTANCE_PX + 1000, Constants.GAME_HEIGHT,
+      0, 0, Constants.WORLD_END_PX + 1000, Constants.GAME_HEIGHT,
       false, false, true, false
     );
-    this.cameras.main.setBounds(0, 0, Constants.WIN_DISTANCE_PX + 1000, Constants.GAME_HEIGHT);
+    this.cameras.main.setBounds(0, 0, Constants.WORLD_END_PX + 1000, Constants.GAME_HEIGHT);
     this.cameras.main.setLerp(0.1, 0);
 
     this.createBackground();
@@ -41,6 +42,12 @@ export class GameScene extends Phaser.Scene {
     // Contadores da corrida atual (critérios de medalha)
     this.runWallsBroken = 0;
     this.runAnimalsHit = 0;
+    // Modo infinito: estado do portão dos 800m
+    this.gateReached = false; // já cruzou a linha (dispara 1x)
+    this.atGate = false;      // modal de escolha aberto (congela input)
+    this.escaped = false;     // cruzou 800m = fugiu, saindo ou continuando
+    this.winCounted = false;  // addWin só 1x por corrida
+    this.legend = false;      // chegou ao fim do mundo (10.000m)
 
     // Hold everything until the start-screen tap (which also unlocks audio)
     this.started = false;
@@ -49,6 +56,7 @@ export class GameScene extends Phaser.Scene {
     this.physics.pause();
     this.setupStartScreen();
     this.setupShareButtons();
+    this.setupGateUI();
 
     // Manual-emission wind streaks trailing the rhino during a dash
     this.windEmitter = this.add.particles(0, 0, 'wind-streak', {
@@ -343,7 +351,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   createGround() {
-    const width = Constants.WIN_DISTANCE_PX + 4000;
+    // Um único quad com fill-pattern — largura de 404000px não aloca bitmap
+    const width = Constants.WORLD_END_PX + 4000;
     const ground = this.add.tileSprite(width / 2, Constants.GAME_HEIGHT - 50, width, 100, 'ground');
     this.physics.add.existing(ground, true);
 
@@ -362,7 +371,8 @@ export class GameScene extends Phaser.Scene {
     this.leftPointerId = null;
 
     this.input.on('pointerdown', (pointer) => {
-      if (!this.started || this.gameOver || this.won) return;
+      // atGate: modal do portão aberto — toque no canvas não pode pular
+      if (!this.started || this.gameOver || this.won || this.atGate) return;
 
       if (pointer.x < this.scale.width / 2) {
         this.leftPointerId = pointer.id;
@@ -382,7 +392,7 @@ export class GameScene extends Phaser.Scene {
 
     // Keyboard for desktop: left arrow = jump, right arrow = dash
     this.input.keyboard.on('keydown-LEFT', (event) => {
-      if (event.repeat || !this.started || this.gameOver || this.won) return;
+      if (event.repeat || !this.started || this.gameOver || this.won || this.atGate) return;
       this.rhino.onLeftPress();
       this.audio.playJump(this.rhino.jumpCount);
     });
@@ -390,7 +400,7 @@ export class GameScene extends Phaser.Scene {
       this.rhino.onLeftRelease();
     });
     this.input.keyboard.on('keydown-RIGHT', (event) => {
-      if (event.repeat || !this.started || this.gameOver || this.won) return;
+      if (event.repeat || !this.started || this.gameOver || this.won || this.atGate) return;
       if (this.rhino.onRightPress()) this.audio.playDash();
     });
   }
@@ -592,7 +602,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
-    if (!this.started || this.gameOver || this.won) return;
+    if (!this.started || this.gameOver || this.won || this.atGate) return;
 
     this.bgClouds.tilePositionX = this.cameras.main.scrollX * 0.05 + time * 0.005;
     this.bgFar.tilePositionX = this.cameras.main.scrollX * 0.15;
@@ -620,7 +630,13 @@ export class GameScene extends Phaser.Scene {
 
     this.updateScoreDisplay();
 
-    if (this.rhino.getSprite().x >= Constants.WIN_DISTANCE_PX) {
+    // Portão dos 800m (1x por corrida): o jogador escolhe sair ou continuar
+    if (!this.gateReached && this.rhino.getSprite().x >= Constants.WIN_DISTANCE_PX) {
+      this.gateReached = true;
+      this.openGate();
+    } else if (this.gateReached && this.rhino.getSprite().x >= Constants.WORLD_END_PX) {
+      // Fim físico do mundo (10.000m): ninguém corre para sempre
+      this.legend = true;
       this.endGame(true);
     }
 
@@ -629,14 +645,58 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  // Cruzou os 800m: pausa tudo e abre a escolha. Cruzar JÁ é a fuga —
+  // vale para quem sai E para quem continua correndo.
+  openGate() {
+    this.atGate = true;
+    this.physics.pause(); // torres não atiram (preUpdate checa isPaused)
+
+    this.escaped = true;
+    this.winCounted = true;
+    StorageManager.addWin();
+    StatsSystem.send(); // garante a fuga no servidor mesmo se fechar a aba
+
+    this.openModal(document.getElementById('gate-modal'));
+  }
+
+  setupGateUI() {
+    const modal = document.getElementById('gate-modal');
+    modal.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+
+    document.getElementById('gate-exit').addEventListener('click', () => {
+      this.closeModal(modal);
+      this.atGate = false;
+      this.endGame(true); // fluxo de vitória atual: fanfarra + cutscene + overlay
+    });
+
+    document.getElementById('gate-continue').addEventListener('click', () => {
+      this.closeModal(modal);
+      // Dardo congelado em voo colado no rino mataria injusto no resume
+      this.spawnManager.getDartsGroup().children.entries.forEach((dart) => {
+        if (dart.active) dart.deactivate();
+      });
+      this.physics.resume();
+      this.atGate = false;
+    });
+  }
+
   updateScoreDisplay() {
     document.getElementById('score').textContent = this.rhino.getDistance();
     const record = StorageManager.getRecord();
     document.getElementById('record').textContent = record;
 
-    // Barra de progresso da fuga (0–800m; as 4 marcas são os tiers)
-    const pct = Math.min(100, (this.rhino.getSprite().x / Constants.WIN_DISTANCE_PX) * 100);
-    document.getElementById('progress-fill').style.width = `${pct}%`;
+    // Barra de progresso da fuga (0–800m; as marcas são os tiers).
+    // Pós-portão a barra vira dourada com ∞ — fuga completa, modo infinito.
+    const fill = document.getElementById('progress-fill');
+    if (!this.gateReached) {
+      const pct = Math.min(100, (this.rhino.getSprite().x / Constants.WIN_DISTANCE_PX) * 100);
+      fill.style.width = `${pct}%`;
+    } else if (!this.progressInfinite) {
+      this.progressInfinite = true;
+      fill.style.width = '100%';
+      fill.classList.add('infinite');
+      document.getElementById('progress-infinity').hidden = false;
+    }
   }
 
   // cause: 'wall' | 'spike' | 'animal' | 'dart' | 'tower' | 'fall' (só derrotas)
@@ -661,7 +721,10 @@ export class GameScene extends Phaser.Scene {
     // (o fim por dardo espera o rino adormecer; a vitória, a cutscene)
     if (won) {
       document.getElementById('win-final-score').textContent = distance;
-      if (isNewRecord) {
+      if (this.legend) {
+        document.getElementById('win-record-message').textContent =
+          '🏆 LENDA! Você chegou ao fim do mundo!';
+      } else if (isNewRecord) {
         document.getElementById('win-record-message').textContent = '🎉 NOVO RECORDE!';
       } else {
         document.getElementById('win-record-message').textContent = 'Você escapou!';
@@ -676,12 +739,16 @@ export class GameScene extends Phaser.Scene {
         const record = StorageManager.getRecord();
         document.getElementById('record-message').textContent = `Recorde: ${record}m`;
       }
+      // Morreu no modo infinito: a fuga em si já estava garantida
+      document.getElementById('gate-escape-message').textContent =
+        this.escaped ? `🗽 Você escapou e ainda correu até ${distance}m!` : '';
     }
 
     // Medalhas: avaliar e anunciar (persistidas — "Jogar Novamente" recarrega)
     const animalsTotal = StorageManager.addAnimalsHit(this.runAnimalsHit);
     const newMedals = MedalSystem.evaluateRun({
       distance, won, isNewRecord, hadPreviousRecord,
+      escaped: this.escaped,
       wallsBroken: this.runWallsBroken, animalsTotal,
     });
     if (newMedals.length) {
@@ -699,8 +766,8 @@ export class GameScene extends Phaser.Scene {
     const runS = Math.min(7200, Math.max(0,
       Math.round((Date.now() - (this.runStartedAt || Date.now())) / 1000)));
     StorageManager.addPlayTimeS(runS);
-    if (won) StorageManager.addWin();
-    else StorageManager.addDeath(Constants.getTierIndex(this.rhino.getSprite().x), cause || 'wall');
+    if (won && !this.winCounted) StorageManager.addWin(); // o portão já contou
+    if (!won) StorageManager.addDeath(Constants.getTierIndex(this.rhino.getSprite().x), cause || 'wall');
     StatsSystem.send(); // fire-and-forget, mesmo contrato do ranking
 
     // Nº da corrida que acabou de terminar (o addAttempt do startRun já contou)
@@ -801,7 +868,9 @@ export class GameScene extends Phaser.Scene {
       }));
     });
 
-    document.getElementById('victory-banner').hidden = false;
+    const banner = document.getElementById('victory-banner');
+    banner.textContent = this.legend ? '🏆 LENDA!' : '🎉 LIVRE!';
+    banner.hidden = false;
 
     this.cutsceneTimers.push(this.time.delayedCall(4000, () => this.endVictoryCutscene()));
   }
