@@ -17,7 +17,7 @@ service cloud.firestore {
           && request.resource.data.name.size() <= 12
           && request.resource.data.score is int
           && request.resource.data.score >= 1
-          && request.resource.data.score <= 800
+          && request.resource.data.score <= 10000
           && request.resource.data.updatedAt == request.time;
       }
       allow read: if true;
@@ -49,9 +49,9 @@ service cloud.firestore {
             ['attempts', 'playTimeS', 'wins', 'bestM', 'deaths', 'updatedAt'])
           && core('attempts') && request.resource.data.attempts >= 1
           && core('playTimeS') && core('wins')
-          && core('bestM') && request.resource.data.bestM <= 800
+          && core('bestM') && request.resource.data.bestM <= 10000
           && request.resource.data.deaths is map
-          && request.resource.data.deaths.size() <= 12
+          && request.resource.data.deaths.size() <= 14
           && (!('client' in request.resource.data)
               || (request.resource.data.client is map
                   && request.resource.data.client.size() <= 10))
