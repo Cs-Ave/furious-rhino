@@ -1,7 +1,7 @@
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
-  VERSION: '1.3.1',
+  VERSION: '1.4.0',
 
   // Game dimensions & scale
   GAME_WIDTH: 1280,
