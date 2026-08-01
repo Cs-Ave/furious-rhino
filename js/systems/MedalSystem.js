@@ -11,6 +11,8 @@ export const MEDALS = [
   { id: 'dist_400', emoji: '🌗', name: 'Meio Caminho', desc: 'Corra 400m', test: (s) => s.distance >= 400 },
   { id: 'dist_600', emoji: '🚀', name: 'Reta Final', desc: 'Corra 600m', test: (s) => s.distance >= 600 },
   { id: 'escape', emoji: '🗽', name: 'Livre!', desc: 'Escape do zoológico (800m)', test: (s) => s.won || s.escaped },
+  { id: 'dist_1000', emoji: '🌠', name: 'Além do Portão', desc: 'Corra 1000m no modo infinito', test: (s) => s.distance >= 1000 },
+  { id: 'dist_1200', emoji: '👑', name: 'Lenda do Zoológico', desc: 'Corra 1200m — a dificuldade máxima', test: (s) => s.distance >= 1200 },
   { id: 'walls_5', emoji: '🧱', name: 'Demolidor', desc: 'Quebre 5 paredes em uma corrida', test: (s) => s.wallsBroken >= 5 },
   { id: 'animals_10', emoji: '🦁', name: 'Rolo Compressor', desc: 'Atropele 10 animais (no total)', test: (s) => s.animalsTotal >= 10 },
   { id: 'record_2x', emoji: '🎖️', name: 'Superação', desc: 'Bata seu próprio recorde', test: (s) => s.isNewRecord && s.hadPreviousRecord },

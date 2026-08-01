@@ -129,7 +129,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     document.getElementById('nickname-save').addEventListener('click', () => this.saveNickname());
-    document.getElementById('nickname-skip').addEventListener('click', () => this.closeNicknameModal(false));
+    document.getElementById('nickname-skip').addEventListener('click', () => this.stayAnonymous());
     nickInput.addEventListener('keydown', (ev) => {
       ev.stopPropagation();
       if (ev.key === 'Enter') this.saveNickname();
@@ -307,11 +307,22 @@ export class GameScene extends Phaser.Scene {
   closeNicknameModal(submit) {
     this.closeModal(document.getElementById('nickname-modal'));
     this.input.keyboard.enableGlobalCapture();
-    // "Agora não": bestSent não avança — repergunta no próximo recorde
     if (submit && this.pendingScore) {
       LeaderboardSystem.submit(this.pendingScore).then((ok) => {
         if (ok) this.showOnlineStatus('🌍 Enviado ao ranking mundial!');
       });
+    }
+  }
+
+  // "Ficar anônimo": TODO jogador entra no ranking — gera Anonimo_N
+  // (N = jogadores no ranking + 1), salva como nome do aparelho e envia
+  async stayAnonymous() {
+    this.closeNicknameModal(false);
+    const name = await LeaderboardSystem.anonymousName();
+    StorageManager.setPlayerName(name);
+    if (this.pendingScore) {
+      const ok = await LeaderboardSystem.submit(this.pendingScore);
+      if (ok) this.showOnlineStatus(`🌍 No ranking como ${name}!`);
     }
   }
 

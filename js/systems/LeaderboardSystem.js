@@ -6,7 +6,7 @@ import { StorageManager } from '../utils/StorageManager.js';
 // envia um score — zero custo no load do jogo e zero quebra offline.
 // Nenhum método propaga erro de rede: falhou, o jogo segue normal.
 const SDK = 'https://www.gstatic.com/firebasejs/12.16.0';
-const MAX_SCORE = 800; // WIN_DISTANCE_PX 32000 / PIXELS_PER_METER 40
+const MAX_SCORE = 10000; // WORLD_END_PX 400000 / PIXELS_PER_METER 40 (modo infinito)
 
 let dbPromise = null;
 
@@ -54,6 +54,21 @@ export class LeaderboardSystem {
       return true;
     } catch (e) {
       return false; // offline ou regra rejeitou — tenta de novo na próxima corrida
+    }
+  }
+
+  // Nome automático para quem prefere não se identificar: Anonimo_N, com
+  // N = total de jogadores no ranking + 1 (sem transação no firestore-lite —
+  // colisão rara de N é aceitável). Offline: sufixo aleatório de 4 dígitos.
+  // 'Anonimo_9999' = 12 chars = teto do name nas rules; acima, encurta.
+  static async anonymousName() {
+    try {
+      const { fs, db } = await getDb();
+      const snap = await fs.getCountFromServer(fs.collection(db, 'scores'));
+      const n = snap.data().count + 1;
+      return n <= 9999 ? `Anonimo_${n}` : `Anon_${n}`;
+    } catch (e) {
+      return `Anonimo_${Math.floor(1000 + Math.random() * 9000)}`;
     }
   }
 

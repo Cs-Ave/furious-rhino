@@ -127,7 +127,7 @@ export class StatsSystem {
         attempts: StorageManager.getAttempts(),
         playTimeS: StorageManager.getPlayTimeS(),
         wins: StorageManager.getWins(),
-        bestM: Math.min(StorageManager.getRecord(), 800),
+        bestM: Math.min(StorageManager.getRecord(), 10000),
         deaths: StorageManager.getDeaths(), // {t1..t4, wall..tower..fall}
         standalone: Boolean(
           window.matchMedia('(display-mode: standalone)').matches ||
