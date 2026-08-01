@@ -128,7 +128,8 @@ export class StatsSystem {
         playTimeS: StorageManager.getPlayTimeS(),
         wins: StorageManager.getWins(),
         bestM: Math.min(StorageManager.getRecord(), 10000),
-        deaths: StorageManager.getDeaths(), // {t1..t4, wall..tower..fall}
+        deaths: StorageManager.getDeaths(), // {t1..t6, wall..tower..fall}
+        runs: StorageManager.getRuns(), // últimas 10 execuções {t, m}
         standalone: Boolean(
           window.matchMedia('(display-mode: standalone)').matches ||
           window.matchMedia('(display-mode: fullscreen)').matches ||

@@ -71,8 +71,13 @@ export async function initTuningPanel(scene) {
   furia.add(Constants, 'FURY_FULL_DISTANCE_PX', 2000, 32000, 500);
 
   const debug = gui.addFolder('Debug');
-  const state = { hitboxes: false, pausado: false };
+  const state = { hitboxes: false, pausado: false, invencivel: false };
   debug.add(state, 'hitboxes').name('Hitboxes').onChange((on) => setHitboxes(scene, on));
+
+  // Testar mecânica sem morrer: mortes ignoradas; queda teleporta de volta
+  debug.add(state, 'invencivel').name('🛡️ Invencível').onChange((on) => {
+    scene.invincible = on;
+  });
 
   // scene.pause() congela update/física/animações/tweens da cena, mas o
   // render continua — a tela fica visível, e o painel (DOM) segue clicável

@@ -43,7 +43,7 @@ service cloud.firestore {
       }
       function validStats() {
         return request.resource.data.keys().hasOnly(
-            ['attempts', 'playTimeS', 'wins', 'bestM', 'deaths',
+            ['attempts', 'playTimeS', 'wins', 'bestM', 'deaths', 'runs',
              'client', 'geo', 'standalone', 'gameVersion', 'updatedAt'])
           && request.resource.data.keys().hasAll(
             ['attempts', 'playTimeS', 'wins', 'bestM', 'deaths', 'updatedAt'])
@@ -52,6 +52,9 @@ service cloud.firestore {
           && core('bestM') && request.resource.data.bestM <= 10000
           && request.resource.data.deaths is map
           && request.resource.data.deaths.size() <= 14
+          && (!('runs' in request.resource.data)
+              || (request.resource.data.runs is list
+                  && request.resource.data.runs.size() <= 10))
           && (!('client' in request.resource.data)
               || (request.resource.data.client is map
                   && request.resource.data.client.size() <= 10))

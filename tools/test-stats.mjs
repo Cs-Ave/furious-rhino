@@ -63,6 +63,14 @@ eq('causa desconhecida: tier conta, chave nova NÃO nasce', [d2.t1, 'causa-desco
 localStorage.setItem(StorageManager.DEATHS_KEY, '{lixo');
 eq('JSON corrompido volta zerado', StorageManager.getDeaths().t1, 0);
 
+// Últimas execuções: janela deslizante de 10
+localStorage.removeItem(StorageManager.RUNS_KEY);
+for (let i = 1; i <= 12; i++) StorageManager.addRun(i * 10);
+const runs = StorageManager.getRuns();
+eq('últimas execuções: mantém só 10', runs.length, 10);
+eq('últimas execuções: mais antigas caem (janela)', [runs[0].m, runs[9].m], [30, 120]);
+eq('últimas execuções: entradas com timestamp', runs.every((r) => r.t > 0), true);
+
 // ---------- 3. Consistência entre camadas ----------
 const causas = Object.keys(StorageManager.getDeaths()).filter((k) => !/^t\d$/.test(k)).sort();
 eq('mesmas causas no storage e na página', causas, Object.keys(aggregate([]).causes).sort());

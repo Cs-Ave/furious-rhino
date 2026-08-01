@@ -31,9 +31,14 @@ export async function render() {
         fs.getDocs(fs.collection(db, 'scores')),
       ]);
 
+      // Docs de sonda (validação de rules/testes e2e) NÃO entram nas
+      // estatísticas públicas — têm contadores sintéticos gigantes
+      const isProbe = (id) => /^claude-/.test(id);
+
       const names = new Map();
       let topScore = null;
       for (const d of scoresSnap.docs) {
+        if (isProbe(d.id)) continue;
         const data = d.data();
         names.set(d.id, String(data.name || ''));
         const score = Number(data.score) || 0;
@@ -42,7 +47,7 @@ export async function render() {
         }
       }
       cache = {
-        docs: statsSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+        docs: statsSnap.docs.filter((d) => !isProbe(d.id)).map((d) => ({ id: d.id, ...d.data() })),
         names,
         topScore,
       };
@@ -95,7 +100,9 @@ export async function render() {
           score: Math.max(0, ...docs.map((d) => num(d.bestM))),
         }
       : cache.topScore;
-    draw(content, aggregate(docs), record);
+    // Modo individual: histórico das últimas execuções do jogador
+    const runs = sel && docs[0] && Array.isArray(docs[0].runs) ? docs[0].runs : null;
+    draw(content, aggregate(docs), record, runs);
   };
   select.addEventListener('change', drawSelection);
   drawSelection();
@@ -191,7 +198,7 @@ function majorVersion(v) {
   return str(v).split('.')[0] || '';
 }
 
-function draw(root, agg, record) {
+function draw(root, agg, record, runs = null) {
   // 1. Visão geral
   root.append(el('h2', null, '🦏 Visão geral'));
   const cards = el('div', 'stat-cards');
@@ -211,6 +218,23 @@ function draw(root, agg, record) {
     card(`${((agg.standalone / agg.players) * 100).toFixed(0)}%`, 'com PWA instalado'),
   );
   root.append(cards);
+
+  // 1b. Modo individual: data/hora e distância das últimas execuções
+  if (runs !== null) {
+    root.append(el('h2', null, '🕒 Últimas execuções'));
+    if (runs.length === 0) {
+      root.append(el('p', 'stats-status', 'Sem histórico ainda — registrado a partir da v1.4.0.'));
+    } else {
+      const list = el('ul', 'runs-list', '');
+      for (const run of runs.slice().reverse()) {
+        const t = num(run && run.t);
+        const m = num(run && run.m);
+        const when = t > 0 ? new Date(t * 1000).toLocaleString('pt-BR') : '—';
+        list.append(el('li', null, `${when} — ${m}m`));
+      }
+      root.append(list);
+    }
+  }
 
   // 2. Funil dinâmico por 200m: até onde os jogadores chegam
   root.append(el('h2', null, '🏁 Progresso: quantos jogadores já alcançaram…'));

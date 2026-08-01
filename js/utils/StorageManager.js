@@ -163,6 +163,27 @@ export class StorageManager {
     localStorage.setItem(this.GEO_KEY, JSON.stringify(geo));
   }
 
+  // Últimas 10 execuções ({t: epoch em segundos, m: metros}) — janela
+  // deslizante local, espelhada no doc de stats p/ análise individual
+  static RUNS_KEY = 'furious_rhino_runs';
+
+  static getRuns() {
+    try {
+      const runs = JSON.parse(localStorage.getItem(this.RUNS_KEY));
+      return Array.isArray(runs) ? runs : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static addRun(meters) {
+    const runs = this.getRuns();
+    runs.push({ t: Math.floor(Date.now() / 1000), m: Math.floor(meters) });
+    while (runs.length > 10) runs.shift();
+    localStorage.setItem(this.RUNS_KEY, JSON.stringify(runs));
+    return runs;
+  }
+
   // Última posição vista no ranking online — cacheada para a tela de
   // início mostrar sem nenhum custo de rede
   static getLastRank() {

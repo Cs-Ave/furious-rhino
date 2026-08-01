@@ -264,10 +264,19 @@ export class GameScene extends Phaser.Scene {
     document.getElementById(id).textContent = msg;
   }
 
-  // Folha nativa de compartilhar no celular; sem ela, copia o convite
+  // Folha nativa de compartilhar no celular; sem ela, copia o convite.
+  // A mensagem conta a história da corrida: lenda > fuga > tentativa.
   async shareResult() {
     const url = location.origin + location.pathname; // sem ?debug etc.
-    const text = `Corri ${this.finalDistance}m fugindo do zoológico no FURIOUS RHINO! 🦏 Consegue me vencer?`;
+    const d = this.finalDistance;
+    let text;
+    if (this.legend) {
+      text = `👑 SOU LENDA no FURIOUS RHINO: cheguei ao FIM DO MUNDO — ${d}m! Alguém mais consegue? Jogue de graça:`;
+    } else if (this.escaped || this.won) {
+      text = `🦏💨 EU ESCAPEI DO ZOOLÓGICO no FURIOUS RHINO — ${d}m! Duvido você chegar ao portão dos 800m. Jogue de graça:`;
+    } else {
+      text = `🦏 Corri ${d}m fugindo do zoológico no FURIOUS RHINO (morri tentando 💀). Consegue me superar? Jogue de graça:`;
+    }
     if (navigator.share) {
       try {
         await navigator.share({ text, url });
@@ -472,6 +481,7 @@ export class GameScene extends Phaser.Scene {
       this.createExplosion(tower.x, tower.y + 60);
       tower.deactivate();
     } else {
+      if (this.invincible) return; // modo debug: atravessa sem morrer
       this.endGame(false, 'tower');
     }
   }
@@ -492,6 +502,7 @@ export class GameScene extends Phaser.Scene {
       });
       dart.deactivate();
     } else {
+      if (this.invincible) { dart.deactivate(); return; } // debug
       this.endGame(false, 'dart');
     }
   }
@@ -516,12 +527,14 @@ export class GameScene extends Phaser.Scene {
       this.createExplosion(wall.x, crackCenterY);
       this.createBreakParticles(wall.x, crackCenterY);
     } else {
+      if (this.invincible) return; // debug: atravessa a parede
       this.endGame(false, 'wall');
     }
   }
 
   onSpikeHit(rhino, spike) {
     if (this.gameOver || this.won) return;
+    if (this.invincible) return; // debug
     this.endGame(false, 'spike');
   }
 
@@ -536,6 +549,7 @@ export class GameScene extends Phaser.Scene {
       this.audio.playSqueal();
       this.createExplosion(animal.x, animal.y);
     } else {
+      if (this.invincible) return; // debug
       this.endGame(false, 'animal');
     }
   }
@@ -657,7 +671,12 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.rhino.getSprite().y > Constants.GAME_HEIGHT + 100) {
-      this.endGame(false, 'fall');
+      if (this.invincible) {
+        // debug: volta para o ar em vez de morrer de queda
+        this.rhino.getSprite().body.reset(this.rhino.getSprite().x, 400);
+      } else {
+        this.endGame(false, 'fall');
+      }
     }
   }
 
@@ -784,6 +803,7 @@ export class GameScene extends Phaser.Scene {
     const runS = Math.min(7200, Math.max(0,
       Math.round((Date.now() - (this.runStartedAt || Date.now())) / 1000)));
     StorageManager.addPlayTimeS(runS);
+    StorageManager.addRun(distance); // histórico das últimas 10 execuções
     if (won && !this.winCounted) StorageManager.addWin(); // o portão já contou
     if (!won) StorageManager.addDeath(Constants.getTierIndex(this.rhino.getSprite().x), cause || 'wall');
     StatsSystem.send(); // fire-and-forget, mesmo contrato do ranking
