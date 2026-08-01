@@ -38,7 +38,10 @@ eq('tier aos 200m (x=8000)', Constants.getTierIndex(8000), 1);
 eq('tier aos 400m (x=16000)', Constants.getTierIndex(16000), 2);
 eq('tier aos 600m (x=24000)', Constants.getTierIndex(24000), 3);
 eq('tier aos 799m (x=31999)', Constants.getTierIndex(31999), 3);
-eq('tier além do fim (clamp)', Constants.getTierIndex(99999), 3);
+eq('tier aos 800m — modo infinito (x=32000)', Constants.getTierIndex(32000), 4);
+eq('tier aos 999m (x=39999)', Constants.getTierIndex(39999), 4);
+eq('tier aos 1000m — teto (x=40000)', Constants.getTierIndex(40000), 5);
+eq('tier muito além (clamp no teto)', Constants.getTierIndex(999999), 5);
 
 // ---------- 2. Contagem local de mortes ----------
 localStorage.removeItem(StorageManager.DEATHS_KEY);
@@ -47,9 +50,11 @@ StorageManager.addDeath(1, 'tower');
 StorageManager.addDeath(1, 'dart');
 StorageManager.addDeath(3, 'dart');
 StorageManager.addDeath(2, 'fall');
+StorageManager.addDeath(4, 'spike'); // modo infinito: 800-1000m
+StorageManager.addDeath(5, 'animal'); // teto: 1000m+
 const d = StorageManager.getDeaths();
-eq('mortes por tier t1..t4', [d.t1, d.t2, d.t3, d.t4], [1, 2, 1, 1]);
-eq('mortes por causa', [d.wall, d.spike, d.animal, d.dart, d.tower, d.fall], [1, 0, 0, 2, 1, 1]);
+eq('mortes por tier t1..t6', [d.t1, d.t2, d.t3, d.t4, d.t5, d.t6], [1, 2, 1, 1, 1, 1]);
+eq('mortes por causa', [d.wall, d.spike, d.animal, d.dart, d.tower, d.fall], [1, 1, 1, 2, 1, 1]);
 
 StorageManager.addDeath(0, 'causa-desconhecida'); // não explode nem cria chave
 const d2 = StorageManager.getDeaths();
@@ -68,8 +73,8 @@ const rules = readFileSync(
 // Esquema aninhado: as rules validam o MAPA deaths (não cada causa) com um
 // teto de chaves — o storage precisa caber nesse teto
 eq('rules aceitam o mapa deaths', rules.includes("'deaths'"), true);
-eq('mapa de mortes cabe no teto das rules (size <= 12)',
-  Object.keys(StorageManager.getDeaths()).length <= 12, true);
+eq('mapa de mortes cabe no teto das rules (size <= 14)',
+  Object.keys(StorageManager.getDeaths()).length <= 14, true);
 
 // ---------- 4. Agregação da página ----------
 const docs = [

@@ -20,6 +20,9 @@ export const Constants = {
 
   // Difficulty & distance
   WIN_DISTANCE_PX: 32000,
+  // Fim físico do mundo no modo infinito (10.000m; float32 preciso até aqui).
+  // Chegar = "LENDA!". Bounds/câmera/chão derivam deste valor.
+  WORLD_END_PX: 400000,
   FURY_FULL_DISTANCE_PX: 28000,
   SPAWN_LOOKAHEAD_PX: 600,
   RECYCLE_MARGIN_PX: 200,
@@ -89,13 +92,14 @@ export const Constants = {
   FURY_BAR_HEIGHT: 12,
   DASH_ICON_SIZE: 60,
 
-  // Object pool sizes
+  // Object pool sizes (dimensionados para o teto de dificuldade do
+  // modo infinito: combos a 50% + torres a 22% da roleta)
   POOL_SIZES: {
     crackedWalls: 8,
-    spikes: 6,
-    animals: 6,
+    spikes: 8,
+    animals: 8,
     towers: 4,
-    darts: 12,
+    darts: 16,
   },
 
   // Animal types
@@ -123,15 +127,20 @@ export const Constants = {
     { gapMin: 760, gapRand: 140, animalSpeedMult: 1.15, animalLeadPx: 400, wallW: 0.45, spikeW: 0.15, towerW: 0.10, comboChance: 0.15, towerIntervalMs: 1000, dartSpeed: 460 },
     { gapMin: 640, gapRand: 120, animalSpeedMult: 1.35, animalLeadPx: 450, wallW: 0.36, spikeW: 0.14, towerW: 0.15, comboChance: 0.25, towerIntervalMs: 800,  dartSpeed: 540 },
     { gapMin: 560, gapRand: 100, animalSpeedMult: 1.6,  animalLeadPx: 500, wallW: 0.30, spikeW: 0.12, towerW: 0.18, comboChance: 0.35, towerIntervalMs: 650,  dartSpeed: 620 },
+    // Modo infinito (pós-portão). t6 é o TETO — justo mas implacável:
+    // dardo 700 = fechamento 1150px/s → ~0,73s de reação + telegraph;
+    // gapMin 540 = piso do ciclo do dash (1,2s × 450px/s), nunca abaixo.
+    { gapMin: 540, gapRand: 90,  animalSpeedMult: 1.8,  animalLeadPx: 520, wallW: 0.28, spikeW: 0.12, towerW: 0.20, comboChance: 0.42, towerIntervalMs: 580,  dartSpeed: 660 },
+    { gapMin: 540, gapRand: 80,  animalSpeedMult: 2.0,  animalLeadPx: 560, wallW: 0.26, spikeW: 0.12, towerW: 0.22, comboChance: 0.50, towerIntervalMs: 520,  dartSpeed: 700 },
   ],
 
   // 1º disparo da torre ao entrar em cena: só o tempo do telegraph —
   // "atira imediatamente quando entra na tela"
   TOWER_FIRST_SHOT_MS: 300,
 
-  // Tier vigente para uma posição x do mundo (0–3)
+  // Tier vigente para uma posição x do mundo (0–5; t6 = teto, clampado)
   getTierIndex(x) {
-    return Math.min(3, Math.floor(x / 8000));
+    return Math.min(5, Math.floor(x / 8000));
   },
 
   getTierFor(x) {
