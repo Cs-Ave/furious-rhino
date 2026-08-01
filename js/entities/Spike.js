@@ -19,8 +19,10 @@ export class Spike extends Phaser.Physics.Arcade.Sprite {
     this.variant = variant;
     if (variant === 'tower') {
       this.setTexture('spike-tower');
+      // Canvas 120 (pedestal mais largo que os espinhos): offset +10
+      // mantém a área letal no mundo idêntica à do canvas antigo de 100
       this.body.setSize(72, 116);
-      this.body.setOffset(14, 4);
+      this.body.setOffset(24, 4);
     } else {
       this.setTexture('spike');
       this.body.setSize(92, 42);

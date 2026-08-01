@@ -7,6 +7,7 @@ export class TextureFactory {
     this.generateWalls(scene);
     this.generateSpikes(scene);
     this.generateSpikeTower(scene);
+    this.generateGate(scene);
     this.generateTranqTower(scene);
     this.generateTranqDart(scene);
     this.generateGround(scene);
@@ -48,8 +49,13 @@ export class TextureFactory {
         const base = inBand
           ? C.wallCrack
           : ((Math.floor(bx / brickW) + Math.floor(y / courseH)) % 3 === 0 ? C.wallOrangeDark : C.wallOrange);
+        // Largura pode sair negativa na última coluna quando x0 > 0 (ex.:
+        // pilar direito do portão) — fillRect negativo corrompe o batch
+        // WebGL do Graphics e apaga desenhos seguintes da textura
+        const bw = Math.min(brickW - 2, x0 + w - Math.max(bx, x0));
+        if (bw <= 0) continue;
         g.fillStyle(base, 1);
-        g.fillRect(Math.max(bx, x0), y, Math.min(brickW - 2, x0 + w - Math.max(bx, x0)), courseH - 2);
+        g.fillRect(Math.max(bx, x0), y, bw, courseH - 2);
       }
     }
     // mortar joints
@@ -143,17 +149,17 @@ export class TextureFactory {
 
   // ---------------------------------------------------------------- spikes
 
-  // Shared drawing for the spike row (60px tall) at a vertical offset
-  static drawSpikeRow(g, yOff) {
+  // Shared drawing for the spike row (60px tall) at a vertical/horizontal offset
+  static drawSpikeRow(g, yOff, xOff = 0) {
     const C = Constants.COLORS;
 
     g.fillStyle(C.steelBase, 1);
-    g.fillRect(0, yOff + 46, 100, 14);
+    g.fillRect(xOff, yOff + 46, 100, 14);
     g.fillStyle(C.steelLight, 0.9);
-    [16, 50, 84].forEach(x => g.fillCircle(x, yOff + 53, 3));
+    [16, 50, 84].forEach(x => g.fillCircle(xOff + x, yOff + 53, 3));
 
     for (let i = 0; i < 6; i++) {
-      const x = 10 + i * 16;
+      const x = xOff + 10 + i * 16;
       g.fillStyle(C.steelLight, 1);
       g.fillTriangle(x - 7, yOff + 46, x, yOff + 46, x, yOff + 12);
       g.fillStyle(C.steelDark, 1);
@@ -164,13 +170,13 @@ export class TextureFactory {
 
     g.lineStyle(2, 0x3d4046, 1);
     g.strokePoints([
-      { x: 0, y: yOff + 20 }, { x: 18, y: yOff + 12 }, { x: 34, y: yOff + 22 },
-      { x: 50, y: yOff + 12 }, { x: 66, y: yOff + 22 }, { x: 82, y: yOff + 12 },
-      { x: 100, y: yOff + 20 },
+      { x: xOff, y: yOff + 20 }, { x: xOff + 18, y: yOff + 12 }, { x: xOff + 34, y: yOff + 22 },
+      { x: xOff + 50, y: yOff + 12 }, { x: xOff + 66, y: yOff + 22 }, { x: xOff + 82, y: yOff + 12 },
+      { x: xOff + 100, y: yOff + 20 },
     ], false);
     [18, 50, 82].forEach(x => {
-      g.lineBetween(x - 4, yOff + 8, x + 4, yOff + 16);
-      g.lineBetween(x - 4, yOff + 16, x + 4, yOff + 8);
+      g.lineBetween(xOff + x - 4, yOff + 8, xOff + x + 4, yOff + 16);
+      g.lineBetween(xOff + x - 4, yOff + 16, xOff + x + 4, yOff + 8);
     });
   }
 
@@ -181,27 +187,84 @@ export class TextureFactory {
     g.destroy();
   }
 
-  // Elevated spikes on a brick pedestal reaching the ground (no floating)
+  // Espinhos elevados num pedestal de tijolos MAIS LARGO que a fileira
+  // (base > espinhos = realista): sapata 120 > tampa 112 > pedestal 104 >
+  // espinhos ~94. Canvas 120 de largura; a hitbox em Spike.js compensa
+  // com offset +10 para a área letal no MUNDO ficar idêntica à anterior.
   static generateSpikeTower(scene) {
     const C = Constants.COLORS;
     const g = scene.make.graphics({ x: 0, y: 0, add: false });
 
-    // pedestal column (60 wide, centered), same brick language as the walls
+    // sapata no chão (a mais larga de todas)
     g.fillStyle(C.wallOrangeDark, 1);
-    g.fillRect(20, 58, 60, 62);
-    g.lineStyle(2, C.wallMortar, 0.8);
-    for (let y = 58; y <= 120; y += 20) g.lineBetween(20, y, 80, y);
-    g.lineBetween(50, 58, 50, 120);
+    g.fillRect(0, 110, 120, 10);
     g.fillStyle(C.wallMortar, 0.9);
-    g.fillRect(20, 58, 3, 62);
-    g.fillRect(77, 58, 3, 62);
-    // cap under the spike bar
+    g.fillRect(0, 110, 120, 2);
+
+    // pedestal de tijolos, mais largo que a fileira de espinhos
+    g.fillStyle(C.wallOrangeDark, 1);
+    g.fillRect(8, 58, 104, 54);
+    g.lineStyle(2, C.wallMortar, 0.8);
+    for (let y = 58; y <= 112; y += 18) g.lineBetween(8, y, 112, y);
+    g.lineBetween(44, 58, 44, 112);
+    g.lineBetween(78, 58, 78, 112);
+    g.fillStyle(C.wallMortar, 0.9);
+    g.fillRect(8, 58, 3, 54);
+    g.fillRect(109, 58, 3, 54);
+
+    // tampa de aço com beiral sobre o pedestal
     g.fillStyle(C.steelBase, 1);
-    g.fillRect(14, 54, 72, 8);
+    g.fillRect(4, 54, 112, 8);
 
-    this.drawSpikeRow(g, 0);
+    this.drawSpikeRow(g, 0, 10);
 
-    g.generateTexture('spike-tower', 100, 120);
+    g.generateTexture('spike-tower', 120, 120);
+    g.destroy();
+  }
+
+  // Portão da fuga em x = 800m: pilares de tijolo, travessa de madeira,
+  // placa de saída e cancela levantada — só cenário, sem física.
+  static generateGate(scene) {
+    const C = Constants.COLORS;
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // pilares na mesma linguagem de tijolos das paredes
+    this.drawBricks(g, 0, 30, 44, 170, false);
+    this.drawBricks(g, 196, 30, 44, 170, false);
+    g.fillStyle(C.wallMortar, 1);
+    g.fillRect(0, 22, 48, 10);
+    g.fillRect(192, 22, 48, 10);
+
+    // travessa superior de madeira
+    g.fillStyle(C.fenceBrown, 1);
+    g.fillRect(24, 6, 192, 18);
+    g.lineStyle(2, 0x4a3524, 1);
+    g.strokeRect(24, 6, 192, 18);
+
+    // placa de saída (verde com seta branca apontando para a liberdade)
+    g.fillStyle(0x3fa34d, 1);
+    g.fillRect(96, 36, 48, 22);
+    g.lineStyle(2, 0x2c7a39, 1);
+    g.strokeRect(96, 36, 48, 22);
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(102, 45, 22, 4);
+    g.fillTriangle(124, 39, 124, 55, 138, 47);
+
+    // cancela levantada (braço listrado a ~63°, pivô no pilar esquerdo)
+    g.save();
+    g.translateCanvas(44, 120);
+    g.rotateCanvas(-1.1);
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(0, -6, 110, 12);
+    g.fillStyle(0xd6453c, 1);
+    for (let x = 10; x < 110; x += 28) g.fillRect(x, -6, 14, 12);
+    g.lineStyle(2, 0x8a2a22, 1);
+    g.strokeRect(0, -6, 110, 12);
+    g.restore();
+    g.fillStyle(0x55585e, 1);
+    g.fillCircle(44, 120, 7);
+
+    g.generateTexture('zoo-gate', 240, 200);
     g.destroy();
   }
 

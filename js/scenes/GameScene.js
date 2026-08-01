@@ -33,6 +33,11 @@ export class GameScene extends Phaser.Scene {
     this.furySystem = new FurySystem(this);
 
     this.createGround();
+
+    // Marco visual da fuga: o portão fica exatamente na linha dos 800m
+    this.add.image(Constants.WIN_DISTANCE_PX, Constants.GAME_HEIGHT - 100, 'zoo-gate')
+      .setOrigin(0.5, 1).setDepth(-1);
+
     this.setupInput();
     this.setupCollisions();
     this.createDashIcon();
@@ -651,6 +656,13 @@ export class GameScene extends Phaser.Scene {
     this.atGate = true;
     this.physics.pause(); // torres não atiram (preUpdate checa isPaused)
 
+    // Barra vira dourada JÁ (o update early-returna enquanto atGate)
+    const fill = document.getElementById('progress-fill');
+    fill.style.width = '100%';
+    fill.classList.add('infinite');
+    document.getElementById('progress-infinity').hidden = false;
+    this.progressInfinite = true;
+
     this.escaped = true;
     this.winCounted = true;
     StorageManager.addWin();
@@ -686,16 +698,10 @@ export class GameScene extends Phaser.Scene {
     document.getElementById('record').textContent = record;
 
     // Barra de progresso da fuga (0–800m; as marcas são os tiers).
-    // Pós-portão a barra vira dourada com ∞ — fuga completa, modo infinito.
-    const fill = document.getElementById('progress-fill');
+    // Pós-portão ela já ficou dourada com ∞ (ver openGate) — não mexe mais.
     if (!this.gateReached) {
       const pct = Math.min(100, (this.rhino.getSprite().x / Constants.WIN_DISTANCE_PX) * 100);
-      fill.style.width = `${pct}%`;
-    } else if (!this.progressInfinite) {
-      this.progressInfinite = true;
-      fill.style.width = '100%';
-      fill.classList.add('infinite');
-      document.getElementById('progress-infinity').hidden = false;
+      document.getElementById('progress-fill').style.width = `${pct}%`;
     }
   }
 
