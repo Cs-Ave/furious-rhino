@@ -23,15 +23,18 @@ export class Animal extends Phaser.Physics.Arcade.Sprite {
     this.animalType = type;
     this.anims.stop();
     this.setTexture(`animal-${type}`);
-    this.setScale(Constants.ANIMAL_SCALE);
+    // Texturas 2x exibidas a 1/2: a escala final divide pelo ART_RASTER_SCALE
+    const S = Constants.ART_RASTER_SCALE;
+    this.setScale(Constants.ANIMAL_SCALE / S);
     // A arte olha para a direita, mas eles avançam contra o rino. As margens
     // laterais dos ANIMAL_SPECS são simétricas, então o flip não desloca a hitbox.
     this.setFlipX(true);
 
-    // Arcade scales the body with the sprite, so specs stay in texture pixels
+    // Arcade scales the body with the sprite; specs ficam em px lógicos (1x)
+    // e viram px de textura multiplicando pelo fator de rasterização
     const spec = Constants.ANIMAL_SPECS[type];
-    this.body.setSize(spec.bodyW, spec.bodyH);
-    this.body.setOffset(spec.offX, spec.offY);
+    this.body.setSize(spec.bodyW * S, spec.bodyH * S);
+    this.body.setOffset(spec.offX * S, spec.offY * S);
 
     const behavior = Constants.ANIMAL_BEHAVIOR[type];
     if (behavior.anim) this.play(behavior.anim);

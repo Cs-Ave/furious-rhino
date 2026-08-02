@@ -4,13 +4,18 @@ export class Rhino {
   constructor(scene, x, y) {
     this.scene = scene;
     this.sprite = scene.physics.add.sprite(x, y, 'rhino-run-0').setOrigin(0.5, 1);
+    // Textura rasterizada a 2x, exibida a 1/2 (nitidez); Arcade escala o body
+    // junto, então os setSize/setOffset abaixo (em px de textura) multiplicam
+    // pelo mesmo fator e o tamanho em mundo fica idêntico ao de sempre
+    const S = Constants.ART_RASTER_SCALE;
+    this.sprite.setScale(1 / S);
     // World bounds only check the ceiling (configured in GameScene) so the
     // infinite jump can't fly the rhino out of the scene
     this.sprite.body.setCollideWorldBounds(true);
     // Trim horn tip (front) and tail (back) out of the hitbox; body bottom
     // stays flush with the sprite bottom (10 + 54 = 64) so feet touch ground
-    this.sprite.body.setSize(76, 54);
-    this.sprite.body.setOffset(8, 10);
+    this.sprite.body.setSize(76 * S, 54 * S);
+    this.sprite.body.setOffset(8 * S, 10 * S);
     this.sprite.body.setVelocityX(Constants.RUN_SPEED);
     this.sprite.play('rhino-run');
 

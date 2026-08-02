@@ -9,10 +9,12 @@ export class FurySystem {
     const iconX = Constants.GAME_WIDTH - Constants.HUD_MARGIN - 130;
     const iconY = Constants.HUD_MARGIN + 30;
 
+    // Texturas 2x: exibe a 1/2 (o setCrop do updateFireIcon usa px de textura)
+    const iconScale = 1 / Constants.ART_RASTER_SCALE;
     this.fireIconEmpty = scene.add.sprite(iconX, iconY, 'fury-fire-empty')
-      .setScrollFactor(0).setDepth(100);
+      .setScrollFactor(0).setDepth(100).setScale(iconScale);
     this.fireIconFull = scene.add.sprite(iconX, iconY, 'fury-fire-full')
-      .setScrollFactor(0).setDepth(101);
+      .setScrollFactor(0).setDepth(101).setScale(iconScale);
 
     // Manual-emission smoke emitter in world space (follows the rhino's snout)
     this.smokeEmitter = scene.add.particles(0, 0, 'smoke-puff', {
@@ -41,7 +43,8 @@ export class FurySystem {
 
   updateFireIcon() {
     // Bottom-up reveal of the colored flame, same math as the dash icon
-    const size = Constants.DASH_ICON_SIZE;
+    // (setCrop em px de TEXTURA, rasterizada a 2x)
+    const size = Constants.DASH_ICON_SIZE * Constants.ART_RASTER_SCALE;
     const h = size * this.furyRatio;
     this.fireIconFull.setCrop(0, size - h, size, h);
   }

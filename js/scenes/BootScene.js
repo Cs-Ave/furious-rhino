@@ -1,5 +1,6 @@
 import { TextureFactory } from '../systems/TextureFactory.js';
 import { ART_MANIFEST } from '../art/ArtManifest.js';
+import { Constants } from '../utils/Constants.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -8,9 +9,11 @@ export class BootScene extends Phaser.Scene {
 
   preload() {
     // Os sprites vivem em art/*.svg (editáveis em qualquer editor de SVG);
-    // as dimensões de rasterização vêm do manifesto gerado
+    // as dimensões de rasterização vêm do manifesto gerado, multiplicadas
+    // pelo ART_RASTER_SCALE (supersampling para telas de alta densidade)
+    const S = Constants.ART_RASTER_SCALE;
     for (const [key, size] of Object.entries(ART_MANIFEST)) {
-      this.load.svg(key, 'art/' + key + '.svg', { width: size.w, height: size.h });
+      this.load.svg(key, 'art/' + key + '.svg', { width: size.w * S, height: size.h * S });
     }
   }
 

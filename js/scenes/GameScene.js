@@ -612,23 +612,27 @@ export class GameScene extends Phaser.Scene {
     const baseIconX = Constants.GAME_WIDTH - Constants.HUD_MARGIN - 60;
     const baseIconY = Constants.HUD_MARGIN + 30;
 
+    // Texturas 2x: exibe a 1/2 (o setCrop do updateDashIcon usa px de textura)
+    const iconScale = 1 / Constants.ART_RASTER_SCALE;
     this.dashIconEmpty = this.add.sprite(baseIconX, baseIconY, 'rhino-face-empty');
-    this.dashIconEmpty.setOrigin(0.5, 0.5);
+    this.dashIconEmpty.setOrigin(0.5, 0.5).setScale(iconScale);
     this.dashIconEmpty.setScrollFactor(0);
     this.dashIconEmpty.setDepth(100);
 
     this.dashIconFull = this.add.sprite(baseIconX, baseIconY, 'rhino-face-full');
-    this.dashIconFull.setOrigin(0.5, 0.5);
+    this.dashIconFull.setOrigin(0.5, 0.5).setScale(iconScale);
     this.dashIconFull.setScrollFactor(0);
     this.dashIconFull.setDepth(101);
   }
 
   updateDashIcon() {
     const progress = this.rhino.getDashCooldownRatio();
-    const h = Constants.DASH_ICON_SIZE * progress;
-    const y = Constants.DASH_ICON_SIZE - h;
+    // setCrop opera em px de TEXTURA (rasterizada a 2x)
+    const size = Constants.DASH_ICON_SIZE * Constants.ART_RASTER_SCALE;
+    const h = size * progress;
+    const y = size - h;
 
-    this.dashIconFull.setCrop(0, y, Constants.DASH_ICON_SIZE, h);
+    this.dashIconFull.setCrop(0, y, size, h);
   }
 
   update(time, delta) {

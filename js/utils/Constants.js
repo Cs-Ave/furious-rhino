@@ -7,6 +7,10 @@ export const Constants = {
   GAME_WIDTH: 1280,
   GAME_HEIGHT: 720,
   PIXELS_PER_METER: 40,
+  // Sprites SVG rasterizados no dobro do viewBox e exibidos a 1/2 escala:
+  // nitidez em telas de alta densidade. Hitboxes usam px de textura, então
+  // todo setSize/setOffset/setCrop de textura SVG multiplica por este fator.
+  ART_RASTER_SCALE: 2,
 
   // Rhino physics
   RUN_SPEED: 300,
