@@ -1,6 +1,6 @@
 // Network-first service worker: always serves fresh files while online
 // (essential during development), falls back to cache for offline play.
-const CACHE = 'furious-rhino-v12';
+const CACHE = 'furious-rhino-v13';
 const ASSETS = [
   './',
   './index.html',
@@ -84,7 +84,10 @@ self.addEventListener('fetch', (e) => {
       url.hostname === 'ipwho.is') return;
 
   e.respondWith(
-    fetch(e.request)
+    // cache: 'no-cache' força revalidação no servidor (304 é barato): sem
+    // isso, o cache HTTP do navegador pode servir JS/arte antigos por baixo
+    // do network-first e misturar versões (visto na validação da v1.4.0)
+    fetch(e.request, { cache: 'no-cache' })
       .then((res) => {
         // keep the offline cache fresh with every successful fetch
         if (res.ok && (e.request.url.startsWith(self.location.origin) || res.type === 'cors')) {
