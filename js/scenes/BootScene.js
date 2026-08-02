@@ -36,15 +36,18 @@ export class BootScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    this.anims.create({
-      key: 'bird-flap',
-      frames: [
-        { key: 'animal-bird', frame: '__BASE' },
-        { key: 'animal-bird-flap', frame: '__BASE' },
-      ],
-      frameRate: 8,
-      repeat: -1,
-    });
+    // Uma anim de bater asas por espécie de pássaro (v1.4: 5 espécies)
+    for (const sp of Constants.BIRD_SPECIES) {
+      this.anims.create({
+        key: `bird-${sp}-flap`,
+        frames: [
+          { key: `animal-bird-${sp}`, frame: '__BASE' },
+          { key: `animal-bird-${sp}-flap`, frame: '__BASE' },
+        ],
+        frameRate: 8,
+        repeat: -1,
+      });
+    }
 
     // Corrida dos animais terrestres (2 frames: parado/passada).
     // Macaco e zebra não têm anim: trocam de textura por estado (chão/ar).

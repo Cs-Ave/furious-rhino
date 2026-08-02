@@ -2,7 +2,9 @@ import { Constants } from '../utils/Constants.js';
 
 export class Animal extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, type = 'lion') {
-    super(scene, x, y, `animal-${type}`);
+    // Textura provisória válida (o 'bird' não tem textura própria: são 5
+    // espécies animal-bird-<sp>); o setType logo abaixo aplica a definitiva
+    super(scene, x, y, 'animal-lion');
     this.scene.physics.world.enable(this);
     this.body.setAllowGravity(false);
     this.body.setImmovable(true);
@@ -22,7 +24,16 @@ export class Animal extends Phaser.Physics.Arcade.Sprite {
   setType(type) {
     this.animalType = type;
     this.anims.stop();
-    this.setTexture(`animal-${type}`);
+    if (type === 'bird') {
+      // Pássaro tem 5 espécies visuais (mesma hitbox/behavior): sorteia a
+      // cada (re)spawn — o pool devolve o mesmo sprite com outra plumagem
+      const sp = Phaser.Utils.Array.GetRandom(Constants.BIRD_SPECIES);
+      this.setTexture(`animal-bird-${sp}`);
+      this.birdAnim = `bird-${sp}-flap`;
+    } else {
+      this.setTexture(`animal-${type}`);
+      this.birdAnim = null;
+    }
     // Texturas 2x exibidas a 1/2: a escala final divide pelo ART_RASTER_SCALE
     const S = Constants.ART_RASTER_SCALE;
     this.setScale(Constants.ANIMAL_SCALE / S);
@@ -37,7 +48,8 @@ export class Animal extends Phaser.Physics.Arcade.Sprite {
     this.body.setOffset(spec.offX * S, spec.offY * S);
 
     const behavior = Constants.ANIMAL_BEHAVIOR[type];
-    if (behavior.anim) this.play(behavior.anim);
+    if (this.birdAnim) this.play(this.birdAnim);
+    else if (behavior.anim) this.play(behavior.anim);
   }
 
   reset(x, y) {

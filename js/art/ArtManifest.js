@@ -1,4 +1,6 @@
-// GERADO por tools/export-art.mjs — não editar à mão.
+// GERADO por tools/export-art.mjs e ajustado à mão na v1.4.0 (pássaros em
+// 5 espécies de 56x32). NÃO rodar export-art --force: sobrescreveria a arte
+// nova de art/*.svg com o gerador antigo (SvgSprites.js, aposentado).
 // Dimensões de rasterização dos arquivos art/*.svg (1:1 com o viewBox).
 export const ART_MANIFEST = {
   'rhino-run-0': { w: 96, h: 64 },
@@ -16,6 +18,14 @@ export const ART_MANIFEST = {
   'animal-monkey-air': { w: 48, h: 56 },
   'animal-giraffe': { w: 60, h: 90 },
   'animal-giraffe-run-1': { w: 60, h: 90 },
-  'animal-bird': { w: 44, h: 32 },
-  'animal-bird-flap': { w: 44, h: 32 },
+  'animal-bird-macaw': { w: 56, h: 32 },
+  'animal-bird-macaw-flap': { w: 56, h: 32 },
+  'animal-bird-owl': { w: 56, h: 32 },
+  'animal-bird-owl-flap': { w: 56, h: 32 },
+  'animal-bird-cockatiel': { w: 56, h: 32 },
+  'animal-bird-cockatiel-flap': { w: 56, h: 32 },
+  'animal-bird-toucan': { w: 56, h: 32 },
+  'animal-bird-toucan-flap': { w: 56, h: 32 },
+  'animal-bird-jay': { w: 56, h: 32 },
+  'animal-bird-jay-flap': { w: 56, h: 32 },
 };

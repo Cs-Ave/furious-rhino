@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 32" width="56" height="32">
+  <!-- FURIOUS RHINO v1.4.0 - proposta "cartoon rico" (em avaliacao, nao usada pelo jogo).
+       Calopsita chibi 56x32: identica ao frame base, asa para baixo. -->
+  <defs>
+    <linearGradient id="ck" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c6c9d1"/>
+      <stop offset="1" stop-color="#9b9ea8"/>
+    </linearGradient>
+    <linearGradient id="ckh" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fae170"/>
+      <stop offset="1" stop-color="#f2c93a"/>
+    </linearGradient>
+  </defs>
+  <!-- cauda longa e fina -->
+  <path d="M16 15.5 L6.5 22.5 L10.3 24.2 L16.5 19.5 Z" fill="#9b9ea8" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- corpo cinza -->
+  <ellipse cx="26" cy="18.5" rx="12.5" ry="9" fill="url(#ck)" stroke="#17171b" stroke-width="2.2"/>
+  <ellipse cx="27.5" cy="22" rx="7" ry="4.2" fill="#dddfe5"/>
+  <!-- asa abaixada (com faixa branca) -->
+  <path d="M22 20.5 Q16 30.5 30 29.5 Q34 25.5 28 18.5 Z" fill="#898c97" stroke="#17171b" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M23.5 22.5 Q20.3 27.3 25.1 29.3" fill="none" stroke="#f2f3f6" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M27 21.9 Q24.5 26.5 29 28.7" fill="none" stroke="#6f7280" stroke-width="1.4" stroke-linecap="round"/>
+  <!-- crista amarela (3 penas para tras) -->
+  <path d="M35.3 5.6 Q31.7 1.2 30.3 3.6 Q33.1 4.0 34.4 6.6 Z" fill="#f5d84a" stroke="#17171b" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M37.9 4.8 Q36.1 0.9 33.9 1.6 Q36.1 2.6 36.7 5.6 Z" fill="#f5d84a" stroke="#17171b" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M40.5 4.4 Q40.3 0.9 37.9 1.2 Q39.5 2.2 39.3 5.0 Z" fill="#f5d84a" stroke="#17171b" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- cabeca amarela -->
+  <circle cx="39" cy="11.5" r="8" fill="url(#ckh)" stroke="#17171b" stroke-width="2.2"/>
+  <!-- bochecha laranja + olho -->
+  <circle cx="42.3" cy="13.2" r="2.1" fill="#f08a3c" opacity="0.95"/>
+  <circle cx="40.5" cy="10" r="2.5" fill="#17171b"/>
+  <circle cx="39.7" cy="9.2" r="0.8" fill="#ffffff"/>
+  <!-- bico pequeno -->
+  <path d="M45.3 10.6 Q48.9 11.8 46.7 14.2 Q45.1 14.4 44.8 12.2 Z" fill="#d98a2e" stroke="#17171b" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>

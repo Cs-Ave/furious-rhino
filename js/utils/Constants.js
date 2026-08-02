@@ -75,7 +75,8 @@ export const Constants = {
   RHINO_W: 96,
   RHINO_H: 64,
   SNOUT_OFFSET_X: 42,
-  SNOUT_OFFSET_Y: -20,
+  // Narina da arte v1.4 fica em (89,38) do canvas 96x64 -> ancora da fumaca
+  SNOUT_OFFSET_Y: -26,
 
   // All animals rendered at 1.5x (Arcade scales bodies with the sprite,
   // so ANIMAL_SPECS stay in texture pixels)
@@ -87,8 +88,15 @@ export const Constants = {
     zebra:   { w: 76, h: 50, bodyW: 64, bodyH: 38, offX: 6,  offY: 10 },
     monkey:  { w: 48, h: 56, bodyW: 36, bodyH: 46, offX: 6,  offY: 8  },
     giraffe: { w: 60, h: 90, bodyW: 38, bodyH: 82, offX: 11, offY: 6  },
-    bird:    { w: 44, h: 32, bodyW: 32, bodyH: 22, offX: 6,  offY: 6  },
+    // Canvas alargado na v1.4 para os bicões (tucano/arara): margens
+    // simétricas (offX = (56-36)/2) para o flip não deslocar a hitbox;
+    // bicos ficam FORA da colisão, como o chifre do rino
+    bird:    { w: 56, h: 32, bodyW: 36, bodyH: 22, offX: 10, offY: 6  },
   },
+
+  // 5 espécies visuais de pássaro (mesma hitbox/behavior de 'bird');
+  // Animal.setType sorteia uma a cada spawn
+  BIRD_SPECIES: ['macaw', 'owl', 'cockatiel', 'toucan', 'jay'],
 
   // HUD
   HUD_MARGIN: 20,
@@ -118,7 +126,8 @@ export const Constants = {
     giraffe: { speed: 130, anim: 'giraffe-run' },
     monkey:  { speed: 120, jumpV: -380, jumpIntervalMs: 250, airTexture: 'animal-monkey-air' },
     zebra:   { speed: 110, jumpV: -760, jumpIntervalMs: 450, airTexture: 'animal-zebra-air' },
-    bird:    { speed: 180, anim: 'bird-flap', bobVy: 60 },
+    // anim do pássaro é por espécie (bird-<sp>-flap), resolvida no setType
+    bird:    { speed: 180, bobVy: 60 },
   },
 
   // 4 tiers de dificuldade, um a cada 200m (8000px de mundo). Objetos
