@@ -362,15 +362,81 @@ export class GameScene extends Phaser.Scene {
   }
 
   createBackground() {
-    this.add.image(640, 360, 'bg-sky').setScrollFactor(0).setDepth(-20);
+    // Céus empilhados: dia embaixo; entardecer e noite por cima com alpha
+    // dirigido pela distância (updateAtmosphere) — fuga aos 800m = pôr do
+    // sol, modo infinito corre sob as estrelas
+    this.skyDay = this.add.image(640, 360, 'bg-sky-day').setScrollFactor(0).setDepth(-20);
+    this.skyDusk = this.add.image(640, 360, 'bg-sky-dusk').setScrollFactor(0).setDepth(-19.9).setAlpha(0);
+    this.skyNight = this.add.image(640, 360, 'bg-sky-night').setScrollFactor(0).setDepth(-19.8).setAlpha(0);
+
     // Fixed-to-camera tileSprites scrolled manually in update() — avoids
-    // creating world-width objects for a 32000px level
-    this.bgFar = this.add.tileSprite(640, 410, 1280, 420, 'bg-far')
-      .setScrollFactor(0).setDepth(-19);
-    this.bgNear = this.add.tileSprite(640, 490, 1280, 260, 'bg-near')
-      .setScrollFactor(0).setDepth(-18);
+    // creating world-width objects for a 400000px level
+    this.bgMountains = this.add.tileSprite(640, 480, 1280, 300, 'bg-mountains')
+      .setScrollFactor(0).setDepth(-19.7);
     this.bgClouds = this.add.tileSprite(640, 130, 1280, 200, 'bg-clouds')
       .setScrollFactor(0).setDepth(-19.5);
+
+    // Biomas por trecho de 200m: cada camada é um PAR de tileSprites — A é
+    // a base, B recebe a textura nova e faz o crossfade (switchBiome)
+    this.biomeIndex = 0;
+    const b0 = Constants.BIOMES[0];
+    this.bgFarA = this.add.tileSprite(640, 410, 1280, 420, `bg-far-${b0}`)
+      .setScrollFactor(0).setDepth(-19);
+    this.bgFarB = this.add.tileSprite(640, 410, 1280, 420, `bg-far-${b0}`)
+      .setScrollFactor(0).setDepth(-18.9).setAlpha(0);
+    this.bgNearA = this.add.tileSprite(640, 490, 1280, 260, `bg-near-${b0}`)
+      .setScrollFactor(0).setDepth(-18);
+    this.bgNearB = this.add.tileSprite(640, 490, 1280, 260, `bg-near-${b0}`)
+      .setScrollFactor(0).setDepth(-17.9).setAlpha(0);
+
+    // Camadas que recebem o tint atmosférico — NUNCA elementos de gameplay
+    // (obstáculos/animais/rino ficam legíveis em qualquer hora do dia)
+    this.atmoLayers = [
+      this.bgClouds, this.bgMountains,
+      this.bgFarA, this.bgFarB, this.bgNearA, this.bgNearB,
+    ];
+    this.lastAtmoTint = -1;
+
+    this.createSkyLife();
+  }
+
+  // Vida no cenário: pássaros distantes cruzando o céu + folhas ao vento
+  createSkyLife() {
+    this.skyBirds = [];
+    for (let i = 0; i < 3; i++) {
+      const b = this.add.image(0, 0, 'animal-bird-jay')
+        .setScrollFactor(0).setDepth(-18.5).setScale(0.2); // textura 2x → ~22px
+      b.flapT = 0;
+      b.flapped = false;
+      this.resetSkyBird(b, true);
+      this.skyBirds.push(b);
+      this.atmoLayers.push(b);
+    }
+
+    this.leafEmitter = this.add.particles(0, 0, 'leaf', {
+      x: { min: 0, max: 1380 },
+      y: -10,
+      lifespan: 7000,
+      speedX: { min: -70, max: -30 },
+      speedY: { min: 18, max: 42 },
+      rotate: { start: 0, end: 360 },
+      alpha: { start: 0.9, end: 0.35 },
+      scale: { min: 0.8, max: 1.3 },
+      frequency: 900,
+      quantity: 1,
+    });
+    this.leafEmitter.setScrollFactor(0).setDepth(-17.5);
+  }
+
+  resetSkyBird(b, initial = false) {
+    b.species = Phaser.Utils.Array.GetRandom(Constants.BIRD_SPECIES);
+    b.dir = Math.random() < 0.65 ? 1 : -1; // maioria foge do zoo, como o rino
+    b.setTexture(`animal-bird-${b.species}`);
+    b.setFlipX(b.dir < 0);
+    b.speed = 20 + Math.random() * 25;
+    b.y = 60 + Math.random() * 200;
+    b.x = initial ? Math.random() * 1280 : (b.dir > 0 ? -60 : 1340);
+    b.bobPhase = Math.random() * Math.PI * 2;
   }
 
   createGround() {
@@ -378,6 +444,7 @@ export class GameScene extends Phaser.Scene {
     const width = Constants.WORLD_END_PX + 4000;
     const ground = this.add.tileSprite(width / 2, Constants.GAME_HEIGHT - 50, width, 100, 'ground');
     this.physics.add.existing(ground, true);
+    this.atmoLayers.push(ground); // o chão também escurece ao anoitecer
 
     this.physics.add.collider(this.rhino.getSprite(), ground);
 
@@ -388,6 +455,70 @@ export class GameScene extends Phaser.Scene {
       (animal) => animal.active && !animal.knockedOut && animal.animalType !== 'bird',
       this
     );
+  }
+
+  // Céu, luz e bioma acompanham a distância; pássaros distantes cruzam o
+  // céu. Roda por frame no update (barato: 2 alphas, 1 tint, comparação int)
+  updateAtmosphere(time, delta) {
+    const x = this.rhino.getSprite().x;
+
+    // Dia pleno até ~650m; entardecer 650–850m; noite 850–1300m em diante
+    const dusk = Phaser.Math.Clamp((x - 26000) / 8000, 0, 1);
+    const night = Phaser.Math.Clamp((x - 34000) / 18000, 0, 1);
+    this.skyDusk.setAlpha(dusk);
+    this.skyNight.setAlpha(night);
+
+    // Luz ambiente das camadas de fundo: esfria e escurece com a noite
+    const light = 1 - 0.18 * dusk * (1 - night) - 0.45 * night;
+    const r = Math.round(255 * light);
+    const gch = Math.round(255 * (light * 0.97 + 0.03));
+    const bch = Math.round(255 * Math.min(1, light + 0.14 * night));
+    const tint = (r << 16) | (gch << 8) | bch;
+    if (tint !== this.lastAtmoTint) {
+      this.lastAtmoTint = tint;
+      this.atmoLayers.forEach((l) => l.setTint(tint));
+    }
+
+    // Bioma do trecho atual (crossfade a cada 200m até a liberdade)
+    const idx = Constants.getBiomeIndex(x);
+    if (idx !== this.biomeIndex) this.switchBiome(idx);
+
+    // Pássaros distantes: deriva própria + batida de asas por troca de textura
+    const dt = delta / 1000;
+    for (const b of this.skyBirds) {
+      b.x += b.dir * b.speed * dt;
+      b.y += Math.sin(time * 0.002 + b.bobPhase) * 9 * dt;
+      b.flapT += delta;
+      if (b.flapT > 260) {
+        b.flapT = 0;
+        b.flapped = !b.flapped;
+        b.setTexture(`animal-bird-${b.species}${b.flapped ? '-flap' : ''}`);
+        b.setFlipX(b.dir < 0);
+      }
+      if ((b.dir > 0 && b.x > 1360) || (b.dir < 0 && b.x < -80)) this.resetSkyBird(b);
+    }
+  }
+
+  switchBiome(idx) {
+    this.biomeIndex = idx;
+    const key = Constants.BIOMES[idx];
+    // Teleportes de debug podem pular vários biomas com o tween anterior no
+    // ar: mata o tween e recomeça o crossfade da camada B do zero
+    this.tweens.killTweensOf([this.bgFarB, this.bgNearB]);
+    this.bgFarB.setTexture(`bg-far-${key}`).setAlpha(0);
+    this.bgNearB.setTexture(`bg-near-${key}`).setAlpha(0);
+    this.tweens.add({
+      targets: [this.bgFarB, this.bgNearB],
+      alpha: 1,
+      duration: 900,
+      onComplete: () => {
+        // Consolida na base A e libera B para a próxima fronteira
+        this.bgFarA.setTexture(`bg-far-${key}`).setAlpha(1);
+        this.bgNearA.setTexture(`bg-near-${key}`).setAlpha(1);
+        this.bgFarB.setAlpha(0);
+        this.bgNearB.setAlpha(0);
+      },
+    });
   }
 
   setupInput() {
@@ -636,8 +767,15 @@ export class GameScene extends Phaser.Scene {
     if (!this.started || this.gameOver || this.won) return;
 
     this.bgClouds.tilePositionX = this.cameras.main.scrollX * 0.05 + time * 0.005;
-    this.bgFar.tilePositionX = this.cameras.main.scrollX * 0.15;
-    this.bgNear.tilePositionX = this.cameras.main.scrollX * 0.4;
+    this.bgMountains.tilePositionX = this.cameras.main.scrollX * 0.06;
+    const farX = this.cameras.main.scrollX * 0.15;
+    this.bgFarA.tilePositionX = farX;
+    this.bgFarB.tilePositionX = farX;
+    const nearX = this.cameras.main.scrollX * 0.4;
+    this.bgNearA.tilePositionX = nearX;
+    this.bgNearB.tilePositionX = nearX;
+
+    this.updateAtmosphere(time, delta);
 
     this.rhino.update(time, delta);
 

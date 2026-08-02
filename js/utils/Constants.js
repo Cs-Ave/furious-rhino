@@ -151,6 +151,14 @@ export const Constants = {
   // "atira imediatamente quando entra na tela"
   TOWER_FIRST_SHOT_MS: 300,
 
+  // Biomas do cenário de fundo, um a cada 200m até a liberdade (800m+).
+  // As texturas são `bg-far-<nome>` / `bg-near-<nome>` (TextureFactory).
+  BIOMES: ['felinos', 'aviario', 'savana', 'servico', 'liberdade'],
+
+  getBiomeIndex(x) {
+    return Math.min(4, Math.floor(x / 8000));
+  },
+
   // Tier vigente para uma posição x do mundo (0–5; t6 = teto, clampado)
   getTierIndex(x) {
     return Math.min(5, Math.floor(x / 8000));

@@ -96,7 +96,6 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
       noModal: document.getElementById('gate-modal') === null,
       running: !s.physics.world.isPaused && !s.gameOver,
       escaped: s.escaped === true,
-      spawnResumed: s.spawnManager.nextSpawnX >= 33000,
       infinity: document.getElementById('progress-infinity').offsetParent !== null,
       x: Math.round(s.rhino.getSprite().x),
     };
@@ -104,8 +103,18 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
   ok('portão: modal de escolha não existe mais', state.noModal);
   ok('portão: corrida segue sem pausa ao cruzar', state.running, `x=${state.x}`);
   ok('portão: fuga registrada no cruzamento', state.escaped);
-  ok('portão: spawn retomou no modo infinito (nextSpawnX >= 33000)', state.spawnResumed);
   ok('portão: selo ∞ apareceu na barra', state.infinity);
+
+  // O corte do spawn é uma janela avaliada quando a câmera alcança a região:
+  // esperar (poucos frames) em vez de fotografar o exato frame do cruzamento
+  let spawnOk = true;
+  try {
+    await page.waitForFunction(() => {
+      const s = window.game.scene.keys.GameScene;
+      return s.spawnManager.nextSpawnX >= 33000;
+    }, { timeout: 4000 });
+  } catch (e) { spawnOk = false; }
+  ok('portão: spawn retomou no modo infinito (nextSpawnX >= 33000)', spawnOk);
 
   // Morte no modo infinito → tier t5 + reconhecimento da fuga
   await page.evaluate(() => {
