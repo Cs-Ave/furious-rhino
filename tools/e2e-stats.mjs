@@ -68,7 +68,7 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
   await page.close();
 }
 
-// ---------- 2. Portão dos 800m: CONTINUAR (modo infinito) ----------
+// ---------- 2. Portão dos 800m: cruzamento DIRETO (sem parada) ----------
 {
   const { page, errors } = await newGamePage();
   await page.locator('#start-screen').click({ position: { x: 640, y: 650 } });
@@ -78,36 +78,34 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
     s.rhino.getSprite().body.reset(31600, 500);
   });
 
-  let modalOk = true;
+  // v1.4: sem modal — o rino cruza os 800m e o endless começa na passada
+  let crossed = true;
   try {
-    await page.waitForSelector('#gate-modal', { state: 'visible', timeout: 6000 });
-  } catch (e) { modalOk = false; }
-  ok('portão: modal de escolha abriu ao cruzar 800m', modalOk);
+    await page.waitForFunction(() => {
+      const s = window.game.scene.keys.GameScene;
+      return s.gateReached;
+    }, { timeout: 6000 });
+  } catch (e) { crossed = false; }
+  ok('portão: cruzou os 800m', crossed);
 
-  const frozen = await page.evaluate(() => {
-    const s = window.game.scene.keys.GameScene;
-    return s.physics.world.isPaused && s.atGate;
-  });
-  ok('portão: física pausada durante a escolha', frozen);
-
-  const infinity = await page.evaluate(() =>
-    document.getElementById('progress-infinity').offsetParent !== null);
-  ok('portão: selo ∞ apareceu na barra', infinity);
-
-  await page.click('#gate-continue');
-  // Checagem RÁPIDA (300ms): antes de o rino alcançar os obstáculos do t5
+  // Checagem RÁPIDA: antes de o rino alcançar os obstáculos do t5
   // (spawns retomam em 33000) — esperar demais deixa ele morrer sozinho
-  await page.waitForTimeout(300);
-  const after = await page.evaluate(() => {
+  const state = await page.evaluate(() => {
     const s = window.game.scene.keys.GameScene;
     return {
-      resumed: !s.physics.world.isPaused && !s.atGate && !s.gameOver,
+      noModal: document.getElementById('gate-modal') === null,
+      running: !s.physics.world.isPaused && !s.gameOver,
+      escaped: s.escaped === true,
       spawnResumed: s.spawnManager.nextSpawnX >= 33000,
+      infinity: document.getElementById('progress-infinity').offsetParent !== null,
       x: Math.round(s.rhino.getSprite().x),
     };
   });
-  ok('portão: física retomou após Continuar', after.resumed, `x=${after.x}`);
-  ok('portão: spawn retomou no modo infinito (nextSpawnX >= 33000)', after.spawnResumed);
+  ok('portão: modal de escolha não existe mais', state.noModal);
+  ok('portão: corrida segue sem pausa ao cruzar', state.running, `x=${state.x}`);
+  ok('portão: fuga registrada no cruzamento', state.escaped);
+  ok('portão: spawn retomou no modo infinito (nextSpawnX >= 33000)', state.spawnResumed);
+  ok('portão: selo ∞ apareceu na barra', state.infinity);
 
   // Morte no modo infinito → tier t5 + reconhecimento da fuga
   await page.evaluate(() => {
@@ -117,38 +115,52 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
   });
   await page.waitForTimeout(800);
   const deaths = await page.evaluate(() => localStorage.getItem('furious_rhino_deaths'));
-  ok('portão: morte no infinito registrada em t5', /"t5":2/.test(deaths || ''), deaths || '');
+  // Sem a parada do modal, o rino pode morrer sozinho no t5 antes da morte
+  // forçada (endGame tem guard de reentrada) — exigir apenas t5 >= 1
+  ok('portão: morte no infinito registrada em t5', /"t5":[1-9]/.test(deaths || ''), deaths || '');
   const escapeMsg = await page.locator('#gate-escape-message').textContent();
   ok('portão: game over reconhece a fuga', /escapou/.test(escapeMsg), escapeMsg);
-  ok('sem erros de JS (continuar)', fatal(errors).length === 0, fatal(errors).slice(0, 2).join(' | '));
+  ok('sem erros de JS (cruzamento)', fatal(errors).length === 0, fatal(errors).slice(0, 2).join(' | '));
   await page.close();
 }
 
-// ---------- 3. Portão dos 800m: SAIR (vitória com cutscene) ----------
+// ---------- 3. Fim do mundo (10.000m): LENDA com cutscene ----------
 {
   const { page, errors } = await newGamePage();
   await page.locator('#start-screen').click({ position: { x: 640, y: 650 } });
   await page.waitForTimeout(800);
   await page.evaluate(() => {
     const s = window.game.scene.keys.GameScene;
-    s.rhino.getSprite().body.reset(31600, 500);
+    s.rhino.getSprite().body.reset(399500, 500);
   });
-  await page.waitForSelector('#gate-modal', { state: 'visible', timeout: 6000 });
-  await page.click('#gate-exit');
 
-  const banner = await page.evaluate(() => !document.getElementById('victory-banner').hidden);
-  ok('sair: cutscene com banner LIVRE!', banner);
+  // 1º frame cruza o portão (sem parar); no frame seguinte bate no fim do
+  // mundo e a vitória formal (cutscene) dispara
+  let legendOk = true;
+  try {
+    await page.waitForFunction(() => {
+      const s = window.game.scene.keys.GameScene;
+      return s.legend && s.won;
+    }, { timeout: 6000 });
+  } catch (e) { legendOk = false; }
+  ok('lenda: fim do mundo encerra com vitória', legendOk);
+
+  const banner = await page.evaluate(() => {
+    const el = document.getElementById('victory-banner');
+    return { shown: !el.hidden, text: el.textContent };
+  });
+  ok('lenda: banner da cutscene é LENDA', banner.shown && /LENDA/.test(banner.text), banner.text);
 
   let winOk = true;
   try {
     await page.waitForSelector('#game-win', { state: 'visible', timeout: 8000 });
   } catch (e) { winOk = false; }
-  ok('sair: overlay de vitória após a cutscene', winOk);
+  ok('lenda: overlay de vitória após a cutscene', winOk);
   if (winOk) {
     const dist = await page.locator('#win-final-score').textContent();
-    ok('sair: distância ~800m', parseInt(dist, 10) >= 790, `${dist}m`);
+    ok('lenda: distância ~10000m', parseInt(dist, 10) >= 9980, `${dist}m`);
   }
-  ok('sem erros de JS (sair)', fatal(errors).length === 0, fatal(errors).slice(0, 2).join(' | '));
+  ok('sem erros de JS (lenda)', fatal(errors).length === 0, fatal(errors).slice(0, 2).join(' | '));
   await page.close();
 }
 

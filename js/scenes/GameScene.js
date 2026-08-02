@@ -49,7 +49,6 @@ export class GameScene extends Phaser.Scene {
     this.runAnimalsHit = 0;
     // Modo infinito: estado do portão dos 800m
     this.gateReached = false; // já cruzou a linha (dispara 1x)
-    this.atGate = false;      // modal de escolha aberto (congela input)
     this.escaped = false;     // cruzou 800m = fugiu, saindo ou continuando
     this.winCounted = false;  // addWin só 1x por corrida
     this.legend = false;      // chegou ao fim do mundo (10.000m)
@@ -61,7 +60,6 @@ export class GameScene extends Phaser.Scene {
     this.physics.pause();
     this.setupStartScreen();
     this.setupShareButtons();
-    this.setupGateUI();
 
     // Manual-emission wind streaks trailing the rhino during a dash
     this.windEmitter = this.add.particles(0, 0, 'wind-streak', {
@@ -396,8 +394,7 @@ export class GameScene extends Phaser.Scene {
     this.leftPointerId = null;
 
     this.input.on('pointerdown', (pointer) => {
-      // atGate: modal do portão aberto — toque no canvas não pode pular
-      if (!this.started || this.gameOver || this.won || this.atGate) return;
+      if (!this.started || this.gameOver || this.won) return;
 
       if (pointer.x < this.scale.width / 2) {
         this.leftPointerId = pointer.id;
@@ -417,7 +414,7 @@ export class GameScene extends Phaser.Scene {
 
     // Keyboard for desktop: left arrow = jump, right arrow = dash
     this.input.keyboard.on('keydown-LEFT', (event) => {
-      if (event.repeat || !this.started || this.gameOver || this.won || this.atGate) return;
+      if (event.repeat || !this.started || this.gameOver || this.won) return;
       this.rhino.onLeftPress();
       this.audio.playJump(this.rhino.jumpCount);
     });
@@ -425,7 +422,7 @@ export class GameScene extends Phaser.Scene {
       this.rhino.onLeftRelease();
     });
     this.input.keyboard.on('keydown-RIGHT', (event) => {
-      if (event.repeat || !this.started || this.gameOver || this.won || this.atGate) return;
+      if (event.repeat || !this.started || this.gameOver || this.won) return;
       if (this.rhino.onRightPress()) this.audio.playDash();
     });
   }
@@ -636,7 +633,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
-    if (!this.started || this.gameOver || this.won || this.atGate) return;
+    if (!this.started || this.gameOver || this.won) return;
 
     this.bgClouds.tilePositionX = this.cameras.main.scrollX * 0.05 + time * 0.005;
     this.bgFar.tilePositionX = this.cameras.main.scrollX * 0.15;
@@ -664,10 +661,11 @@ export class GameScene extends Phaser.Scene {
 
     this.updateScoreDisplay();
 
-    // Portão dos 800m (1x por corrida): o jogador escolhe sair ou continuar
+    // Portão dos 800m (1x por corrida): cruza SEM PARAR — a fuga conta na
+    // hora e o modo infinito começa na mesma passada
     if (!this.gateReached && this.rhino.getSprite().x >= Constants.WIN_DISTANCE_PX) {
       this.gateReached = true;
-      this.openGate();
+      this.crossGate();
     } else if (this.gateReached && this.rhino.getSprite().x >= Constants.WORLD_END_PX) {
       // Fim físico do mundo (10.000m): ninguém corre para sempre
       this.legend = true;
@@ -684,13 +682,10 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  // Cruzou os 800m: pausa tudo e abre a escolha. Cruzar JÁ é a fuga —
-  // vale para quem sai E para quem continua correndo.
-  openGate() {
-    this.atGate = true;
-    this.physics.pause(); // torres não atiram (preUpdate checa isPaused)
-
-    // Barra vira dourada JÁ (o update early-returna enquanto atGate)
+  // Cruzou os 800m: NÃO para a corrida (parar ali quebraria o ritmo).
+  // Cruzar JÁ é a fuga — conta win/medalha/stats — e o modo infinito
+  // começa na mesma passada; a vitória formal fica para o fim do mundo.
+  crossGate() {
     const fill = document.getElementById('progress-fill');
     fill.style.width = '100%';
     fill.classList.add('infinite');
@@ -702,27 +697,21 @@ export class GameScene extends Phaser.Scene {
     StorageManager.addWin();
     StatsSystem.send(); // garante a fuga no servidor mesmo se fechar a aba
 
-    this.openModal(document.getElementById('gate-modal'));
-  }
-
-  setupGateUI() {
-    const modal = document.getElementById('gate-modal');
-    modal.addEventListener('pointerdown', (ev) => ev.stopPropagation());
-
-    document.getElementById('gate-exit').addEventListener('click', () => {
-      this.closeModal(modal);
-      this.atGate = false;
-      this.endGame(true); // fluxo de vitória atual: fanfarra + cutscene + overlay
-    });
-
-    document.getElementById('gate-continue').addEventListener('click', () => {
-      this.closeModal(modal);
-      // Dardo congelado em voo colado no rino mataria injusto no resume
-      this.spawnManager.getDartsGroup().children.entries.forEach((dart) => {
-        if (dart.active) dart.deactivate();
-      });
-      this.physics.resume();
-      this.atGate = false;
+    // Aviso rápido fixo na tela, sem modal: a corrida não espera
+    const toast = this.add.text(640, 300, '🗽 VOCÊ ESCAPOU!', {
+      fontFamily: '"Arial Black", Arial, sans-serif',
+      fontSize: '44px',
+      color: '#ffd700',
+      stroke: '#5e3618',
+      strokeThickness: 7,
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(60);
+    this.tweens.add({
+      targets: toast,
+      y: 230,
+      alpha: 0,
+      duration: 2200,
+      ease: 'Cubic.easeOut',
+      onComplete: () => toast.destroy(),
     });
   }
 
@@ -732,7 +721,7 @@ export class GameScene extends Phaser.Scene {
     document.getElementById('record').textContent = record;
 
     // Barra de progresso da fuga (0–800m; as marcas são os tiers).
-    // Pós-portão ela já ficou dourada com ∞ (ver openGate) — não mexe mais.
+    // Pós-portão ela já ficou dourada com ∞ (ver crossGate) — não mexe mais.
     if (!this.gateReached) {
       const pct = Math.min(100, (this.rhino.getSprite().x / Constants.WIN_DISTANCE_PX) * 100);
       document.getElementById('progress-fill').style.width = `${pct}%`;
