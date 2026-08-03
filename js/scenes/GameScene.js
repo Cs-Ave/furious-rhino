@@ -934,10 +934,12 @@ export class GameScene extends Phaser.Scene {
     const runS = Math.min(7200, Math.max(0,
       Math.round((Date.now() - (this.runStartedAt || Date.now())) / 1000)));
     StorageManager.addPlayTimeS(runS);
-    StorageManager.addRun(distance); // histórico das últimas 10 execuções
+    StorageManager.addRun(distance); // histórico das últimas 50 execuções
     if (won && !this.winCounted) StorageManager.addWin(); // o portão já contou
     if (!won) StorageManager.addDeath(Constants.getTierIndex(this.rhino.getSprite().x), cause || 'wall');
-    StatsSystem.send(); // fire-and-forget, mesmo contrato do ranking
+    // Acumula aparelho/local/versão desta corrida ANTES do envio (o send
+    // roda várias vezes por sessão; o recordRun, uma por corrida)
+    StatsSystem.recordRun().then(() => StatsSystem.send());
 
     // Nº da corrida que acabou de terminar (o addAttempt do startRun já contou)
     const attemptId = won ? 'win-attempt-message' : 'attempt-message';

@@ -163,9 +163,11 @@ export class StorageManager {
     localStorage.setItem(this.GEO_KEY, JSON.stringify(geo));
   }
 
-  // Últimas 10 execuções ({t: epoch em segundos, m: metros}) — janela
-  // deslizante local, espelhada no doc de stats p/ análise individual
+  // Últimas RUNS_WINDOW execuções ({t: epoch em segundos, m: metros}) —
+  // janela deslizante local, espelhada no doc de stats p/ análise individual
+  // (a ficha do painel desenha a evolução a partir daqui)
   static RUNS_KEY = 'furious_rhino_runs';
+  static RUNS_WINDOW = 50; // teto das rules: runs.size() <= 50
 
   static getRuns() {
     try {
@@ -179,9 +181,56 @@ export class StorageManager {
   static addRun(meters) {
     const runs = this.getRuns();
     runs.push({ t: Math.floor(Date.now() / 1000), m: Math.floor(meters) });
-    while (runs.length > 10) runs.shift();
+    while (runs.length > this.RUNS_WINDOW) runs.shift();
     localStorage.setItem(this.RUNS_KEY, JSON.stringify(runs));
     return runs;
+  }
+
+  // --- Histórico acumulado do jogador (v1.5.0) ---
+  // O doc de stats guardava só o ÚLTIMO aparelho/local (sobrescrito a cada
+  // envio). Aqui os aparelhos, locais e versões viram contadores que só
+  // crescem, com o primeiro acesso preservado. Vai para o servidor como UM
+  // mapa (`history`) — as rules validam o mapa inteiro numa cláusula, e não
+  // campo a campo (orçamento de avaliação do Firestore).
+  static HISTORY_KEY = 'furious_rhino_history';
+  static HISTORY_CAPS = { clients: 12, geos: 10, versions: 10 };
+
+  static getHistory() {
+    const empty = { clients: {}, geos: {}, versions: {}, firstSeenS: 0 };
+    try {
+      const h = JSON.parse(localStorage.getItem(this.HISTORY_KEY)) || {};
+      return {
+        clients: (h.clients && typeof h.clients === 'object') ? h.clients : {},
+        geos: (h.geos && typeof h.geos === 'object') ? h.geos : {},
+        versions: (h.versions && typeof h.versions === 'object') ? h.versions : {},
+        firstSeenS: typeof h.firstSeenS === 'number' && h.firstSeenS > 0 ? h.firstSeenS : 0,
+      };
+    } catch (e) {
+      return empty; // JSON corrompido — recomeça sem travar o jogo
+    }
+  }
+
+  // Uma chamada por fim de corrida. Rótulos vazios são ignorados (geo pode
+  // não ter respondido ainda).
+  static addHistory({ clientSig, geoLabel, version } = {}) {
+    const h = this.getHistory();
+    const bump = (bucket, key, cap) => {
+      if (!key) return;
+      bucket[key] = (Number(bucket[key]) || 0) + 1;
+      // Teto aplicado no CLIENTE (as rules não contam chaves internas):
+      // ao estourar, a assinatura menos usada sai
+      const keys = Object.keys(bucket);
+      if (keys.length > cap) {
+        const least = keys.reduce((a, b) => (bucket[a] <= bucket[b] ? a : b));
+        delete bucket[least];
+      }
+    };
+    bump(h.clients, clientSig, this.HISTORY_CAPS.clients);
+    bump(h.geos, geoLabel, this.HISTORY_CAPS.geos);
+    bump(h.versions, version, this.HISTORY_CAPS.versions);
+    if (!h.firstSeenS) h.firstSeenS = Math.floor(Date.now() / 1000);
+    localStorage.setItem(this.HISTORY_KEY, JSON.stringify(h));
+    return h;
   }
 
   // Última posição vista no ranking online — cacheada para a tela de

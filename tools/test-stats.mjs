@@ -63,13 +63,41 @@ eq('causa desconhecida: tier conta, chave nova NÃO nasce', [d2.t1, 'causa-desco
 localStorage.setItem(StorageManager.DEATHS_KEY, '{lixo');
 eq('JSON corrompido volta zerado', StorageManager.getDeaths().t1, 0);
 
-// Últimas execuções: janela deslizante de 10
+// Últimas execuções: janela deslizante de 50 (v1.5.0; era 10)
 localStorage.removeItem(StorageManager.RUNS_KEY);
-for (let i = 1; i <= 12; i++) StorageManager.addRun(i * 10);
+for (let i = 1; i <= 52; i++) StorageManager.addRun(i * 10);
 const runs = StorageManager.getRuns();
-eq('últimas execuções: mantém só 10', runs.length, 10);
-eq('últimas execuções: mais antigas caem (janela)', [runs[0].m, runs[9].m], [30, 120]);
+eq('últimas execuções: mantém só 50', runs.length, 50);
+eq('últimas execuções: mais antigas caem (janela)', [runs[0].m, runs[49].m], [30, 520]);
 eq('últimas execuções: entradas com timestamp', runs.every((r) => r.t > 0), true);
+
+// ---------- 2b. Histórico acumulado do jogador (v1.5.0) ----------
+localStorage.removeItem(StorageManager.HISTORY_KEY);
+StorageManager.addHistory({ clientSig: 'mobile · Android 13 · Chrome', geoLabel: 'Rio (RJ) · BR', version: '1.5.0' });
+StorageManager.addHistory({ clientSig: 'mobile · Android 13 · Chrome', geoLabel: 'Rio (RJ) · BR', version: '1.5.0' });
+StorageManager.addHistory({ clientSig: 'desktop · Windows 11 · Edge', geoLabel: '', version: '1.5.0' });
+const hist = StorageManager.getHistory();
+eq('histórico: conta execuções por aparelho',
+  [hist.clients['mobile · Android 13 · Chrome'], hist.clients['desktop · Windows 11 · Edge']], [2, 1]);
+eq('histórico: rótulo vazio não vira chave', Object.keys(hist.geos).length, 1);
+eq('histórico: versões acumuladas', hist.versions['1.5.0'], 3);
+eq('histórico: primeiro acesso registrado', hist.firstSeenS > 0, true);
+
+const firstSeen = hist.firstSeenS;
+StorageManager.addHistory({ clientSig: 'mobile · iOS 18 · Safari', version: '1.5.0' });
+eq('histórico: primeiro acesso NÃO é reescrito', StorageManager.getHistory().firstSeenS, firstSeen);
+
+// Teto por bucket aplicado no cliente (as rules só contam o mapa de topo)
+for (let i = 0; i < 20; i++) StorageManager.addHistory({ clientSig: `aparelho-${i}` });
+const capped = StorageManager.getHistory();
+eq('histórico: aparelhos respeitam o teto do cliente',
+  Object.keys(capped.clients).length <= StorageManager.HISTORY_CAPS.clients, true);
+eq('histórico: poda mantém o aparelho mais usado',
+  'mobile · Android 13 · Chrome' in capped.clients, true);
+
+localStorage.setItem(StorageManager.HISTORY_KEY, '{lixo');
+eq('histórico: JSON corrompido volta vazio',
+  [Object.keys(StorageManager.getHistory().clients).length, StorageManager.getHistory().firstSeenS], [0, 0]);
 
 // ---------- 3. Consistência entre camadas ----------
 const causas = Object.keys(StorageManager.getDeaths()).filter((k) => !/^t\d$/.test(k)).sort();
@@ -83,6 +111,13 @@ const rules = readFileSync(
 eq('rules aceitam o mapa deaths', rules.includes("'deaths'"), true);
 eq('mapa de mortes cabe no teto das rules (size <= 14)',
   Object.keys(StorageManager.getDeaths()).length <= 14, true);
+
+// v1.5.0: history é UM mapa (orçamento de avaliação) e runs vai até 50
+eq('rules aceitam o mapa history', rules.includes("'history'"), true);
+eq('rules aceitam a janela de 50 execuções', /runs\.size\(\) <= 50/.test(rules), true);
+eq('history cabe no teto do mapa de topo (size <= 6)',
+  Object.keys(StorageManager.getHistory()).length <= 6, true);
+eq('janela local de runs bate com o teto das rules', StorageManager.RUNS_WINDOW, 50);
 
 // ---------- 4. Agregação da página ----------
 const docs = [

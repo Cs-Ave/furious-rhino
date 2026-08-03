@@ -112,6 +112,36 @@ export class StatsSystem {
     return info;
   }
 
+  // Assinatura curta do aparelho e do local — chaves dos contadores de
+  // `history` (o painel mostra exatamente estas strings)
+  static clientSignature(device) {
+    const os = [device.os, device.osVersion].filter(Boolean).join(' ');
+    return [device.device, os, device.browser].filter(Boolean).join(' · ').slice(0, 60);
+  }
+
+  static geoLabel(geo) {
+    if (!geo || !geo.country) return '';
+    const place = geo.city ? (geo.region ? `${geo.city} (${geo.region})` : geo.city) : '';
+    return (place ? `${place} · ${geo.country}` : geo.country).slice(0, 60);
+  }
+
+  // Chamada UMA vez por corrida encerrada (o `send` roda várias vezes por
+  // sessão — acumular nele inflaria os contadores). Sem rede própria: o geo
+  // vem do cache de 30 dias.
+  static async recordRun() {
+    try {
+      const [geo, device] = await Promise.all([this.getGeo(), this.buildDeviceInfo()]);
+      StorageManager.addHistory({
+        clientSig: this.clientSignature(device),
+        geoLabel: this.geoLabel(geo),
+        version: Constants.VERSION,
+      });
+      return true;
+    } catch (e) {
+      return false; // histórico é acessório: nunca atrapalha o fim de corrida
+    }
+  }
+
   // 1 write idempotente por fim de corrida com os totais acumulados.
   // Corridas abandonadas entram no envio seguinte (os totais capturam tudo).
   static async send() {
@@ -129,7 +159,11 @@ export class StatsSystem {
         wins: StorageManager.getWins(),
         bestM: Math.min(StorageManager.getRecord(), 10000),
         deaths: StorageManager.getDeaths(), // {t1..t6, wall..tower..fall}
-        runs: StorageManager.getRuns(), // últimas 10 execuções {t, m}
+        runs: StorageManager.getRuns(), // últimas 50 execuções {t, m}
+        // Histórico acumulado (v1.5.0): aparelhos, locais e versões que este
+        // jogador já usou + primeiro acesso. UM mapa por causa do orçamento
+        // de avaliação das rules — ver comentário em firestore.rules
+        history: StorageManager.getHistory(),
         standalone: Boolean(
           window.matchMedia('(display-mode: standalone)').matches ||
           window.matchMedia('(display-mode: fullscreen)').matches ||
