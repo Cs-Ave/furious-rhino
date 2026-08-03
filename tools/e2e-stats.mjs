@@ -217,6 +217,7 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
     const a = await import('./js/systems/StatsSystem.js');
     delete a.StatsSystem.recordRun;
     const l = await import('./js/systems/LeaderboardSystem.js');
+    delete l.LeaderboardSystem.checkName;   // v1.5.0
     delete l.LeaderboardSystem.isNameTaken;
     delete l.LeaderboardSystem.rename;
   });
@@ -226,12 +227,20 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
   await page.waitForTimeout(300);
   await page.fill('#nickname-input', 'CacheVelho');
   await page.click('#nickname-save');
-  await page.waitForTimeout(2500);
+  // Espera a condição (a consulta real leva ~1-3s) em vez de um tempo fixo
+  let closed = true;
+  try {
+    await page.waitForFunction(
+      () => !document.body.classList.contains('modal-open'), { timeout: 8000 });
+  } catch (e) { closed = false; }
   const saved = await page.evaluate(() => ({
-    modalOpen: document.body.classList.contains('modal-open'),
     name: localStorage.getItem('furious_rhino_player_name'),
+    warn: document.getElementById('invite-status').textContent,
   }));
-  ok('resiliência: salvar apelido não prende o modal', !saved.modalOpen && saved.name === 'CacheVelho');
+  ok('resiliência: salvar apelido não prende o modal',
+    closed && saved.name === 'CacheVelho', saved.name || 'sem nome');
+  ok('resiliência: avisa que não deu para conferir o apelido',
+    /não deu para conferir/.test(saved.warn), saved.warn || '(sem aviso)');
 
   await startGame(page);
   await page.evaluate(() => { window.game.scene.keys.GameScene.endGame(false, 'wall'); });
