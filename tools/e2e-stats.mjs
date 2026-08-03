@@ -8,7 +8,7 @@ import { chromium } from 'playwright';
 const BASE = 'http://localhost:3000';
 // Chave do modo detalhado do painel (o código guarda só o SHA-256 dela —
 // ver STATS_KEY_HASH em js/stats/StatsDashboard.js)
-const STATS_KEY = 'rino-admin-2026';
+const STATS_KEY = '0929';
 const results = [];
 const ok = (name, cond, extra = '') =>
   results.push(`${cond ? 'PASS' : 'FAIL'} ${name}${extra ? ' — ' + extra : ''}`);

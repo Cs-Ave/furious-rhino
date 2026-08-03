@@ -6,7 +6,7 @@ import { getDb } from '../systems/LeaderboardSystem.js';
 // ficaria à vista. NÃO é segurança de verdade (a leitura da coleção é
 // pública, é o que faz o painel funcionar): serve para tirar curiosos.
 // Trocar a chave: node -e "console.log(require('crypto').createHash('sha256').update('NOVA').digest('hex'))"
-const STATS_KEY_HASH = '9da5803faa2c00b6692b89f1ee379d32f3f30a00db54455bde4ccb9a14e5298d';
+const STATS_KEY_HASH = '58f80cb81ed4b05cedac165d4ab30fd9e307d17d0f142ca708dd999ab479b238';
 
 async function hasDetailAccess() {
   const key = new URLSearchParams(location.search).get('stats');
