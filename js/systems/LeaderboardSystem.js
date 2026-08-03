@@ -36,8 +36,46 @@ export class LeaderboardSystem {
     return this.isConfigured() && meters >= 1 && meters > StorageManager.getBestSent();
   }
 
+  // Chave de comparação de apelidos: sem acento, sem caixa, sem espaço
+  // duplicado. "Thomas" = "thomas" = "Thómas ". Gravada em `nameLower`
+  // para a consulta de duplicidade usar índice de campo único.
+  static nameSlug(name) {
+    return String(name || '')
+      .normalize('NFD').replace(/[̀-ͯ]/g, '') // marcas de acento
+      .toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  // true = apelido em uso por OUTRO aparelho. Erro de rede devolve false:
+  // ficar offline não pode impedir o jogador de escolher um nome.
+  //
+  // Varre a coleção e compara pelo SLUG do `name` — e não por uma query em
+  // `nameLower` — porque os docs anteriores à v1.5.0 não têm esse campo e
+  // ficariam invisíveis (a base real tinha 13 jogadores, nenhum com
+  // nameLower, e um "Teco" duplicado). O ranking é pequeno e a checagem só
+  // roda quando alguém troca de apelido; se um dia crescer, `nameLower` já
+  // está sendo gravado e basta trocar por query indexada.
+  //
+  // ⚠️ Melhor esforço: sem transação no firestore-lite, e o doc em `scores`
+  // só nasce quando o jogador pontua — dois aparelhos podem colidir.
+  static async isNameTaken(name) {
+    const slug = this.nameSlug(name);
+    if (!slug) return false;
+    try {
+      const { fs, db } = await getDb();
+      const snap = await fs.getDocs(fs.collection(db, 'scores'));
+      const myId = StorageManager.getOrCreatePlayerId();
+      return snap.docs.some((d) => {
+        if (d.id === myId) return false;
+        const data = d.data();
+        return this.nameSlug(data.nameLower || data.name) === slug;
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+
   // Envia o melhor score do jogador (1 doc por aparelho; o servidor só
-  // aceita update se o score for maior). Retorna true em sucesso.
+  // aceita update se o score for maior ou igual). Retorna true em sucesso.
   static async submit(meters) {
     const name = StorageManager.getPlayerName();
     if (!name) return false;
@@ -46,6 +84,7 @@ export class LeaderboardSystem {
       const playerId = StorageManager.getOrCreatePlayerId();
       await fs.setDoc(fs.doc(db, 'scores', playerId), {
         name,
+        nameLower: this.nameSlug(name),
         score: Math.min(Math.floor(meters), MAX_SCORE),
         updatedAt: fs.serverTimestamp(),
       });
@@ -54,6 +93,27 @@ export class LeaderboardSystem {
       return true;
     } catch (e) {
       return false; // offline ou regra rejeitou — tenta de novo na próxima corrida
+    }
+  }
+
+  // Troca o apelido de quem JÁ está no ranking, mantendo o score (as rules
+  // aceitam update com score igual). O slug antigo deixa de existir na
+  // coleção — é assim que o nome anterior fica livre para outra pessoa.
+  static async rename(name) {
+    const best = StorageManager.getBestSent();
+    if (!name || best < 1) return false;
+    try {
+      const { fs, db } = await getDb();
+      const playerId = StorageManager.getOrCreatePlayerId();
+      await fs.setDoc(fs.doc(db, 'scores', playerId), {
+        name,
+        nameLower: this.nameSlug(name),
+        score: Math.min(Math.floor(best), MAX_SCORE),
+        updatedAt: fs.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 

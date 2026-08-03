@@ -374,6 +374,77 @@
             color: #4ecdc4;
         }
 
+        /* Identidade + convite (v1.5.0) */
+        .start-identity {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .start-identity button {
+            font-family: inherit;
+            font-size: 15px;
+            padding: 7px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            border: 1.5px solid rgba(78, 205, 196, 0.6);
+            background: rgba(78, 205, 196, 0.12);
+            color: #d7e7f5;
+        }
+
+        .start-identity button:hover {
+            background: rgba(78, 205, 196, 0.25);
+        }
+
+        #identity-name {
+            color: #4ecdc4;
+            font-weight: bold;
+        }
+
+        #invite-btn {
+            border-color: rgba(255, 153, 68, 0.7) !important;
+            background: rgba(255, 153, 68, 0.15) !important;
+            color: #ffd9b0 !important;
+        }
+
+        #invite-btn:hover {
+            background: rgba(255, 153, 68, 0.3) !important;
+        }
+
+        #invite-status {
+            margin: 0;
+            min-height: 16px;
+            font-size: 13px;
+            color: #4ecdc4;
+        }
+
+        #pwa-modal p {
+            font-size: 15px;
+            line-height: 1.5;
+            margin: 0 0 10px;
+        }
+
+        #pwa-modal .share-icon {
+            display: inline-block;
+            width: 13px;
+            height: 17px;
+            border: 1.5px solid #ffd9b0;
+            border-radius: 3px;
+            border-top-color: transparent;
+            position: relative;
+            vertical-align: -3px;
+        }
+
+        #pwa-modal .share-icon::after {
+            content: '↑';
+            position: absolute;
+            top: -7px;
+            left: 1px;
+            font-size: 12px;
+        }
+
         #medal-strip {
             display: flex;
             gap: 8px;
@@ -439,6 +510,13 @@
             }
 
             .start-stats { font-size: 15px; }
+
+            .start-identity button {
+                font-size: 13px;
+                padding: 5px 11px;
+            }
+
+            #invite-status { display: none; }
 
             #medal-strip {
                 font-size: 20px;
@@ -963,6 +1041,11 @@
             <span id="start-attempts-wrap">🎮 Tentativas: <span id="start-attempts">0</span></span>
             <span id="start-rank" hidden>🌍 #<span id="start-rank-pos"></span> do mundo</span>
         </div>
+        <div class="start-identity">
+            <button id="identity-btn" aria-label="Trocar apelido">👤 <span id="identity-name">Escolher apelido</span> ✏️</button>
+            <button id="invite-btn" aria-label="Convidar amigos">📣 Chamar a galera</button>
+        </div>
+        <p id="invite-status"></p>
         <div id="medal-strip" role="button" aria-label="Ver medalhas"></div>
         <p class="start-cta">TOQUE PARA COMEÇAR</p>
         <span class="start-footer footer-left">Designed by Thomas</span>
@@ -980,8 +1063,8 @@
     </div>
 
     <div id="nickname-modal" class="modal">
-        <h2>🌍 Novo recorde!</h2>
-        <p>Qual seu apelido para o ranking mundial?</p>
+        <h2 id="nickname-title">🌍 Novo recorde!</h2>
+        <p id="nickname-sub">Qual seu apelido para o ranking mundial?</p>
         <input id="nickname-input" maxlength="12" autocomplete="off" placeholder="3 a 12 caracteres">
         <p id="nickname-error"></p>
         <div class="btn-row">
@@ -994,6 +1077,21 @@
         <h2>🏅 MEDALHAS</h2>
         <ul id="medals-list"></ul>
         <button id="medals-close">Fechar</button>
+    </div>
+
+    <!-- Alerta de instalação: 1x por sessão enquanto o jogo não estiver
+         rodando como app (o "Jogar Novamente" recarrega a página, então
+         repetir a cada morte seria insuportável) -->
+    <div id="pwa-modal" class="modal">
+        <h2>📲 Jogue como app</h2>
+        <p>Instalado, o FURIOUS RHINO abre em <b>tela cheia</b> (sem a barra do navegador),
+           carrega mais rápido, <b>funciona offline</b> e vira um ícone no seu celular.</p>
+        <p id="pwa-ios-steps" hidden>No iPhone: toque em <b>Compartilhar</b>
+           <span class="share-icon"></span> e depois em <b>“Adicionar à Tela de Início”</b>.</p>
+        <div class="btn-row">
+            <button id="pwa-install">📲 Instalar agora</button>
+            <button id="pwa-skip" class="btn-secondary">Continuar sem instalar</button>
+        </div>
     </div>
 
     <div id="victory-banner" hidden>🎉 LIVRE!</div>
@@ -1012,11 +1110,14 @@
           || window.navigator.standalone === true;
         if (standalone) return; // já está rodando instalado
 
+        // Compartilhado com o #pwa-modal (GameScene.setupPwaPrompt) — o
+        // evento só dispara uma vez por carga e os dois botões usam o mesmo
         let deferredPrompt = null;
 
         window.addEventListener('beforeinstallprompt', (e) => {
           e.preventDefault();
           deferredPrompt = e;
+          window.deferredInstallPrompt = e;
           const el = hint();
           if (!el) return;
           el.innerHTML = '<button id="install-btn">📲 Instalar o jogo</button>';
@@ -1027,12 +1128,16 @@
             const choice = await deferredPrompt.userChoice;
             if (choice.outcome === 'accepted') el.style.display = 'none';
             deferredPrompt = null;
+            window.deferredInstallPrompt = null;
           });
         });
 
         window.addEventListener('appinstalled', () => {
           const el = hint();
           if (el) el.style.display = 'none';
+          const modal = document.getElementById('pwa-modal');
+          if (modal) modal.style.display = 'none';
+          document.body.classList.remove('modal-open');
         });
 
         document.addEventListener('DOMContentLoaded', () => {

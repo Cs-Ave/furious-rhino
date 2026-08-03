@@ -88,6 +88,8 @@ export class GameScene extends Phaser.Scene {
       document.getElementById('start-rank').hidden = false;
     }
     this.setupMedalStrip();
+    this.setupIdentityUI();
+    this.setupPwaPrompt();
 
     // Reenvia os totais com a página parada: o envio do fim de corrida
     // morre se o jogador clicar "Jogar Novamente" rápido (reload mata o
@@ -107,6 +109,113 @@ export class GameScene extends Phaser.Scene {
     window.addEventListener('keydown', start);
 
     this.setupLeaderboardUI();
+  }
+
+  // Apelido visível na tela inicial + troca no lugar, e o convite para
+  // chamar amigos (v1.5.0). Todo clique aqui precisa de stopPropagation:
+  // o overlay inteiro é "toque para começar".
+  setupIdentityUI() {
+    const idBtn = document.getElementById('identity-btn');
+    const inviteBtn = document.getElementById('invite-btn');
+    this.updateIdentityLine();
+
+    idBtn.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+    idBtn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      this.openNicknameModal(true);
+    });
+
+    inviteBtn.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+    inviteBtn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      this.shareInvite();
+    });
+    // Sem Web Share nem clipboard (LAN http): o botão não teria o que fazer
+    if (!navigator.share && !navigator.clipboard) inviteBtn.style.display = 'none';
+  }
+
+  updateIdentityLine() {
+    const label = document.getElementById('identity-name');
+    if (!label) return;
+    const name = StorageManager.getPlayerName();
+    label.textContent = name || 'Escolher apelido'; // textContent: nome livre
+  }
+
+  // Convite para amigos — pensado para colar no WhatsApp: gancho, o que é
+  // o jogo, provocação com o recorde (quando existe) e o link.
+  async shareInvite() {
+    const url = location.origin + location.pathname;
+    const record = StorageManager.getRecord();
+    const brag = record > 0
+      ? `Meu recorde: *${record}m*. Duvido você passar disso 😏`
+      : 'Ainda estou treinando — vem tentar antes de mim 😏';
+    const text =
+      '🦏💨 Entrei numa fuga do zoológico e não consigo parar!\n\n' +
+      '*FURIOUS RHINO*: você é um rinoceronte furioso que corre, pula e INVESTE contra tudo. ' +
+      'A meta é escapar pelo portão dos 800m — depois dele o jogo vira infinito, até você virar LENDA.\n\n' +
+      `${brag}\n\nGrátis e abre direto no navegador:`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ text, url });
+        return;
+      }
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      this.showInviteStatus('🔗 Convite copiado — cole no WhatsApp!');
+    } catch (e) { /* cancelou o compartilhamento */ }
+  }
+
+  showInviteStatus(msg) {
+    const el = document.getElementById('invite-status');
+    if (el) el.textContent = msg;
+  }
+
+  // Alerta de instalação: 1x por SESSÃO (o "Jogar Novamente" recarrega a
+  // página — mostrar a cada morte afastaria o jogador). Nunca bloqueia:
+  // "Continuar sem instalar" fecha e o jogo segue.
+  setupPwaPrompt() {
+    const modal = document.getElementById('pwa-modal');
+    if (!modal) return;
+    const installed =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.matchMedia('(display-mode: fullscreen)').matches ||
+      navigator.standalone === true;
+    const SEEN = 'furious_rhino_pwa_prompted';
+    let seen = false;
+    try { seen = sessionStorage.getItem(SEEN) === '1'; } catch (e) { seen = true; }
+
+    modal.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+    const close = () => {
+      this.closeModal(modal);
+      try { sessionStorage.setItem(SEEN, '1'); } catch (e) { /* privado */ }
+    };
+    document.getElementById('pwa-skip').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      close();
+    });
+    document.getElementById('pwa-install').addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      // Android/Chrome: o prompt nativo foi capturado pelo IIFE do index
+      const prompt = window.deferredInstallPrompt;
+      if (prompt) {
+        prompt.prompt();
+        await prompt.userChoice.catch(() => {});
+        window.deferredInstallPrompt = null;
+        close();
+        return;
+      }
+      // iOS (e qualquer navegador sem prompt): instruções na tela
+      document.getElementById('pwa-ios-steps').hidden = false;
+      document.getElementById('pwa-install').hidden = true;
+    });
+
+    if (installed || seen) return;
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (isIOS) {
+      document.getElementById('pwa-ios-steps').hidden = false;
+      document.getElementById('pwa-install').hidden = true;
+    }
+    this.openModal(modal);
   }
 
   setupLeaderboardUI() {
@@ -289,25 +398,61 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  openNicknameModal() {
+  // rename=true: troca pela tela inicial (sem score pendente para enviar)
+  openNicknameModal(rename = false) {
     const input = document.getElementById('nickname-input');
+    const current = StorageManager.getPlayerName();
+    this.renamingNickname = rename;
     document.getElementById('nickname-error').textContent = '';
-    input.value = StorageManager.getPlayerName();
+    document.getElementById('nickname-title').textContent =
+      rename ? (current ? '✏️ Trocar apelido' : '👤 Escolher apelido') : '🌍 Novo recorde!';
+    document.getElementById('nickname-sub').textContent =
+      rename ? 'Como você aparece no ranking mundial:' : 'Qual seu apelido para o ranking mundial?';
+    document.getElementById('nickname-skip').hidden = rename && Boolean(current);
+    input.value = current;
     this.openModal(document.getElementById('nickname-modal'));
     // O Phaser captura setas/espaço globalmente e quebraria a digitação
     this.input.keyboard.disableGlobalCapture();
     input.focus();
   }
 
-  saveNickname() {
+  async saveNickname() {
     const input = document.getElementById('nickname-input');
+    const error = document.getElementById('nickname-error');
+    const saveBtn = document.getElementById('nickname-save');
     const name = input.value.trim();
     if (name.length < 3 || name.length > 12) {
-      document.getElementById('nickname-error').textContent =
-        'O apelido precisa ter de 3 a 12 caracteres.';
+      error.textContent = 'O apelido precisa ter de 3 a 12 caracteres.';
       return;
     }
+    if (name === StorageManager.getPlayerName()) { // nada mudou
+      this.closeNicknameModal(!this.renamingNickname);
+      return;
+    }
+
+    // Duplicidade: consulta o ranking pelo apelido normalizado (sem acento
+    // nem caixa). Offline devolve false — não travar quem está sem rede.
+    error.textContent = 'Verificando apelido…';
+    saveBtn.disabled = true;
+    const taken = await LeaderboardSystem.isNameTaken(name);
+    saveBtn.disabled = false;
+    if (taken) {
+      error.textContent = 'Esse apelido já está em uso — escolha outro.';
+      input.focus();
+      input.select();
+      return;
+    }
+
+    error.textContent = '';
     StorageManager.setPlayerName(name);
+    if (this.renamingNickname) {
+      this.closeNicknameModal(false);
+      this.updateIdentityLine();
+      // Já está no ranking? Reescreve o doc mantendo o score (isso libera
+      // o apelido anterior para outra pessoa)
+      if (StorageManager.getBestSent() > 0) LeaderboardSystem.rename(name);
+      return;
+    }
     this.closeNicknameModal(true);
   }
 
@@ -327,6 +472,7 @@ export class GameScene extends Phaser.Scene {
     this.closeNicknameModal(false);
     const name = await LeaderboardSystem.anonymousName();
     StorageManager.setPlayerName(name);
+    this.updateIdentityLine();
     if (this.pendingScore) {
       const ok = await LeaderboardSystem.submit(this.pendingScore);
       if (ok) this.showOnlineStatus(`🌍 No ranking como ${name}!`);
