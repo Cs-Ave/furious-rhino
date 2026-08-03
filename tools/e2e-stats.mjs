@@ -6,6 +6,9 @@
 import { chromium } from 'playwright';
 
 const BASE = 'http://localhost:3000';
+// Chave do modo detalhado do painel (o código guarda só o SHA-256 dela —
+// ver STATS_KEY_HASH em js/stats/StatsDashboard.js)
+const STATS_KEY = 'rino-admin-2026';
 const results = [];
 const ok = (name, cond, extra = '') =>
   results.push(`${cond ? 'PASS' : 'FAIL'} ${name}${extra ? ' — ' + extra : ''}`);
@@ -42,6 +45,18 @@ async function newGamePage() {
   await page.waitForTimeout(2000);
   return { page, errors };
 }
+
+// v1.5.0: o alerta de instalação abre sobre a tela inicial e, enquanto
+// houver modal aberto, nenhum toque inicia a corrida (guarda `modal-open`)
+async function startGame(page) {
+  const pwa = page.locator('#pwa-modal');
+  if (await pwa.isVisible().catch(() => false)) {
+    await page.click('#pwa-skip');
+    await page.waitForTimeout(200);
+  }
+  await page.locator('#start-screen').click({ position: { x: 640, y: 650 } });
+  await page.waitForTimeout(800);
+}
 const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|ERR_/.test(e));
 
 // ---------- 1. Tela de início dispara o reenvio e o Firestore aceita ----------
@@ -71,8 +86,7 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
 // ---------- 2. Portão dos 800m: cruzamento DIRETO (sem parada) ----------
 {
   const { page, errors } = await newGamePage();
-  await page.locator('#start-screen').click({ position: { x: 640, y: 650 } });
-  await page.waitForTimeout(800);
+  await startGame(page);
   await page.evaluate(() => {
     const s = window.game.scene.keys.GameScene;
     s.rhino.getSprite().body.reset(31600, 500);
@@ -136,8 +150,7 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
 // ---------- 3. Fim do mundo (10.000m): LENDA com cutscene ----------
 {
   const { page, errors } = await newGamePage();
-  await page.locator('#start-screen').click({ position: { x: 640, y: 650 } });
-  await page.waitForTimeout(800);
+  await startGame(page);
   await page.evaluate(() => {
     const s = window.game.scene.keys.GameScene;
     s.rhino.getSprite().body.reset(399500, 500);
@@ -183,23 +196,57 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
 
   const body = await page.locator('#stats-page').textContent();
   ok('painel: renderizou dados', /Visão geral/.test(body), body.slice(0, 60));
-  ok('painel: select de jogador presente', await page.locator('#stats-player').count() === 1);
   ok('painel: card de recorde com nome', /recorde —/.test(body));
   ok('painel: funil com degrau do portão (800m)', /800m/.test(body));
   ok('painel: categoria Torre', /Torre/.test(body));
   ok('painel: tiers do modo infinito', /Tier 5/.test(body) && /Tier 6/.test(body));
-
-  // Filtrar por um jogador muda a visão (agregado → individual)
-  const options = await page.locator('#stats-player option').count();
-  if (options > 1) {
-    await page.selectOption('#stats-player', { index: 1 });
-    await page.waitForTimeout(400);
-    const one = await page.locator('#stats-page').textContent();
-    ok('painel: filtro individual renderiza', /Visão geral/.test(one));
-  } else {
-    ok('painel: filtro individual renderiza', false, 'sem jogadores no select');
-  }
+  // v1.5.0: sem a chave, nada de lista de jogadores nem fichas
+  ok('painel: sem chave não expõe a lista de jogadores',
+    await page.locator('.players-table').count() === 0);
   ok('sem erros de JS no /?stats', errors.filter((e) => !/net::|ERR_/.test(e)).length === 0);
+  await page.close();
+}
+
+// ---------- 5. Painel detalhado (/?stats=<chave>): lista + ficha ----------
+{
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto(`${BASE}/?stats=${STATS_KEY}`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(5000);
+
+  const rows = page.locator('.players-table tbody tr');
+  ok('detalhado: tabela de jogadores renderizou', await rows.count() > 0, `${await rows.count()} linhas`);
+  ok('detalhado: campo de busca presente', await page.locator('#stats-search').count() === 1);
+
+  // Ordenação: clicar em "Recorde" inverte a ordem (padrão é desc)
+  const firstBefore = await rows.first().textContent();
+  await page.locator('.players-table th').nth(1).click();
+  await page.waitForTimeout(300);
+  const firstAfter = await rows.first().textContent();
+  ok('detalhado: ordenar por coluna reordena', firstBefore !== firstAfter);
+
+  // Busca por um apelido inexistente esvazia a tabela
+  await page.fill('#stats-search', 'zzz-nao-existe-zzz');
+  await page.waitForTimeout(300);
+  const emptyMsg = await page.locator('.players-table tbody').textContent();
+  ok('detalhado: busca filtra a tabela', /Nenhum jogador/.test(emptyMsg), emptyMsg.slice(0, 40));
+  await page.fill('#stats-search', '');
+  await page.waitForTimeout(300);
+
+  // Ficha individual
+  await rows.first().click();
+  await page.waitForTimeout(600);
+  const ficha = await page.locator('#stats-page').textContent();
+  ok('ficha: evolução das execuções', /Evolução das últimas execuções/.test(ficha));
+  ok('ficha: aparelhos usados', /Aparelhos usados/.test(ficha));
+  ok('ficha: mortes por etapa e causa', /Mortes por etapa/.test(ficha) && /Mortes por causa/.test(ficha));
+  ok('ficha: botão de voltar presente', await page.locator('.stats-back').count() === 1);
+  await page.click('.stats-back');
+  await page.waitForTimeout(500);
+  ok('ficha: voltar reconstrói a lista', await page.locator('.players-table').count() === 1);
+  ok('sem erros de JS no painel detalhado', errors.filter((e) => !/net::|ERR_/.test(e)).length === 0,
+    errors.slice(0, 2).join(' | '));
   await page.close();
 }
 

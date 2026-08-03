@@ -938,6 +938,107 @@
             font-size: 13px;
         }
 
+        /* Modo detalhado (/?stats=<chave>): lista de jogadores + ficha */
+        #stats-search {
+            width: 100%;
+            max-width: 320px;
+            margin: 0 0 10px;
+            padding: 8px 10px;
+            font-size: 15px;
+            color: white;
+            background: #2a2a2e;
+            border: 1px solid #4ecdc4;
+            border-radius: 6px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .players-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .players-table th {
+            text-align: left;
+            padding: 8px 10px;
+            color: #4ecdc4;
+            border-bottom: 1px solid rgba(78, 205, 196, 0.35);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .players-table th.sort-desc::after { content: ' ▼'; font-size: 10px; }
+        .players-table th.sort-asc::after { content: ' ▲'; font-size: 10px; }
+
+        .players-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+            color: #d7e7f5;
+        }
+
+        .players-table tbody tr {
+            cursor: pointer;
+        }
+
+        .players-table tbody tr:hover {
+            background: rgba(78, 205, 196, 0.1);
+        }
+
+        .players-table td:first-child {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+
+        .stats-back {
+            margin: 0 0 8px !important;
+        }
+
+        .runs-chart-box {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            padding: 10px 12px 6px;
+        }
+
+        .runs-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 120px;
+        }
+
+        .runs-chart .run-bar {
+            flex: 1 1 0;
+            min-width: 3px;
+            background: #4ecdc4;
+            border-radius: 2px 2px 0 0;
+        }
+
+        .runs-chart .run-bar.escaped {
+            background: #ffcc00;
+        }
+
+        .runs-chart-max {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            text-align: right;
+            margin-top: 4px;
+        }
+
+        #stats-page details {
+            margin-top: 8px;
+        }
+
+        #stats-page summary {
+            cursor: pointer;
+            color: #4ecdc4;
+            font-size: 13px;
+        }
+
         #stats-page .stats-status {
             margin: 30px 0;
             font-size: 16px;
