@@ -446,12 +446,12 @@ export class GameScene extends Phaser.Scene {
     // false — nunca deixar o jogador preso no modal.
     error.textContent = 'Verificando apelido…';
     saveBtn.disabled = true;
-    let taken = false;
+    let verdict = 'unknown';
     try {
-      taken = await LeaderboardSystem.isNameTaken(name);
-    } catch (e) { /* segue sem checar */ }
+      verdict = await LeaderboardSystem.checkName(name);
+    } catch (e) { /* segue como 'unknown' */ }
     saveBtn.disabled = false;
-    if (taken) {
+    if (verdict === 'taken') {
       error.textContent = 'Esse apelido já está em uso — escolha outro.';
       input.focus();
       input.select();
@@ -459,6 +459,13 @@ export class GameScene extends Phaser.Scene {
     }
 
     error.textContent = '';
+    // Não dá para bloquear quem está sem rede, mas o jogador precisa saber
+    // que ninguém conferiu (senão parece que o apelido estava livre)
+    if (verdict === 'unknown') {
+      this.showInviteStatus('⚠️ Apelido salvo, mas não deu para conferir se já existe.');
+    } else if (this.renamingNickname) {
+      this.showInviteStatus('');
+    }
     StorageManager.setPlayerName(name);
     if (this.renamingNickname) {
       this.closeNicknameModal(false);

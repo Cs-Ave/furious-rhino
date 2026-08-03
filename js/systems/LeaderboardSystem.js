@@ -45,6 +45,28 @@ export class LeaderboardSystem {
       .toLowerCase().replace(/\s+/g, ' ').trim();
   }
 
+  // 'taken' | 'free' | 'unknown'. O 'unknown' (rede caída, regra do
+  // servidor, módulo antigo em cache) é DIFERENTE de 'free': o jogo salva
+  // o apelido mesmo assim, mas avisa que não deu para conferir — falhar em
+  // silêncio faz parecer que o nome estava livre.
+  static async checkName(name) {
+    const slug = this.nameSlug(name);
+    if (!slug) return 'free';
+    try {
+      const { fs, db } = await getDb();
+      const snap = await fs.getDocs(fs.collection(db, 'scores'));
+      const myId = StorageManager.getOrCreatePlayerId();
+      const taken = snap.docs.some((d) => {
+        if (d.id === myId) return false;
+        const data = d.data();
+        return this.nameSlug(data.nameLower || data.name) === slug;
+      });
+      return taken ? 'taken' : 'free';
+    } catch (e) {
+      return 'unknown';
+    }
+  }
+
   // true = apelido em uso por OUTRO aparelho. Erro de rede devolve false:
   // ficar offline não pode impedir o jogador de escolher um nome.
   //
