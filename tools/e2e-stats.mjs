@@ -207,6 +207,42 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
   await page.close();
 }
 
+// ---------- 4b. Resiliência: telemetria quebrada NÃO trava o jogo ----------
+// Cenário real da v1.5.0: cache do navegador servindo módulos antigos (sem
+// as funções novas) — o TypeError acontecia dentro do endGame e o jogo
+// congelava sem overlay. Telemetria e ranking são acessórios.
+{
+  const { page, errors } = await newGamePage();
+  await page.evaluate(async () => {
+    const a = await import('./js/systems/StatsSystem.js');
+    delete a.StatsSystem.recordRun;
+    const l = await import('./js/systems/LeaderboardSystem.js');
+    delete l.LeaderboardSystem.isNameTaken;
+    delete l.LeaderboardSystem.rename;
+  });
+  await page.click('#pwa-skip');
+
+  await page.click('#identity-btn');
+  await page.waitForTimeout(300);
+  await page.fill('#nickname-input', 'CacheVelho');
+  await page.click('#nickname-save');
+  await page.waitForTimeout(2500);
+  const saved = await page.evaluate(() => ({
+    modalOpen: document.body.classList.contains('modal-open'),
+    name: localStorage.getItem('furious_rhino_player_name'),
+  }));
+  ok('resiliência: salvar apelido não prende o modal', !saved.modalOpen && saved.name === 'CacheVelho');
+
+  await startGame(page);
+  await page.evaluate(() => { window.game.scene.keys.GameScene.endGame(false, 'wall'); });
+  await page.waitForTimeout(1200);
+  const over = await page.evaluate(() =>
+    getComputedStyle(document.getElementById('game-over')).display);
+  ok('resiliência: game over aparece mesmo com telemetria quebrada', over === 'block', over);
+  ok('sem erros de JS (resiliência)', fatal(errors).length === 0, fatal(errors).slice(0, 2).join(' | '));
+  await page.close();
+}
+
 // ---------- 5. Painel detalhado (/?stats=<chave>): lista + ficha ----------
 {
   const page = await context.newPage();

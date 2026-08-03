@@ -77,6 +77,17 @@ export class GameScene extends Phaser.Scene {
     if (this.registry.get('debug')) initTuningPanel(this);
   }
 
+  // Telemetria e ranking são ACESSÓRIOS: um erro deles (rede, regra do
+  // servidor ou — já aconteceu — um arquivo antigo no cache do navegador
+  // sem a função nova) não pode derrubar o jogo. Engole tudo, síncrono
+  // e assíncrono.
+  safeTelemetry(fn) {
+    try {
+      const p = fn();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    } catch (e) { /* nunca interrompe a corrida */ }
+  }
+
   setupStartScreen() {
     document.getElementById('start-record').textContent = StorageManager.getRecord();
     document.getElementById('start-attempts').textContent = StorageManager.getAttempts();
@@ -94,7 +105,7 @@ export class GameScene extends Phaser.Scene {
     // Reenvia os totais com a página parada: o envio do fim de corrida
     // morre se o jogador clicar "Jogar Novamente" rápido (reload mata o
     // fetch em voo) — aqui ele sempre completa e cura docs defasados
-    if (StorageManager.getAttempts() > 0) StatsSystem.send();
+    if (StorageManager.getAttempts() > 0) this.safeTelemetry(() => StatsSystem.send());
 
     // Handler nomeado com guarda em vez de {once:true}: com um modal aberto
     // (ranking/apelido), nenhuma tecla ou toque pode iniciar a corrida
@@ -431,10 +442,14 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Duplicidade: consulta o ranking pelo apelido normalizado (sem acento
-    // nem caixa). Offline devolve false — não travar quem está sem rede.
+    // nem caixa). Offline (ou versão antiga do módulo em cache) devolve
+    // false — nunca deixar o jogador preso no modal.
     error.textContent = 'Verificando apelido…';
     saveBtn.disabled = true;
-    const taken = await LeaderboardSystem.isNameTaken(name);
+    let taken = false;
+    try {
+      taken = await LeaderboardSystem.isNameTaken(name);
+    } catch (e) { /* segue sem checar */ }
     saveBtn.disabled = false;
     if (taken) {
       error.textContent = 'Esse apelido já está em uso — escolha outro.';
@@ -450,7 +465,9 @@ export class GameScene extends Phaser.Scene {
       this.updateIdentityLine();
       // Já está no ranking? Reescreve o doc mantendo o score (isso libera
       // o apelido anterior para outra pessoa)
-      if (StorageManager.getBestSent() > 0) LeaderboardSystem.rename(name);
+      if (StorageManager.getBestSent() > 0) {
+        this.safeTelemetry(() => LeaderboardSystem.rename(name));
+      }
       return;
     }
     this.closeNicknameModal(true);
@@ -979,7 +996,8 @@ export class GameScene extends Phaser.Scene {
     this.escaped = true;
     this.winCounted = true;
     StorageManager.addWin();
-    StatsSystem.send(); // garante a fuga no servidor mesmo se fechar a aba
+    // garante a fuga no servidor mesmo se o jogador fechar a aba
+    this.safeTelemetry(() => StatsSystem.send());
 
     // Aviso rápido fixo na tela, sem modal: a corrida não espera
     const toast = this.add.text(640, 300, '🗽 VOCÊ ESCAPOU!', {
@@ -1085,7 +1103,7 @@ export class GameScene extends Phaser.Scene {
     if (!won) StorageManager.addDeath(Constants.getTierIndex(this.rhino.getSprite().x), cause || 'wall');
     // Acumula aparelho/local/versão desta corrida ANTES do envio (o send
     // roda várias vezes por sessão; o recordRun, uma por corrida)
-    StatsSystem.recordRun().then(() => StatsSystem.send());
+    this.safeTelemetry(() => StatsSystem.recordRun().then(() => StatsSystem.send()));
 
     // Nº da corrida que acabou de terminar (o addAttempt do startRun já contou)
     const attemptId = won ? 'win-attempt-message' : 'attempt-message';
