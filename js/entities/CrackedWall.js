@@ -11,15 +11,23 @@ export class CrackedWall extends Phaser.Physics.Arcade.Sprite {
     this.wallHeight = height;
     this.broken = false;
     this.crackHeight = 'ground';
+    // '' = alvenaria do zoológico, '-city' = fachada de prédio (pós-portão).
+    // Só a APARÊNCIA muda: canvas, banda da fresta e colisão são idênticos.
+    this.skin = '';
 
     this.scene.add.existing(this);
     this.scene.physics.add.existing(this);
   }
 
+  // Definir o skin ANTES de setCrackHeight/reset: são eles que aplicam a
+  // textura (mesmo padrão do setVariant da rampa)
+  setSkin(skin) {
+    this.skin = skin === '-city' ? '-city' : '';
+  }
+
   setCrackHeight(height) {
     this.crackHeight = height;
-    const textureKey = `cracked-${height}`;
-    this.setTexture(textureKey);
+    this.setTexture(`cracked-${height}${this.skin}`);
   }
 
   getCrackBounds() {
@@ -34,14 +42,14 @@ export class CrackedWall extends Phaser.Physics.Arcade.Sprite {
   break() {
     if (this.broken) return;
     this.broken = true;
-    this.setTexture(`cracked-${this.crackHeight}-broken`);
+    this.setTexture(`cracked-${this.crackHeight}${this.skin}-broken`);
     this.body.enable = false;
   }
 
   reset(x) {
     this.setPosition(x, 0);
     this.broken = false;
-    this.setTexture(`cracked-${this.crackHeight}`);
+    this.setTexture(`cracked-${this.crackHeight}${this.skin}`);
     this.body.enable = true;
     this.setActive(true).setVisible(true);
   }

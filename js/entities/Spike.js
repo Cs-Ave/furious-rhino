@@ -7,18 +7,30 @@ export class Spike extends Phaser.Physics.Arcade.Sprite {
     this.body.setAllowGravity(false);
     this.body.setImmovable(true);
     this.setOrigin(0.5, 0);
+    this.skin = '';
     this.setVariant('ground');
 
     this.scene.add.existing(this);
   }
 
+  // '' = pedestal de alvenaria do zoo, '-city' = bloco de concreto com faixa
+  // de perigo. Definir ANTES do reset, que é quem aplica a textura (mesmo
+  // contrato do CrackedWall.setSkin).
+  setSkin(skin) {
+    this.skin = skin === '-city' ? '-city' : '';
+  }
+
   // 'ground': spike row sitting on the ground.
   // 'tower': spike row on a brick pedestal down to the ground (nothing floats);
   // the pedestal is lethal too, consistent with walls.
+  //
+  // O skin só vale para a variante 'tower': a fileira do chão é aço puro
+  // (steelBase/steelLight), já neutra em qualquer bioma — uma cópia dela
+  // seria textura desperdiçada.
   setVariant(variant) {
     this.variant = variant;
     if (variant === 'tower') {
-      this.setTexture('spike-tower');
+      this.setTexture(`spike-tower${this.skin || ''}`);
       // Canvas 120 (pedestal mais largo que os espinhos): offset +10
       // mantém a área letal no mundo idêntica à do canvas antigo de 100
       this.body.setSize(72, 116);

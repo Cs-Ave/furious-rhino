@@ -1,7 +1,7 @@
 // E2E num navegador real (Playwright/Chromium):
 //   node tools/e2e-stats.mjs   (requer o jogo servido em localhost:3000)
 // Cobre: telemetria (escrita real no Firestore com o playerId de sonda
-// 'claude-rules-check-01' — não cria poluição nova), portão dos 800m
+// 'claude-rules-check-01' — não cria poluição nova), portão dos 1000m
 // (continuar E sair) e a página /?stats (filtro, recorde, funil dinâmico).
 import { chromium } from 'playwright';
 
@@ -83,16 +83,16 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
   await page.close();
 }
 
-// ---------- 2. Portão dos 800m: cruzamento DIRETO (sem parada) ----------
+// ---------- 2. Portão dos 1000m: cruzamento DIRETO (sem parada) ----------
 {
   const { page, errors } = await newGamePage();
   await startGame(page);
   await page.evaluate(() => {
     const s = window.game.scene.keys.GameScene;
-    s.rhino.getSprite().body.reset(31600, 500);
+    s.rhino.getSprite().body.reset(39600, 500);
   });
 
-  // v1.4: sem modal — o rino cruza os 800m e o endless começa na passada
+  // v1.4: sem modal — o rino cruza o portão e o endless começa na passada
   let crossed = true;
   try {
     await page.waitForFunction(() => {
@@ -100,10 +100,10 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
       return s.gateReached;
     }, { timeout: 6000 });
   } catch (e) { crossed = false; }
-  ok('portão: cruzou os 800m', crossed);
+  ok('portão: cruzou os 1000m', crossed);
 
   // Checagem RÁPIDA: antes de o rino alcançar os obstáculos do t5
-  // (spawns retomam em 33000) — esperar demais deixa ele morrer sozinho
+  // (spawns retomam em WIN+1000) — esperar demais deixa ele morrer sozinho
   const state = await page.evaluate(() => {
     const s = window.game.scene.keys.GameScene;
     return {
@@ -125,22 +125,22 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
   try {
     await page.waitForFunction(() => {
       const s = window.game.scene.keys.GameScene;
-      return s.spawnManager.nextSpawnX >= 33000;
+      return s.spawnManager.nextSpawnX >= 41000;
     }, { timeout: 4000 });
   } catch (e) { spawnOk = false; }
-  ok('portão: spawn retomou no modo infinito (nextSpawnX >= 33000)', spawnOk);
+  ok('portão: spawn retomou no modo infinito (nextSpawnX >= 41000)', spawnOk);
 
-  // Morte no modo infinito → tier t5 + reconhecimento da fuga
+  // Morte no modo infinito → tier t6 (teto) + reconhecimento da fuga
   await page.evaluate(() => {
     const s = window.game.scene.keys.GameScene;
-    s.rhino.getSprite().body.reset(33500, 500);
+    s.rhino.getSprite().body.reset(41500, 500);
     s.endGame(false, 'spike');
   });
   await page.waitForTimeout(800);
   const deaths = await page.evaluate(() => localStorage.getItem('furious_rhino_deaths'));
-  // Sem a parada do modal, o rino pode morrer sozinho no t5 antes da morte
-  // forçada (endGame tem guard de reentrada) — exigir apenas t5 >= 1
-  ok('portão: morte no infinito registrada em t5', /"t5":[1-9]/.test(deaths || ''), deaths || '');
+  // Sem a parada do modal, o rino pode morrer sozinho antes da morte forçada
+  // (endGame tem guard de reentrada) — exigir apenas t6 >= 1
+  ok('portão: morte no infinito registrada em t6', /"t6":[1-9]/.test(deaths || ''), deaths || '');
   const escapeMsg = await page.locator('#gate-escape-message').textContent();
   ok('portão: game over reconhece a fuga', /escapou/.test(escapeMsg), escapeMsg);
   ok('sem erros de JS (cruzamento)', fatal(errors).length === 0, fatal(errors).slice(0, 2).join(' | '));
@@ -197,7 +197,7 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
   const body = await page.locator('#stats-page').textContent();
   ok('painel: renderizou dados', /Visão geral/.test(body), body.slice(0, 60));
   ok('painel: card de recorde com nome', /recorde —/.test(body));
-  ok('painel: funil com degrau do portão (800m)', /800m/.test(body));
+  ok('painel: funil com degrau do portão (1000m)', /1000m 🗽/.test(body));
   ok('painel: categoria Torre', /Torre/.test(body));
   ok('painel: tiers do modo infinito', /Tier 5/.test(body) && /Tier 6/.test(body));
   // v1.5.0: sem a chave, nada de lista de jogadores nem fichas

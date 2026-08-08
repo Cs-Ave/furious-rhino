@@ -38,9 +38,9 @@ eq('tier aos 200m (x=8000)', Constants.getTierIndex(8000), 1);
 eq('tier aos 400m (x=16000)', Constants.getTierIndex(16000), 2);
 eq('tier aos 600m (x=24000)', Constants.getTierIndex(24000), 3);
 eq('tier aos 799m (x=31999)', Constants.getTierIndex(31999), 3);
-eq('tier aos 800m — modo infinito (x=32000)', Constants.getTierIndex(32000), 4);
+eq('tier aos 800m — reta do portão (x=32000)', Constants.getTierIndex(32000), 4);
 eq('tier aos 999m (x=39999)', Constants.getTierIndex(39999), 4);
-eq('tier aos 1000m — teto (x=40000)', Constants.getTierIndex(40000), 5);
+eq('tier aos 1000m — portão e teto (x=40000)', Constants.getTierIndex(40000), 5);
 eq('tier muito além (clamp no teto)', Constants.getTierIndex(999999), 5);
 
 // ---------- 2. Contagem local de mortes ----------
@@ -50,8 +50,8 @@ StorageManager.addDeath(1, 'tower');
 StorageManager.addDeath(1, 'dart');
 StorageManager.addDeath(3, 'dart');
 StorageManager.addDeath(2, 'fall');
-StorageManager.addDeath(4, 'spike'); // modo infinito: 800-1000m
-StorageManager.addDeath(5, 'animal'); // teto: 1000m+
+StorageManager.addDeath(4, 'spike'); // reta do portão: 800-1000m
+StorageManager.addDeath(5, 'animal'); // teto: 1000m+ (modo infinito)
 const d = StorageManager.getDeaths();
 eq('mortes por tier t1..t6', [d.t1, d.t2, d.t3, d.t4, d.t5, d.t6], [1, 2, 1, 1, 1, 1]);
 eq('mortes por causa', [d.wall, d.spike, d.animal, d.dart, d.tower, d.fall], [1, 1, 1, 2, 1, 1]);
@@ -149,7 +149,7 @@ eq('mortes por causa (objeto)', agg.causes,
 // Funil dinâmico: degraus de 200m até o máximo percorrido (1150 → 1200)
 eq('funil: nº de degraus (200..1200)', agg.funnelSteps.length, 6);
 eq('funil: contagens por degrau', agg.funnelSteps.map(([, v]) => v), [2, 2, 1, 1, 1, 0]);
-eq('funil: degrau dos 800m destacado', agg.funnelSteps[3][0].includes('800m'), true);
+eq('funil: degrau do portão destacado', agg.funnelSteps[4][0].includes('1000m 🗽'), true);
 eq('funil: escaparam (cruzaram o portão)', agg.escaped, 2);
 eq('PWA instalado', agg.standalone, 1);
 eq('cidade formatada com região', agg.city.get('Rio de Janeiro (Rio de Janeiro)'), 1);

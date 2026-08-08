@@ -13,13 +13,22 @@ export class TranqTower extends Phaser.Physics.Arcade.Sprite {
     this.body.setSize(64, 112);
     this.body.setOffset(10, 8);
     this.nextShotAt = 0;
+    // '' = torre de pedra do zoo, '-city' = poste de vigilância com caixa
+    // d'água. Mesmo canvas e mesma seteira — só grafismo.
+    this.skin = '';
 
     this.scene.add.existing(this);
   }
 
-  reset(x) {
-    // Ground top is at GAME_HEIGHT - 100 (y=620); a torre pisa no chão
-    this.setPosition(x, Constants.GAME_HEIGHT - 100 - 120);
+  setSkin(skin) {
+    this.skin = skin === '-city' ? '-city' : '';
+  }
+
+  // baseY: topo do terreno onde a torre pisa. Sem ele, o chão plano (620) —
+  // com ele, o platô de um morro (combo ramp-tower: posto de guarda no alto).
+  reset(x, baseY = Constants.GROUND_TOP) {
+    this.setTexture(`tranq-tower${this.skin}`);
+    this.setPosition(x, baseY - 120);
     this.body.enable = true;
     this.nextShotAt = 0;
     this.shotIndex = 0;

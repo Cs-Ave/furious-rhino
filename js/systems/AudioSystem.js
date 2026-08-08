@@ -70,6 +70,12 @@ export class AudioSystem {
     return src;
   }
 
+  // Abaixa a música na pausa (e devolve ao voltar). 0.5 é o valor de init().
+  duckMusic(on) {
+    if (!this.ctx || !this.musicGain) return;
+    this.musicGain.gain.value = on ? 0.1 : 0.5;
+  }
+
   // ---------------------------------------------------------------- SFX
 
   playJump(chainCount = 0) {
@@ -132,6 +138,55 @@ export class AudioSystem {
     gT.gain.linearRampToValueAtTime(0, t + 0.2);
     thump.start(t);
     thump.stop(t + 0.22);
+  }
+
+  // Trovão da tempestade: estalo agudo curto + rugido grave longo. Mesmo
+  // molde procedural do resto (nada de sample).
+  playThunder() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+
+    const crack = this.ctx.createBiquadFilter();
+    crack.type = 'highpass';
+    crack.frequency.setValueAtTime(1800, t);
+    crack.frequency.exponentialRampToValueAtTime(300, t + 0.25);
+    const gC = this.envGain(this.sfxGain);
+    crack.connect(gC);
+    gC.gain.linearRampToValueAtTime(0.45, t + 0.008);
+    gC.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    const nC = this.noise(crack);
+    nC.start(t); nC.stop(t + 0.32);
+
+    // Rugido: ruído grave que demora a morrer. O buffer de ruído tem 1s
+    // (ver init) — passar disso daria silêncio no fim, então o rugido cabe
+    // dentro dessa janela.
+    const rumble = this.ctx.createBiquadFilter();
+    rumble.type = 'lowpass';
+    rumble.frequency.setValueAtTime(260, t);
+    rumble.frequency.exponentialRampToValueAtTime(60, t + 0.85);
+    const gR = this.envGain(this.sfxGain);
+    rumble.connect(gR);
+    gR.gain.linearRampToValueAtTime(0.5, t + 0.12);
+    gR.gain.exponentialRampToValueAtTime(0.001, t + 0.95);
+    const nR = this.noise(rumble);
+    nR.start(t); nR.stop(t + 0.98);
+  }
+
+  // Passagem sob o arco de um setor novo: "whoosh" grave ascendente
+  playSectorPass() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(300, t);
+    filter.frequency.exponentialRampToValueAtTime(2200, t + 0.45);
+    filter.Q.value = 1.2;
+    const g = this.envGain(this.sfxGain);
+    filter.connect(g);
+    g.gain.linearRampToValueAtTime(0.35, t + 0.08);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+    const n = this.noise(filter);
+    n.start(t); n.stop(t + 0.6);
   }
 
   playSqueal() {

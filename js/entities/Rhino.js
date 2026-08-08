@@ -27,6 +27,7 @@ export class Rhino {
     this.dashTimer = 0;
     this.cooldownTimer = 0;
     this.wasAirborneDash = false;
+    this.dashRefunded = false; // torre derrubada nesta investida: sem cooldown
   }
 
   update(time, delta) {
@@ -68,7 +69,9 @@ export class Rhino {
           this.sprite.body.setAllowGravity(true);
         }
         this.sprite.body.setVelocityX(Constants.RUN_SPEED);
-        this.dashState = 'cooldown';
+        // Torre derrubada nesta investida: sem cooldown (ver resetDash)
+        this.dashState = this.dashRefunded ? 'idle' : 'cooldown';
+        this.dashRefunded = false;
         this.cooldownTimer = 0;
       }
     } else if (this.dashState === 'cooldown') {
@@ -104,6 +107,15 @@ export class Rhino {
     }
     this.sprite.body.setVelocityX(Constants.DASH_SPEED);
     return true;
+  }
+
+  // Recompensa por derrubar uma torre: a investida volta na hora. A colisão
+  // acontece com o dash AINDA ATIVO, então não dá para pular para 'idle' aqui
+  // — isso deixaria a gravidade desligada e a velocidade travada em 750. Em
+  // vez disso marca o estorno, e o fim natural do dash pula o cooldown.
+  resetDash() {
+    if (this.dashState === 'active') this.dashRefunded = true;
+    else { this.dashState = 'idle'; this.cooldownTimer = 0; }
   }
 
   kill() {

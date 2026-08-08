@@ -1,4 +1,9 @@
 import { getDb } from '../systems/LeaderboardSystem.js';
+import { Constants } from '../utils/Constants.js';
+
+// Portão da fuga em metros, derivado da fonte única (v1.6: 1000m). O painel
+// destaca esse degrau no funil e marca as corridas que passaram dele.
+const GATE_M = Constants.WIN_DISTANCE_PX / Constants.PIXELS_PER_METER;
 
 // Modo detalhado (lista de jogadores + ficha individual) atrás de uma chave
 // na URL: `/?stats=<chave>`. Sem chave, a página mostra só os agregados.
@@ -301,7 +306,7 @@ function drawPlayerCard(root, doc) {
   root.append(barChart([
     ['Tier 1 (0–200m)', agg.deathsTier[0]], ['Tier 2 (200–400m)', agg.deathsTier[1]],
     ['Tier 3 (400–600m)', agg.deathsTier[2]], ['Tier 4 (600–800m)', agg.deathsTier[3]],
-    ['Tier 5 (800–1000m ∞)', agg.deathsTier[4]], ['Tier 6 (1000m+ ∞)', agg.deathsTier[5]],
+    ['Tier 5 (800–1000m)', agg.deathsTier[4]], ['Tier 6 (1000m+ ∞)', agg.deathsTier[5]],
   ]));
   root.append(el('h2', null, '⚔️ Mortes por causa'));
   root.append(barChart([
@@ -312,7 +317,7 @@ function drawPlayerCard(root, doc) {
 }
 
 // Barras verticais das execuções, em ordem cronológica; a marca do portão
-// (800m) vira uma linha de referência quando o jogador chegou perto dela
+// vira uma linha de referência quando o jogador chegou perto dela
 function runsChart(runs) {
   const wrap = el('div', 'runs-chart');
   const max = Math.max(1, ...runs.map((r) => num(r && r.m)));
@@ -320,7 +325,7 @@ function runsChart(runs) {
     const m = num(run && run.m);
     const bar = el('div', 'run-bar');
     bar.style.height = `${Math.max(2, (m / max) * 100)}%`;
-    if (m >= 800) bar.classList.add('escaped');
+    if (m >= GATE_M) bar.classList.add('escaped');
     bar.title = `${fmtDate(num(run && run.t), true)} — ${m}m`;
     wrap.append(bar);
   }
@@ -398,9 +403,9 @@ export function aggregate(docs) {
 
   // Funil dinâmico: degraus de 200m até o MÁXIMO percorrido (modo infinito)
   const maxBest = Math.max(0, ...bests, 0);
-  const top = Math.max(800, Math.ceil(maxBest / 200) * 200);
+  const top = Math.max(GATE_M, Math.ceil(maxBest / 200) * 200);
   for (let m = 200; m <= top; m += 200) {
-    const label = m === 800 ? '800m 🗽 (o portão!)' : `${m}m`;
+    const label = m === GATE_M ? `${GATE_M}m 🗽 (o portão!)` : `${m}m`;
     agg.funnelSteps.push([label, bests.filter((b) => b >= m).length]);
   }
 
@@ -472,7 +477,7 @@ function draw(root, agg, record, runs = null) {
     ['Tier 2 (200–400m)', agg.deathsTier[1]],
     ['Tier 3 (400–600m)', agg.deathsTier[2]],
     ['Tier 4 (600–800m)', agg.deathsTier[3]],
-    ['Tier 5 (800–1000m ∞)', agg.deathsTier[4]],
+    ['Tier 5 (800–1000m)', agg.deathsTier[4]],
     ['Tier 6 (1000m+ ∞)', agg.deathsTier[5]],
   ]));
 

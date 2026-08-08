@@ -154,6 +154,47 @@ export class LeaderboardSystem {
     }
   }
 
+  // Quem provocar na pista: o LÍDER do mundo e o RIVAL imediatamente acima de
+  // você no ranking. Duas leituras de 1 doc cada, disparadas fire-and-forget
+  // na tela inicial; o resultado fica em localStorage e é ele que a corrida
+  // lê. Offline ou com o Firestore fora do ar, simplesmente aparecem menos
+  // marcas — ranking é acessório e nunca derruba o jogo.
+  //
+  // A consulta do rival usa where + orderBy no MESMO campo (`score`), o que
+  // não exige índice composto no Firestore.
+  static async fetchRivals() {
+    try {
+      const { fs, db } = await getDb();
+      const scores = fs.collection(db, 'scores');
+      const myId = StorageManager.getOrCreatePlayerId();
+      const best = StorageManager.getBestSent();
+
+      const [topSnap, rivalSnap] = await Promise.all([
+        fs.getDocs(fs.query(scores, fs.orderBy('score', 'desc'), fs.limit(2))),
+        best > 0
+          ? fs.getDocs(fs.query(scores, fs.where('score', '>', best), fs.orderBy('score', 'asc'), fs.limit(2)))
+          : Promise.resolve({ docs: [] }),
+      ]);
+
+      // limit(2) nas duas: o primeiro resultado pode ser o próprio jogador
+      const pick = (snap) => {
+        for (const d of snap.docs) {
+          if (d.id === myId) continue;
+          return { name: String(d.data().name || '???'), score: Number(d.data().score) || 0 };
+        }
+        return null;
+      };
+
+      const data = { leader: pick(topSnap), rival: pick(rivalSnap), at: Date.now() };
+      // Você é o líder: não há ninguém acima, e a marca 👑 seria a sua própria
+      if (data.leader && data.rival && data.rival.score >= data.leader.score) data.rival = null;
+      StorageManager.setRivals(data);
+      return data;
+    } catch (e) {
+      return null; // rede/regra: a corrida segue com as marcas que já tinha
+    }
+  }
+
   // Posição = quantos scores maiores + 1 (1 leitura agregada). Cacheia em
   // localStorage para a tela de início mostrar sem custo de rede.
   static async fetchMyRank() {

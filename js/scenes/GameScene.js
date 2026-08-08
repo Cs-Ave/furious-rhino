@@ -28,17 +28,25 @@ export class GameScene extends Phaser.Scene {
 
     this.createBackground();
 
-    this.rhino = new Rhino(this, 100, Constants.GAME_HEIGHT - 100);
+    this.rhino = new Rhino(this, 100, Constants.GROUND_TOP);
     this.spawnManager = new SpawnManager(this);
     this.furySystem = new FurySystem(this);
 
     this.createGround();
 
-    // Marco visual da fuga: o portão fica exatamente na linha dos 800m
-    this.add.image(Constants.WIN_DISTANCE_PX, Constants.GAME_HEIGHT - 100, 'zoo-gate')
+    // Marco visual da fuga: o portão fica exatamente na linha dos 1000m.
+    // Guardado numa referência porque o crossGate o explode.
+    this.gateSprite = this.add.image(Constants.WIN_DISTANCE_PX, Constants.GROUND_TOP, 'zoo-gate')
       .setOrigin(0.5, 1).setDepth(-1);
+    this.createSectorArches();
+    this.createTrackMarks();
+
+    // Polilinha da superfície das rampas (elas não têm corpo, então o debug
+    // de hitboxes do TuningPanel não as mostraria)
+    this.terrainDebug = this.add.graphics().setDepth(7);
 
     this.setupInput();
+    this.setupPause();
     this.setupCollisions();
     this.createDashIcon();
 
@@ -47,9 +55,23 @@ export class GameScene extends Phaser.Scene {
     // Contadores da corrida atual (critérios de medalha)
     this.runWallsBroken = 0;
     this.runAnimalsHit = 0;
-    // Modo infinito: estado do portão dos 800m
+    // Separado do runWallsBroken: senão a medalha "Demolidor: quebre 5
+    // paredes" mudaria de significado sem aviso
+    this.runRampsSmashed = 0;
+    this.runTowersDowned = 0;
+    this.terrainRamp = null; // rampa em que o rino pisou no frame anterior
+    // Tweens/timers de festa (fuga e cutscene de LENDA), para poderem ser
+    // interrompidos de uma vez. Inicializados AQUI porque a fuga acontece
+    // muito antes da cutscene do fim do mundo.
+    this.cutsceneTweens = [];
+    this.cutsceneTimers = [];
+    // Dicas da abertura: só nas primeiras corridas da vida
+    this.openingHintIndex = 0;
+    this.showOpeningHints =
+      StorageManager.getAttempts() < Constants.OPENING_HINT_MAX_ATTEMPTS;
+    // Modo infinito: estado do portão dos 1000m
     this.gateReached = false; // já cruzou a linha (dispara 1x)
-    this.escaped = false;     // cruzou 800m = fugiu, saindo ou continuando
+    this.escaped = false;     // cruzou o portão = fugiu, saindo ou continuando
     this.winCounted = false;  // addWin só 1x por corrida
     this.legend = false;      // chegou ao fim do mundo (10.000m)
 
@@ -107,10 +129,19 @@ export class GameScene extends Phaser.Scene {
     // fetch em voo) — aqui ele sempre completa e cura docs defasados
     if (StorageManager.getAttempts() > 0) this.safeTelemetry(() => StatsSystem.send());
 
+    // Quem provocar na pista nesta sessão. Fire-and-forget: as estacas já
+    // foram plantadas com o cache anterior — o resultado desta consulta vale
+    // para a PRÓXIMA corrida, e falhar não custa nada.
+    if (LeaderboardSystem.isConfigured()) {
+      this.safeTelemetry(() => LeaderboardSystem.fetchRivals());
+    }
+
     // Handler nomeado com guarda em vez de {once:true}: com um modal aberto
     // (ranking/apelido), nenhuma tecla ou toque pode iniciar a corrida
     const overlay = document.getElementById('start-screen');
-    const start = () => {
+    const start = (ev) => {
+      // P e ESC são pausa: não podem iniciar a corrida
+      if (ev && (ev.key === 'p' || ev.key === 'P' || ev.key === 'Escape')) return;
       if (document.body.classList.contains('modal-open')) return;
       overlay.removeEventListener('pointerdown', start);
       window.removeEventListener('keydown', start);
@@ -149,7 +180,10 @@ export class GameScene extends Phaser.Scene {
     const label = document.getElementById('identity-name');
     if (!label) return;
     const name = StorageManager.getPlayerName();
-    label.textContent = name || 'Escolher apelido'; // textContent: nome livre
+    // Com nome automático, o convite fica visível na tela inicial — sem
+    // isso o jogador nem percebe que está aparecendo como "Anonimo_12"
+    const suffix = name && StorageManager.isNameAuto() ? ' — escolher um nome' : '';
+    label.textContent = (name || 'Escolher apelido') + suffix; // textContent: nome livre
   }
 
   // Convite para amigos — pensado para colar no WhatsApp: gancho, o que é
@@ -163,7 +197,7 @@ export class GameScene extends Phaser.Scene {
     const text =
       '🦏💨 Entrei numa fuga do zoológico e não consigo parar!\n\n' +
       '*FURIOUS RHINO*: você é um rinoceronte furioso que corre, pula e INVESTE contra tudo. ' +
-      'A meta é escapar pelo portão dos 800m — depois dele o jogo vira infinito, até você virar LENDA.\n\n' +
+      'A meta é escapar pelo portão dos 1000m — depois dele o jogo vira infinito, até você virar LENDA.\n\n' +
       `${brag}\n\nGrátis e abre direto no navegador:`;
     try {
       if (navigator.share) {
@@ -247,7 +281,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     document.getElementById('nickname-save').addEventListener('click', () => this.saveNickname());
-    document.getElementById('nickname-skip').addEventListener('click', () => this.stayAnonymous());
+    document.getElementById('nickname-skip').addEventListener('click', () => this.nicknameSkip());
     nickInput.addEventListener('keydown', (ev) => {
       ev.stopPropagation();
       if (ev.key === 'Enter') this.saveNickname();
@@ -357,6 +391,22 @@ export class GameScene extends Phaser.Scene {
     }
     const ok = await LeaderboardSystem.submit(distance);
     if (ok) this.showOnlineStatus('🌍 Enviado ao ranking mundial!');
+
+    // Momento do orgulho: o score acabou de SUBIR no ranking mundial. Se o
+    // apelido é automático, é agora que o convite tem chance de pegar.
+    if (ok && this.shouldAskName()) {
+      // Marca o convite ANTES de abrir: salvando ou recusando, o próximo só
+      // vem daqui a 3 corridas
+      StorageManager.setNameAskedAt(StorageManager.getAttempts());
+      this.openNicknameModal(true, true);
+    }
+  }
+
+  // Convite para trocar o nome automático: só com a marca ligada e no
+  // máximo 1 a cada 3 corridas — insistir a cada morte viraria praga.
+  shouldAskName() {
+    if (!StorageManager.isNameAuto()) return false;
+    return StorageManager.getAttempts() - StorageManager.getNameAskedAt() >= 3;
   }
 
   showOnlineStatus(msg) {
@@ -391,7 +441,7 @@ export class GameScene extends Phaser.Scene {
     if (this.legend) {
       text = `👑 SOU LENDA no FURIOUS RHINO: cheguei ao FIM DO MUNDO — ${d}m! Alguém mais consegue? Jogue de graça:`;
     } else if (this.escaped || this.won) {
-      text = `🦏💨 EU ESCAPEI DO ZOOLÓGICO no FURIOUS RHINO — ${d}m! Duvido você chegar ao portão dos 800m. Jogue de graça:`;
+      text = `🦏💨 EU ESCAPEI DO ZOOLÓGICO no FURIOUS RHINO — ${d}m! Duvido você chegar ao portão dos 1000m. Jogue de graça:`;
     } else {
       text = `🦏 Corri ${d}m fugindo do zoológico no FURIOUS RHINO (morri tentando 💀). Consegue me superar? Jogue de graça:`;
     }
@@ -410,17 +460,40 @@ export class GameScene extends Phaser.Scene {
   }
 
   // rename=true: troca pela tela inicial (sem score pendente para enviar)
-  openNicknameModal(rename = false) {
+  // proud=true: convite disparado logo depois de o score subir no ranking —
+  // o texto DIZ o que está em jogo em vez de perguntar no vazio.
+  openNicknameModal(rename = false, proud = false) {
     const input = document.getElementById('nickname-input');
     const current = StorageManager.getPlayerName();
     this.renamingNickname = rename;
+    this.proudAsk = proud;
     document.getElementById('nickname-error').textContent = '';
-    document.getElementById('nickname-title').textContent =
-      rename ? (current ? '✏️ Trocar apelido' : '👤 Escolher apelido') : '🌍 Novo recorde!';
-    document.getElementById('nickname-sub').textContent =
-      rename ? 'Como você aparece no ranking mundial:' : 'Qual seu apelido para o ranking mundial?';
-    document.getElementById('nickname-skip').hidden = rename && Boolean(current);
-    input.value = current;
+
+    let title;
+    let sub;
+    if (proud) {
+      const rank = StorageManager.getLastRank();
+      title = rank > 0 && rank <= 10
+        ? `🏆 Você é o #${rank} do mundo!`
+        : `🎉 Novo recorde: ${StorageManager.getRecord()}m!`;
+      sub = `Com que nome anunciamos? Hoje você aparece como "${current}".`;
+    } else if (rename) {
+      title = current ? '✏️ Trocar apelido' : '👤 Escolher apelido';
+      sub = 'Como você aparece no ranking mundial:';
+    } else {
+      title = '🌍 Novo recorde!';
+      sub = 'Qual seu apelido para o ranking mundial?';
+    }
+    document.getElementById('nickname-title').textContent = title;
+    document.getElementById('nickname-sub').textContent = sub;
+
+    // O botão de recusa só some no rename comum de quem já escolheu um nome
+    const skip = document.getElementById('nickname-skip');
+    skip.hidden = rename && !proud && Boolean(current) && !StorageManager.isNameAuto();
+    // "Ficar anônimo" só faz sentido quando ainda não existe nome nenhum;
+    // no convite ele vira "Agora não" e não regrava coisa alguma
+    skip.textContent = current ? 'Agora não' : 'Ficar anônimo';
+    input.value = proud ? '' : current;
     this.openModal(document.getElementById('nickname-modal'));
     // O Phaser captura setas/espaço globalmente e quebraria a digitação
     this.input.keyboard.disableGlobalCapture();
@@ -467,6 +540,9 @@ export class GameScene extends Phaser.Scene {
       this.showInviteStatus('');
     }
     StorageManager.setPlayerName(name);
+    // Escolheu um nome de verdade: o jogo para de convidar
+    StorageManager.setNameAuto(false);
+    this.proudAsk = false;
     if (this.renamingNickname) {
       this.closeNicknameModal(false);
       this.updateIdentityLine();
@@ -490,12 +566,29 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  // Botão de recusa do modal. Ele tem DOIS papéis:
+  //  - sem nome nenhum ainda → "Ficar anônimo": gera Anonimo_N e entra no
+  //    ranking assim mesmo (ninguém fica de fora por não querer se nomear)
+  //  - já tem nome (convite do momento do orgulho) → "Agora não": só fecha,
+  //    sem regravar nada e sem apagar a marca de nome automático
+  nicknameSkip() {
+    if (StorageManager.getPlayerName()) {
+      StorageManager.setNameAskedAt(StorageManager.getAttempts());
+      this.closeNicknameModal(false);
+      return;
+    }
+    this.stayAnonymous();
+  }
+
   // "Ficar anônimo": TODO jogador entra no ranking — gera Anonimo_N
-  // (N = jogadores no ranking + 1), salva como nome do aparelho e envia
+  // (N = jogadores no ranking + 1), salva como nome do aparelho e envia.
+  // A marca `name_is_auto` é o que faz o jogo voltar a convidar depois.
   async stayAnonymous() {
     this.closeNicknameModal(false);
     const name = await LeaderboardSystem.anonymousName();
     StorageManager.setPlayerName(name);
+    StorageManager.setNameAuto(true);
+    StorageManager.setNameAskedAt(StorageManager.getAttempts());
     this.updateIdentityLine();
     if (this.pendingScore) {
       const ok = await LeaderboardSystem.submit(this.pendingScore);
@@ -533,7 +626,7 @@ export class GameScene extends Phaser.Scene {
 
   createBackground() {
     // Céus empilhados: dia embaixo; entardecer e noite por cima com alpha
-    // dirigido pela distância (updateAtmosphere) — fuga aos 800m = pôr do
+    // dirigido pela distância (updateAtmosphere) — fuga aos 1000m = pôr do
     // sol, modo infinito corre sob as estrelas
     this.skyDay = this.add.image(640, 360, 'bg-sky-day').setScrollFactor(0).setDepth(-20);
     this.skyDusk = this.add.image(640, 360, 'bg-sky-dusk').setScrollFactor(0).setDepth(-19.9).setAlpha(0);
@@ -559,21 +652,194 @@ export class GameScene extends Phaser.Scene {
     this.bgNearB = this.add.tileSprite(640, 490, 1280, 260, `bg-near-${b0}`)
       .setScrollFactor(0).setDepth(-17.9).setAlpha(0);
 
+    // Tráfego da cidade: entre o fundo e o plano médio, com scroll próprio
+    // (0,55 — mais rápido que o fundo, mais lento que a calçada). Fica em
+    // alpha 0 fora da cidade; quem acende é o switchBiome.
+    this.bgCars = this.add.tileSprite(640, 550, 1280, 120, 'bg-cars')
+      .setScrollFactor(0).setDepth(-18.4).setAlpha(0);
+
+    // Primeiro plano: passa NA FRENTE do rino, mas só na faixa abaixo da
+    // linha do chão (y 660..720) — é o que garante que ele jamais esconda um
+    // obstáculo. Fator > 1 (1,5): passa mais rápido que o rino, e é isso que
+    // vende a profundidade.
+    this.bgFg = this.add.tileSprite(640, 720, 1280, 120, 'bg-fg')
+      .setScrollFactor(0).setDepth(3);
+
     // Camadas que recebem o tint atmosférico — NUNCA elementos de gameplay
     // (obstáculos/animais/rino ficam legíveis em qualquer hora do dia)
     this.atmoLayers = [
       this.bgClouds, this.bgMountains,
       this.bgFarA, this.bgFarB, this.bgNearA, this.bgNearB,
+      this.bgCars, this.bgFg,
     ];
     this.lastAtmoTint = -1;
 
+    this.createWeather();
     this.createSkyLife();
   }
 
-  // Vida no cenário: pássaros distantes cruzando o céu + folhas ao vento
+  // Chuva, neblina e tempestade. Tudo preso à câmera e SEMPRE atrás do plano
+  // de jogo (o relâmpago é a única exceção, e dura 140ms).
+  createWeather() {
+    this.fog = this.add.tileSprite(640, 470, 1280, 320, 'bg-fog')
+      .setScrollFactor(0).setDepth(-17.6).setAlpha(0);
+    this.atmoLayers.push(this.fog);
+
+    this.rain = this.add.particles(0, 0, 'raindrop', {
+      x: { min: -120, max: 1420 },
+      y: -30,
+      lifespan: 1300,
+      speedX: { min: -260, max: -180 },
+      speedY: { min: 720, max: 900 },
+      scale: { min: 0.7, max: 1.3 },
+      alpha: { start: 0.55, end: 0.2 },
+      quantity: 2,
+      frequency: 40,
+    });
+    this.rain.setScrollFactor(0).setDepth(-17.4);
+    this.rain.stop();
+
+    this.lightning = this.add.rectangle(640, 360, 1280, 720, 0xffffff)
+      .setScrollFactor(0).setDepth(50).setAlpha(0);
+
+    this.weather = 'limpo';
+    this.nextThunderAt = 0;
+  }
+
+  setWeather(kind) {
+    this.weather = kind;
+    const rainy = kind === 'chuva' || kind === 'tempestade';
+    if (rainy) {
+      this.rain.frequency = kind === 'tempestade' ? 18 : 40;
+      this.rain.start();
+    } else {
+      this.rain.stop();
+    }
+    // Neblina com TETO de alpha: acima disso ela esconde obstáculo
+    const target = kind === 'neblina' ? Constants.FOG_MAX_ALPHA
+      : kind === 'tempestade' ? 0.14 : 0;
+    this.tweens.killTweensOf(this.fog);
+    this.tweens.add({ targets: this.fog, alpha: target, duration: 1400 });
+  }
+
+  updateWeather(x, time) {
+    const kind = Constants.weatherFor(x);
+    if (kind !== this.weather) this.setWeather(kind);
+
+    if (this.fog.alpha > 0.001) {
+      this.fog.tilePositionX = this.cameras.main.scrollX * 0.22 + time * 0.012;
+    }
+
+    if (this.weather === 'tempestade' && time > this.nextThunderAt) {
+      // Primeira passada só arma o relógio: nada de trovão no frame de entrada
+      if (this.nextThunderAt) {
+        this.lightning.setAlpha(0.4);
+        this.tweens.add({ targets: this.lightning, alpha: 0, duration: 140 });
+        this.audio.playThunder();
+      }
+      this.nextThunderAt = time + 3500 + Math.random() * 5500;
+    }
+  }
+
+  // Marcas na pista: estacas com nome e distância de quem você tem de passar.
+  // Lidas do CACHE (LeaderboardSystem.fetchRivals grava na tela inicial) —
+  // a corrida jamais espera a rede; sem cache, aparecem menos marcas.
+  createTrackMarks() {
+    this.trackMarks = [];
+    const rivals = StorageManager.getRivals();
+    const record = StorageManager.getRecord();
+    const bar = document.getElementById('progress-marks');
+
+    const add = (score, label, color, msg, fanfare = false) => {
+      if (!score || score < 5) return; // marca colada na largada não provoca
+      const x = score * Constants.PIXELS_PER_METER;
+      if (x >= Constants.WORLD_END_PX) return;
+      // Duas marcas na mesma distância viram uma só (a primeira registrada)
+      if (this.trackMarks.some((m) => Math.abs(m.x - x) < 90)) return;
+
+      this.add.image(x, Constants.GROUND_TOP, 'track-flag')
+        .setOrigin(0.5, 1).setDepth(-0.6).setTint(color);
+      this.add.text(x, Constants.GROUND_TOP - 236, label, {
+        fontFamily: '"Arial Black", Arial, sans-serif',
+        fontSize: '18px',
+        color: '#ffffff',
+        stroke: '#3a2a14',
+        strokeThickness: 5,
+        align: 'center',
+      }).setOrigin(0.5, 1).setDepth(-0.55);
+
+      // Espelho no HUD: a barra cobre 0–1000m, só as marcas de dentro entram
+      if (x <= Constants.WIN_DISTANCE_PX && bar) {
+        const tick = document.createElement('i');
+        tick.className = 'rival-mark';
+        tick.style.left = `${(x / Constants.WIN_DISTANCE_PX) * 100}%`;
+        tick.style.background = `#${color.toString(16).padStart(6, '0')}`;
+        bar.appendChild(tick);
+      }
+
+      this.trackMarks.push({ x, msg, fanfare, passed: false });
+    };
+
+    add(record, `🏅 SEU RECORDE\n${record}m`, 0xffd95e,
+      '🏅 SEU RECORDE FICOU PRA TRÁS!');
+    if (rivals.rival) {
+      add(rivals.rival.score, `⚔️ ${rivals.rival.name}\n${rivals.rival.score}m`, 0xff9a6c,
+        `⚔️ VOCÊ PASSOU ${rivals.rival.name.toUpperCase()}!`);
+    }
+    if (rivals.leader) {
+      add(rivals.leader.score, `👑 ${rivals.leader.name}\n${rivals.leader.score}m`, 0xb79cff,
+        '👑 VOCÊ É O NOVO LÍDER DO MUNDO!', true);
+    }
+  }
+
+  updateTrackMarks() {
+    const x = this.rhino.getSprite().x;
+    for (const m of this.trackMarks) {
+      if (m.passed || x < m.x) continue;
+      m.passed = true;
+      this.showToast(m.msg, { y: 260, size: 30, duration: 1900 });
+      if (m.fanfare) this.audio.playFanfare();
+      else this.audio.playSectorPass();
+    }
+  }
+
+  // Arcos de setor: um objeto que ATRAVESSA a tela em cada fronteira de
+  // bioma. O crossfade sozinho passava despercebido — é o arco que faz a
+  // troca virar acontecimento. Os 32000 já têm o portão do zoológico.
+  createSectorArches() {
+    for (let i = 1; i < Constants.BIOMES.length - 1; i++) {
+      const x = i * 8000;
+      this.add.image(x, Constants.GROUND_TOP, 'biome-arch')
+        .setOrigin(0.5, 1).setDepth(-1);
+      this.add.text(x, Constants.GROUND_TOP - 274, Constants.BIOMES[i].toUpperCase(), {
+        fontFamily: '"Arial Black", Arial, sans-serif',
+        fontSize: '22px',
+        color: '#5e3618',
+      }).setOrigin(0.5).setDepth(-0.9);
+    }
+  }
+
+  // Vida no cenário: pássaros distantes cruzando o céu + folhas ao vento.
+  // A população muda com o bioma — é o que faz o aviário PARECER um aviário
+  // e o pântano parecer parado. O pool tem sempre o tamanho máximo; quem
+  // sobra fica invisível (SKY_LIFE define quantos entram em cada trecho).
+  static SKY_LIFE = {
+    jaulas: { n: 2, species: ['jay', 'cockatiel'], speed: [18, 40] },
+    aviario: { n: 7, species: Constants.BIRD_SPECIES, speed: [26, 60] },
+    savana: { n: 3, species: ['toucan', 'owl'], speed: [14, 30] },
+    floresta: { n: 4, species: ['macaw', 'toucan'], speed: [20, 44] },
+    pantano: { n: 1, species: ['owl'], speed: [10, 22] },
+    cidade: { n: 5, species: ['jay', 'cockatiel'], speed: [30, 66] },
+  };
+
+  skyLifeFor(key) {
+    return GameScene.SKY_LIFE[key] || GameScene.SKY_LIFE.jaulas;
+  }
+
   createSkyLife() {
     this.skyBirds = [];
-    for (let i = 0; i < 3; i++) {
+    const max = Math.max(...Object.values(GameScene.SKY_LIFE).map((v) => v.n));
+    for (let i = 0; i < max; i++) {
       const b = this.add.image(0, 0, 'animal-bird-jay')
         .setScrollFactor(0).setDepth(-18.5).setScale(0.2); // textura 2x → ~22px
       b.flapT = 0;
@@ -582,6 +848,7 @@ export class GameScene extends Phaser.Scene {
       this.skyBirds.push(b);
       this.atmoLayers.push(b);
     }
+    this.applySkyLife(Constants.BIOMES[0]);
 
     this.leafEmitter = this.add.particles(0, 0, 'leaf', {
       x: { min: 0, max: 1380 },
@@ -598,12 +865,24 @@ export class GameScene extends Phaser.Scene {
     this.leafEmitter.setScrollFactor(0).setDepth(-17.5);
   }
 
+  // Liga/desliga aves do pool conforme o bioma e reespecia as que ficam
+  applySkyLife(key) {
+    const cfg = this.skyLifeFor(key);
+    this.skyLife = cfg;
+    this.skyBirds.forEach((b, i) => {
+      const on = i < cfg.n;
+      b.setVisible(on);
+      if (on) this.resetSkyBird(b, true);
+    });
+  }
+
   resetSkyBird(b, initial = false) {
-    b.species = Phaser.Utils.Array.GetRandom(Constants.BIRD_SPECIES);
+    const cfg = this.skyLife || this.skyLifeFor(Constants.BIOMES[0]);
+    b.species = Phaser.Utils.Array.GetRandom(cfg.species);
     b.dir = Math.random() < 0.65 ? 1 : -1; // maioria foge do zoo, como o rino
     b.setTexture(`animal-bird-${b.species}`);
     b.setFlipX(b.dir < 0);
-    b.speed = 20 + Math.random() * 25;
+    b.speed = cfg.speed[0] + Math.random() * (cfg.speed[1] - cfg.speed[0]);
     b.y = 60 + Math.random() * 200;
     b.x = initial ? Math.random() * 1280 : (b.dir > 0 ? -60 : 1340);
     b.bobPhase = Math.random() * Math.PI * 2;
@@ -615,6 +894,9 @@ export class GameScene extends Phaser.Scene {
     const ground = this.add.tileSprite(width / 2, Constants.GAME_HEIGHT - 50, width, 100, 'ground');
     this.physics.add.existing(ground, true);
     this.atmoLayers.push(ground); // o chão também escurece ao anoitecer
+    // Guardado para o switchBiome trocar grama por asfalto ao entrar na cidade
+    // (mesmo canvas 1280x100, então é só um setTexture — nada é recriado)
+    this.ground = ground;
 
     this.physics.add.collider(this.rhino.getSprite(), ground);
 
@@ -627,16 +909,40 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
+  // Alphas dos três céus empilhados (dia embaixo, entardecer e noite por
+  // cima). Até 1450m segue a curva narrativa: dia pleno, entardecer chegando
+  // junto com o portão (a fuga acontece no pôr do sol) e noite no modo
+  // infinito. Dali em diante CICLA — na v1.5 a noite fechava e nunca mais
+  // mudava, justo onde os melhores jogadores estão. Zero textura nova: o céu
+  // do entardecer serve de amanhecer.
+  skyPhase(x) {
+    const S = Constants.SKY_CYCLE_START_PX;
+    if (x < S) {
+      const d0 = Constants.SKY_DUSK_FROM, d1 = Constants.SKY_DUSK_TO;
+      return {
+        dusk: Phaser.Math.Clamp((x - d0) / (d1 - d0), 0, 1),
+        night: Phaser.Math.Clamp((x - d1) / (Constants.SKY_NIGHT_TO - d1), 0, 1),
+      };
+    }
+    // Em x = S o ciclo começa exatamente em noite fechada (dusk 1, night 1),
+    // que é onde a curva narrativa termina — a emenda é contínua
+    const p = ((x - S) / Constants.SKY_CYCLE_PX) % 1;
+    if (p < 0.25) return { dusk: 1, night: 1 - p / 0.25 };          // amanhecer
+    if (p < 0.5) return { dusk: 1 - (p - 0.25) / 0.25, night: 0 };  // manhã
+    if (p < 0.75) return { dusk: (p - 0.5) / 0.25, night: 0 };      // entardecer
+    return { dusk: 1, night: (p - 0.75) / 0.25 };                   // anoitecer
+  }
+
   // Céu, luz e bioma acompanham a distância; pássaros distantes cruzam o
   // céu. Roda por frame no update (barato: 2 alphas, 1 tint, comparação int)
   updateAtmosphere(time, delta) {
     const x = this.rhino.getSprite().x;
 
-    // Dia pleno até ~650m; entardecer 650–850m; noite 850–1300m em diante
-    const dusk = Phaser.Math.Clamp((x - 26000) / 8000, 0, 1);
-    const night = Phaser.Math.Clamp((x - 34000) / 18000, 0, 1);
+    const { dusk, night } = this.skyPhase(x);
     this.skyDusk.setAlpha(dusk);
     this.skyNight.setAlpha(night);
+
+    this.updateWeather(x, time);
 
     // Luz ambiente das camadas de fundo: esfria e escurece com a noite
     const light = 1 - 0.18 * dusk * (1 - night) - 0.45 * night;
@@ -656,6 +962,7 @@ export class GameScene extends Phaser.Scene {
     // Pássaros distantes: deriva própria + batida de asas por troca de textura
     const dt = delta / 1000;
     for (const b of this.skyBirds) {
+      if (!b.visible) continue; // fora da população do bioma atual
       b.x += b.dir * b.speed * dt;
       b.y += Math.sin(time * 0.002 + b.bobPhase) * 9 * dt;
       b.flapT += delta;
@@ -670,8 +977,39 @@ export class GameScene extends Phaser.Scene {
   }
 
   switchBiome(idx) {
+    const first = this.biomeIndex === undefined;
     this.biomeIndex = idx;
     const key = Constants.BIOMES[idx];
+
+    // A troca vira ACONTECIMENTO: o arco passa pela tela (createSectorArches),
+    // a luz estoura e o nome do setor aparece. Na v1.5 era só um crossfade
+    // silencioso de 900ms — ninguém percebia que o cenário tinha mudado.
+    // A entrada na CIDADE é a fuga: o crossGate faz a festa toda (portão
+    // explodindo, fogos, confete, dois toasts). Um segundo flash e um terceiro
+    // toast aqui só atropelariam.
+    if (!first && this.started && key !== 'cidade') {
+      const flash = this.add.rectangle(640, 360, 1280, 720, 0xffffff)
+        .setScrollFactor(0).setDepth(50).setAlpha(0.35);
+      this.tweens.add({
+        targets: flash, alpha: 0, duration: 260,
+        onComplete: () => flash.destroy(),
+      });
+      this.showToast(Constants.BIOME_LABELS[key] || key, { y: 200, size: 32, duration: 1800 });
+      this.audio.playSectorPass();
+    }
+
+    // Na cidade o chão vira asfalto. A troca é seca de propósito: ela
+    // acontece no mesmo frame do estouro do portão, escondida pelo flash.
+    this.ground.setTexture(key === 'cidade' ? 'ground-city' : 'ground');
+    this.bgFg.setTexture(key === 'cidade' ? 'bg-fg-city' : 'bg-fg');
+    this.applySkyLife(key);
+
+    // Tráfego só existe na cidade
+    this.tweens.killTweensOf(this.bgCars);
+    this.tweens.add({
+      targets: this.bgCars, alpha: key === 'cidade' ? 1 : 0, duration: 500,
+    });
+
     // Teleportes de debug podem pular vários biomas com o tween anterior no
     // ar: mata o tween e recomeça o crossfade da camada B do zero
     this.tweens.killTweensOf([this.bgFarB, this.bgNearB]);
@@ -680,7 +1018,8 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({
       targets: [this.bgFarB, this.bgNearB],
       alpha: 1,
-      duration: 900,
+      // 500ms para casar com a passagem do arco pela tela
+      duration: 500,
       onComplete: () => {
         // Consolida na base A e libera B para a próxima fronteira
         this.bgFarA.setTexture(`bg-far-${key}`).setAlpha(1);
@@ -713,19 +1052,93 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
-    // Keyboard for desktop: left arrow = jump, right arrow = dash
-    this.input.keyboard.on('keydown-LEFT', (event) => {
-      if (event.repeat || !this.started || this.gameOver || this.won) return;
-      this.rhino.onLeftPress();
-      this.audio.playJump(this.rhino.jumpCount);
+    // Teclado (desktop). Pulo: ← ou ESPAÇO. Investida: → ou ENTER.
+    // Duas teclas por ação porque a mão esquerda no ESPAÇO e a direita no
+    // ENTER é a pegada natural de quem joga no teclado — as setas continuam
+    // valendo para quem já se acostumou.
+    const jumpKeys = ['LEFT', 'SPACE'];
+    const dashKeys = ['RIGHT', 'ENTER'];
+
+    jumpKeys.forEach((k) => {
+      this.input.keyboard.on(`keydown-${k}`, (event) => {
+        if (event.repeat || !this.canPlay()) return;
+        event.preventDefault(); // ESPAÇO rolaria a página
+        this.rhino.onLeftPress();
+        this.audio.playJump(this.rhino.jumpCount);
+      });
+      // Sem guarda: só desarma a carga do pulo, é inofensivo fora da corrida
+      this.input.keyboard.on(`keyup-${k}`, () => this.rhino.onLeftRelease());
     });
-    this.input.keyboard.on('keyup-LEFT', () => {
-      this.rhino.onLeftRelease();
+
+    dashKeys.forEach((k) => {
+      this.input.keyboard.on(`keydown-${k}`, (event) => {
+        if (event.repeat || !this.canPlay()) return;
+        if (this.rhino.onRightPress()) this.audio.playDash();
+      });
     });
-    this.input.keyboard.on('keydown-RIGHT', (event) => {
-      if (event.repeat || !this.started || this.gameOver || this.won) return;
-      if (this.rhino.onRightPress()) this.audio.playDash();
+
+  }
+
+  // A corrida está em andamento e aceita comando?
+  canPlay() {
+    return this.started && !this.gameOver && !this.won && !this.paused;
+  }
+
+  // ------------------------------------------------------------------ pausa
+  // Tudo em DOM de propósito: scene.pause() desliga o input do Phaser, então
+  // um botão feito com sprite nunca conseguiria retomar o jogo.
+  setupPause() {
+    this.paused = false;
+    this.pausedMs = 0;
+    const btn = document.getElementById('pause-btn');
+    const modal = document.getElementById('pause-modal');
+    const stop = (ev) => ev.stopPropagation();
+
+    btn.addEventListener('pointerdown', stop);
+    btn.addEventListener('click', (ev) => { stop(ev); this.togglePause(); });
+    modal.addEventListener('pointerdown', stop);
+    document.getElementById('pause-resume').addEventListener('click', (ev) => {
+      stop(ev);
+      this.togglePause();
     });
+
+    // Tecla no WINDOW, não no Phaser: com a cena pausada o input dela morre
+    window.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'p' && ev.key !== 'P' && ev.key !== 'Escape') return;
+      if (!this.started || this.gameOver || this.won) return;
+      ev.preventDefault();
+      this.togglePause();
+    });
+
+    // Trocar de aba/bloquear o celular pausa sozinho — e de quebra conserta a
+    // inflação do playTimeS, que sempre contou tempo de tela apagada
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.pauseGame();
+    });
+  }
+
+  pauseGame() {
+    if (this.paused || !this.started || this.gameOver || this.won) return;
+    this.paused = true;
+    this.pauseStartedAt = Date.now();
+    this.audio.duckMusic(true);
+    this.openModal(document.getElementById('pause-modal'));
+    this.scene.pause();
+  }
+
+  resumeGame() {
+    if (!this.paused) return;
+    this.paused = false;
+    // O tempo parado NÃO conta na telemetria (runS usa relógio de parede)
+    this.pausedMs += Date.now() - this.pauseStartedAt;
+    this.closeModal(document.getElementById('pause-modal'));
+    this.scene.resume();
+    this.audio.duckMusic(false);
+  }
+
+  togglePause() {
+    if (this.paused) this.resumeGame();
+    else this.pauseGame();
   }
 
   setupCollisions() {
@@ -774,10 +1187,18 @@ export class GameScene extends Phaser.Scene {
     if (this.gameOver || this.won) return;
 
     if (this.rhino.dashState === 'active') {
-      // Dash derruba a torre — para de atirar na hora
+      // Dash derruba a torre — para de atirar na hora.
+      // A investida volta NA HORA: até a v1.5 derrubar a torre custava o dash
+      // (1s de cooldown, justo a janela da próxima parede) e não devolvia
+      // nada — o jogador racional pulava os dardos e ignorava a torre, que
+      // por isso respondia por 1% das mortes. Agora ela é uma OPORTUNIDADE:
+      // derruba → dash de volta → quebra a parede logo à frente.
       this.audio.playBreak();
       this.createExplosion(tower.x, tower.y + 60);
       tower.deactivate();
+      this.runTowersDowned++;
+      this.rhino.resetDash();
+      this.showToast('⚡ TORRE DERRUBADA!', { y: 250, size: 34, duration: 1200 });
     } else {
       if (this.invincible) return; // modo debug: atravessa sem morrer
       this.endGame(false, 'tower');
@@ -850,6 +1271,112 @@ export class GameScene extends Phaser.Scene {
       if (this.invincible) return; // debug
       this.endGame(false, 'animal');
     }
+  }
+
+  // Dicas da abertura guiada, só nas primeiras corridas da vida do jogador.
+  // Cada uma aparece ~600px antes do obstáculo do OPENING_SCRIPT que ela
+  // explica — tempo de ler e agir a 300px/s.
+  updateOpeningHints() {
+    if (!this.showOpeningHints) return;
+    const x = this.rhino.getSprite().x;
+    const step = Constants.OPENING_SCRIPT[this.openingHintIndex];
+    if (!step) { this.showOpeningHints = false; return; }
+    if (x < step.x - 600) return;
+    this.openingHintIndex++;
+    if (step.hint) this.showToast(step.hint, { y: 210, size: 30, duration: 1800 });
+  }
+
+  // ---------------------------------------------------------------- terreno
+  // A rampa não é um corpo de colisão — é terreno. Ver Ramp.js para o porquê
+  // (uma escada de corpos estáticos trava o rino na lateral do degrau).
+  // Chamado no update ANTES de rhino.update: o step de física já rodou (e já
+  // limpou os flags), então o blocked.down escrito aqui sobrevive e é lido
+  // corretamente por Rhino.update/onRightPress. Rhino.js não muda uma linha.
+  updateTerrain() {
+    const rb = this.rhino.getSprite().body;
+    const ramp = this.spawnManager.getRampAt(rb.center.x);
+
+    // Investida RASANTE destrói; investida já na subida só acelera a escalada
+    if (ramp && this.rhino.dashState === 'active' &&
+        rb.bottom > Constants.GROUND_TOP - Constants.RAMP_SMASH_MAX_H) {
+      this.smashRamp(ramp);
+      this.snapToTerrain(rb, null);
+      return;
+    }
+    this.snapToTerrain(rb, ramp);
+
+    // Trampolim: ao deixar a crista do penhasco, um impulso de verdade. Só a
+    // queda daria ~106px de voo — pouco para se chamar trampolim. Dispara uma
+    // única vez porque terrainRamp já foi zerado quando o teste passa.
+    const prev = this.terrainRamp;
+    this.terrainRamp = ramp && rb.blocked.down ? ramp : null;
+    if (!this.terrainRamp && prev && prev.spec.launchV &&
+        rb.center.x >= prev.exitX && rb.velocity.y >= 0) {
+      rb.setVelocityY(prev.spec.launchV);
+      this.audio.playJump();
+    }
+
+    // Inclinação na ladeira, puramente cosmética: o corpo Arcade ignora a
+    // rotação do sprite (o AABB continua alinhado ao eixo) e a origem (0.5, 1)
+    // faz o giro acontecer nos pés — o pivô certo. Teto de 0,35rad porque a
+    // encosta do morro grande tem 30° e o rino deitado fica ridículo.
+    const sprite = this.rhino.getSprite();
+    const onRamp = ramp && rb.blocked.down;
+    const sA = onRamp ? ramp.surfaceY(rb.center.x - 20) : null;
+    const sB = onRamp ? ramp.surfaceY(rb.center.x + 20) : null;
+    if (sA !== null && sB !== null) {
+      sprite.setRotation(Phaser.Math.Clamp(Math.atan2(sB - sA, 40), -0.35, 0.35));
+    } else if (sprite.rotation) {
+      sprite.setRotation(Phaser.Math.Linear(sprite.rotation, 0, 0.25));
+    }
+
+    // O collider do chão é global e plano: sem isto o leão atravessa o morro
+    // e passa POR BAIXO do rino elevado. Mesmo filtro do collider (createGround)
+    this.spawnManager.getAnimalsGroup().children.entries.forEach((a) => {
+      if (!a.active || a.knockedOut || a.animalType === 'bird') return;
+      this.snapToTerrain(a.body, this.spawnManager.getRampAt(a.body.center.x));
+    });
+  }
+
+  // Recebe o BODY (não a entidade) para servir rino e animais sem caso especial
+  snapToTerrain(body, ramp) {
+    if (!ramp) return;
+    const surf = ramp.surfaceY(body.center.x); // center, não right: na crista
+    if (surf === null) return;                 // a borda faria ele "flutuar"
+    const dy = body.bottom - surf;             // > 0 = afundado no terreno
+    if (dy < -Constants.RAMP_STICK_PX) return; // voando bem acima: ignora
+    if (dy < 0 && body.velocity.y < 0) return; // subindo num pulo: deixa subir
+    body.y = surf - body.height;               // postUpdate leva o sprite junto
+    if (body.velocity.y > 0) body.setVelocityY(0);
+    body.blocked.down = true;  body.blocked.none = false;
+    body.touching.down = true; body.touching.none = false;
+  }
+
+  smashRamp(ramp) {
+    if (ramp.destroyed) return;
+    ramp.smash();
+    this.runRampsSmashed++;
+    const cx = ramp.x + Math.min(120, ramp.spanW / 2);
+    this.audio.playBreak();
+    this.createExplosion(cx, Constants.GROUND_TOP - 40);
+    this.createBreakParticles(cx, Constants.GROUND_TOP - 40);
+    this.cameras.main.shake(160, 0.008);
+  }
+
+  // A rampa não tem corpo, então o debug de hitboxes do TuningPanel não
+  // mostraria nada. Física invisível é física indepurável.
+  drawTerrainDebug() {
+    if (!this.terrainDebug) return;
+    const g = this.terrainDebug;
+    g.clear();
+    if (!this.physics.world.drawDebug) return;
+    g.lineStyle(2, 0x00ff88, 1);
+    this.spawnManager.getRampsGroup().children.entries.forEach((r) => {
+      if (!r.active || r.destroyed) return;
+      const pts = [];
+      for (let t = 0; t <= r.spanW; t += 8) pts.push({ x: r.x + t, y: r.surfaceY(r.x + t) });
+      g.strokePoints(pts);
+    });
   }
 
   createExplosion(x, y) {
@@ -944,8 +1471,20 @@ export class GameScene extends Phaser.Scene {
     const nearX = this.cameras.main.scrollX * 0.4;
     this.bgNearA.tilePositionX = nearX;
     this.bgNearB.tilePositionX = nearX;
+    // Fator > 1: o primeiro plano passa MAIS RÁPIDO que o rino
+    this.bgFg.tilePositionX = this.cameras.main.scrollX * 1.5;
+    if (this.bgCars.alpha > 0.001) {
+      this.bgCars.tilePositionX = this.cameras.main.scrollX * 0.55;
+    }
 
     this.updateAtmosphere(time, delta);
+
+    // ANTES do rhino.update: o step de física já rodou e limpou os flags, então
+    // o blocked.down escrito pelo terreno chega intacto em quem o lê
+    this.updateTerrain();
+    this.drawTerrainDebug();
+    this.updateOpeningHints();
+    this.updateTrackMarks();
 
     this.rhino.update(time, delta);
 
@@ -969,7 +1508,7 @@ export class GameScene extends Phaser.Scene {
 
     this.updateScoreDisplay();
 
-    // Portão dos 800m (1x por corrida): cruza SEM PARAR — a fuga conta na
+    // Portão dos 1000m (1x por corrida): cruza SEM PARAR — a fuga conta na
     // hora e o modo infinito começa na mesma passada
     if (!this.gateReached && this.rhino.getSprite().x >= Constants.WIN_DISTANCE_PX) {
       this.gateReached = true;
@@ -990,9 +1529,13 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  // Cruzou os 800m: NÃO para a corrida (parar ali quebraria o ritmo).
-  // Cruzar JÁ é a fuga — conta win/medalha/stats — e o modo infinito
+  // Cruzou os 1000m: NÃO para a corrida (parar ali quebraria o ritmo — regra
+  // da v1.4). Cruzar JÁ é a fuga — conta win/medalha/stats — e o modo infinito
   // começa na mesma passada; a vitória formal fica para o fim do mundo.
+  //
+  // Até a v1.5 isto era só um toast dourado: a cutscene de fogos e confete só
+  // rodava no fim do mundo (10.000m), que nenhum jogador jamais viu. Agora o
+  // clímax acontece onde o jogador chega.
   crossGate() {
     const fill = document.getElementById('progress-fill');
     fill.style.width = '100%';
@@ -1006,22 +1549,101 @@ export class GameScene extends Phaser.Scene {
     // garante a fuga no servidor mesmo se o jogador fechar a aba
     this.safeTelemetry(() => StatsSystem.send());
 
-    // Aviso rápido fixo na tela, sem modal: a corrida não espera
-    const toast = this.add.text(640, 300, '🗽 VOCÊ ESCAPOU!', {
+    // O PORTÃO EXPLODE. A câmera segue o rino com offset -200, então tanto ele
+    // quanto o portão estão em x=440 da tela neste frame: o estouro acontece
+    // exatamente em cima da ação.
+    const gx = Constants.WIN_DISTANCE_PX;
+    if (this.gateSprite) this.gateSprite.setTexture('zoo-gate-broken');
+    this.createExplosion(gx, Constants.GROUND_TOP - 110);
+    this.createBreakParticles(gx, Constants.GROUND_TOP - 110);
+    this.createBreakParticles(gx - 70, Constants.GROUND_TOP - 40);
+    this.createBreakParticles(gx + 70, Constants.GROUND_TOP - 70);
+    this.cameras.main.shake(320, 0.014);
+    this.audio.playBreak();
+    this.audio.playFanfare();
+
+    const flash = this.add.rectangle(640, 360, 1280, 720, 0xffffff)
+      .setScrollFactor(0).setDepth(50).setAlpha(0.55);
+    this.tweens.add({
+      targets: flash, alpha: 0, duration: 420,
+      onComplete: () => flash.destroy(),
+    });
+
+    this.launchConfetti(2800);
+    this.launchFireworks([260, 700, 1080, 1460, 1880, 2300]);
+
+    this.showToast('🗽 VOCÊ ESCAPOU!');
+    // O 2º aviso deixa explícito que o jogo NÃO acabou — ele continua
+    this.time.delayedCall(1500, () => {
+      if (this.gameOver) return;
+      this.showToast('∞ MODO INFINITO', { y: 250, size: 34, color: '#ffe9a8', duration: 2000 });
+    });
+  }
+
+  // Confete em coordenadas de tela. Usado pela fuga (1000m) e pela cutscene
+  // de LENDA (fim do mundo).
+  launchConfetti(durationMs) {
+    if (this.confettiEmitter) this.confettiEmitter.destroy();
+    this.confettiEmitter = this.add.particles(0, 0, 'confetti', {
+      x: { min: 0, max: Constants.GAME_WIDTH },
+      y: -10,
+      speedY: { min: 150, max: 300 },
+      speedX: { min: -40, max: 40 },
+      rotate: { min: 0, max: 360 },
+      scale: { min: 0.7, max: 1.3 },
+      lifespan: 2600,
+      quantity: 4,
+      frequency: 40,
+      tint: [0xff4444, 0xffcc00, 0x4ecdc4, 0x6aae3a, 0xff9944, 0xffffff],
+    }).setScrollFactor(0).setDepth(150);
+    const t = this.time.delayedCall(durationMs, () => {
+      if (this.confettiEmitter) this.confettiEmitter.stop();
+    });
+    this.cutsceneTimers.push(t);
+    return this.confettiEmitter;
+  }
+
+  // Flashes coloridos no alto, escalonados (sem debris nem shake)
+  launchFireworks(delays) {
+    const tints = [0xff5555, 0xffd94a, 0x4ecdc4, 0xbb77ff, 0x6aae3a, 0xff9944];
+    delays.forEach((delay, i) => {
+      this.cutsceneTimers.push(this.time.delayedCall(delay, () => {
+        const fx = this.add.image(
+          Phaser.Math.Between(200, Constants.GAME_WIDTH - 200),
+          Phaser.Math.Between(80, 300),
+          'explosion-flash'
+        ).setScrollFactor(0).setDepth(151).setScale(0.5).setTint(tints[i % tints.length]);
+        this.cutsceneTweens.push(this.tweens.add({
+          targets: fx,
+          scale: 3,
+          alpha: 0,
+          duration: 500,
+          ease: 'Cubic.easeOut',
+          onComplete: () => fx.destroy(),
+        }));
+      }));
+    });
+  }
+
+  // Aviso rápido fixo na tela, sem modal: a corrida nunca espera o jogador
+  showToast(text, { y = 300, size = 44, color = '#ffd700', duration = 2200 } = {}) {
+    const toast = this.add.text(640, y, text, {
       fontFamily: '"Arial Black", Arial, sans-serif',
-      fontSize: '44px',
-      color: '#ffd700',
+      fontSize: `${size}px`,
+      color,
       stroke: '#5e3618',
       strokeThickness: 7,
+      align: 'center',
     }).setOrigin(0.5).setScrollFactor(0).setDepth(60);
     this.tweens.add({
       targets: toast,
-      y: 230,
+      y: y - 70,
       alpha: 0,
-      duration: 2200,
+      duration,
       ease: 'Cubic.easeOut',
       onComplete: () => toast.destroy(),
     });
+    return toast;
   }
 
   updateScoreDisplay() {
@@ -1029,7 +1651,7 @@ export class GameScene extends Phaser.Scene {
     const record = StorageManager.getRecord();
     document.getElementById('record').textContent = record;
 
-    // Barra de progresso da fuga (0–800m; as marcas são os tiers).
+    // Barra de progresso da fuga (0–1000m; as marcas são as trocas de bioma).
     // Pós-portão ela já ficou dourada com ∞ (ver crossGate) — não mexe mais.
     if (!this.gateReached) {
       const pct = Math.min(100, (this.rhino.getSprite().x / Constants.WIN_DISTANCE_PX) * 100);
@@ -1089,6 +1711,7 @@ export class GameScene extends Phaser.Scene {
       distance, won, isNewRecord, hadPreviousRecord,
       escaped: this.escaped,
       wallsBroken: this.runWallsBroken, animalsTotal,
+      rampsSmashed: this.runRampsSmashed, towersDowned: this.runTowersDowned,
     });
     if (newMedals.length) {
       const id = won ? 'win-medal-message' : 'medal-message';
@@ -1102,10 +1725,14 @@ export class GameScene extends Phaser.Scene {
     }
 
     // Telemetria: acumula os totais locais e espelha no Firestore
+    // Desconta o tempo pausado: runS é relógio de parede, então sem isto uma
+    // pausa (ou a aba escondida) entraria inteira no playTimeS
+    const paused = this.pausedMs + (this.paused ? Date.now() - this.pauseStartedAt : 0);
     const runS = Math.min(7200, Math.max(0,
-      Math.round((Date.now() - (this.runStartedAt || Date.now())) / 1000)));
+      Math.round((Date.now() - (this.runStartedAt || Date.now()) - paused) / 1000)));
     StorageManager.addPlayTimeS(runS);
-    StorageManager.addRun(distance); // histórico das últimas 50 execuções
+    // Histórico das últimas 50 execuções, agora com duração e desfecho
+    StorageManager.addRun(distance, runS, won ? 'win' : (cause || 'wall'));
     if (won && !this.winCounted) StorageManager.addWin(); // o portão já contou
     if (!won) StorageManager.addDeath(Constants.getTierIndex(this.rhino.getSprite().x), cause || 'wall');
     // Acumula aparelho/local/versão desta corrida ANTES do envio (o send
@@ -1130,8 +1757,7 @@ export class GameScene extends Phaser.Scene {
   // Comemoração da fuga (~4s, pulável com 1 toque). Física pausada — a
   // coreografia roda só em tweens/timers/particles, que continuam vivos.
   playVictoryCutscene() {
-    this.cutsceneTweens = [];
-    this.cutsceneTimers = [];
+    // NÃO zerar os arrays: os timers da festa do portão podem estar vivos
     const sprite = this.rhino.getSprite();
     sprite.anims.pause();
 
@@ -1143,7 +1769,7 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < 8; i++) {
       const p = this.add.image(
         sprite.x - Phaser.Math.Between(0, 50),
-        Constants.GAME_HEIGHT - 100 + Phaser.Math.Between(-6, 4),
+        Constants.GROUND_TOP + Phaser.Math.Between(-6, 4),
         'debris-chunk'
       ).setTint(0xb08454).setDepth(5);
       this.cutsceneTweens.push(this.tweens.add({
@@ -1175,40 +1801,8 @@ export class GameScene extends Phaser.Scene {
       ease: 'Quad.easeOut',
     }));
 
-    // Confete em coordenadas de tela (cai por ~2,5s)
-    this.confettiEmitter = this.add.particles(0, 0, 'confetti', {
-      x: { min: 0, max: Constants.GAME_WIDTH },
-      y: -10,
-      speedY: { min: 150, max: 300 },
-      speedX: { min: -40, max: 40 },
-      rotate: { min: 0, max: 360 },
-      scale: { min: 0.7, max: 1.3 },
-      lifespan: 2600,
-      quantity: 4,
-      frequency: 40,
-      tint: [0xff4444, 0xffcc00, 0x4ecdc4, 0x6aae3a, 0xff9944, 0xffffff],
-    }).setScrollFactor(0).setDepth(150);
-    this.cutsceneTimers.push(this.time.delayedCall(2500, () => this.confettiEmitter.stop()));
-
-    // Fogos: flashes coloridos no alto, escalonados (sem debris/shake)
-    const fireworkTints = [0xff5555, 0xffd94a, 0x4ecdc4, 0xbb77ff, 0x6aae3a];
-    [600, 1100, 1500, 1900, 2300].forEach((delay, i) => {
-      this.cutsceneTimers.push(this.time.delayedCall(delay, () => {
-        const fx = this.add.image(
-          Phaser.Math.Between(200, Constants.GAME_WIDTH - 200),
-          Phaser.Math.Between(80, 300),
-          'explosion-flash'
-        ).setScrollFactor(0).setDepth(151).setScale(0.5).setTint(fireworkTints[i]);
-        this.tweens.add({
-          targets: fx,
-          scale: 3,
-          alpha: 0,
-          duration: 500,
-          ease: 'Cubic.easeOut',
-          onComplete: () => fx.destroy(),
-        });
-      }));
-    });
+    this.launchConfetti(2500);
+    this.launchFireworks([600, 1100, 1500, 1900, 2300]);
 
     const banner = document.getElementById('victory-banner');
     banner.textContent = this.legend ? '🏆 LENDA!' : '🎉 LIVRE!';

@@ -112,14 +112,29 @@
             background: #4ecdc4;
         }
 
+        /* 4 divisões = as 4 trocas de bioma (200/400/600/800m numa barra de
+           0–1000m). Eram 25/50/75% quando o portão ficava em 800m. */
         #progress-marks {
             position: absolute;
             inset: 0;
             background: linear-gradient(90deg,
-                transparent calc(25% - 1px), rgba(0, 0, 0, 0.5) calc(25% - 1px) calc(25% + 1px),
-                transparent calc(25% + 1px) calc(50% - 1px), rgba(0, 0, 0, 0.5) calc(50% - 1px) calc(50% + 1px),
-                transparent calc(50% + 1px) calc(75% - 1px), rgba(0, 0, 0, 0.5) calc(75% - 1px) calc(75% + 1px),
-                transparent calc(75% + 1px));
+                transparent calc(20% - 1px), rgba(0, 0, 0, 0.5) calc(20% - 1px) calc(20% + 1px),
+                transparent calc(20% + 1px) calc(40% - 1px), rgba(0, 0, 0, 0.5) calc(40% - 1px) calc(40% + 1px),
+                transparent calc(40% + 1px) calc(60% - 1px), rgba(0, 0, 0, 0.5) calc(60% - 1px) calc(60% + 1px),
+                transparent calc(60% + 1px) calc(80% - 1px), rgba(0, 0, 0, 0.5) calc(80% - 1px) calc(80% + 1px),
+                transparent calc(80% + 1px));
+        }
+
+        /* Marcas de recorde na barra (v1.6): seu recorde, o rival, o líder.
+           O #progress-track tem overflow:hidden, então elas ocupam a altura
+           inteira dos 6px em vez de passar para fora. */
+        #progress-marks .rival-mark {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            margin-left: -1px;
+            border-radius: 2px;
         }
 
         #game-over {
@@ -767,7 +782,8 @@
             pointer-events: none;
         }
 
-        #mute-btn {
+        #mute-btn,
+        #pause-btn {
             position: fixed;
             top: 20px;
             right: 20px;
@@ -778,6 +794,26 @@
             border-radius: 8px;
             padding: 8px 12px;
             cursor: pointer;
+        }
+
+        /* Pausa à esquerda do mute; só aparece com a corrida em andamento */
+        #pause-btn {
+            right: 82px;
+            display: none;
+        }
+
+        body.started #pause-btn {
+            display: block;
+        }
+
+        #pause-modal p {
+            margin: 6px 0;
+            color: #ddd;
+        }
+
+        #pause-modal .pause-keys {
+            font-size: 14px;
+            color: #9aa0a6;
         }
 
         #rotate-overlay {
@@ -810,6 +846,7 @@
         body.stats-mode #game-container,
         body.stats-mode #start-screen,
         body.stats-mode #mute-btn,
+        body.stats-mode #pause-btn,
         body.stats-mode #rotate-overlay {
             display: none !important;
         }
@@ -1130,12 +1167,14 @@
                 <img src="art/rhino-run-2.svg" alt="" class="f2">
             </div>
             <div class="hint-card">
-                <div class="hint-side">DIREITA →</div>
+                <div class="hint-side">DIREITA → <b>/ ENTER</b></div>
                 <div class="hint-action">💨 Investida</div>
                 <div class="hint-detail">quebra paredes trincadas</div>
             </div>
         </div>
-        <p class="start-tagline">Fuja do zoológico! No teclado: ← pulo &nbsp;|&nbsp; → investida</p>
+        <p class="start-tagline">Fuja do zoológico!<br>
+            <span class="keys-hint">⌨️ No teclado: <b>←</b> ou <b>ESPAÇO</b> pula &nbsp;|&nbsp; <b>→</b> ou <b>ENTER</b> investe &nbsp;|&nbsp; <b>P</b> pausa</span>
+        </p>
         <div id="install-hint"></div>
         <div class="start-stats">
             <span class="record">🏅 Recorde: <span id="start-record">0</span>m</span>
@@ -1151,7 +1190,7 @@
         <p class="start-cta">TOQUE PARA COMEÇAR</p>
         <span class="start-footer footer-left">Designed by Thomas</span>
         <span class="start-footer footer-center">Estatísticas anônimas são coletadas · <a href="./?stats">/?stats</a></span>
-        <span class="start-footer footer-right" id="game-version">v1.5.0</span>
+        <span class="start-footer footer-right" id="game-version">v1.6.0</span>
         <button id="ranking-btn" aria-label="Ranking mundial">🏆</button>
     </div>
 
@@ -1197,7 +1236,17 @@
 
     <div id="victory-banner" hidden>🎉 LIVRE!</div>
 
+    <button id="pause-btn" aria-label="Pausar">⏸️</button>
     <button id="mute-btn" aria-label="Som">🔊</button>
+
+    <div id="pause-modal" class="modal">
+        <h2>⏸️ Pausado</h2>
+        <p>A corrida está congelada — o tempo parado não conta.</p>
+        <p class="pause-keys">Teclado: ← ou ESPAÇO pula &nbsp;|&nbsp; → ou ENTER investe &nbsp;|&nbsp; P ou ESC pausa</p>
+        <div class="modal-actions">
+            <button id="pause-resume">▶️ Continuar</button>
+        </div>
+    </div>
 
     <div id="rotate-overlay">Gire o celular 📱↔️</div>
 

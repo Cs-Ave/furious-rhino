@@ -1,6 +1,6 @@
 // Network-first service worker: always serves fresh files while online
 // (essential during development), falls back to cache for offline play.
-const CACHE = 'furious-rhino-v14';
+const CACHE = 'furious-rhino-v16';
 const ASSETS = [
   './',
   './index.html',
@@ -56,6 +56,7 @@ const ASSETS = [
   './js/entities/Animal.js',
   './js/entities/TranqTower.js',
   './js/entities/TranqDart.js',
+  './js/entities/Ramp.js',
   'https://cdn.jsdelivr.net/npm/phaser@3.85.2/dist/phaser.min.js',
 ];
 
