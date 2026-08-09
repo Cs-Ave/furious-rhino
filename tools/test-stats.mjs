@@ -71,6 +71,29 @@ eq('últimas execuções: mantém só 50', runs.length, 50);
 eq('últimas execuções: mais antigas caem (janela)', [runs[0].m, runs[49].m], [30, 520]);
 eq('últimas execuções: entradas com timestamp', runs.every((r) => r.t > 0), true);
 
+// ---------- 2a-bis. Mecânicas por corrida (v1.6.1) ----------
+// A forma do elemento de runs[] é LIVRE nas rules — é onde cabe telemetria
+// de comportamento sem gastar campo de primeiro nível.
+localStorage.removeItem(StorageManager.RUNS_KEY);
+StorageManager.addRun(940, 63, 'wall', {
+  wallsBroken: 3, rampsSmashed: 1, towersDowned: 0, animalsHit: 0,
+  jumps: 44, dashes: 9, dashesWasted: 5, pauses: 1,
+  keyboard: true, version: '1.6.1',
+});
+const rich = StorageManager.getRuns()[0];
+eq('mecânicas: contadores gravados', [rich.w, rich.r, rich.j, rich.d, rich.x, rich.p], [3, 1, 44, 9, 5, 1]);
+eq('mecânicas: ZERO é omitido (bytes no doc)', ['o' in rich, 'a' in rich], [false, false]);
+eq('mecânicas: teclado e versão', [rich.k, rich.v], [1, '1.6.1']);
+
+StorageManager.addRun(100, 10, 'spike');
+eq('mecânicas: corrida sem extras não ganha chaves',
+  Object.keys(StorageManager.getRuns()[1]).sort().join(','), 'c,m,s,t');
+
+StorageManager.addRun(50, 5, 'fall', { wallsBroken: 99999, jumps: -3 });
+const clamped = StorageManager.getRuns()[2];
+eq('mecânicas: contador com teto', clamped.w, 9999);
+eq('mecânicas: valor negativo é ignorado', 'j' in clamped, false);
+
 // ---------- 2b. Histórico acumulado do jogador (v1.5.0) ----------
 localStorage.removeItem(StorageManager.HISTORY_KEY);
 StorageManager.addHistory({ clientSig: 'mobile · Android 13 · Chrome', geoLabel: 'Rio (RJ) · BR', version: '1.5.0' });
@@ -98,6 +121,36 @@ eq('histórico: poda mantém o aparelho mais usado',
 localStorage.setItem(StorageManager.HISTORY_KEY, '{lixo');
 eq('histórico: JSON corrompido volta vazio',
   [Object.keys(StorageManager.getHistory().clients).length, StorageManager.getHistory().firstSeenS], [0, 0]);
+
+// ---------- 2c. Atividade diária (v1.6.1) ----------
+// É o que alimenta o gráfico de jogadores únicos/dia × execuções/dia com
+// contagem EXATA — runs[] só guarda 50 e falsearia dias muito ativos.
+localStorage.removeItem(StorageManager.HISTORY_KEY);
+const hoje = StorageManager.dayKey();
+StorageManager.addHistory({ clientSig: 'x', version: '1.6.1', meters: 300 });
+StorageManager.addHistory({ clientSig: 'x', version: '1.6.1', meters: 940 });
+StorageManager.addHistory({ clientSig: 'x', version: '1.6.1', meters: 120 });
+const dia = StorageManager.getHistory().days[hoje];
+eq('dias: conta execuções', dia.r, 3);
+eq('dias: guarda a MELHOR marca, não a última', dia.b, 940);
+
+eq('history cabe no teto das rules mesmo com days',
+  Object.keys(StorageManager.getHistory()).length <= 6, true);
+
+// Poda por IDADE (o mais velho sai) — e não por menos usado, que abriria
+// buracos no meio da série temporal
+const h = StorageManager.getHistory();
+for (let i = 1; i <= 70; i++) {
+  h.days[`2025-${String((i % 12) + 1).padStart(2, '0')}-${String((i % 28) + 1).padStart(2, '0')}`] = { r: 99 };
+}
+StorageManager.bumpDay(h, { runs: 1 });
+const chaves = Object.keys(h.days).sort();
+eq('dias: teto de 60 respeitado', chaves.length, StorageManager.HISTORY_CAPS.days);
+eq('dias: o dia de HOJE sobrevive à poda', chaves.includes(hoje), true);
+eq('dias: chave é AAAA-MM-DD ordenável', /^\d{4}-\d{2}-\d{2}$/.test(hoje), true);
+
+// Sessão: sem sessionStorage (Node), beginSession não pode inflar contagem
+eq('sessão: sem sessionStorage não conta sessão', StorageManager.beginSession(), false);
 
 // ---------- 3. Consistência entre camadas ----------
 const causas = Object.keys(StorageManager.getDeaths()).filter((k) => !/^t\d$/.test(k)).sort();
@@ -155,6 +208,44 @@ eq('PWA instalado', agg.standalone, 1);
 eq('cidade formatada com região', agg.city.get('Rio de Janeiro (Rio de Janeiro)'), 1);
 eq('país ausente vira ??', agg.country.get('??'), 2);
 eq('versão ausente rotulada pré-1.3.0', agg.version.get('pré-1.3.0'), 2);
+
+// ---------- 5. Novidades da agregação (v1.6.1) ----------
+const aggTz = aggregate([
+  { attempts: 1, client: { device: 'mobile', tz: 'America/Sao_Paulo' }, geo: { country: 'BR', city: 'Americana', at: 1 } },
+  { attempts: 1, client: { device: 'mobile', tz: 'America/Sao_Paulo' } },
+  { attempts: 1, client: { device: 'desktop' } },
+]);
+eq('fuso horário agregado', aggTz.tz.get('America/Sao_Paulo'), 2);
+eq('fuso ausente não vira chave', aggTz.tz.size, 1);
+
+// Rótulos de causa: fonte única em Constants, e as CHAVES têm de bater com
+// o que o StorageManager grava (o painel e o resumo do jogador leem daqui)
+const rotulos = Object.keys(Constants.CAUSE_LABELS).filter((k) => k !== 'win').sort();
+eq('rótulos de causa cobrem exatamente as causas do storage', rotulos, causas);
+
+// ---------- 6. Resumo diário (tools/daily-digest.mjs) ----------
+const { buildDigest } = await import('../tools/daily-digest.mjs');
+const agora = Date.parse('2026-08-08T15:00:00-03:00');
+const ontem = Math.floor((agora - 86400000) / 1000);
+const digest = buildDigest(
+  [
+    { id: 'a', attempts: 12, wins: 1, bestM: 940, history: { days: { '2026-08-08': { r: 5, b: 940 } } } },
+    { id: 'b', attempts: 3, wins: 0, bestM: 300, runs: [{ t: Math.floor(agora / 1000), m: 300 }] },
+    { id: 'c', attempts: 9, wins: 0, bestM: 1800, runs: [{ t: ontem, m: 1800 }] }, // só ontem
+  ],
+  [{ id: 'a', name: 'Ana', score: 940 }],
+  agora
+);
+eq('digest: título com a data', digest.title.includes('08/08'), true);
+eq('digest: conta só quem jogou HOJE', /👥 2 jogador/.test(digest.message), true);
+eq('digest: soma as execuções do dia', /🎮 6 execuç/.test(digest.message), true);
+eq('digest: melhor do dia com apelido', /🥇 melhor do dia: 940m \(Ana\)/.test(digest.message), true);
+eq('digest: separa ranking de marca fora do ranking',
+  /recorde do ranking: 940m/.test(digest.message) && /1800m \(fora do ranking/.test(digest.message), true);
+eq('digest: avisa quando ainda estima por runs\\[\\]', /pré-1\.6\.1/.test(digest.message), true);
+
+const vazio = buildDigest([{ id: 'a', attempts: 1, bestM: 10, history: { days: {} } }], [], agora);
+eq('digest: dia sem jogadores tem mensagem própria', /Ninguém jogou hoje/.test(vazio.message), true);
 
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

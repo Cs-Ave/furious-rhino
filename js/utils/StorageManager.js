@@ -219,8 +219,29 @@ export class StorageManager {
   // FORMA do elemento é livre. Com essas duas letras a mais dá para ler
   // duração por corrida, causa correlacionada com distância e curva de
   // aprendizado individual — toda a análise que orientou a v1.6 foi feita sem.
+  //
+  // v1.6.1: entram as MECÂNICAS. Os contadores já existiam no GameScene para
+  // julgar medalha e eram jogados fora no fim da corrida. Com eles cruzados
+  // com `m` e `c` dá para responder a pergunta que a v1.6 respondeu no chute:
+  // quem morre cedo é quem não descobriu a investida?
   static RUNS_KEY = 'furious_rhino_runs';
   static RUNS_WINDOW = 50; // teto das rules: runs.size() <= 50
+
+  // Contadores inteiros da corrida. Zero é OMITIDO — a janela inteira vai no
+  // doc a cada envio, então cada chave a menos conta.
+  static RUN_COUNTERS = {
+    w: 'wallsBroken',   // paredes trincadas quebradas
+    r: 'rampsSmashed',  // rampas destruídas na investida
+    o: 'towersDowned',  // torres derrubadas
+    a: 'animalsHit',    // animais atropelados
+    j: 'jumps',         // pulos
+    d: 'dashes',        // investidas que SAÍRAM
+    x: 'dashesWasted',  // investidas pedidas durante o cooldown (frustração)
+    p: 'pauses',        // pausas (inclui trocar de aba)
+  };
+
+  // Fúria NÃO entra: ela é posicional (Rhino.getFuryRatio = x / distância),
+  // então "tempo em fúria cheia" já está contido no `m` — seria redundância.
 
   static getRuns() {
     try {
@@ -231,11 +252,19 @@ export class StorageManager {
     }
   }
 
-  static addRun(meters, seconds = 0, cause = null) {
+  static addRun(meters, seconds = 0, cause = null, extra = null) {
     const runs = this.getRuns();
     const run = { t: Math.floor(Date.now() / 1000), m: Math.floor(meters) };
     if (seconds > 0) run.s = Math.min(7200, Math.floor(seconds));
     if (cause) run.c = String(cause).slice(0, 8);
+    if (extra && typeof extra === 'object') {
+      for (const [key, name] of Object.entries(this.RUN_COUNTERS)) {
+        const v = Math.floor(Number(extra[name]) || 0);
+        if (v > 0) run[key] = Math.min(9999, v);
+      }
+      if (extra.keyboard) run.k = 1; // separa desktop de verdade de mobile
+      if (extra.version) run.v = String(extra.version).slice(0, 10);
+    }
     runs.push(run);
     while (runs.length > this.RUNS_WINDOW) runs.shift();
     localStorage.setItem(this.RUNS_KEY, JSON.stringify(runs));
@@ -249,16 +278,20 @@ export class StorageManager {
   // mapa (`history`) — as rules validam o mapa inteiro numa cláusula, e não
   // campo a campo (orçamento de avaliação do Firestore).
   static HISTORY_KEY = 'furious_rhino_history';
-  static HISTORY_CAPS = { clients: 12, geos: 10, versions: 10 };
+  // `days` guarda 60 dias: cobre a retenção de 30d com folga e mantém o mapa
+  // pequeno (60 × ~35 bytes ≈ 2 KB no doc)
+  static HISTORY_CAPS = { clients: 12, geos: 10, versions: 10, days: 60 };
 
   static getHistory() {
-    const empty = { clients: {}, geos: {}, versions: {}, firstSeenS: 0 };
+    const empty = { clients: {}, geos: {}, versions: {}, days: {}, firstSeenS: 0 };
     try {
       const h = JSON.parse(localStorage.getItem(this.HISTORY_KEY)) || {};
       return {
         clients: (h.clients && typeof h.clients === 'object') ? h.clients : {},
         geos: (h.geos && typeof h.geos === 'object') ? h.geos : {},
         versions: (h.versions && typeof h.versions === 'object') ? h.versions : {},
+        // v1.6.1: { 'AAAA-MM-DD': { r: execuções, s: sessões, b: melhor marca } }
+        days: (h.days && typeof h.days === 'object') ? h.days : {},
         firstSeenS: typeof h.firstSeenS === 'number' && h.firstSeenS > 0 ? h.firstSeenS : 0,
       };
     } catch (e) {
@@ -266,9 +299,32 @@ export class StorageManager {
     }
   }
 
+  // Data LOCAL do jogador (não UTC): é o "dia" que ele viveu, e é o mesmo
+  // recorte que o resumo diário usa. O painel agrega por essa string.
+  static dayKey(ms = Date.now()) {
+    const d = new Date(ms);
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  }
+
+  // Acumula no dia corrente e poda por IDADE — ao contrário dos outros
+  // baldes, que podam pelo menos usado: em série temporal o mais velho é
+  // que tem de sair, senão o gráfico ganha buracos no meio.
+  static bumpDay(h, { runs = 0, sessions = 0, meters = 0 } = {}) {
+    const key = this.dayKey();
+    const day = (h.days[key] && typeof h.days[key] === 'object') ? h.days[key] : {};
+    if (runs) day.r = (Number(day.r) || 0) + runs;
+    if (sessions) day.s = (Number(day.s) || 0) + sessions;
+    const m = Math.floor(meters);
+    if (m > (Number(day.b) || 0)) day.b = m;
+    h.days[key] = day;
+    const keys = Object.keys(h.days).sort();
+    while (keys.length > this.HISTORY_CAPS.days) delete h.days[keys.shift()];
+  }
+
   // Uma chamada por fim de corrida. Rótulos vazios são ignorados (geo pode
   // não ter respondido ainda).
-  static addHistory({ clientSig, geoLabel, version } = {}) {
+  static addHistory({ clientSig, geoLabel, version, meters = 0 } = {}) {
     const h = this.getHistory();
     const bump = (bucket, key, cap) => {
       if (!key) return;
@@ -284,9 +340,40 @@ export class StorageManager {
     bump(h.clients, clientSig, this.HISTORY_CAPS.clients);
     bump(h.geos, geoLabel, this.HISTORY_CAPS.geos);
     bump(h.versions, version, this.HISTORY_CAPS.versions);
+    this.bumpDay(h, { runs: 1, meters });
     if (!h.firstSeenS) h.firstSeenS = Math.floor(Date.now() / 1000);
     localStorage.setItem(this.HISTORY_KEY, JSON.stringify(h));
     return h;
+  }
+
+  // --- Sessão (v1.6.1) ---
+  // Uma sessão = uma aba aberta. O "Jogar Novamente" recarrega a página, e o
+  // sessionStorage SOBREVIVE ao reload — é exatamente a semântica desejada:
+  // 12 corridas seguidas contam 1 sessão, não 12.
+  static SESSION_KEY = 'furious_rhino_session_at';
+
+  // true só na PRIMEIRA chamada da aba; já contabiliza a sessão no dia.
+  // Usado pelo push de "jogador começou a jogar" e pelo gráfico diário.
+  static beginSession() {
+    try {
+      if (sessionStorage.getItem(this.SESSION_KEY)) return false;
+      sessionStorage.setItem(this.SESSION_KEY, String(Date.now()));
+    } catch (e) {
+      return false; // sem sessionStorage: melhor não contar do que inflar
+    }
+    const h = this.getHistory();
+    this.bumpDay(h, { sessions: 1 });
+    if (!h.firstSeenS) h.firstSeenS = Math.floor(Date.now() / 1000);
+    localStorage.setItem(this.HISTORY_KEY, JSON.stringify(h));
+    return true;
+  }
+
+  static getSessionStartedAt() {
+    try {
+      return parseInt(sessionStorage.getItem(this.SESSION_KEY), 10) || 0;
+    } catch (e) {
+      return 0;
+    }
   }
 
   // Última posição vista no ranking online — cacheada para a tela de

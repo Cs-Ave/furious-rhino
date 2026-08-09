@@ -4,8 +4,11 @@
 // 'claude-rules-check-01' — não cria poluição nova), portão dos 1000m
 // (continuar E sair) e a página /?stats (filtro, recorde, funil dinâmico).
 import { chromium } from 'playwright';
+import { readFileSync } from 'node:fs';
 
 const BASE = 'http://localhost:3000';
+// Marca de início, para o assert final saber o que a suíte criou (bloco 7)
+const startedAt = new Date().toISOString();
 // Chave do modo detalhado do painel (o código guarda só o SHA-256 dela —
 // ver STATS_KEY_HASH em js/stats/StatsDashboard.js)
 const STATS_KEY = '0929';
@@ -14,14 +17,31 @@ const ok = (name, cond, extra = '') =>
   results.push(`${cond ? 'PASS' : 'FAIL'} ${name}${extra ? ' — ' + extra : ''}`);
 
 const browser = await chromium.launch();
-const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+
+// ⚠️ TODO contexto criado aqui PRECISA nascer com um playerId de sonda.
+// A tela inicial dispara `StatsSystem.send()` sempre que `attempts > 0`, e um
+// contexto sem esta semente grava um doc de verdade na coleção de PRODUÇÃO
+// (aconteceu: 16 docs falsos criados numa tarde). Ids `claude-*` são filtrados
+// pelo painel e pelo resumo diário — os aleatórios, não.
+const PROBE_ID = 'claude-rules-check-01';
+async function probeContext(opts = {}) {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 }, ...opts });
+  await ctx.addInitScript((id) => {
+    localStorage.setItem('furious_rhino_player_id', id);
+    // A suíte inicia dezenas de corridas: sem isto, cada uma vira um push de
+    // "fulano começou a jogar" no celular do dono
+    localStorage.setItem('furious_rhino_notify_off', '1');
+  }, PROBE_ID);
+  return ctx;
+}
+
+const context = await probeContext();
 
 // Totais locais MAIORES que os do doc-sonda: as regras exigem monotonia e
 // o doc acumula a cada execução da suíte — sementes fixas quebrariam na
 // rodada seguinte. Derivar do relógio garante crescimento entre rodadas.
 await context.addInitScript(() => {
   const base = Math.floor(Date.now() / 1000) - 1753000000; // cresce 1/s
-  localStorage.setItem('furious_rhino_player_id', 'claude-rules-check-01');
   // record gigante → bestM trava no teto (10000) em toda rodada: monotonia
   // garantida no servidor e nenhuma corrida do teste gera "novo recorde"
   localStorage.setItem('furious_rhino_record', String(base));
@@ -198,12 +218,45 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
   ok('painel: renderizou dados', /Visão geral/.test(body), body.slice(0, 60));
   ok('painel: card de recorde com nome', /recorde —/.test(body));
   ok('painel: funil com degrau do portão (1000m)', /1000m 🗽/.test(body));
-  ok('painel: categoria Torre', /Torre/.test(body));
-  ok('painel: tiers do modo infinito', /Tier 5/.test(body) && /Tier 6/.test(body));
-  // v1.5.0: sem a chave, nada de lista de jogadores nem fichas
+
+  // v1.6.1: o rolo único virou abas. Sem chave são 5 (sem "Jogadores").
+  const tabs = page.locator('.stats-tabs button');
+  ok('painel: 5 abas no modo público', await tabs.count() === 5, `${await tabs.count()}`);
+  ok('painel: sem chave não expõe a aba Jogadores',
+    !(await page.locator('.stats-tabs').textContent()).includes('Jogadores'));
+
+  // O gráfico pedido na v1.6.1 fica na Visão geral
+  ok('painel: gráfico de jogadores/dia × execuções/dia',
+    /Jogadores únicos × execuções por dia/.test(body));
+  ok('painel: desenha SVG de verdade', await page.locator('.stats-content svg').count() > 0);
+
+  // Conteúdo que MUDOU de aba: causas e tiers agora vivem em "Dificuldade"
+  await tabs.nth(1).click();
+  await page.waitForTimeout(600);
+  const dif = await page.locator('.stats-content').textContent();
+  ok('aba Dificuldade: categoria Torre', /Torre/.test(dif));
+  ok('aba Dificuldade: tiers do modo infinito', /Tier 5/.test(dif) && /Tier 6/.test(dif));
+  ok('aba Dificuldade: histograma de mortes', /Onde as corridas terminam/.test(dif));
+  ok('aba Dificuldade: heatmap causa × distância', /Causa × faixa de distância/.test(dif));
+
+  // O filtro de período re-renderiza sem quebrar
+  await page.locator('.stats-period button').nth(2).click(); // 7 dias
+  await page.waitForTimeout(600);
+  ok('painel: filtro de período aplica',
+    await page.locator('.stats-period button.on').first().textContent() === '7 dias');
+
+  // Todas as abas renderizam com dado real
+  for (let i = 0; i < 5; i++) {
+    await tabs.nth(i).click();
+    await page.waitForTimeout(500);
+    const text = await page.locator('.stats-content').textContent();
+    ok(`aba ${i + 1} renderiza conteúdo`, text.length > 120, `${text.length} chars`);
+  }
+
   ok('painel: sem chave não expõe a lista de jogadores',
     await page.locator('.players-table').count() === 0);
-  ok('sem erros de JS no /?stats', errors.filter((e) => !/net::|ERR_/.test(e)).length === 0);
+  ok('sem erros de JS no /?stats', errors.filter((e) => !/net::|ERR_/.test(e)).length === 0,
+    errors.slice(0, 2).join(' | '));
   await page.close();
 }
 
@@ -260,6 +313,12 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
   await page.goto(`${BASE}/?stats=${STATS_KEY}`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(5000);
 
+  // v1.6.1: com a chave aparece a 6ª aba, e a lista mora dentro dela
+  const tabs = page.locator('.stats-tabs button');
+  ok('detalhado: 6ª aba "Jogadores" liberada pela chave', await tabs.count() === 6);
+  await tabs.nth(5).click();
+  await page.waitForTimeout(600);
+
   const rows = page.locator('.players-table tbody tr');
   ok('detalhado: tabela de jogadores renderizou', await rows.count() > 0, `${await rows.count()} linhas`);
   ok('detalhado: campo de busca presente', await page.locator('#stats-search').count() === 1);
@@ -293,6 +352,141 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
   ok('sem erros de JS no painel detalhado', errors.filter((e) => !/net::|ERR_/.test(e)).length === 0,
     errors.slice(0, 2).join(' | '));
   await page.close();
+}
+
+// ---------- 6. Resumo do jogador + compartilhamento (v1.6.1) ----------
+// Contexto PRÓPRIO, sem a semente de totais: ela reescreve record e attempts
+// a cada carga de página e apagaria os valores deste bloco no reload. O
+// playerId de sonda continua valendo (probeContext) — sem ele este bloco
+// gravaria um doc real na produção a cada execução da suíte.
+{
+  const ctx = await probeContext({ viewport: { width: 1280, height: 900 } });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto(BASE, { waitUntil: 'networkidle' });
+
+  // Semeia um histórico local para o modal ter o que mostrar
+  await page.evaluate(() => {
+    sessionStorage.setItem('furious_rhino_pwa_prompted', '1'); // some com o modal do PWA
+    const now = Math.floor(Date.now() / 1000);
+    const runs = [];
+    for (let i = 0; i < 20; i++) {
+      runs.push({
+        t: now - (20 - i) * 3600, m: 80 + i * 55, s: 20 + i,
+        c: ['wall', 'spike', 'animal', 'dart'][i % 4],
+        w: i % 3, r: i % 2, o: i % 5 === 0 ? 1 : 0, a: i % 4,
+        j: 20 + i, d: Math.max(0, i - 2), x: i % 6, k: 1, v: '1.6.1',
+      });
+    }
+    localStorage.setItem('furious_rhino_runs', JSON.stringify(runs));
+    localStorage.setItem('furious_rhino_record', '1145');
+    localStorage.setItem('furious_rhino_attempts', '20');
+    localStorage.setItem('furious_rhino_wins', '2');
+    localStorage.setItem('furious_rhino_playtime_s', '1830');
+    localStorage.setItem('furious_rhino_medals', JSON.stringify(['first_run', 'escape']));
+    localStorage.setItem('furious_rhino_deaths', JSON.stringify({
+      t1: 4, t2: 6, t3: 5, t4: 3, t5: 2, t6: 1,
+      wall: 9, spike: 5, animal: 3, dart: 2, tower: 1, fall: 1,
+    }));
+  });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(1500);
+
+  await page.click('#mystats-btn');
+  await page.waitForTimeout(900);
+  ok('meu resumo: modal abre', await page.isVisible('#mystats-modal'));
+  const body = await page.textContent('#mystats-body');
+  ok('meu resumo: recorde', /1145m/.test(body));
+  ok('meu resumo: onde você morre', /Onde você morre/.test(body));
+  ok('meu resumo: mecânicas da v1.6.1', /Suas mecânicas/.test(body));
+  ok('meu resumo: medalhas', /Medalhas: 2\//.test(body));
+  ok('meu resumo: desenha a evolução em SVG',
+    await page.locator('#mystats-body svg').count() > 0);
+
+  // Texto de compartilhamento em markdown do WhatsApp
+  const share = await page.evaluate(async () => {
+    const mod = await import('/js/stats/MyStats.js');
+    return { perfil: mod.shareText(null), corrida: mod.shareText({ distance: 1145, escaped: true }) };
+  });
+  ok('compartilhar: perfil em negrito do WhatsApp', /\*1145m\*/.test(share.perfil));
+  ok('compartilhar: perfil cita as execuções', /20 execuções/.test(share.perfil));
+  ok('compartilhar: corrida conta a fuga', /ESCAPEI/.test(share.corrida));
+
+  await page.click('#mystats-close');
+  await page.waitForTimeout(300);
+  ok('meu resumo: modal fecha', !(await page.isVisible('#mystats-modal')));
+
+  // Notificações: as três travas que impedem um push indevido.
+  // ⚠️ NENHUM assert aqui pode publicar de verdade — o tópico do repositório
+  // é o do dono, e um teste que toca o celular dele a cada execução é um bug.
+  const notify = await page.evaluate(async () => {
+    const { NotifySystem } = await import('/js/systems/NotifySystem.js');
+    const cfg = await NotifySystem.config();
+    const semSilencio = { ...cfg };
+
+    // 1. aparelho silenciado (é o estado desta suíte, via addInitScript)
+    const silenciado = NotifySystem.isSilenced();
+    const bloqueadoPorAparelho = await NotifySystem.post('onStart', { title: 'x', message: 'y' });
+
+    // 2. tópico vazio bloqueia mesmo com o aparelho liberado
+    NotifySystem.setSilenced(false);
+    NotifySystem._cfg = { ...semSilencio, topic: '' };
+    const bloqueadoPorTopico = await NotifySystem.post('onStart', { title: 'x', message: 'y' });
+
+    // 3. evento desligado na config bloqueia
+    NotifySystem._cfg = { ...semSilencio, topic: 'nunca-usado', onStart: false };
+    const bloqueadoPorEvento = await NotifySystem.post('onStart', { title: 'x', message: 'y' });
+
+    NotifySystem.setSilenced(true); // devolve a suíte ao estado seguro
+    NotifySystem._cfg = semSilencio;
+    return {
+      silenciado, bloqueadoPorAparelho, bloqueadoPorTopico, bloqueadoPorEvento,
+      quietMeiaNoite: NotifySystem.isQuiet({ quietHours: [0, 24] }),
+      quietDesligado: NotifySystem.isQuiet({ quietHours: [0, 0] }),
+    };
+  });
+  ok('ntfy: a suíte roda com o aparelho silenciado', notify.silenciado === true);
+  ok('ntfy: aparelho silenciado não publica', notify.bloqueadoPorAparelho === false);
+  ok('ntfy: tópico vazio não publica', notify.bloqueadoPorTopico === false);
+  ok('ntfy: evento desligado não publica', notify.bloqueadoPorEvento === false);
+  ok('ntfy: faixa de silêncio funciona', notify.quietMeiaNoite === true);
+  ok('ntfy: faixa [0,0] desliga o silêncio', notify.quietDesligado === false);
+
+  ok('sem erros de JS no resumo do jogador',
+    errors.filter((e) => !/net::|ERR_/.test(e)).length === 0, errors.slice(0, 2).join(' | '));
+  await ctx.close();
+}
+
+// ---------- 7. A suíte NÃO pode sujar a produção ----------
+// Regressão de verdade: um contexto sem o playerId de sonda gravou 16 docs
+// falsos na coleção `stats` numa tarde, e ninguém percebeu até os números do
+// painel pularem. Este assert compara o antes e o depois.
+{
+  const key = readFileSync(new URL('../js/firebase-config.js', import.meta.url), 'utf8')
+    .match(/apiKey:\s*'([^']+)'/)[1];
+  const url = 'https://firestore.googleapis.com/v1/projects/furious-rhino' +
+    `/databases/(default)/documents/stats?pageSize=300&key=${key}`;
+  let novos = [];
+  try {
+    let token = '';
+    const ids = [];
+    for (let i = 0; i < 40; i++) {
+      const res = await fetch(url + (token ? `&pageToken=${token}` : ''));
+      const data = await res.json();
+      for (const doc of data.documents || []) {
+        ids.push({ id: doc.name.split('/').pop(), created: doc.createTime });
+      }
+      token = data.nextPageToken || '';
+      if (!token) break;
+    }
+    novos = ids.filter((d) => d.created >= startedAt && !/^claude-/.test(d.id));
+  } catch (e) {
+    novos = null; // offline: não dá para afirmar nada
+  }
+  ok('a suíte não criou doc de produção em stats',
+    novos === null || novos.length === 0,
+    novos === null ? '(sem rede — não verificado)' : novos.map((d) => d.id).join(', '));
 }
 
 await browser.close();

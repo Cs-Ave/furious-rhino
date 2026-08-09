@@ -139,6 +139,59 @@ rino (e dos animais terrestres) nessa superfície uma vez por frame, em
 - **Pausa**: botão no HUD e `P`/`ESC`; a aba escondida pausa sozinha. O tempo
   parado é descontado da telemetria (`runS` é relógio de parede).
 
+## 📡 Telemetria, visibilidade e notificações (v1.6.1)
+
+Três públicos, três canais — e **nenhum campo novo de primeiro nível** no
+Firestore (regra de arquitetura nº 2 abaixo).
+
+### O que é medido
+
+| Onde | Campos | Por que ali |
+|---|---|---|
+| `runs[]` (últimas 50) | `t, m, s, c` + `w` paredes, `r` rampas, `o` torres, `a` animais, `j` pulos, `d` investidas, `x` investidas negadas no cooldown, `p` pausas, `k` teclado, `v` versão | As rules validam só `is list && size() <= 50` — a FORMA do elemento é livre. Sai de graça. |
+| `history.days` | `{'AAAA-MM-DD': {r, s, b}}`, 60 dias, poda por idade | Contagem exata de execuções/sessões/melhor marca por dia. `runs[]` só guarda 50 e falsearia dias muito ativos. |
+| `client.tz` | fuso do aparelho | Conferência cruzada do geo por IP: VPN aparece como divergência. |
+| `geo.at` | epoch da medição | Deixa o painel dizer a IDADE da localização. |
+
+Fúria ficou **de fora de propósito**: ela é posicional
+(`Rhino.getFuryRatio = x / FURY_FULL_DISTANCE_PX`), então já está contida no
+`m` — gravá-la seria redundância paga em bytes.
+
+**Cidade sempre atual.** O TTL do geo caiu de 30 dias para 12h, a revalidação
+roda na tela inicial (fire-and-forget, tirando a rede do fim de corrida) e uma
+falha de revalidação passa a **preservar** a última cidade conhecida — antes o
+`setDoc` sem merge apagava o campo `geo` inteiro. No painel, a coluna *Local*
+mostra a **última** cidade; a mais frequente virou a seção "de onde já jogou".
+
+### Quem vê o quê
+
+- **Jogador** — botão `📊 Minhas estatísticas` na tela inicial. Tudo do
+  `localStorage`: abre instantâneo e funciona offline. A comparação mundial usa
+  o rank e os rivais que o jogo já cacheia, então também é de graça.
+  Compartilhamento em markdown do WhatsApp, com `wa.me` como caminho de
+  desktop (onde não existe `navigator.share`).
+- **Administrador, ao vivo** — pushes no ntfy: início de sessão (1× por aba),
+  resumo quando a sessão encerra e recorde mundial (confirmado com uma consulta
+  nova ao topo, nunca por cache). Publicação direta do navegador: JSON no
+  endpoint raiz, que mantém a requisição *simple* e evita preflight CORS.
+- **Administrador, diário** — `tools/daily-digest.mjs` num cron do GitHub
+  Actions. Dispara **mesmo nos dias sem jogadores**, que é justamente a
+  informação mais importante.
+
+Parâmetros em `js/notify-config.js` (defaults versionados) sobrepostos pelo doc
+`config/notify` do Firestore, editável no console sem deploy. **`topic` nasce
+vazio**: sem tópico o sistema inteiro fica desligado, e quem clonar o
+repositório não passa a notificar ninguém.
+
+### O painel `/?stats`
+
+Seis abas (Visão geral, Dificuldade, Engajamento, Mecânicas, Público,
+Jogadores), gráficos em SVG desenhados à mão (`js/stats/Charts.js`, zero
+dependência) e filtro de período. Os cruzamentos que antes exigiam exportar os
+dados agora estão na tela: histograma das distâncias de morte, heatmap
+causa × faixa de distância, curva de aprendizado, retenção D1–D30 e
+**jogadores únicos/dia × execuções/dia**.
+
 ## 🔒 Regras de arquitetura (não negociáveis)
 
 1. **Telemetria e ranking são acessórios.** Um erro de rede, de regra do
@@ -176,8 +229,9 @@ Leitura de 48 jogadores, 981 tentativas, 512 corridas e 945 mortes da v1.5:
 
 | Comando | O que cobre |
 |---|---|
-| `npm run test-stats` | 46 asserts de telemetria/agregação, sem navegador |
-| `node tools/e2e-stats.mjs` | 38 asserts em Chromium: telemetria real, portão, painel `/?stats`, resiliência |
+| `npm run test-stats` | 69 asserts de telemetria/agregação e do resumo diário, sem navegador |
+| `npm run test-e2e-stats` | 66 asserts em Chromium: telemetria real, portão, as 6 abas do painel, resumo do jogador, compartilhamento e os padrões do ntfy |
+| `npm run digest` | Monta o resumo diário contra os dados de produção **sem enviar** |
 | `npm run test-ramp` | 30 asserts em Chromium: travessia da rampa, trampolim, destruição, animais no morro, 20fps, abertura guiada, marcas na pista, explosão do portão, paredes-prédio, teclas de PC, pausa, convite do apelido e os skins de cidade de todos os obstáculos |
 
 Os dois e2e exigem o jogo servido em `localhost:3000` (`python -m http.server 3000`).

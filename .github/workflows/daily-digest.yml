@@ -1,0 +1,29 @@
+# Resumo diário do FURIOUS RHINO no ntfy.
+name: daily-digest
+
+on:
+  schedule:
+    # 23:00 UTC = 20:00 em Brasília. O agendador do GitHub atrasa alguns
+    # minutos em horário de pico — é esperado e não afeta o conteúdo.
+    - cron: '0 23 * * *'
+  workflow_dispatch: # botão "Run workflow" para testar sem esperar o horário
+
+permissions:
+  contents: read
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # Sem `npm ci`: o script não tem dependência nenhuma, usa só o fetch
+      # nativo do Node. A apiKey do Firebase sai do próprio repositório (é
+      # pública por design); só o tópico do ntfy é secret.
+      - name: Enviar resumo
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          NTFY_SERVER: ${{ secrets.NTFY_SERVER }}
+        run: node tools/daily-digest.mjs

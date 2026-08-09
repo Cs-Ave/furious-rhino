@@ -21,7 +21,12 @@ const context = await browser.newContext({ viewport: { width: 1280, height: 720 
 // Sem alerta de PWA no caminho e sem dicas da abertura sobrepondo a tela
 await context.addInitScript(() => {
   localStorage.setItem('furious_rhino_attempts', '50');
+  // Id curto DE PROPÓSITO: as rules exigem >= 16 chars para criar, então
+  // esta suíte nunca consegue gravar um doc na coleção de produção
   localStorage.setItem('furious_rhino_player_id', 'e2e-ramp-local');
+  // A suíte inicia dezenas de corridas: sem isto, cada uma vira um push no
+  // celular do dono
+  localStorage.setItem('furious_rhino_notify_off', '1');
 });
 
 const errors = [];

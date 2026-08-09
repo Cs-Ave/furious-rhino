@@ -1,5 +1,8 @@
 import { getDb } from '../systems/LeaderboardSystem.js';
 import { Constants } from '../utils/Constants.js';
+import {
+  comboChart, histogram, heatmap, donut, stepArea, lineChart, treemap, chartBox,
+} from './Charts.js';
 
 // Portão da fuga em metros, derivado da fonte única (v1.6: 1000m). O painel
 // destaca esse degrau no funil e marca as corridas que passaram dele.
@@ -27,10 +30,21 @@ async function hasDetailAccess() {
 
 // Painel público /?stats: baixa as coleções `stats` e `scores` (leitura
 // liberada nas rules) e agrega TUDO no cliente — sem lib de gráfico, só
-// DOM + barras CSS, no mesmo espírito zero-build do jogo. Conteúdo de
-// terceiros (nomes, cidades, modelos) entra sempre via textContent.
-// Filtro por jogador: padrão agregado; trocar não refaz rede (cache).
+// DOM + SVG desenhado à mão (Charts.js), no mesmo espírito zero-build do
+// jogo. Conteúdo de terceiros (nomes, cidades, modelos) entra sempre via
+// textContent. Trocar de aba ou de período NÃO refaz rede (cache).
 let cache = null; // { docs, names, topScore }
+let detail = false; // acesso ao modo detalhado (decidido 1x por carga)
+let periodDays = 0; // 0 = tudo; 7 e 30 filtram o que vem de runs[]/history.days
+
+const TABS = [
+  { id: 'visao', label: '🦏 Visão geral', draw: tabOverview },
+  { id: 'dificuldade', label: '💀 Dificuldade', draw: tabDifficulty },
+  { id: 'engajamento', label: '📈 Engajamento', draw: tabEngagement },
+  { id: 'mecanicas', label: '💨 Mecânicas', draw: tabMechanics },
+  { id: 'publico', label: '🌍 Público', draw: tabAudience },
+  { id: 'jogadores', label: '👥 Jogadores', draw: tabPlayers, detailOnly: true },
+];
 
 export async function render() {
   const root = document.getElementById('stats-page');
@@ -91,39 +105,508 @@ export async function render() {
     return;
   }
 
-  const content = el('div', 'stats-content', '');
+  detail = await hasDetailAccess();
+  const tabs = TABS.filter((t) => detail || !t.detailOnly);
 
-  // Modo detalhado: lista de jogadores + ficha individual (a visão que serve
-  // para analisar). Sem a chave, só os agregados.
-  if (await hasDetailAccess()) {
-    const playersBox = el('div', 'stats-players');
-    root.append(playersBox, content);
+  // ---- barra de controles (abas + período + atualizar)
+  const nav = el('nav', 'stats-tabs');
+  const tools = el('div', 'stats-tools');
+  const content = el('div', 'stats-content');
+  root.append(nav, tools, content);
 
-    const showList = () => {
-      playersBox.textContent = '';
-      content.textContent = '';
-      drawPlayerList(playersBox, (id) => showPlayer(id));
-      content.append(el('h2', null, '🌍 Agregado de todos os jogadores'));
-      draw(content, aggregate(cache.docs), cache.topScore);
-    };
-    const showPlayer = (id) => {
-      playersBox.textContent = '';
-      content.textContent = '';
-      const back = el('button', 'stats-back', '← voltar à lista');
-      back.addEventListener('click', showList);
-      playersBox.append(back);
-      drawPlayerCard(content, cache.docs.find((d) => d.id === id));
-      root.scrollIntoView({ block: 'start' });
-    };
-    showList();
+  const periods = [[0, 'tudo'], [30, '30 dias'], [7, '7 dias']];
+  const periodBox = el('div', 'stats-period');
+  periodBox.append(el('span', null, 'Período:'));
+  for (const [days, label] of periods) {
+    const b = el('button', days === periodDays ? 'on' : null, label);
+    b.addEventListener('click', () => { periodDays = days; paint(); });
+    periodBox.append(b);
+  }
+  const refresh = el('button', 'stats-refresh', '🔄 Atualizar');
+  refresh.addEventListener('click', () => { cache = null; render(); });
+  tools.append(periodBox, refresh);
+
+  const hash = location.hash.replace('#', '');
+  let active = tabs.some((t) => t.id === hash) ? hash : tabs[0].id;
+
+  function paint() {
+    nav.textContent = '';
+    for (const tab of tabs) {
+      const b = el('button', tab.id === active ? 'on' : null, tab.label);
+      b.addEventListener('click', () => {
+        active = tab.id;
+        history.replaceState(null, '', `#${tab.id}`);
+        paint();
+      });
+      nav.append(b);
+    }
+    // O filtro de período não faz sentido na aba Jogadores (que é navegação)
+    periodBox.hidden = active === 'jogadores';
+    [...periodBox.querySelectorAll('button')].forEach((b, i) => {
+      b.className = periods[i][0] === periodDays ? 'on' : '';
+    });
+    content.textContent = '';
+    tabs.find((t) => t.id === active).draw(content);
+    // Rola até a NAV, não até o conteúdo: a nav é sticky, então parar no topo
+    // do conteúdo deixaria a primeira seção escondida atrás dela
+    nav.scrollIntoView({ block: 'start' });
+  }
+  paint();
+}
+
+// ============================================================ derivações
+
+// Corte do período em epoch/segundos (0 = sem corte)
+function since() {
+  return periodDays ? Math.floor(Date.now() / 1000) - periodDays * 86400 : 0;
+}
+
+// Todas as corridas de todos os jogadores, achatadas. `attemptIndex` é o
+// número da tentativa na VIDA do jogador: `runs` é a janela das últimas 50,
+// então a primeira delas é a de número (attempts - runs.length + 1).
+function allRuns(docs, sinceS = since()) {
+  const out = [];
+  for (const d of docs) {
+    if (!Array.isArray(d.runs)) continue;
+    const base = Math.max(0, num(d.attempts) - d.runs.length);
+    d.runs.forEach((r, i) => {
+      if (!r || typeof r !== 'object') return;
+      const t = num(r.t);
+      if (sinceS && t < sinceS) return;
+      out.push({
+        id: d.id, t, m: num(r.m), s: num(r.s), c: str(r.c) || null,
+        w: num(r.w), r: num(r.r), o: num(r.o), a: num(r.a),
+        j: num(r.j), d: num(r.d), x: num(r.x), k: num(r.k),
+        attemptIndex: base + i + 1,
+      });
+    });
+  }
+  return out;
+}
+
+function dayKeyOf(epochS) {
+  const d = new Date(epochS * 1000);
+  const p = (v) => String(v).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+// Série diária de jogadores únicos × execuções. Preferimos `history.days`
+// (contagem exata, v1.6.1+) e caímos para `runs[]` nos docs antigos — que
+// SUBESTIMA quem fez mais de 50 corridas no dia; a aba avisa quando isso
+// ainda está pesando.
+function daySeries(docs, days = 30) {
+  const runsBy = new Map();
+  const playersBy = new Map();
+  let legacy = 0;
+
+  const add = (day, id, runs) => {
+    runsBy.set(day, (runsBy.get(day) || 0) + runs);
+    if (!playersBy.has(day)) playersBy.set(day, new Set());
+    playersBy.get(day).add(id);
+  };
+
+  for (const d of docs) {
+    const hist = (d.history && typeof d.history === 'object') ? d.history : {};
+    const map = (hist.days && typeof hist.days === 'object') ? hist.days : null;
+    if (map && Object.keys(map).length) {
+      for (const [day, v] of Object.entries(map)) {
+        const r = num(v && v.r);
+        if (r > 0) add(day, d.id, r);
+      }
+    } else if (Array.isArray(d.runs) && d.runs.length) {
+      legacy++;
+      for (const run of d.runs) {
+        const t = num(run && run.t);
+        if (t > 0) add(dayKeyOf(t), d.id, 1);
+      }
+    }
+  }
+
+  // Preenche os dias VAZIOS: sem isso o gráfico esconde os buracos e mente
+  // sobre a cadência
+  const labels = [];
+  const runs = [];
+  const players = [];
+  const today = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today.getTime() - i * 86400000);
+    const p = (v) => String(v).padStart(2, '0');
+    const key = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    labels.push(`${p(d.getDate())}/${p(d.getMonth() + 1)}`);
+    runs.push(runsBy.get(key) || 0);
+    players.push((playersBy.get(key) || new Set()).size);
+  }
+  return { labels, runs, players, legacy };
+}
+
+// Retenção: dos jogadores cujo 1º dia foi há pelo menos K dias, quantos
+// voltaram no dia +K. Só dá para calcular com `history.days` (v1.6.1+).
+function retention(docs) {
+  const marks = [1, 3, 7, 14, 30];
+  const hit = marks.map(() => 0);
+  const elig = marks.map(() => 0);
+  let covered = 0;
+  const todayMs = Date.now();
+
+  for (const d of docs) {
+    const hist = (d.history && typeof d.history === 'object') ? d.history : {};
+    const map = (hist.days && typeof hist.days === 'object') ? hist.days : null;
+    if (!map || !Object.keys(map).length) continue;
+    covered++;
+    const keys = Object.keys(map).sort();
+    const first = new Date(`${keys[0]}T12:00:00`);
+    const set = new Set(keys);
+    marks.forEach((k, i) => {
+      const target = new Date(first.getTime() + k * 86400000);
+      if (target.getTime() > todayMs) return; // ainda não deu tempo de voltar
+      elig[i]++;
+      const p = (v) => String(v).padStart(2, '0');
+      const key = `${target.getFullYear()}-${p(target.getMonth() + 1)}-${p(target.getDate())}`;
+      if (set.has(key)) hit[i]++;
+    });
+  }
+  return { marks, hit, elig, covered };
+}
+
+// ============================================================ abas
+
+function tabOverview(root) {
+  const agg = aggregate(cache.docs);
+  const record = cache.topScore;
+  const runs = allRuns(cache.docs);
+
+  root.append(el('h2', null, '🦏 Visão geral'));
+  const cards = el('div', 'stat-cards');
+  const winRate = agg.attempts > 0 ? (agg.wins / agg.attempts) * 100 : 0;
+  if (record && record.score > 0) {
+    cards.append(card(`${record.score}m`, `🏆 recorde — ${record.name}`));
+  }
+  cards.append(
+    card(agg.players, 'jogadores'),
+    card(agg.attempts, 'execuções'),
+    card(agg.wins, 'fugas (cruzaram o portão)'),
+    card(`${winRate.toFixed(1)}%`, 'fugas por execução'),
+    card(formatTime(agg.playTimeS), 'tempo total jogado'),
+    card(formatTime(agg.playTimeS / agg.players), 'tempo médio/jogador'),
+    card((agg.attempts / agg.players).toFixed(1), 'tentativas médias/jogador'),
+    card(`${((agg.standalone / agg.players) * 100).toFixed(0)}%`, 'com PWA instalado'),
+  );
+  root.append(cards);
+  root.append(el('p', 'stats-note',
+    'Os cartões acima são totais VITALÍCIOS por aparelho — não respondem ao filtro de período.'));
+
+  // O pedido explícito: jogadores únicos/dia contra execuções/dia
+  const window = periodDays || 30;
+  const series = daySeries(cache.docs, window);
+  root.append(el('h2', null, `📅 Jogadores únicos × execuções por dia (${window} dias)`));
+  root.append(comboChart(series.labels, series.runs, series.players, {
+    barLabel: 'execuções', lineLabel: 'jogadores únicos',
+  }));
+  if (series.legacy > 0) {
+    root.append(el('p', 'stats-note',
+      `${series.legacy} aparelho(s) ainda em versão anterior à 1.6.1: para eles o dia é ` +
+      'reconstruído pela janela das últimas 50 corridas, o que subestima dias muito ativos.'));
+  }
+
+  root.append(el('h2', null, '🏁 Progresso: quantos jogadores já alcançaram…'));
+  root.append(chartBox(stepArea(agg.funnelSteps, { highlight: '🗽' }),
+    `De ${agg.players} jogadores. O degrau destacado é o portão dos ${GATE_M}m.`));
+
+  // Recorde mundial ao longo do tempo — máximo acumulado sobre todas as corridas
+  const sorted = runs.slice().sort((a, b) => a.t - b.t);
+  if (sorted.length > 4) {
+    let best = 0;
+    const labels = [];
+    const values = [];
+    let lastDay = '';
+    for (const r of sorted) {
+      best = Math.max(best, r.m);
+      const day = dayKeyOf(r.t).slice(5).replace('-', '/');
+      if (day === lastDay) { values[values.length - 1] = best; continue; }
+      lastDay = day;
+      labels.push(day);
+      values.push(best);
+    }
+    root.append(el('h2', null, '📈 Melhor marca registrada, dia a dia'));
+    root.append(chartBox(lineChart(labels, values, { fmt: (v) => `${v}m` }),
+      'Máximo acumulado sobre TODAS as corridas conhecidas (inclui quem não está no ranking).'));
+  }
+}
+
+function tabDifficulty(root) {
+  const agg = aggregate(cache.docs);
+  const runs = allRuns(cache.docs);
+  const deaths = runs.filter((r) => r.c && r.c !== 'win');
+
+  root.append(el('h2', null, '💀 Onde as corridas terminam'));
+  if (deaths.length) {
+    // Cortar a cauda: uma única corrida de 3161m esticava o eixo e espremia
+    // a região de 0–1000m, que é onde 95% das mortes acontecem
+    const values = deaths.map((r) => r.m).sort((a, b) => a - b);
+    const p97 = values[Math.min(values.length - 1, Math.floor(values.length * 0.97))];
+    const top = Math.max(200, Math.ceil(p97 / 100) * 100);
+    const cut = values.filter((m) => m > top).length;
+    root.append(chartBox(
+      histogram(values, { binSize: 25, unit: 'm', max: top }),
+      `${deaths.length} mortes, em faixas de 25m. Um PICO num valor único é sempre um ` +
+      'obstáculo específico — não dificuldade difusa.' +
+      (cut ? ` (${cut} corrida(s) acima de ${top}m ficaram na última faixa.)` : '')));
+  } else {
+    root.append(el('p', 'stats-status',
+      'Sem causa registrada nas corridas do período (gravada a partir da v1.6).'));
+  }
+
+  // O cruzamento que hoje não existe: as duas dimensões vivem separadas
+  root.append(el('h2', null, '🎯 Causa × faixa de distância'));
+  const bands = ['0–200', '200–400', '400–600', '600–800', '800–1000', '1000m+'];
+  const causeKeys = ['wall', 'spike', 'animal', 'dart', 'tower', 'fall'];
+  const rows = causeKeys.map((k) => Constants.CAUSE_LABELS[k] || k);
+  const matrix = causeKeys.map(() => bands.map(() => 0));
+  for (const r of deaths) {
+    const ci = causeKeys.indexOf(r.c);
+    if (ci < 0) continue;
+    const bi = Math.min(bands.length - 1, Math.floor(r.m / 200));
+    matrix[ci][bi]++;
+  }
+  root.append(chartBox(heatmap(rows, bands, matrix, { fmt: (v) => `${v} mortes` }),
+    'Conteúdo caro que só mata numa faixa onde quase ninguém chega é conteúdo invisível.'));
+
+  root.append(el('h2', null, '💀 Mortes por etapa do jogo (total vitalício)'));
+  root.append(barChart([
+    ['Tier 1 (0–200m)', agg.deathsTier[0]],
+    ['Tier 2 (200–400m)', agg.deathsTier[1]],
+    ['Tier 3 (400–600m)', agg.deathsTier[2]],
+    ['Tier 4 (600–800m)', agg.deathsTier[3]],
+    ['Tier 5 (800–1000m)', agg.deathsTier[4]],
+    ['Tier 6 (1000m+ ∞)', agg.deathsTier[5]],
+  ]));
+
+  root.append(el('h2', null, '⚔️ Mortes por causa (total vitalício)'));
+  root.append(barChart(
+    Object.entries(Constants.CAUSE_LABELS)
+      .filter(([k]) => k !== 'win')
+      .map(([k, label]) => [label, agg.causes[k] || 0])
+  ));
+
+  // Curva de aprendizado: o jogo ENSINA ou sorteia?
+  const buckets = [[1, 5], [6, 15], [16, 30], [31, 50], [51, 100], [101, 1e9]];
+  const labels = ['1–5', '6–15', '16–30', '31–50', '51–100', '100+'];
+  const sums = buckets.map(() => [0, 0]);
+  for (const r of runs) {
+    const i = buckets.findIndex(([a, b]) => r.attemptIndex >= a && r.attemptIndex <= b);
+    if (i < 0) continue;
+    sums[i][0] += r.m;
+    sums[i][1]++;
+  }
+  const usable = sums.map(([sum, n], i) => [labels[i], n ? Math.round(sum / n) : 0])
+    .filter((_, i) => sums[i][1] > 0);
+  if (usable.length > 1) {
+    root.append(el('h2', null, '🎓 Curva de aprendizado'));
+    root.append(chartBox(
+      lineChart(usable.map(([l]) => l), usable.map(([, v]) => v), { fmt: (v) => `${v}m` }),
+      'Distância média por faixa de tentativa. Curva PLANA = o jogo sorteia em vez de ensinar.'));
+  }
+}
+
+function tabEngagement(root) {
+  const runs = allRuns(cache.docs);
+  const agg = aggregate(cache.docs);
+
+  const ret = retention(cache.docs);
+  root.append(el('h2', null, '🔁 Retenção'));
+  if (ret.covered === 0) {
+    root.append(el('p', 'stats-status',
+      'A retenção depende do histórico diário, gravado a partir da v1.6.1 — ' +
+      'ela aparece conforme os aparelhos forem atualizando.'));
+  } else {
+    root.append(barChart(
+      ret.marks.map((k, i) => [`D${k}`, ret.elig[i] ? Math.round((ret.hit[i] / ret.elig[i]) * 100) : 0]),
+      100, (v) => `${v}%`));
+    root.append(el('p', 'stats-note',
+      `Base: ${ret.covered} aparelho(s) com histórico diário. "D7" = voltou exatamente ` +
+      '7 dias depois do primeiro dia.'));
+  }
+
+  // Hora do dia: quando o jogo é jogado (relógio de QUEM ABRE este painel)
+  const hours = new Array(24).fill(0);
+  for (const r of runs) if (r.t) hours[new Date(r.t * 1000).getHours()]++;
+  if (runs.length) {
+    root.append(el('h2', null, '🕒 Execuções por hora do dia'));
+    root.append(chartBox(
+      comboChart(hours.map((_, h) => `${h}h`), hours, [],
+        { barLabel: 'execuções', height: 200 }),
+      'No seu fuso horário — é o relógio de quem abre este painel, não o do jogador.'));
+  }
+
+  const durations = runs.map((r) => r.s).filter((s) => s > 0);
+  if (durations.length) {
+    root.append(el('h2', null, '⏱️ Duração das corridas'));
+    root.append(chartBox(
+      histogram(durations, { binSize: 10, unit: 's', color: '#4ecdc4' }),
+      `${durations.length} corridas com duração registrada (a partir da v1.6).`));
+  }
+
+  root.append(el('h2', null, '🚪 Quem fica e quem sai'));
+  const churn = cache.docs.filter((d) => num(d.attempts) <= 2).length;
+  const loyal = cache.docs.filter((d) => num(d.attempts) >= 20).length;
+  const cards = el('div', 'stat-cards');
+  cards.append(
+    card(`${((churn / agg.players) * 100).toFixed(0)}%`, 'saíram com ≤2 tentativas'),
+    card(`${((loyal / agg.players) * 100).toFixed(0)}%`, 'com 20+ tentativas'),
+    card(runs.length, `execuções no período (${periodDays ? `${periodDays}d` : 'tudo'})`),
+    card(new Set(runs.map((r) => r.id)).size, 'jogadores ativos no período'),
+  );
+  root.append(cards);
+
+  root.append(el('h2', null, '📊 Distribuição dos recordes pessoais'));
+  root.append(chartBox(
+    histogram(cache.docs.map((d) => num(d.bestM)), { binSize: 100, unit: 'm', color: '#ffcc00' }),
+    'Onde está o teto real da base de jogadores.'));
+}
+
+function tabMechanics(root) {
+  const runs = allRuns(cache.docs);
+  const withData = runs.filter((r) => r.j > 0 || r.d > 0 || r.w > 0);
+
+  if (!withData.length) {
+    root.append(el('h2', null, '💨 Mecânicas'));
+    root.append(el('p', 'stats-status',
+      'As mecânicas por corrida (investidas, pulos, paredes, rampas, torres) começam a ser ' +
+      'gravadas na v1.6.1. Esta aba se preenche conforme os aparelhos forem atualizando.'));
     return;
   }
 
-  root.append(content);
-  draw(content, aggregate(cache.docs), cache.topScore);
+  // A pergunta central: quem morre cedo é quem não descobriu a investida?
+  const byPlayer = new Map();
+  for (const r of withData) {
+    const p = byPlayer.get(r.id) || { runs: 0, d: 0, best: 0, r: 0, o: 0, x: 0 };
+    p.runs++;
+    p.d += r.d;
+    p.r += r.r;
+    p.o += r.o;
+    p.x += r.x;
+    p.best = Math.max(p.best, r.m);
+    byPlayer.set(r.id, p);
+  }
+  const players = [...byPlayer.values()];
+  const pct = (n) => `${Math.round((n / players.length) * 100)}%`;
+
+  root.append(el('h2', null, '💨 Quem descobriu cada mecânica'));
+  root.append(barChart([
+    ['💨 já investiu', players.filter((p) => p.d > 0).length],
+    ['🏔️ já destruiu rampa', players.filter((p) => p.r > 0).length],
+    ['🏰 já derrubou torre', players.filter((p) => p.o > 0).length],
+  ], players.length, (v) => `${v} (${pct(v)})`));
+
+  const noDash = players.filter((p) => p.d === 0);
+  const withDash = players.filter((p) => p.d > 0);
+  if (noDash.length && withDash.length) {
+    const avg = (arr) => Math.round(arr.reduce((a, p) => a + p.best, 0) / arr.length);
+    root.append(el('h2', null, '🎯 Investida × desempenho'));
+    root.append(barChart([
+      [`usa a investida (${withDash.length})`, avg(withDash)],
+      [`nunca investiu (${noDash.length})`, avg(noDash)],
+    ], null, (v) => `${v}m`));
+    root.append(el('p', 'stats-note',
+      'Melhor marca média de cada grupo. Uma diferença grande diz que o problema não é ' +
+      'dificuldade — é ENSINO da mecânica.'));
+  }
+
+  // Investida pedida durante o cooldown: atrito direto com a espera
+  const wasted = withData.reduce((a, r) => a + r.x, 0);
+  const fired = withData.reduce((a, r) => a + r.d, 0);
+  root.append(el('h2', null, '⏳ Atrito com o cooldown'));
+  const cards = el('div', 'stat-cards');
+  cards.append(
+    card(fired, 'investidas que saíram'),
+    card(wasted, 'pedidas durante a recarga'),
+    card(fired + wasted > 0 ? `${Math.round((wasted / (fired + wasted)) * 100)}%` : '0%',
+      'dos toques de investida foram negados'),
+    card((withData.reduce((a, r) => a + r.j, 0) / withData.length).toFixed(1), 'pulos por corrida'),
+  );
+  root.append(cards);
+
+  // Uso por faixa de distância: o conteúdo está onde as pessoas chegam?
+  const bands = ['0–200', '200–400', '400–600', '600–800', '800–1000', '1000m+'];
+  const rows = ['🧱 paredes', '🏔️ rampas', '🏰 torres', '🦁 animais'];
+  const keys = ['w', 'r', 'o', 'a'];
+  const matrix = keys.map(() => bands.map(() => 0));
+  for (const run of withData) {
+    const bi = Math.min(bands.length - 1, Math.floor(run.m / 200));
+    keys.forEach((k, i) => { matrix[i][bi] += run[k]; });
+  }
+  root.append(el('h2', null, '🗺️ O que é destruído, e onde'));
+  root.append(chartBox(heatmap(rows, bands, matrix, { fmt: (v) => `${v}` }),
+    'Cada corrida cai na faixa em que TERMINOU, então as faixas altas somam o caminho inteiro.'));
+
+  const keyboard = withData.filter((r) => r.k).length;
+  root.append(el('h2', null, '⌨️ Teclado × toque'));
+  root.append(chartBox(donut([
+    ['teclado (desktop)', keyboard],
+    ['toque', withData.length - keyboard],
+  ], { size: 150 })));
 }
 
-// --------------------------------------------------------- modo detalhado
+function tabAudience(root) {
+  const agg = aggregate(cache.docs);
+
+  root.append(el('h2', null, '📱 Dispositivos, sistema e navegador'));
+  const grid = el('div', 'donut-grid');
+  for (const [title, map] of [
+    ['Dispositivo', agg.device], ['Sistema', agg.os], ['Navegador', agg.browser],
+  ]) {
+    const box = el('div');
+    box.append(el('h3', null, title), donut(topEntries(map, 6), { size: 150 }));
+    grid.append(box);
+  }
+  root.append(grid);
+
+  if (agg.model.size) {
+    root.append(el('h2', null, '📲 Modelos (Android/Chromium)'));
+    root.append(barChart(topEntries(agg.model, 10)));
+  }
+  root.append(el('h2', null, '🔳 Resoluções de tela'));
+  root.append(barChart(topEntries(agg.screen, 8)));
+
+  root.append(el('h2', null, '🌍 Países'));
+  root.append(chartBox(treemap(topEntries(agg.country, 12), { height: 180 })));
+  if (agg.city.size) {
+    root.append(el('h2', null, '🏙️ Cidades (última localização conhecida)'));
+    root.append(chartBox(treemap(topEntries(agg.city, 16), { height: 240 }),
+      'A cidade é revalidada a cada 12h — é sempre a mais recente, não a mais frequente.'));
+  }
+  if (agg.tz.size) {
+    root.append(el('h2', null, '🕰️ Fusos horários'));
+    root.append(barChart(topEntries(agg.tz, 8)));
+  }
+
+  root.append(el('h2', null, '🏷️ Versões do jogo'));
+  root.append(chartBox(donut(topEntries(agg.version, 6), { size: 150 })));
+}
+
+function tabPlayers(root) {
+  const playersBox = el('div', 'stats-players');
+  const body = el('div');
+  root.append(playersBox, body);
+
+  const showList = () => {
+    playersBox.textContent = '';
+    body.textContent = '';
+    drawPlayerList(playersBox, showPlayer);
+  };
+  const showPlayer = (id) => {
+    playersBox.textContent = '';
+    body.textContent = '';
+    const back = el('button', 'stats-back', '← voltar à lista');
+    back.addEventListener('click', showList);
+    playersBox.append(back);
+    drawPlayerCard(body, cache.docs.find((d) => d.id === id));
+    body.scrollIntoView({ block: 'start' });
+  };
+  showList();
+}
+
+// ============================================================ modo detalhado
 
 // Resumo de 1 jogador para a tabela (aceita doc v1.3.0 achatado, v1.3.1
 // aninhado e v1.5.0 com history)
@@ -131,11 +614,6 @@ function playerRow(doc) {
   const client = (doc.client && typeof doc.client === 'object') ? doc.client : doc;
   const geo = (doc.geo && typeof doc.geo === 'object') ? doc.geo : doc;
   const hist = (doc.history && typeof doc.history === 'object') ? doc.history : {};
-  const topKey = (obj) => {
-    const entries = Object.entries(obj || {}).filter(([, v]) => typeof v === 'number');
-    if (!entries.length) return '';
-    return entries.sort((a, b) => b[1] - a[1])[0][0];
-  };
   const device = topKey(hist.clients) ||
     [str(client.device), str(client.os), str(client.browser)].filter(Boolean).join(' · ') ||
     'desconhecido';
@@ -149,9 +627,39 @@ function playerRow(doc) {
     lastSeenS: tsSeconds(doc.updatedAt),
     firstSeenS: num(hist.firstSeenS),
     device,
-    place: topKey(hist.geos) || str(geo.country) || '??',
+    // ÚLTIMA localização (o mapa `geo` é reescrito a cada envio), não a mais
+    // frequente: `topKey(hist.geos)` respondia "onde ele mais jogou", que é
+    // outra pergunta — essa virou a seção "de onde jogou" da ficha.
+    place: lastPlace(geo) || topKey(hist.geos) || '??',
+    placeAtS: num(geo.at),
     version: str(doc.gameVersion) || 'pré-1.3.0',
   };
+}
+
+function topKey(obj) {
+  const entries = Object.entries(obj || {}).filter(([, v]) => typeof v === 'number');
+  if (!entries.length) return '';
+  return entries.sort((a, b) => b[1] - a[1])[0][0];
+}
+
+// "Cidade (Região) · BR" a partir do mapa `geo` do doc
+function lastPlace(geo) {
+  const city = str(geo.city);
+  const region = str(geo.region);
+  const country = str(geo.country);
+  const place = city ? (region ? `${city} (${region})` : city) : '';
+  if (place) return country ? `${place} · ${country}` : place;
+  return country;
+}
+
+// Idade da medição de localização — "agora", "há 3h", "há 12 dias"
+function ageLabel(epochS) {
+  if (!epochS) return '';
+  const s = Math.max(0, Math.floor(Date.now() / 1000) - epochS);
+  if (s < 3600) return 'agora há pouco';
+  if (s < 86400) return `há ${Math.floor(s / 3600)}h`;
+  const d = Math.floor(s / 86400);
+  return d === 1 ? 'ontem' : `há ${d} dias`;
 }
 
 // Timestamp do Firestore (lite) → epoch em segundos
@@ -177,7 +685,7 @@ const COLUMNS = [
   { key: 'playTimeS', label: 'Tempo', text: (r) => formatTime(r.playTimeS) },
   { key: 'lastSeenS', label: 'Último acesso', text: (r) => fmtDate(r.lastSeenS) },
   { key: 'device', label: 'Aparelho', text: (r) => r.device, num: false },
-  { key: 'place', label: 'Local', text: (r) => r.place, num: false },
+  { key: 'place', label: 'Local (último)', text: (r) => r.place, num: false },
 ];
 
 function drawPlayerList(root, onSelect) {
@@ -252,10 +760,13 @@ function drawPlayerCard(root, doc) {
   const runs = Array.isArray(doc.runs) ? doc.runs : [];
 
   root.append(el('h2', null, `👤 ${r.name}`));
-  root.append(el('p', 'stats-sub', `id ${doc.id.slice(0, 8)} · ${r.device} · ${r.place} · versão ${r.version}`));
+  const age = ageLabel(r.placeAtS);
+  root.append(el('p', 'stats-sub',
+    `id ${doc.id.slice(0, 8)} · ${r.device} · ${r.place}${age ? ` (${age})` : ''} · versão ${r.version}`));
 
   const cards = el('div', 'stat-cards');
-  const days = new Set(runs.map((x) => fmtDate(num(x && x.t)))).size;
+  const days = hist && hist.days ? Object.keys(hist.days).length
+    : new Set(runs.map((x) => fmtDate(num(x && x.t)))).size;
   cards.append(
     card(`${r.best}m`, '🏆 recorde'),
     card(r.attempts, 'execuções'),
@@ -278,11 +789,31 @@ function drawPlayerCard(root, doc) {
     root.append(runsChart(runs));
     const list = el('ul', 'runs-list', '');
     for (const run of runs.slice().reverse()) {
-      list.append(el('li', null, `${fmtDate(num(run && run.t), true)} — ${num(run && run.m)}m`));
+      const extra = [
+        num(run && run.s) ? `${num(run.s)}s` : '',
+        str(run && run.c) ? (Constants.CAUSE_LABELS[run.c] || run.c) : '',
+        num(run && run.d) ? `💨${num(run.d)}` : '',
+        num(run && run.w) ? `🧱${num(run.w)}` : '',
+        num(run && run.r) ? `🏔️${num(run.r)}` : '',
+      ].filter(Boolean).join(' · ');
+      list.append(el('li', null,
+        `${fmtDate(num(run && run.t), true)} — ${num(run && run.m)}m${extra ? ` · ${extra}` : ''}`));
     }
     const details = el('details');
-    details.append(el('summary', null, 'ver data e hora de cada execução'), list);
+    details.append(el('summary', null, 'ver cada execução em detalhe'), list);
     root.append(details);
+  }
+
+  // Atividade diária deste jogador (v1.6.1)
+  if (hist && hist.days && Object.keys(hist.days).length > 1) {
+    const keys = Object.keys(hist.days).sort();
+    root.append(el('h2', null, '📅 Atividade por dia'));
+    root.append(chartBox(comboChart(
+      keys.map((k) => k.slice(5).replace('-', '/')),
+      keys.map((k) => num(hist.days[k] && hist.days[k].r)),
+      keys.map((k) => num(hist.days[k] && hist.days[k].b)),
+      { barLabel: 'execuções', lineLabel: 'melhor marca (m)', height: 200 }
+    )));
   }
 
   // Histórico acumulado (v1.5.0)
@@ -290,7 +821,7 @@ function drawPlayerCard(root, doc) {
     root.append(el('h2', null, '📱 Aparelhos usados'));
     root.append(barChart(topEntries(new Map(Object.entries(hist.clients || {})), 12), null, (v) => `${v} exec.`));
     if (Object.keys(hist.geos || {}).length) {
-      root.append(el('h2', null, '🌍 De onde jogou'));
+      root.append(el('h2', null, '🌍 De onde já jogou (histórico)'));
       root.append(barChart(topEntries(new Map(Object.entries(hist.geos || {})), 10), null, (v) => `${v} exec.`));
     }
     if (Object.keys(hist.versions || {}).length) {
@@ -309,11 +840,11 @@ function drawPlayerCard(root, doc) {
     ['Tier 5 (800–1000m)', agg.deathsTier[4]], ['Tier 6 (1000m+ ∞)', agg.deathsTier[5]],
   ]));
   root.append(el('h2', null, '⚔️ Mortes por causa'));
-  root.append(barChart([
-    ['🧱 Parede', agg.causes.wall], ['🔺 Espinho', agg.causes.spike],
-    ['🦁 Animal', agg.causes.animal], ['💉 Dardo', agg.causes.dart],
-    ['🏰 Torre', agg.causes.tower], ['🕳️ Anomalias de física', agg.causes.fall],
-  ]));
+  root.append(barChart(
+    Object.entries(Constants.CAUSE_LABELS)
+      .filter(([k]) => k !== 'win')
+      .map(([k, label]) => [label, agg.causes[k] || 0])
+  ));
 }
 
 // Barras verticais das execuções, em ordem cronológica; a marca do portão
@@ -334,7 +865,10 @@ function runsChart(runs) {
   return box;
 }
 
-// Exportada para o grupo de testes (tools/test-stats.mjs)
+// ============================================================ agregação
+
+// Exportada para o grupo de testes (tools/test-stats.mjs). A FORMA do retorno
+// é contrato desse teste — chaves novas podem entrar, as antigas não saem.
 export function aggregate(docs) {
   const agg = {
     players: docs.length,
@@ -353,6 +887,7 @@ export function aggregate(docs) {
     screen: new Map(),
     country: new Map(),
     city: new Map(),
+    tz: new Map(), // v1.6.1
     version: new Map(),
   };
 
@@ -396,6 +931,7 @@ export function aggregate(docs) {
     inc(agg.browser, str(client.browser) || 'desconhecido');
     if (str(client.model)) inc(agg.model, str(client.model));
     if (str(client.screen)) inc(agg.screen, str(client.screen));
+    if (str(client.tz)) inc(agg.tz, str(client.tz));
     inc(agg.country, str(geo.country) || '??');
     if (str(geo.city)) inc(agg.city, str(geo.region) ? `${str(geo.city)} (${str(geo.region)})` : str(geo.city));
     inc(agg.version, str(d.gameVersion) || 'pré-1.3.0');
@@ -412,6 +948,8 @@ export function aggregate(docs) {
   return agg;
 }
 
+// ============================================================ utilitários
+
 function num(v) {
   return typeof v === 'number' && isFinite(v) ? v : 0;
 }
@@ -422,104 +960,6 @@ function str(v) {
 
 function majorVersion(v) {
   return str(v).split('.')[0] || '';
-}
-
-function draw(root, agg, record, runs = null) {
-  // 1. Visão geral
-  root.append(el('h2', null, '🦏 Visão geral'));
-  const cards = el('div', 'stat-cards');
-  const avgAttempts = agg.attempts / agg.players;
-  const winRate = agg.attempts > 0 ? (agg.wins / agg.attempts) * 100 : 0;
-  if (record && record.score > 0) {
-    cards.append(card(`${record.score}m`, `🏆 recorde — ${record.name}`));
-  }
-  cards.append(
-    card(agg.players, 'jogadores'),
-    card(agg.attempts, 'execuções'),
-    card(agg.wins, 'fugas (cruzaram o portão)'),
-    card(`${winRate.toFixed(1)}%`, 'fugas por execução'),
-    card(formatTime(agg.playTimeS), 'tempo total jogado'),
-    card(formatTime(agg.playTimeS / agg.players), 'tempo médio/jogador'),
-    card(avgAttempts.toFixed(1), 'tentativas médias/jogador'),
-    card(`${((agg.standalone / agg.players) * 100).toFixed(0)}%`, 'com PWA instalado'),
-  );
-  root.append(cards);
-
-  // 1b. Modo individual: data/hora e distância das últimas execuções
-  if (runs !== null) {
-    root.append(el('h2', null, '🕒 Últimas execuções'));
-    if (runs.length === 0) {
-      root.append(el('p', 'stats-status', 'Sem histórico ainda — registrado a partir da v1.4.0.'));
-    } else {
-      const list = el('ul', 'runs-list', '');
-      for (const run of runs.slice().reverse()) {
-        const t = num(run && run.t);
-        const m = num(run && run.m);
-        const when = t > 0 ? new Date(t * 1000).toLocaleString('pt-BR') : '—';
-        list.append(el('li', null, `${when} — ${m}m`));
-      }
-      root.append(list);
-    }
-  }
-
-  // 2. Funil dinâmico por 200m: até onde os jogadores chegam
-  root.append(el('h2', null, '🏁 Progresso: quantos jogadores já alcançaram…'));
-  root.append(barChart(
-    agg.funnelSteps,
-    agg.players,
-    (v) => `${v} (${((v / agg.players) * 100).toFixed(0)}%)`
-  ));
-
-  // 3. Onde o jogo mata
-  root.append(el('h2', null, '💀 Mortes por etapa do jogo'));
-  root.append(barChart([
-    ['Tier 1 (0–200m)', agg.deathsTier[0]],
-    ['Tier 2 (200–400m)', agg.deathsTier[1]],
-    ['Tier 3 (400–600m)', agg.deathsTier[2]],
-    ['Tier 4 (600–800m)', agg.deathsTier[3]],
-    ['Tier 5 (800–1000m)', agg.deathsTier[4]],
-    ['Tier 6 (1000m+ ∞)', agg.deathsTier[5]],
-  ]));
-
-  root.append(el('h2', null, '⚔️ Mortes por causa'));
-  root.append(barChart([
-    ['🧱 Parede', agg.causes.wall],
-    ['🔺 Espinho', agg.causes.spike],
-    ['🦁 Animal', agg.causes.animal],
-    ['💉 Dardo', agg.causes.dart],
-    ['🏰 Torre', agg.causes.tower],
-    ['🕳️ Anomalias de física', agg.causes.fall],
-  ]));
-
-  // 4. Dispositivos
-  root.append(el('h2', null, '📱 Dispositivos'));
-  root.append(barChart(topEntries(agg.device)));
-  root.append(el('h2', null, '🖥️ Sistema operacional'));
-  root.append(barChart(topEntries(agg.os, 10)));
-  root.append(el('h2', null, '🌐 Navegadores'));
-  root.append(barChart(topEntries(agg.browser, 8)));
-  if (agg.model.size) {
-    root.append(el('h2', null, '📲 Modelos (Android/Chromium)'));
-    root.append(barChart(topEntries(agg.model, 10)));
-  }
-  root.append(el('h2', null, '🔳 Resoluções de tela'));
-  root.append(barChart(topEntries(agg.screen, 8)));
-
-  // 5. Geografia
-  root.append(el('h2', null, '🌍 Países'));
-  root.append(barChart(topEntries(agg.country, 12)));
-  if (agg.city.size) {
-    root.append(el('h2', null, '🏙️ Cidades'));
-    root.append(barChart(topEntries(agg.city, 10)));
-  }
-
-  // 6. Adoção de versão
-  root.append(el('h2', null, '🏷️ Versões do jogo'));
-  root.append(barChart(topEntries(agg.version, 8)));
-
-  const refresh = el('button', null, '🔄 Atualizar');
-  refresh.addEventListener('click', () => { cache = null; render(); });
-  root.append(refresh);
 }
 
 // entries: [label, count][] já ordenadas; max define a barra cheia

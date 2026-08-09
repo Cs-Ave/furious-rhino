@@ -5,8 +5,11 @@ import { LeaderboardSystem, getDb } from './LeaderboardSystem.js';
 // Telemetria anônima: espelha os TOTAIS locais em 1 doc stats/{playerId}
 // a cada fim de corrida. Mesmo contrato de silêncio do LeaderboardSystem —
 // nenhum erro propaga; offline/adblock/rules rejeitando = jogo segue normal.
-const GEO_TTL_OK_MS = 30 * 24 * 3600 * 1000; // sucesso: revalida em 30 dias
-const GEO_TTL_FAIL_MS = 24 * 3600 * 1000; //    falha: tenta de novo em 24h
+// v1.6.1: 30 dias deixavam quem viajou com a cidade velha por um mês. 12h dá
+// no máximo 1 requisição por sessão longa, e ela roda na tela inicial (o fim
+// de corrida sempre acerta o cache).
+const GEO_TTL_OK_MS = 12 * 3600 * 1000; // sucesso: revalida em 12h
+const GEO_TTL_FAIL_MS = 6 * 3600 * 1000; //  falha: tenta de novo em 6h
 
 // Provedores de geo por IP sem chave e com CORS aberto, em ordem.
 // O IP é usado pelo provedor para responder e NUNCA é armazenado.
@@ -16,11 +19,14 @@ export class StatsSystem {
   // País/região/cidade aproximados, cacheados em localStorage.
   // Ambos os provedores devolvem `country` = nome COMPLETO ("Brazil");
   // as rules aceitam só o código (≤3 chars) — normalizar é obrigatório.
+  // `fetchedAt` = última TENTATIVA (governa o backoff); `measuredAt` = quando
+  // a cidade foi de fato resolvida (governa a idade mostrada no painel). Numa
+  // entrada antiga, sem `measuredAt`, um vale pelo outro.
   static async getGeo() {
     const cached = StorageManager.getGeo();
     const now = Date.now();
-    if (cached && cached.fetchedAt &&
-        now - cached.fetchedAt < (cached.ok ? GEO_TTL_OK_MS : GEO_TTL_FAIL_MS)) {
+    const ttl = (cached && cached.ok && !cached.stale) ? GEO_TTL_OK_MS : GEO_TTL_FAIL_MS;
+    if (cached && cached.fetchedAt && now - cached.fetchedAt < ttl) {
       return cached.ok ? cached : null;
     }
 
@@ -37,14 +43,36 @@ export class StatsSystem {
           region: String(data.region || '').slice(0, 40),
           city: String(data.city || '').slice(0, 40),
           fetchedAt: now,
+          measuredAt: now,
         };
         StorageManager.setGeo(geo);
         return geo;
       } catch (e) { /* timeout/bloqueado — tenta o próximo provedor */ }
     }
 
+    // Revalidação falhou. Se havia uma localização boa, ela CONTINUA valendo:
+    // devolver null aqui APAGAVA o campo `geo` do documento inteiro, porque o
+    // setDoc do send() é destrutivo (sem merge). Só `fetchedAt` anda, para o
+    // backoff funcionar — a cidade e a idade dela ficam.
+    if (cached && cached.ok && cached.country) {
+      const stale = {
+        ...cached,
+        stale: true,
+        measuredAt: cached.measuredAt || cached.fetchedAt || now,
+        fetchedAt: now,
+      };
+      StorageManager.setGeo(stale);
+      return stale;
+    }
+
     StorageManager.setGeo({ ok: false, fetchedAt: now });
     return null;
+  }
+
+  // Revalidação disparada na tela inicial (fire-and-forget). Tira a rede do
+  // caminho do fim de corrida: quando o send() roda, o cache já está quente.
+  static refreshGeo() {
+    return this.getGeo().catch(() => null);
   }
 
   // Perfil do aparelho, derivado na hora do envio (sem rede, sem storage).
@@ -108,6 +136,12 @@ export class StatsSystem {
     const dpr = Math.round((window.devicePixelRatio || 1) * 100) / 100;
     info.screen = `${screen.width}x${screen.height}@${dpr}`.slice(0, 20);
     info.lang = String(navigator.language || '').slice(0, 12);
+    // Fuso do aparelho (v1.6.1): não custa rede e nunca erra. Serve de
+    // conferência cruzada do geo por IP — VPN aparece como divergência
+    // entre `tz` e `geo.country`.
+    try {
+      info.tz = String(Intl.DateTimeFormat().resolvedOptions().timeZone || '').slice(0, 40);
+    } catch (e) { /* ambiente sem Intl completo — campo simplesmente não vai */ }
 
     return info;
   }
@@ -128,13 +162,14 @@ export class StatsSystem {
   // Chamada UMA vez por corrida encerrada (o `send` roda várias vezes por
   // sessão — acumular nele inflaria os contadores). Sem rede própria: o geo
   // vem do cache de 30 dias.
-  static async recordRun() {
+  static async recordRun(meters = 0) {
     try {
       const [geo, device] = await Promise.all([this.getGeo(), this.buildDeviceInfo()]);
       StorageManager.addHistory({
         clientSig: this.clientSignature(device),
         geoLabel: this.geoLabel(geo),
         version: Constants.VERSION,
+        meters, // alimenta o `b` (melhor marca) do dia em history.days
       });
       return true;
     } catch (e) {
@@ -175,20 +210,26 @@ export class StatsSystem {
 
       // Strings opcionais só entram não-vazias (`undefined` faria o setDoc
       // lançar antes mesmo da rede); mapas vazios ficam de fora
+      // 9 chaves de 10 permitidas pelas rules (client.size() <= 10)
       const client = {};
       for (const [key, value] of Object.entries({
         device: device.device, os: device.os, osVersion: device.osVersion,
         browser: device.browser, browserVersion: device.browserVersion,
         model: device.model, screen: device.screen, lang: device.lang,
+        tz: device.tz,
       })) {
         if (typeof value === 'string' && value) client[key] = value;
       }
       if (Object.keys(client).length) data.client = client;
 
+      // 4 chaves de 4. `at` (epoch da medição) é o que deixa o painel dizer a
+      // IDADE da localização em vez de mostrar uma cidade de idade desconhecida
       if (geo && geo.country) {
         data.geo = { country: geo.country };
         if (geo.region) data.geo.region = geo.region;
         if (geo.city) data.geo.city = geo.city;
+        const at = geo.measuredAt || geo.fetchedAt;
+        if (at) data.geo.at = Math.floor(at / 1000);
       }
 
       const playerId = StorageManager.getOrCreatePlayerId();

@@ -435,6 +435,114 @@
             color: #4ecdc4;
         }
 
+        /* --- Resumo do jogador (v1.6.1) --- */
+        /* Mais largo que os outros modais: aqui cabe gráfico e barra. */
+        .modal-wide {
+            min-width: min(560px, 92vw);
+            text-align: left;
+        }
+
+        #mystats-body h3 {
+            color: #4ecdc4;
+            font-size: 15px;
+            margin: 18px 0 8px;
+            font-weight: bold;
+        }
+
+        #mystats-body .stat-cards {
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        }
+
+        #mystats-body .stat-card .v {
+            font-size: 20px;
+        }
+
+        #mystats-body .bar-row {
+            grid-template-columns: 130px 1fr 44px;
+            font-size: 13px;
+        }
+
+        #mystats-body .stats-note {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            margin: 6px 0 0;
+        }
+
+        #mystats-body .stats-status {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        #mystats-body .world-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        #mystats-body .world-list li {
+            padding: 3px 0;
+        }
+
+        .my-medals {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            font-size: 22px;
+        }
+
+        .my-medals .medal-chip.locked {
+            opacity: 0.28;
+            filter: grayscale(1);
+        }
+
+        #mystats-status {
+            min-height: 16px;
+            font-size: 13px;
+            color: #4ecdc4;
+            text-align: center;
+        }
+
+        /* --- Gráficos SVG (Charts.js), usados no modal e no /?stats --- */
+        /* overflow-x: um gráfico de 720px de viewBox não pode espremer a
+           página no celular — ele rola dentro da própria caixa. */
+        .chart-box {
+            width: 100%;
+            overflow-x: auto;
+            margin: 6px 0 2px;
+        }
+
+        .chart-box .chart {
+            min-width: 460px;
+        }
+
+        .chart-box .sparkline {
+            min-width: 0;
+        }
+
+        .chart-legend {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 4px;
+        }
+
+        .chart-legend i {
+            display: inline-block;
+            width: 11px;
+            height: 11px;
+            border-radius: 2px;
+            margin-right: 6px;
+            vertical-align: -1px;
+        }
+
+        .chart-caption {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.55);
+            margin: 4px 0 0;
+        }
+
         #pwa-modal p {
             font-size: 15px;
             line-height: 1.5;
@@ -541,6 +649,44 @@
             #install-hint {
                 font-size: 12px;
                 padding: 6px 12px;
+            }
+
+            /* Celular em paisagem: 390px de altura. O modal de estatísticas
+               rola, mas compactar faz caber o dobro de informação por tela. */
+            .modal-wide {
+                padding: 14px 18px;
+            }
+
+            .modal-wide h2 {
+                font-size: 18px;
+                margin-bottom: 8px;
+            }
+
+            #mystats-body .stat-cards {
+                grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+                gap: 7px;
+            }
+
+            #mystats-body .stat-card {
+                padding: 7px 9px;
+            }
+
+            #mystats-body .stat-card .v {
+                font-size: 16px;
+            }
+
+            #mystats-body .stat-card .l {
+                font-size: 10.5px;
+            }
+
+            #mystats-body h3 {
+                margin: 12px 0 5px;
+                font-size: 14px;
+            }
+
+            .my-medals {
+                font-size: 18px;
+                gap: 5px;
             }
         }
 
@@ -870,25 +1016,95 @@
             margin-bottom: 20px;
         }
 
-        /* Filtro por jogador (padrão: agregado geral) */
-        #stats-page .stats-filter {
-            margin: 4px 0 10px;
+        /* --- Abas do painel (v1.6.1) --- */
+        /* Rolam na horizontal no celular em vez de quebrar em duas linhas. */
+        #stats-page .stats-tabs {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding: 4px 0 2px;
+            border-bottom: 1px solid rgba(78, 205, 196, 0.25);
+            position: sticky;
+            top: 0;
+            background: #1a1a1a;
+            z-index: 2;
         }
 
-        #stats-page .stats-filter label {
-            color: rgba(255, 255, 255, 0.7);
-            margin-right: 8px;
+        #stats-page .stats-tabs button {
+            flex: 0 0 auto;
+            margin: 0;
+            padding: 9px 14px;
             font-size: 14px;
+            border: none;
+            border-bottom: 2px solid transparent;
+            border-radius: 6px 6px 0 0;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            white-space: nowrap;
         }
 
-        #stats-page select {
-            background: #2a2a2e;
-            color: white;
-            border: 1px solid #4ecdc4;
-            border-radius: 6px;
-            padding: 8px 10px;
-            font-size: 15px;
-            max-width: 100%;
+        #stats-page .stats-tabs button.on {
+            color: #4ecdc4;
+            border-bottom-color: #4ecdc4;
+            background: rgba(78, 205, 196, 0.1);
+        }
+
+        #stats-page .stats-tools {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin: 12px 0 4px;
+        }
+
+        #stats-page .stats-period {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        #stats-page .stats-period button {
+            margin: 0;
+            padding: 5px 12px;
+            font-size: 13px;
+            border-radius: 14px;
+            background: transparent;
+            border: 1px solid rgba(78, 205, 196, 0.4);
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+        }
+
+        #stats-page .stats-period button.on {
+            background: rgba(78, 205, 196, 0.22);
+            color: #4ecdc4;
+        }
+
+        #stats-page .stats-refresh {
+            margin: 0;
+        }
+
+        #stats-page .stats-note {
+            font-size: 12.5px;
+            color: rgba(255, 255, 255, 0.5);
+            margin: 6px 0 0;
+            line-height: 1.45;
+        }
+
+        #stats-page h3 {
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 14px;
+            margin: 0 0 4px;
+        }
+
+        /* Donuts lado a lado enquanto houver largura */
+        #stats-page .donut-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 14px;
         }
 
         /* Últimas execuções do jogador filtrado */
@@ -1183,6 +1399,7 @@
         </div>
         <div class="start-identity">
             <button id="identity-btn" aria-label="Trocar apelido">👤 <span id="identity-name">Escolher apelido</span> ✏️</button>
+            <button id="mystats-btn" aria-label="Minhas estatísticas">📊 Minhas estatísticas</button>
             <button id="invite-btn" aria-label="Convidar amigos">📣 Chamar a galera</button>
         </div>
         <p id="invite-status"></p>
@@ -1190,7 +1407,7 @@
         <p class="start-cta">TOQUE PARA COMEÇAR</p>
         <span class="start-footer footer-left">Designed by Thomas</span>
         <span class="start-footer footer-center">Estatísticas anônimas são coletadas · <a href="./?stats">/?stats</a></span>
-        <span class="start-footer footer-right" id="game-version">v1.6.0</span>
+        <span class="start-footer footer-right" id="game-version">v1.6.1</span>
         <button id="ranking-btn" aria-label="Ranking mundial">🏆</button>
     </div>
 
@@ -1211,6 +1428,16 @@
             <button id="nickname-save">Salvar</button>
             <button id="nickname-skip" class="btn-secondary">Ficar anônimo</button>
         </div>
+    </div>
+
+    <div id="mystats-modal" class="modal modal-wide">
+        <h2>📊 MINHAS ESTATÍSTICAS</h2>
+        <div id="mystats-body"></div>
+        <div class="btn-row">
+            <button id="mystats-share">📤 Compartilhar</button>
+            <button id="mystats-close" class="btn-secondary">Fechar</button>
+        </div>
+        <p id="mystats-status"></p>
     </div>
 
     <div id="medals-modal" class="modal">

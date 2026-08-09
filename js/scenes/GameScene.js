@@ -8,6 +8,7 @@ import { initTuningPanel } from '../systems/TuningPanel.js';
 import { LeaderboardSystem } from '../systems/LeaderboardSystem.js';
 import { MedalSystem, MEDALS } from '../systems/MedalSystem.js';
 import { StatsSystem } from '../systems/StatsSystem.js';
+import { NotifySystem } from '../systems/NotifySystem.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -59,6 +60,13 @@ export class GameScene extends Phaser.Scene {
     // paredes" mudaria de significado sem aviso
     this.runRampsSmashed = 0;
     this.runTowersDowned = 0;
+    // Contadores de INPUT (telemetria v1.6.1): dizem se o jogador achou a
+    // investida, e o `runDashWasted` mede a frustração com o cooldown
+    this.runJumps = 0;
+    this.runDashes = 0;
+    this.runDashWasted = 0;
+    this.runPauses = 0;
+    this.usedKeyboard = false;
     this.terrainRamp = null; // rampa em que o rino pisou no frame anterior
     // Tweens/timers de festa (fuga e cutscene de LENDA), para poderem ser
     // interrompidos de uma vez. Inicializados AQUI porque a fuga acontece
@@ -129,6 +137,22 @@ export class GameScene extends Phaser.Scene {
     // fetch em voo) — aqui ele sempre completa e cura docs defasados
     if (StorageManager.getAttempts() > 0) this.safeTelemetry(() => StatsSystem.send());
 
+    // Revalida a localização AQUI, com a página parada: assim o fim de corrida
+    // sempre acerta o cache e o write da telemetria nunca espera rede. Com o
+    // TTL de 12h isto é no máximo uma requisição por sessão longa.
+    this.safeTelemetry(() => StatsSystem.refreshGeo());
+
+    // ?ntfy=test manda um exemplo de cada push sem precisar jogar;
+    // ?ntfy=off silencia ESTE aparelho para sempre (e ?ntfy=on reativa)
+    const ntfyArg = new URLSearchParams(location.search).get('ntfy');
+    if (ntfyArg === 'test') this.safeTelemetry(() => NotifySystem.selfTest());
+    if (ntfyArg === 'off' || ntfyArg === 'on') {
+      NotifySystem.setSilenced(ntfyArg === 'off');
+      this.showInviteStatus(ntfyArg === 'off'
+        ? '🔕 Notificações silenciadas neste aparelho.'
+        : '🔔 Notificações reativadas neste aparelho.');
+    }
+
     // Quem provocar na pista nesta sessão. Fire-and-forget: as estacas já
     // foram plantadas com o cache anterior — o resultado desta consulta vale
     // para a PRÓXIMA corrida, e falhar não custa nada.
@@ -174,6 +198,49 @@ export class GameScene extends Phaser.Scene {
     });
     // Sem Web Share nem clipboard (LAN http): o botão não teria o que fazer
     if (!navigator.share && !navigator.clipboard) inviteBtn.style.display = 'none';
+
+    this.setupMyStatsUI();
+  }
+
+  // "📊 Minhas estatísticas": o módulo é carregado por import DINÂMICO, só no
+  // primeiro clique — o load do jogo não paga por uma tela que a maioria das
+  // sessões nunca abre.
+  setupMyStatsUI() {
+    const btn = document.getElementById('mystats-btn');
+    const modal = document.getElementById('mystats-modal');
+    if (!btn || !modal) return;
+    const stop = (ev) => ev.stopPropagation();
+
+    btn.addEventListener('pointerdown', stop);
+    modal.addEventListener('pointerdown', stop);
+    btn.addEventListener('click', async (ev) => {
+      stop(ev);
+      document.getElementById('mystats-status').textContent = '';
+      const body = document.getElementById('mystats-body');
+      try {
+        const mod = await import('../stats/MyStats.js');
+        this.myStats = mod;
+        mod.renderMyStats(body);
+      } catch (e) {
+        body.textContent = 'Não foi possível montar o resumo.';
+      }
+      this.openModal(modal);
+    });
+
+    document.getElementById('mystats-close').addEventListener('click', (ev) => {
+      stop(ev);
+      this.closeModal(modal);
+    });
+
+    const shareBtn = document.getElementById('mystats-share');
+    if (!navigator.share && !navigator.clipboard) {
+      shareBtn.style.display = 'none';
+    } else {
+      shareBtn.addEventListener('click', (ev) => {
+        stop(ev);
+        this.shareSummary(null, 'mystats-status');
+      });
+    }
   }
 
   updateIdentityLine() {
@@ -391,6 +458,9 @@ export class GameScene extends Phaser.Scene {
     }
     const ok = await LeaderboardSystem.submit(distance);
     if (ok) this.showOnlineStatus('🌍 Enviado ao ranking mundial!');
+    // Só depois de o servidor aceitar: a confirmação do topo é uma consulta
+    // nova, para nunca anunciar um "recorde mundial" a partir de cache velho
+    if (ok) this.safeTelemetry(() => NotifySystem.maybeWorldRecord(distance));
 
     // Momento do orgulho: o score acabou de SUBIR no ranking mundial. Se o
     // apelido é automático, é agora que o convite tem chance de pegar.
@@ -432,29 +502,64 @@ export class GameScene extends Phaser.Scene {
     document.getElementById(id).textContent = msg;
   }
 
-  // Folha nativa de compartilhar no celular; sem ela, copia o convite.
-  // A mensagem conta a história da corrida: lenda > fuga > tentativa.
-  async shareResult() {
+  shareResult() {
+    return this.shareSummary({
+      distance: this.finalDistance,
+      legend: this.legend,
+      escaped: Boolean(this.escaped || this.won),
+      isNewRecord: Boolean(this.finalIsRecord),
+    });
+  }
+
+  // Compartilhamento (v1.6.1): em vez de uma frase, um RESUMO formatado em
+  // markdown do WhatsApp (*negrito* + quebras de linha), montado pelo mesmo
+  // módulo que desenha o modal — assim os dois nunca discordam.
+  //
+  // `run` = resultado de uma corrida; `null` = o perfil inteiro.
+  // Três caminhos, nesta ordem: folha nativa (celular) → wa.me (desktop, que
+  // não tem navigator.share) → área de transferência.
+  async shareSummary(run = null, statusId = null) {
     const url = location.origin + location.pathname; // sem ?debug etc.
-    const d = this.finalDistance;
+    const show = (msg) => {
+      if (statusId) document.getElementById(statusId).textContent = msg;
+      else this.showShareStatus(msg);
+    };
+
     let text;
-    if (this.legend) {
-      text = `👑 SOU LENDA no FURIOUS RHINO: cheguei ao FIM DO MUNDO — ${d}m! Alguém mais consegue? Jogue de graça:`;
-    } else if (this.escaped || this.won) {
-      text = `🦏💨 EU ESCAPEI DO ZOOLÓGICO no FURIOUS RHINO — ${d}m! Duvido você chegar ao portão dos 1000m. Jogue de graça:`;
-    } else {
-      text = `🦏 Corri ${d}m fugindo do zoológico no FURIOUS RHINO (morri tentando 💀). Consegue me superar? Jogue de graça:`;
+    try {
+      const mod = this.myStats || (this.myStats = await import('../stats/MyStats.js'));
+      text = mod.shareText(run);
+    } catch (e) {
+      const d = run ? run.distance : StorageManager.getRecord();
+      text = `🦏 *FURIOUS RHINO* — ${d}m! Duvido você passar disso 😏`;
     }
+    const full = `${text}\n${url}`;
+
     if (navigator.share) {
       try {
         await navigator.share({ text, url });
-      } catch (e) { /* usuário cancelou (AbortError) — silêncio */ }
-    } else if (navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(`${text} ${url}`);
-        this.showShareStatus('🔗 Link copiado!');
+        return;
       } catch (e) {
-        this.showShareStatus('Não foi possível copiar.');
+        if (e && e.name === 'AbortError') return; // cancelou: silêncio
+        // Share falhou por outro motivo — cai nos caminhos abaixo
+      }
+    }
+
+    // Desktop sem Web Share: o wa.me abre o WhatsApp Web/desktop já com o
+    // texto pronto, que é exatamente o destino pedido
+    const wa = `https://wa.me/?text=${encodeURIComponent(full)}`;
+    const win = window.open(wa, '_blank', 'noopener');
+    if (win) {
+      show('📲 Abrindo o WhatsApp…');
+      return;
+    }
+
+    if (navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(full);
+        show('🔗 Resumo copiado — cole no WhatsApp!');
+      } catch (e) {
+        show('Não foi possível copiar.');
       }
     }
   }
@@ -602,6 +707,12 @@ export class GameScene extends Phaser.Scene {
 
     // Persiste JÁ: "Jogar Novamente" recarrega a página e apagaria memória
     StorageManager.addAttempt();
+    // Sessão = aba aberta, não corrida. Só a PRIMEIRA chamada devolve true
+    // (o sessionStorage sobrevive ao reload do "Jogar Novamente").
+    this.firstRunOfSession = StorageManager.beginSession();
+    if (this.firstRunOfSession) {
+      this.safeTelemetry(() => NotifySystem.sessionStarted());
+    }
     this.runStartedAt = Date.now();
     const overlay = document.getElementById('start-screen');
     if (overlay) overlay.style.display = 'none';
@@ -1038,10 +1149,9 @@ export class GameScene extends Phaser.Scene {
 
       if (pointer.x < this.scale.width / 2) {
         this.leftPointerId = pointer.id;
-        this.rhino.onLeftPress();
-        this.audio.playJump(this.rhino.jumpCount);
+        this.doJump();
       } else {
-        if (this.rhino.onRightPress()) this.audio.playDash();
+        this.doDash();
       }
     });
 
@@ -1063,8 +1173,7 @@ export class GameScene extends Phaser.Scene {
       this.input.keyboard.on(`keydown-${k}`, (event) => {
         if (event.repeat || !this.canPlay()) return;
         event.preventDefault(); // ESPAÇO rolaria a página
-        this.rhino.onLeftPress();
-        this.audio.playJump(this.rhino.jumpCount);
+        this.doJump(true);
       });
       // Sem guarda: só desarma a carga do pulo, é inofensivo fora da corrida
       this.input.keyboard.on(`keyup-${k}`, () => this.rhino.onLeftRelease());
@@ -1073,10 +1182,32 @@ export class GameScene extends Phaser.Scene {
     dashKeys.forEach((k) => {
       this.input.keyboard.on(`keydown-${k}`, (event) => {
         if (event.repeat || !this.canPlay()) return;
-        if (this.rhino.onRightPress()) this.audio.playDash();
+        this.doDash(true);
       });
     });
 
+  }
+
+  // Funil único das duas ações. São QUATRO pontos de entrada (ponteiro
+  // esquerdo/direito e as duas listas de teclas) — contar em cada um deles
+  // seria esquecer em um na próxima vez que alguém mexer aqui.
+  doJump(fromKeyboard = false) {
+    if (fromKeyboard) this.usedKeyboard = true;
+    this.runJumps++;
+    this.rhino.onLeftPress();
+    this.audio.playJump(this.rhino.jumpCount);
+  }
+
+  doDash(fromKeyboard = false) {
+    if (fromKeyboard) this.usedKeyboard = true;
+    if (this.rhino.onRightPress()) {
+      this.runDashes++;
+      this.audio.playDash();
+    } else {
+      // Investida pedida durante o cooldown: o jogador QUIS investir e o jogo
+      // disse não. É a medida direta de atrito com a espera do dash.
+      this.runDashWasted++;
+    }
   }
 
   // A corrida está em andamento e aceita comando?
@@ -1121,6 +1252,7 @@ export class GameScene extends Phaser.Scene {
     if (this.paused || !this.started || this.gameOver || this.won) return;
     this.paused = true;
     this.pauseStartedAt = Date.now();
+    this.runPauses++;
     this.audio.duckMusic(true);
     this.openModal(document.getElementById('pause-modal'));
     this.scene.pause();
@@ -1677,6 +1809,7 @@ export class GameScene extends Phaser.Scene {
     const hadPreviousRecord = StorageManager.getRecord() > 0;
     StorageManager.saveRecord(distance);
     this.finalDistance = distance; // usado pelo botão Compartilhar
+    this.finalIsRecord = isNewRecord; // idem — depois do saveRecord seria tarde
 
     // Overlays são só PREENCHIDOS aqui; a exibição fica no showEndOverlay
     // (o fim por dardo espera o rino adormecer; a vitória, a cutscene)
@@ -1731,13 +1864,30 @@ export class GameScene extends Phaser.Scene {
     const runS = Math.min(7200, Math.max(0,
       Math.round((Date.now() - (this.runStartedAt || Date.now()) - paused) / 1000)));
     StorageManager.addPlayTimeS(runS);
-    // Histórico das últimas 50 execuções, agora com duração e desfecho
-    StorageManager.addRun(distance, runS, won ? 'win' : (cause || 'wall'));
+    // Histórico das últimas 50 execuções: duração, desfecho e — a partir da
+    // v1.6.1 — as MECÂNICAS usadas. Os quatro primeiros contadores já eram
+    // mantidos para julgar medalha e eram jogados fora aqui.
+    StorageManager.addRun(distance, runS, won ? 'win' : (cause || 'wall'), {
+      wallsBroken: this.runWallsBroken,
+      rampsSmashed: this.runRampsSmashed,
+      towersDowned: this.runTowersDowned,
+      animalsHit: this.runAnimalsHit,
+      jumps: this.runJumps,
+      dashes: this.runDashes,
+      dashesWasted: this.runDashWasted,
+      pauses: this.runPauses,
+      keyboard: this.usedKeyboard,
+      version: Constants.VERSION,
+    });
     if (won && !this.winCounted) StorageManager.addWin(); // o portão já contou
     if (!won) StorageManager.addDeath(Constants.getTierIndex(this.rhino.getSprite().x), cause || 'wall');
     // Acumula aparelho/local/versão desta corrida ANTES do envio (o send
     // roda várias vezes por sessão; o recordRun, uma por corrida)
-    this.safeTelemetry(() => StatsSystem.recordRun().then(() => StatsSystem.send()));
+    this.safeTelemetry(() => StatsSystem.recordRun(distance).then(() => StatsSystem.send()));
+    // Acumula no resumo da sessão (o push sai na saída ou no tempo configurado)
+    this.safeTelemetry(() => NotifySystem.noteRun({
+      meters: distance, cause: won ? 'win' : (cause || 'wall'), escaped: this.escaped,
+    }));
 
     // Nº da corrida que acabou de terminar (o addAttempt do startRun já contou)
     const attemptId = won ? 'win-attempt-message' : 'attempt-message';

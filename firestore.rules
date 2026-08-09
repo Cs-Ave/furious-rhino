@@ -8,6 +8,18 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Parâmetros das notificações do administrador (v1.6.1). Leitura pública
+    // porque quem publica no ntfy é o navegador do jogador; escrita SÓ pelo
+    // console do Firebase — assim os limiares mudam sem deploy e ninguém de
+    // fora consegue redirecionar ou desligar os pushes.
+    // Doc esperado: config/notify — os campos ausentes caem nos defaults de
+    // js/notify-config.js. Bloco isolado: não compete pelo orçamento de
+    // avaliação da coleção `stats`.
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Ranking público — 1 doc por aparelho, só melhora
     match /scores/{playerId} {
       function validEntry() {

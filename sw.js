@@ -1,6 +1,6 @@
 // Network-first service worker: always serves fresh files while online
 // (essential during development), falls back to cache for offline play.
-const CACHE = 'furious-rhino-v16';
+const CACHE = 'furious-rhino-v161';
 const ASSETS = [
   './',
   './index.html',
@@ -11,6 +11,7 @@ const ASSETS = [
   './icon-maskable-512.png',
   './js/game.js',
   './js/firebase-config.js',
+  './js/notify-config.js',
   './js/utils/Constants.js',
   './js/utils/StorageManager.js',
   './js/art/ArtManifest.js',
@@ -47,7 +48,10 @@ const ASSETS = [
   './js/systems/LeaderboardSystem.js',
   './js/systems/MedalSystem.js',
   './js/systems/StatsSystem.js',
+  './js/systems/NotifySystem.js',
   './js/stats/StatsDashboard.js',
+  './js/stats/Charts.js',
+  './js/stats/MyStats.js',
   './js/scenes/BootScene.js',
   './js/scenes/GameScene.js',
   './js/entities/Rhino.js',
@@ -74,15 +78,18 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // Chamadas de dados do Firestore (googleapis.com), consultas de geo-IP e
-  // requests não-GET vão direto à rede, sem passar pelo cache (o SDK em
-  // gstatic.com continua cacheável — bom para offline). Sem o bypass do
-  // geo, a cláusula `res.type === 'cors'` abaixo congelaria a localização.
+  // Chamadas de dados do Firestore (googleapis.com), consultas de geo-IP,
+  // pushes do ntfy e requests não-GET vão direto à rede, sem passar pelo
+  // cache (o SDK em gstatic.com continua cacheável — bom para offline). Sem
+  // o bypass do geo, a cláusula `res.type === 'cors'` abaixo congelaria a
+  // localização.
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' ||
       url.hostname.endsWith('googleapis.com') ||
       url.hostname === 'get.geojs.io' ||
-      url.hostname === 'ipwho.is') return;
+      url.hostname === 'ipwho.is' ||
+      url.hostname === 'ntfy.sh' ||
+      url.hostname.endsWith('.ntfy.sh')) return;
 
   e.respondWith(
     // cache: 'no-cache' força revalidação no servidor (304 é barato): sem
