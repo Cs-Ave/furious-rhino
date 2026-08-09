@@ -39,6 +39,13 @@ export class BossFight {
     ).setDepth(-0.5).setVisible(false);
     // ADD: sobre a placa de aço clara, alpha puro quase não aparece
     this.glow.setBlendMode(Phaser.BlendModes.ADD);
+    // Moldura dourada pulsante em volta da banda-alvo: o preenchimento
+    // sozinho lia suave demais — a MIRA da luta tem de gritar
+    this.glowFrame = scene.add.rectangle(
+      Constants.WIN_DISTANCE_PX, 0, 164, Constants.CRACK_BAND_HALF * 2 + 12
+    ).setDepth(-0.5).setVisible(false);
+    this.glowFrame.setFillStyle();
+    this.glowFrame.setStrokeStyle(6, 0xffd24a, 1);
     this.glowTween = null;
 
     // 3 escudos sobre o portão = camadas restantes (HUD de mundo, não de
@@ -153,6 +160,7 @@ export class BossFight {
 
     this.positionGlow();
     this.glow.setVisible(true);
+    this.glowFrame.setVisible(true);
     scene.audio.playBossHorn();
     this.hunter.engage();
 
@@ -172,12 +180,14 @@ export class BossFight {
   positionGlow() {
     const bounds = this.layerBounds();
     this.glow.setPosition(Constants.WIN_DISTANCE_PX, bounds.center);
+    this.glowFrame.setPosition(Constants.WIN_DISTANCE_PX, bounds.center);
     if (this.glowTween) this.glowTween.stop();
-    this.glow.setAlpha(0.3);
+    this.glow.setAlpha(0.45);
+    this.glowFrame.setAlpha(1);
     this.glowTween = this.scene.tweens.add({
-      targets: this.glow,
-      alpha: { from: 0.18, to: 0.55 },
-      duration: 450,
+      targets: [this.glow, this.glowFrame],
+      alpha: { from: 0.35, to: 0.9 },
+      duration: 380,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut',
@@ -242,6 +252,7 @@ export class BossFight {
   hideFightUi() {
     if (this.glowTween) this.glowTween.stop();
     this.glow.setVisible(false);
+    this.glowFrame.setVisible(false);
     this.pips.forEach((p) => p.setAlpha(0.25));
   }
 

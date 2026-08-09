@@ -100,7 +100,7 @@ await page.waitForTimeout(1500);
     const trace = [];
     const sample = () => trace.push({
       t: s.time.now, x: sp.body.center.x, vx: Math.round(sp.body.velocity.x),
-      q: s.runBossBounces, over: s.gameOver,
+      q: s.runBossBounces, over: s.gameOver, dash: s.rhino.dashState,
     });
     // Até o 3º quique: o 1º pode acontecer antes de o traço começar, e o
     // último precisa de cauda para a RETOMADA aparecer no traço
@@ -152,6 +152,23 @@ await page.waitForTimeout(1500);
   ok('3. quica sem morrer e volta a correr sozinho (anti-soft-lock)',
     r.bounces >= 3 && !r.gameOver && bouncesSeen === recovered && bouncesSeen >= 2,
     `${r.bounces} quiques, ${recovered}/${bouncesSeen} retomadas de vx>=250`);
+
+  // A regressão relatada em teste de campo: o stun do quique deixava o dash
+  // em cooldown CHEIO e o jogador nunca conseguia investir de novo. O stun
+  // agora termina junto com o knockback — o dash tem de estar 'idle' de novo
+  // dentro da mesma janela pós-quique.
+  let dashBack = 0;
+  let dashWindows = 0;
+  for (let i = 1; i < tr.length; i++) {
+    if (tr[i].q > tr[i - 1].q) {
+      if (i + 60 > tr.length) continue;
+      dashWindows++;
+      if (tr.slice(i, i + 60).some((s) => s.dash === 'idle')) dashBack++;
+    }
+  }
+  ok('3b. a investida volta junto com o controle (dá para tentar de novo)',
+    dashWindows >= 2 && dashBack === dashWindows,
+    `${dashBack}/${dashWindows} janelas pós-quique com dash liberado`);
 
   ok('4. o recuo fica dentro da arena e nada atravessa o portão',
     minX > WIN - 1150 && Math.max(...tr.map((s) => s.x)) < WIN - 60,

@@ -127,8 +127,10 @@ export class Rhino {
   // Quique do portão blindado (v1.7): arremessa o rino para trás e abre a
   // janela em que o FurySystem não reescreve velocityX — a reescrita por
   // frame é a causa documentada do soft-lock das rampas (ver Constants.js).
-  // A investida SEMPRE paga o cooldown cheio aqui (mini-stun): o custo do
-  // contato errado com o portão é tempo sob o fogo do rifle, não a corrida.
+  // O stun É o knockback: o cooldown restante termina junto com a janela do
+  // quique, então quando o controle volta a investida volta JUNTO. Com o
+  // cooldown cheio (1s) o ciclo do quique (~1,3s) deixava uma janela de
+  // milissegundos colada no portão — impossível de acertar no toque.
   beginKnockback(vx, vy, ms) {
     this.knockbackMsLeft = ms;
     if (this.dashState === 'active' && this.wasAirborneDash) {
@@ -139,7 +141,7 @@ export class Rhino {
     this.wasAirborneDash = false;
     this.dashRefunded = false;
     this.dashState = 'cooldown';
-    this.cooldownTimer = 0;
+    this.cooldownTimer = Math.max(0, Constants.DASH_COOLDOWN_MS - ms);
     this.sprite.body.setVelocity(vx, vy);
   }
 
