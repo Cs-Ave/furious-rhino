@@ -1,7 +1,7 @@
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
-  VERSION: '1.7.0',
+  VERSION: '1.7.1',
 
   // Rótulo humano de cada desfecho de corrida. Fonte única para o painel, o
   // resumo do jogador e os pushes — os três diziam a mesma coisa com palavras
@@ -71,7 +71,7 @@ export const Constants = {
   BOSS_ARENA_PX: 1100,           // luta começa em WIN-1100 (~972m); câmera trava
   BOSS_GATE_FACE_HALF: 120,      // meia-largura do canvas do portão (banda de contato)
   BOSS_LAYERS: ['ground', 'mid', 'high'], // ordem FIXA de quebra das camadas
-  BOSS_KNOCKBACK_VX: 3000,        // recuo do quique (decai ~0.92/frame → ~300px)
+  BOSS_KNOCKBACK_VX: 3000,        // recuo do quique (decai ~0.92/frame → ~600px; tuning do dono na v1.7.1)
   BOSS_KNOCKBACK_VY: -360,       // arremesso vertical do quique
   BOSS_KNOCKBACK_MS: 650,        // janela em que o FurySystem NÃO reescreve velocityX
   BOSS_LAYER_COOLDOWN_MS: 450,   // 1 contato processado por vez (rampage não zera 3 em 3 frames)
