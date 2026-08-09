@@ -70,5 +70,43 @@ export class BootScene extends Phaser.Scene {
       frameRate: 8,
       repeat: -1,
     });
+
+    // FÚRIA TOTAL (v1.7): mesmo ciclo ping-pong do rhino-run, arte de fogo
+    this.anims.create({
+      key: 'rhino-fire-run',
+      frames: [
+        { key: 'rhino-fire-run-0', frame: '__BASE' },
+        { key: 'rhino-fire-run-1', frame: '__BASE' },
+        { key: 'rhino-fire-run-2', frame: '__BASE' },
+        { key: 'rhino-fire-run-1', frame: '__BASE' },
+      ],
+      frameRate: 12,
+      repeat: -1,
+    });
+
+    // Elenco v1.7 por bioma: pares de 2 frames como o leão/girafa. O sufixo
+    // diz o tipo de movimento (run-1 passada, flap asa, alt parte móvel);
+    // o lobo-guará fica de fora — troca textura por estado, como a zebra.
+    const ENEMY_ANIMS = [
+      ['zookeeper', 'run-1', 8], ['peacock', 'run-1', 8], ['ostrich', 'run-1', 10],
+      ['hyena', 'run-1', 10], ['buffalo', 'run-1', 8], ['jaguar', 'run-1', 10],
+      ['hippo', 'run-1', 8], ['capybara', 'run-1', 8], ['person', 'run-1', 8],
+      ['suit', 'run-1', 8],
+      ['eagle', 'flap', 8], ['bluebird', 'flap', 8], ['jabiru', 'flap', 8],
+      ['snake', 'alt', 4], ['croc', 'alt', 4], ['car', 'alt', 8],
+      ['police', 'alt', 4], ['plane', 'alt', 10], ['drone', 'alt', 8],
+      ['pickup', 'alt', 6], ['scooter', 'alt', 8],
+    ];
+    for (const [type, suffix, fps] of ENEMY_ANIMS) {
+      this.anims.create({
+        key: `${type}-run`,
+        frames: [
+          { key: `enemy-${type}`, frame: '__BASE' },
+          { key: `enemy-${type}-${suffix}`, frame: '__BASE' },
+        ],
+        frameRate: fps,
+        repeat: -1,
+      });
+    }
   }
 }

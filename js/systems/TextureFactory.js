@@ -8,6 +8,7 @@ export class TextureFactory {
     this.generateSpikes(scene);
     this.generateSpikeTower(scene);
     this.generateGate(scene);
+    this.generateGateArmored(scene);
     this.generateTranqTower(scene);
     this.generateTranqDart(scene);
     this.generateGround(scene);
@@ -70,10 +71,40 @@ export class TextureFactory {
     frame: 0x1f2531,
     metal: 0x8a939f,
     metalDark: 0x59616b,
+    // Fresta da cidade (v1.7.0, pedido do dono): concreto CLARO em vez do
+    // tijolo âmbar do zoo — combina com a fachada e continua saltando aos
+    // olhos porque o corpo do prédio é um passo bem mais escuro.
+    band: 0x9aa4b5,
+    bandLight: 0xb9c2d1,  // luz rasante no topo de cada bloco
+    bandLine: 0x39424f,   // juntas e rachaduras sobre o concreto claro
   };
 
+  // Onde a fachada arrebentou: blocos de concreto claro expostos, mesma
+  // geometria escalonada da banda de tijolos (o jogador já aprendeu que a
+  // faixa de material diferente = passagem — só o material muda de cidade)
+  static drawConcreteBand(g, x0, y0, w, h) {
+    const C = this.CITY;
+    const courseH = 24, blockW = 50;
+    for (let y = y0; y < y0 + h; y += courseH) {
+      const offset = (Math.floor(y / courseH) % 2) * (blockW / 2);
+      for (let x = x0 - blockW; x < x0 + w; x += blockW) {
+        const bx = x + offset;
+        const bw = Math.min(blockW - 2, x0 + w - Math.max(bx, x0));
+        if (bw <= 0) continue;
+        g.fillStyle(C.band, 1);
+        g.fillRect(Math.max(bx, x0), y, bw, courseH - 2);
+        g.fillStyle(C.bandLight, 0.55);
+        g.fillRect(Math.max(bx, x0), y, bw, 4);
+      }
+    }
+    g.lineStyle(2, C.bandLine, 0.7);
+    for (let y = y0; y <= y0 + h; y += courseH) {
+      g.lineBetween(x0, y, x0 + w, y);
+    }
+  }
+
   static drawFacade(g, x0, y0, w, h, inBand) {
-    if (inBand) { this.drawBricks(g, x0, y0, w, h, true); return; }
+    if (inBand) { this.drawConcreteBand(g, x0, y0, w, h); return; }
     const C = this.CITY;
 
     const floorH = 60;
@@ -232,11 +263,16 @@ export class TextureFactory {
     const bandTop = crackPos * h - Constants.CRACK_BAND_HALF;
     const bandBottom = crackPos * h + Constants.CRACK_BAND_HALF;
 
-    paint(g, 0, 0, w, h, false);
+    // Cidade: a fachada TERMINA em y=100 e a faixa 0..100 fica transparente
+    // só com a torre do coroamento — antes o prédio subia até o topo do
+    // canvas e a torre era desenhada por cima, lendo como sobreposição
+    const topY = skin === '-city' ? 100 : 0;
+    paint(g, 0, topY, w, h - topY, false);
     paint(g, 0, bandTop, w, bandBottom - bandTop, true);
 
-    // jagged cracks crossing the band (plus short tips past the edges)
-    g.lineStyle(3, C.wallCrackLine, 1);
+    // jagged cracks crossing the band (plus short tips past the edges);
+    // na cidade a rachadura é escura sobre o concreto claro
+    g.lineStyle(3, skin === '-city' ? this.CITY.bandLine : C.wallCrackLine, 1);
     const cy = crackPos * h;
     g.strokePoints([
       { x: 8, y: cy - 50 }, { x: 30, y: cy - 20 }, { x: 22, y: cy + 5 },
@@ -246,7 +282,7 @@ export class TextureFactory {
       { x: 60, y: cy - 55 }, { x: 74, y: cy - 25 }, { x: 66, y: cy },
       { x: 88, y: cy + 25 }, { x: 80, y: cy + 52 },
     ], false);
-    g.lineStyle(2, C.wallCrackLine, 0.6);
+    g.lineStyle(2, skin === '-city' ? this.CITY.bandLine : C.wallCrackLine, 0.6);
     g.lineBetween(30, bandTop - 14, 24, bandTop + 4);
     g.lineBetween(70, bandBottom - 4, 76, bandBottom + 14);
 
@@ -276,11 +312,18 @@ export class TextureFactory {
     const holeTop = cy - 70;
     const holeBottom = cy + 70;
 
-    if (holeTop > 0) paint(g, 0, 0, w, holeTop, false);
+    // Cidade: mesmo corte do variant inteiro — topo transparente, só a torre
+    const topY = skin === '-city' ? 100 : 0;
+    if (holeTop > topY) paint(g, 0, topY, w, holeTop - topY, false);
     if (holeBottom < h) paint(g, 0, holeBottom, w, h - holeBottom, false);
 
+    // Lascas e entulho na cor do material local: âmbar no zoo, concreto
+    // claro na cidade (pedido do dono: a trinca combina com o prédio)
+    const chunkFill = skin === '-city' ? this.CITY.band : C.wallCrack;
+    const chunkLine = skin === '-city' ? this.CITY.bandLine : C.wallCrackLine;
+
     // jagged edges biting into the segments
-    g.fillStyle(C.wallCrack, 1);
+    g.fillStyle(chunkFill, 1);
     for (let i = 0; i < 5; i++) {
       const x = 10 + i * 20;
       g.fillTriangle(x, holeTop, x + 16, holeTop, x + 8, holeTop + 14 + (i % 2) * 8);
@@ -288,8 +331,8 @@ export class TextureFactory {
     }
 
     // chunks clinging to the edges
-    g.fillStyle(C.wallCrack, 1);
-    g.lineStyle(1.5, C.wallCrackLine, 1);
+    g.fillStyle(chunkFill, 1);
+    g.lineStyle(1.5, chunkLine, 1);
     const chunks = [
       [14, holeTop + 20, 12], [70, holeTop + 26, 10], [42, holeTop + 16, 8],
       [22, holeBottom - 26, 11], [60, holeBottom - 20, 13], [86, holeBottom - 30, 8],
@@ -300,7 +343,7 @@ export class TextureFactory {
     });
 
     // debris pile at the bottom lip of the hole
-    g.fillStyle(C.wallOrangeDark, 1);
+    g.fillStyle(skin === '-city' ? this.CITY.slab : C.wallOrangeDark, 1);
     g.fillTriangle(4, holeBottom, 50, holeBottom, 26, holeBottom - 18);
     g.fillTriangle(40, holeBottom, 96, holeBottom, 70, holeBottom - 14);
 
@@ -551,6 +594,124 @@ export class TextureFactory {
       g.fillRect(x, y, s, s));
 
     g.generateTexture('zoo-gate-broken', 240, 200);
+    g.destroy();
+  }
+
+  // ------------------------------------------------- portão blindado (boss)
+
+  // v1.7: o portão dos 1000m amanhece BLINDADO — o boss da fuga. Full-height
+  // (canvas 240x620, do chão ao teto do mundo: não existe "por cima") com a
+  // plataforma do caçador de rifle no topo. 3 estados pelo número de camadas
+  // RESTANTES (zoo-gate-armored-3/2/1); cada quebra abre a banda da camada
+  // expondo o tijolo âmbar — a linguagem que o jogador já aprendeu nas
+  // paredes: âmbar = passagem. O estado final é o zoo-gate-broken de sempre
+  // (o crossGate troca a textura na explosão).
+  static generateGateArmored(scene) {
+    for (const layersLeft of [3, 2, 1]) {
+      this.generateGateArmoredVariant(scene, layersLeft);
+    }
+  }
+
+  static generateGateArmoredVariant(scene, layersLeft) {
+    const C = Constants.COLORS;
+    const H = Constants.CRACK_HEIGHTS;
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Ordem de quebra FIXA (chão → meio → alto): com N camadas restantes, as
+    // (3-N) primeiras da ordem já estão abertas. As bandas usam as MESMAS
+    // frações do CrackedWall sobre 720 — a física (BossFight.layerBounds) e
+    // o desenho saem da mesma conta.
+    const brokenCount = 3 - layersLeft;
+    const bandH = Constants.CRACK_BAND_HALF * 2;
+    const bands = [
+      { center: H.GROUND * 720, open: brokenCount > 0 },
+      { center: H.MID * 720, open: brokenCount > 1 },
+      { center: H.HIGH * 720, open: false }, // a 3ª quebra derruba o portão
+    ];
+
+    // Fundo do vão: chapa de aço escura com costuras verticais
+    g.fillStyle(C.steelBase, 1);
+    g.fillRect(40, 96, 160, 524);
+    g.lineStyle(2, 0x3f4247, 0.8);
+    for (let x = 80; x < 200; x += 40) g.lineBetween(x, 96, x, 620);
+
+    // Treliça diagonal (textura de estrutura, não gameplay)
+    g.lineStyle(2, C.steelDark, 0.3);
+    for (let y = 140; y < 640; y += 90) {
+      g.lineBetween(40, y, 200, y - 70);
+      g.lineBetween(40, y - 70, 200, y);
+    }
+
+    // Vigas horizontais entre as bandas
+    g.fillStyle(C.steelDark, 1);
+    for (const y of [268, 476]) g.fillRect(40, y, 160, 12);
+
+    // Faixa de perigo no alto do vão (listra vermelha/branca da cancela)
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(40, 98, 160, 12);
+    g.fillStyle(0xd6453c, 1);
+    for (let x = 44; x < 196; x += 28) g.fillRect(x, 98, 14, 12);
+
+    // As 3 bandas nas alturas das frestas
+    for (const band of bands) {
+      const top = Math.max(112, band.center - bandH / 2);
+      const h = Math.min(bandH, 616 - top);
+      if (band.open) {
+        // Camada quebrada: tijolo âmbar exposto + buraco escuro + rachaduras
+        this.drawBricks(g, 44, top, 152, h, true);
+        g.fillStyle(0x2a1c10, 1);
+        g.fillEllipse(120, top + h / 2, 104, h * 0.62);
+        g.lineStyle(3, C.wallCrackLine, 1);
+        g.lineBetween(66, top + h / 2, 92, top + 12);
+        g.lineBetween(66, top + h / 2, 96, top + h - 10);
+        g.lineBetween(174, top + h / 2, 150, top + 10);
+        g.lineBetween(174, top + h / 2, 146, top + h - 12);
+        // Entulho na borda inferior do buraco
+        g.fillStyle(C.wallCrack, 1);
+        [[86, top + h - 14, 9], [126, top + h - 10, 7], [156, top + h - 16, 8]]
+          .forEach(([x, y, s]) => g.fillRect(x, y, s, s));
+      } else {
+        // Camada selada: placa aparafusada com travamento em X
+        g.fillStyle(C.steelLight, 1);
+        g.fillRect(44, top, 152, h);
+        g.lineStyle(4, C.steelBase, 1);
+        g.strokeRect(44, top, 152, h);
+        g.lineStyle(8, C.steelDark, 1);
+        g.lineBetween(48, top + 6, 192, top + h - 6);
+        g.lineBetween(48, top + h - 6, 192, top + 6);
+        g.lineStyle(2, C.steelLight, 0.7);
+        g.lineBetween(48, top + 6, 192, top + h - 6);
+        g.fillStyle(C.steelBase, 1);
+        for (const [bx, by] of [[54, top + 10], [186, top + 10], [54, top + h - 10], [186, top + h - 10], [120, top + 10], [120, top + h - 10]]) {
+          g.fillCircle(bx, by, 5);
+        }
+      }
+    }
+
+    // Pilares de aço por cima das bordas das bandas
+    for (const x0 of [0, 200]) {
+      g.fillStyle(C.steelDark, 1);
+      g.fillRect(x0, 56, 40, 564);
+      g.fillStyle(C.steelLight, 0.5);
+      g.fillRect(x0 === 0 ? 0 : 232, 56, 8, 564);
+      g.fillStyle(C.steelBase, 1);
+      for (let y = 84; y < 620; y += 48) g.fillCircle(x0 + 20, y, 4);
+    }
+
+    // Plataforma do caçador: laje no topo + guarda-corpo
+    g.fillStyle(C.steelLight, 1);
+    g.fillRect(8, 82, 224, 14);
+    g.fillStyle(C.steelBase, 1);
+    g.fillRect(8, 92, 224, 4);
+    g.lineStyle(4, C.steelDark, 1);
+    g.lineBetween(8, 58, 232, 58);
+    for (let x = 16; x <= 224; x += 52) g.lineBetween(x, 58, x, 82);
+
+    // Sombra na base (assenta o portão no chão)
+    g.fillStyle(0x000000, 0.18);
+    g.fillRect(40, 612, 160, 8);
+
+    g.generateTexture(`zoo-gate-armored-${layersLeft}`, 240, 620);
     g.destroy();
   }
 

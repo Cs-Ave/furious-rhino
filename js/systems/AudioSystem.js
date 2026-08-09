@@ -115,6 +115,11 @@ export class AudioSystem {
 
   playBreak() {
     if (!this.ctx) return;
+    // Em FÚRIA TOTAL as quebras saem em cadeia: sem esta janela, 3 no mesmo
+    // frame somam ganho 2.4 no sfxGain e clipam audível. 80ms não muda nada
+    // no jogo normal (nunca há duas quebras tão juntas fora do especial).
+    if (this._lastBreakT && this.ctx.currentTime - this._lastBreakT < 0.08) return;
+    this._lastBreakT = this.ctx.currentTime;
     const t = this.ctx.currentTime;
 
     // filtered noise crash
@@ -291,6 +296,136 @@ export class AudioSystem {
       o.start(t + 0.55);
       o.stop(t + 1.4);
     }
+  }
+
+  // Medidor de fúria encheu (v1.7): arpejo curto subindo — um "está pronto"
+  // que não compete com a música. Molde do playFanfare, pela metade.
+  playFuryReady() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const notes = [[440, 0], [554, 0.08], [659, 0.16], [880, 0.24]];
+    notes.forEach(([freq, offset]) => {
+      const g = this.envGain(this.sfxGain);
+      const o = this.osc('triangle', freq, g);
+      g.gain.linearRampToValueAtTime(0.25, t + offset + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.18);
+      o.start(t + offset);
+      o.stop(t + offset + 0.2);
+    });
+  }
+
+  // Fim da FÚRIA TOTAL: o fogo apaga — chiado descendo + suspiro grave.
+  playFizzle() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.value = 2;
+    filter.frequency.setValueAtTime(2400, t);
+    filter.frequency.exponentialRampToValueAtTime(220, t + 0.5);
+    const gN = this.envGain(this.sfxGain);
+    filter.connect(gN);
+    gN.gain.linearRampToValueAtTime(0.35, t + 0.02);
+    gN.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+    const n = this.noise(filter);
+    n.start(t);
+    n.stop(t + 0.6);
+
+    const gT = this.envGain(this.sfxGain);
+    const o = this.osc('sine', 220, gT);
+    o.frequency.exponentialRampToValueAtTime(70, t + 0.4);
+    gT.gain.linearRampToValueAtTime(0.25, t + 0.02);
+    gT.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+    o.start(t);
+    o.stop(t + 0.5);
+  }
+
+  // Estalo seco do rifle do caçador (boss v1.7): mais agressivo que o
+  // "thwip" pneumático da torre — o jogador precisa distinguir de ouvido
+  playRifleShot() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+
+    const crack = this.ctx.createBiquadFilter();
+    crack.type = 'highpass';
+    crack.frequency.setValueAtTime(2600, t);
+    crack.frequency.exponentialRampToValueAtTime(500, t + 0.09);
+    const gC = this.envGain(this.sfxGain);
+    crack.connect(gC);
+    gC.gain.linearRampToValueAtTime(0.5, t + 0.004);
+    gC.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+    const n = this.noise(crack);
+    n.start(t);
+    n.stop(t + 0.12);
+
+    const g = this.envGain(this.sfxGain);
+    const o = this.osc('square', 700, g);
+    o.frequency.exponentialRampToValueAtTime(160, t + 0.08);
+    g.gain.linearRampToValueAtTime(0.2, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    o.start(t);
+    o.stop(t + 0.12);
+  }
+
+  // Quique no portão blindado sem quebrar nada: CLANG metálico — parciais
+  // inarmônicas detunadas (timbre de metal) + impacto curto de ruído
+  playClang() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+
+    for (const [freq, peak] of [[210, 0.3], [333, 0.22], [527, 0.16], [842, 0.1]]) {
+      const g = this.envGain(this.sfxGain);
+      const o = this.osc('triangle', freq, g);
+      o.detune.value = Math.random() * 14 - 7;
+      g.gain.linearRampToValueAtTime(peak, t + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      o.start(t);
+      o.stop(t + 0.4);
+    }
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.value = 1;
+    filter.frequency.value = 1800;
+    const gN = this.envGain(this.sfxGain);
+    filter.connect(gN);
+    gN.gain.linearRampToValueAtTime(0.3, t + 0.004);
+    gN.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+    const n = this.noise(filter);
+    n.start(t);
+    n.stop(t + 0.1);
+  }
+
+  // Sting de entrada da arena do boss: quinta grave em sawtooth subindo
+  // meio tom (tensão) sobre um rufo de ruído grave
+  playBossHorn() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+
+    for (const freq of [98, 147]) {
+      const g = this.envGain(this.sfxGain);
+      for (const detune of [-6, 6]) {
+        const o = this.osc('sawtooth', freq, g);
+        o.detune.value = detune;
+        o.frequency.linearRampToValueAtTime(freq * 1.06, t + 0.7);
+        o.start(t);
+        o.stop(t + 0.95);
+      }
+      g.gain.linearRampToValueAtTime(0.2, t + 0.05);
+      g.gain.setValueAtTime(0.2, t + 0.6);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
+    }
+
+    const rumble = this.ctx.createBiquadFilter();
+    rumble.type = 'lowpass';
+    rumble.frequency.value = 200;
+    const gR = this.envGain(this.sfxGain);
+    rumble.connect(gR);
+    gR.gain.linearRampToValueAtTime(0.35, t + 0.1);
+    gR.gain.exponentialRampToValueAtTime(0.001, t + 0.85);
+    const n = this.noise(rumble);
+    n.start(t);
+    n.stop(t + 0.9);
   }
 
   // --------------------------------------------------------------- music

@@ -3,6 +3,7 @@ import { StorageManager } from '../utils/StorageManager.js';
 import { Rhino } from '../entities/Rhino.js';
 import { SpawnManager } from '../systems/SpawnManager.js';
 import { FurySystem } from '../systems/FurySystem.js';
+import { BossFight } from '../systems/BossFight.js';
 import { AudioSystem } from '../systems/AudioSystem.js';
 import { initTuningPanel } from '../systems/TuningPanel.js';
 import { LeaderboardSystem } from '../systems/LeaderboardSystem.js';
@@ -36,9 +37,12 @@ export class GameScene extends Phaser.Scene {
     this.createGround();
 
     // Marco visual da fuga: o portão fica exatamente na linha dos 1000m.
-    // Guardado numa referência porque o crossGate o explode.
-    this.gateSprite = this.add.image(Constants.WIN_DISTANCE_PX, Constants.GROUND_TOP, 'zoo-gate')
+    // v1.7: ele amanhece BLINDADO (o boss) — full-height, canvas 240x620.
+    // Guardado numa referência porque o BossFight troca as texturas e o
+    // crossGate o explode.
+    this.gateSprite = this.add.image(Constants.WIN_DISTANCE_PX, Constants.GROUND_TOP, 'zoo-gate-armored-3')
       .setOrigin(0.5, 1).setDepth(-1);
+    this.bossFight = new BossFight(this, this.gateSprite);
     this.createSectorArches();
     this.createTrackMarks();
 
@@ -66,6 +70,11 @@ export class GameScene extends Phaser.Scene {
     this.runDashes = 0;
     this.runDashWasted = 0;
     this.runPauses = 0;
+    // v1.7: usos do especial FÚRIA TOTAL (contador `f` do runs[])
+    this.runSpecials = 0;
+    // v1.7: a luta do portão — camadas quebradas (b) e quiques (q)
+    this.runBossLayers = 0;
+    this.runBossBounces = 0;
     this.usedKeyboard = false;
     this.terrainRamp = null; // rampa em que o rino pisou no frame anterior
     // Tweens/timers de festa (fuga e cutscene de LENDA), para poderem ser
@@ -1012,10 +1021,10 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.rhino.getSprite(), ground);
 
     // Animais terrestres pisam no chão (pulos do macaco/zebra com arco real);
-    // abatidos pelo dash e o pássaro atravessam e reciclam fora da tela
+    // abatidos pelo dash e os voadores atravessam e reciclam fora da tela
     this.physics.add.collider(
       this.spawnManager.getAnimalsGroup(), ground, null,
-      (animal) => animal.active && !animal.knockedOut && animal.animalType !== 'bird',
+      (animal) => animal.active && !animal.knockedOut && !animal.isFlyer(),
       this
     );
   }
@@ -1186,6 +1195,27 @@ export class GameScene extends Phaser.Scene {
       });
     });
 
+    // Especial FÚRIA TOTAL: ↓ ou SHIFT (paridade desktop do toque no ícone)
+    ['DOWN', 'SHIFT'].forEach((k) => {
+      this.input.keyboard.on(`keydown-${k}`, (event) => {
+        if (event.repeat || !this.canPlay()) return;
+        event.preventDefault();
+        this.doSpecial(true);
+      });
+    });
+
+    // O toque no medidor de fúria chega por aqui (o stopPropagation dentro do
+    // FurySystem garante que ele não vira um doDash da metade direita)
+    this.furySystem.onActivate = () => {
+      if (this.canPlay()) this.doSpecial();
+    };
+    this.furySystem.onFull = () => {
+      this.showToast('🔥 FÚRIA CHEIA — TOQUE NO MEDIDOR!', { y: 210, size: 30, duration: 2200, color: '#ffb347' });
+      this.audio.playFuryReady();
+    };
+    this.furySystem.onEnd = () => {
+      this.audio.playFizzle();
+    };
   }
 
   // Funil único das duas ações. São QUATRO pontos de entrada (ponteiro
@@ -1208,6 +1238,22 @@ export class GameScene extends Phaser.Scene {
       // disse não. É a medida direta de atrito com a espera do dash.
       this.runDashWasted++;
     }
+  }
+
+  // Especial FÚRIA TOTAL (v1.7): só transforma com o medidor cheio; toque
+  // com medidor vazio é silencioso de propósito (o pulso do ícone já diz
+  // quando dá). O modo em si vive no FurySystem (drenagem/velocidade/sprite).
+  doSpecial(fromKeyboard = false) {
+    if (fromKeyboard) this.usedKeyboard = true;
+    if (!this.furySystem.activate(this.rhino)) return;
+    this.runSpecials++;
+    // O estouro da transformação: flash alaranjado + tremida + trovão
+    const flash = this.add.rectangle(640, 360, 1280, 720, 0xff8a2a)
+      .setScrollFactor(0).setDepth(50).setAlpha(0.5);
+    this.tweens.add({ targets: flash, alpha: 0, duration: 420, onComplete: () => flash.destroy() });
+    this.cameras.main.shake(250, 0.012);
+    this.audio.playThunder();
+    this.showToast('🔥 FÚRIA TOTAL!', { y: 250, size: 40, duration: 1500, color: '#ffb347' });
   }
 
   // A corrida está em andamento e aceita comando?
@@ -1318,7 +1364,7 @@ export class GameScene extends Phaser.Scene {
   onTowerHit(rhino, tower) {
     if (this.gameOver || this.won) return;
 
-    if (this.rhino.dashState === 'active') {
+    if (this.rhino.dashState === 'active' || this.furySystem.rampage) {
       // Dash derruba a torre — para de atirar na hora.
       // A investida volta NA HORA: até a v1.5 derrubar a torre custava o dash
       // (1s de cooldown, justo a janela da próxima parede) e não devolvia
@@ -1340,7 +1386,7 @@ export class GameScene extends Phaser.Scene {
   onDartHit(rhino, dart) {
     if (this.gameOver || this.won) return;
 
-    if (this.rhino.dashState === 'active') {
+    if (this.rhino.dashState === 'active' || this.furySystem.rampage) {
       // O dardo estoura no chifre: mini flash sem shake de câmera
       const flash = this.add.image(dart.x, dart.y, 'explosion-flash')
         .setScale(0.35).setDepth(6);
@@ -1354,7 +1400,9 @@ export class GameScene extends Phaser.Scene {
       dart.deactivate();
     } else {
       if (this.invincible) { dart.deactivate(); return; } // debug
-      this.endGame(false, 'dart');
+      // Tiro do caçador do portão conta como causa própria ('boss'): é o que
+      // separa "morreu na luta" de "morreu de torre" no painel
+      this.endGame(false, dart.fromBoss ? 'boss' : 'dart');
     }
   }
 
@@ -1370,7 +1418,9 @@ export class GameScene extends Phaser.Scene {
     const aligned = rhinoBottom > bounds.top && rhinoTop < bounds.bottom;
     const isDashing = this.rhino.dashState === 'active';
 
-    if (aligned && isDashing) {
+    // Em FÚRIA TOTAL a parede explode mesmo desalinhado da fresta — é a
+    // invencibilidade que destrói (diferente do debug, que só atravessa)
+    if (this.furySystem.rampage || (aligned && isDashing)) {
       wall.break();
       this.runWallsBroken++;
       const crackCenterY = (bounds.top + bounds.bottom) / 2;
@@ -1385,6 +1435,14 @@ export class GameScene extends Phaser.Scene {
 
   onSpikeHit(rhino, spike) {
     if (this.gameOver || this.won) return;
+    // O espinho sempre foi o único obstáculo 100% letal (nem o dash o
+    // destrói). O rino em chamas é a exceção: pulveriza no contato.
+    if (this.furySystem.rampage) {
+      this.audio.playBreak();
+      this.createExplosion(spike.x, spike.y);
+      spike.deactivate();
+      return;
+    }
     if (this.invincible) return; // debug
     this.endGame(false, 'spike');
   }
@@ -1394,7 +1452,7 @@ export class GameScene extends Phaser.Scene {
     if (animal.knockedOut) return;
 
     const isDashing = this.rhino.dashState === 'active';
-    if (isDashing) {
+    if (isDashing || this.furySystem.rampage) {
       animal.knockback();
       this.runAnimalsHit++;
       this.audio.playSqueal();
@@ -1428,8 +1486,9 @@ export class GameScene extends Phaser.Scene {
     const rb = this.rhino.getSprite().body;
     const ramp = this.spawnManager.getRampAt(rb.center.x);
 
-    // Investida RASANTE destrói; investida já na subida só acelera a escalada
-    if (ramp && this.rhino.dashState === 'active' &&
+    // Investida RASANTE destrói; investida já na subida só acelera a escalada.
+    // Em FÚRIA TOTAL a mesma janela rasante vale sem precisar do dash.
+    if (ramp && (this.rhino.dashState === 'active' || this.furySystem.rampage) &&
         rb.bottom > Constants.GROUND_TOP - Constants.RAMP_SMASH_MAX_H) {
       this.smashRamp(ramp);
       this.snapToTerrain(rb, null);
@@ -1465,7 +1524,7 @@ export class GameScene extends Phaser.Scene {
     // O collider do chão é global e plano: sem isto o leão atravessa o morro
     // e passa POR BAIXO do rino elevado. Mesmo filtro do collider (createGround)
     this.spawnManager.getAnimalsGroup().children.entries.forEach((a) => {
-      if (!a.active || a.knockedOut || a.animalType === 'bird') return;
+      if (!a.active || a.knockedOut || a.isFlyer()) return;
       this.snapToTerrain(a.body, this.spawnManager.getRampAt(a.body.center.x));
     });
   }
@@ -1540,7 +1599,17 @@ export class GameScene extends Phaser.Scene {
       });
     }
 
-    this.cameras.main.shake(150, 0.03);
+    // Em FÚRIA TOTAL as explosões saem em cadeia — shake pleno em cada uma
+    // (0.03 é forte) viraria enjoo: no modo, no máximo 1 tremida leve a cada
+    // 300ms. Fora dele, comportamento de sempre.
+    if (this.furySystem && this.furySystem.rampage) {
+      if (this.time.now - (this.lastRampageShakeAt || 0) > 300) {
+        this.lastRampageShakeAt = this.time.now;
+        this.cameras.main.shake(120, 0.012);
+      }
+    } else {
+      this.cameras.main.shake(150, 0.03);
+    }
   }
 
   createBreakParticles(x, y) {
@@ -1620,8 +1689,8 @@ export class GameScene extends Phaser.Scene {
 
     this.rhino.update(time, delta);
 
-    // Wind streaks while dashing
-    if (this.rhino.dashState === 'active') {
+    // Wind streaks while dashing (e durante a FÚRIA TOTAL — rastro contínuo)
+    if (this.rhino.dashState === 'active' || this.furySystem.rampage) {
       const sprite = this.rhino.getSprite();
       for (let i = 0; i < 3; i++) {
         this.windEmitter.emitParticleAt(
@@ -1630,8 +1699,13 @@ export class GameScene extends Phaser.Scene {
         );
       }
     }
-    this.furySystem.update(this.rhino);
-    this.audio.setIntensity(this.rhino.getFuryRatio());
+    this.furySystem.update(this.rhino, delta);
+    // v1.7: a música segue a CARGA (não mais a posição); no rampage trava no teto
+    this.audio.setIntensity(this.furySystem.getIntensityRatio());
+    // A luta do portão (v1.7): banda de contato, clamp, quique, caçador.
+    // Depois do furySystem (que fixa a velocidade do frame) e antes do
+    // spawnManager (a câmera travada da luta é o que suprime spawns).
+    this.bossFight.update(time, delta);
     // Animais leem o multiplicador do tier vigente por frame (padrão live)
     Constants.TIER_STATE.animalSpeedMult =
       Constants.getTierFor(this.rhino.getSprite().x).animalSpeedMult;
@@ -1669,6 +1743,11 @@ export class GameScene extends Phaser.Scene {
   // rodava no fim do mundo (10.000m), que nenhum jogador jamais viu. Agora o
   // clímax acontece onde o jogador chega.
   crossGate() {
+    // v1.7: quem chama normalmente é o BossFight.defeat() (a vitória é a 3ª
+    // camada, não a linha de x). Setar aqui cobre os dois caminhos e impede
+    // o gatilho legado do update de disparar uma segunda festa.
+    this.gateReached = true;
+
     const fill = document.getElementById('progress-fill');
     fill.style.width = '100%';
     fill.classList.add('infinite');
@@ -1825,7 +1904,8 @@ export class GameScene extends Phaser.Scene {
       }
     } else {
       document.getElementById('game-over-title').textContent =
-        cause === 'dart' ? 'TRANQUILIZADO! 💤' : 'GAME OVER';
+        // O rifle do caçador também é tranquilizante (ninguém mata o rino)
+        (cause === 'dart' || cause === 'boss') ? 'TRANQUILIZADO! 💤' : 'GAME OVER';
       document.getElementById('final-score').textContent = distance;
       if (isNewRecord) {
         document.getElementById('record-message').textContent = '🎉 NOVO RECORDE!';
@@ -1876,6 +1956,10 @@ export class GameScene extends Phaser.Scene {
       dashes: this.runDashes,
       dashesWasted: this.runDashWasted,
       pauses: this.runPauses,
+      specialsUsed: this.runSpecials,
+      bossLayersBroken: this.runBossLayers,
+      bossBounces: this.runBossBounces,
+      bossFightS: Math.round((this.bossFight ? this.bossFight.fightMs : 0) / 1000),
       keyboard: this.usedKeyboard,
       version: Constants.VERSION,
     });
@@ -1896,7 +1980,7 @@ export class GameScene extends Phaser.Scene {
 
     if (won) {
       this.playVictoryCutscene();
-    } else if (cause === 'dart') {
+    } else if (cause === 'dart' || cause === 'boss') {
       this.playTranqSleep();
       this.time.delayedCall(600, () => this.showEndOverlay());
     } else {

@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 48" width="108" height="48">
+  <!-- FURIOUS RHINO - proposta bioma cidade (em avaliacao, nao usada pelo jogo).
+       Viatura de policia sedan branca com faixa diagonal escura, escudo dourado na porta,
+       rammer no para-choque e giroflex no teto; aponta para a direita.
+       hitbox sugerida: 96x30 em offset 6,16 (giroflex fora da hitbox, como o chifre do rino).
+       Entre frames: o giroflex alterna (base cupula vermelha acesa, alt azul), os raios
+       das calotas giram ~36 graus e tracinhos de velocidade atras da viatura aparecem/somem. -->
+  <defs>
+    <linearGradient id="pcBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f4f6"/>
+      <stop offset="1" stop-color="#d8d9de"/>
+    </linearGradient>
+    <linearGradient id="pcGlass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cfe6f7"/>
+      <stop offset="1" stop-color="#8fbfe4"/>
+    </linearGradient>
+  </defs>
+  <!-- sombra -->
+  <ellipse cx="54" cy="45.9" rx="46" ry="2" fill="#14161a" opacity="0.5"/>
+  <!-- carroceria -->
+  <path d="M14 39 Q7 39 6.5 32 L6.5 25 Q6.5 20 12.5 18.6 L24 17.4 L31.5 12.4 Q33.5 10.4 39 10.4 L59 10.4 Q64.5 10.4 68 13.2 L75.5 18.2 L90 19.6 Q100 20.6 101.5 27 L101.5 32.5 Q101.5 39 94 39 Z" fill="url(#pcBody)" stroke="#14161a" stroke-width="2.5" stroke-linejoin="round"/>
+  <rect x="11" y="34.8" width="87" height="3.6" rx="1.8" fill="#aeb2bd" opacity="0.55"/>
+  <path d="M12 27 Q52 24.5 97 28" fill="none" stroke="#c3c6cf" stroke-width="1.3" opacity="0.8"/>
+  <!-- brilho de pintura -->
+  <path d="M37 12.7 Q48 10.8 58 12.5" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" opacity="0.6"/>
+  <path d="M80.5 21.8 Q90 22.8 96 26.4" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" opacity="0.55"/>
+  <!-- faixa diagonal escura -->
+  <path d="M35 20.5 L49 20.5 L44.5 34.5 L30.5 34.5 Z" fill="#2a2f3a"/>
+  <path d="M79.5 20.2 L88 21 L85.4 27.4 L77.3 26.2 Z" fill="#2a2f3a"/>
+  <!-- vidros -->
+  <path d="M28.5 18 L33.8 12.7 Q35.2 11.4 39.5 11.4 L45.5 11.4 L45.5 18 Z" fill="url(#pcGlass)" stroke="#14161a" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M49.5 11.4 L57.5 11.4 Q62.5 11.4 65.4 13.6 L70.8 18 L49.5 18 Z" fill="url(#pcGlass)" stroke="#14161a" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M69.9 13.9 L75.2 17.5 L71.2 18 L66.9 14.9 Z" fill="url(#pcGlass)" stroke="#14161a" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- reflexo dos vidros -->
+  <path d="M33.5 18 L38 11.4 L40.4 11.4 L35.9 18 Z" fill="#ffffff" opacity="0.45"/>
+  <path d="M52.5 18 L57.7 11.4 L60.9 11.4 L55.7 18 Z" fill="#ffffff" opacity="0.5"/>
+  <path d="M62.5 18 L67.4 12.4" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+  <!-- portas e macanetas -->
+  <path d="M35.5 20 Q34.8 29 35.8 37.8" fill="none" stroke="#14161a" stroke-width="1.5" opacity="0.85"/>
+  <path d="M69.5 19.8 Q70.4 29 69.6 37.8" fill="none" stroke="#14161a" stroke-width="1.5" opacity="0.85"/>
+  <rect x="51" y="22.5" width="5.5" height="2.4" rx="1.2" fill="#c7ccd5" stroke="#14161a" stroke-width="1.2"/>
+  <rect x="63" y="22.5" width="5.5" height="2.4" rx="1.2" fill="#c7ccd5" stroke="#14161a" stroke-width="1.2"/>
+  <path d="M24 17.6 Q24.6 22 24 25" fill="none" stroke="#14161a" stroke-width="1.4" opacity="0.7"/>
+  <!-- escudo dourado da porta -->
+  <path d="M60 21.8 L64.6 23.4 L64.6 27.2 Q64.6 30.8 60 32.4 Q55.4 30.8 55.4 27.2 L55.4 23.4 Z" fill="#e9b83c" stroke="#14161a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M60 23.2 L63.4 24.4 L63.4 27.2 Q63.4 29.8 60 31 Q56.6 29.8 56.6 27.2 L56.6 24.4 Z" fill="#f6d374"/>
+  <path d="M60 24.4 L60.65 26.11 L62.47 26.2 L61.05 27.34 L61.53 29.1 L60 28.1 L58.47 29.1 L58.95 27.34 L57.53 26.2 L59.35 26.11 Z" fill="#a06a12"/>
+  <!-- retrovisor -->
+  <path d="M72.8 17 L76 14.6" fill="none" stroke="#14161a" stroke-width="2" stroke-linecap="round"/>
+  <rect x="74.8" y="11.6" width="5.6" height="4.2" rx="1.5" fill="#f4f4f6" stroke="#14161a" stroke-width="1.6"/>
+  <rect x="75.8" y="12.6" width="3.6" height="2.2" rx="0.9" fill="#cfe6f7"/>
+  <!-- farol aceso -->
+  <ellipse cx="97.4" cy="24.4" rx="3.3" ry="2.4" fill="#ffd75e" stroke="#14161a" stroke-width="1.8"/>
+  <circle cx="96.3" cy="23.6" r="0.8" fill="#ffffff" opacity="0.95"/>
+  <!-- lanterna traseira -->
+  <rect x="4.6" y="21" width="3.4" height="6.2" rx="1.4" fill="#e0402c" stroke="#14161a" stroke-width="1.6"/>
+  <rect x="5.3" y="23.9" width="2" height="2.5" rx="0.9" fill="#ff8b3d"/>
+  <!-- para-choques e rammer -->
+  <rect x="2" y="30.5" width="8" height="6.8" rx="2.6" fill="#9aa0ab" stroke="#14161a" stroke-width="2"/>
+  <rect x="95.5" y="30" width="8" height="6.5" rx="2.4" fill="#9aa0ab" stroke="#14161a" stroke-width="2"/>
+  <rect x="96.8" y="26.2" width="5.2" height="2.6" rx="1.2" fill="#383e49" stroke="#14161a" stroke-width="1.3"/>
+  <rect x="96.8" y="31.8" width="5.2" height="2.6" rx="1.2" fill="#383e49" stroke="#14161a" stroke-width="1.3"/>
+  <rect x="101.2" y="23.5" width="4.6" height="14" rx="2" fill="#454b57" stroke="#14161a" stroke-width="2"/>
+  <!-- rodas -->
+  <circle cx="26" cy="38.5" r="8" fill="#23262c" stroke="#14161a" stroke-width="2.4"/>
+  <circle cx="26" cy="38.5" r="5.2" fill="#3a3e46"/>
+  <circle cx="26" cy="38.5" r="4.4" fill="#c7ccd5" stroke="#2a2d33" stroke-width="1"/>
+  <path d="M26 38.5 L26 34.5 M26 38.5 L29.8 37.3 M26 38.5 L28.35 41.75 M26 38.5 L23.65 41.75 M26 38.5 L22.2 37.3" stroke="#5a616e" stroke-width="1.3" stroke-linecap="round"/>
+  <circle cx="26" cy="38.5" r="2.2" fill="#8a909c"/>
+  <circle cx="26" cy="38.5" r="1" fill="#464c57"/>
+  <circle cx="84" cy="38.5" r="8" fill="#23262c" stroke="#14161a" stroke-width="2.4"/>
+  <circle cx="84" cy="38.5" r="5.2" fill="#3a3e46"/>
+  <circle cx="84" cy="38.5" r="4.4" fill="#c7ccd5" stroke="#2a2d33" stroke-width="1"/>
+  <path d="M84 38.5 L84 34.5 M84 38.5 L87.8 37.3 M84 38.5 L86.35 41.75 M84 38.5 L81.65 41.75 M84 38.5 L80.2 37.3" stroke="#5a616e" stroke-width="1.3" stroke-linecap="round"/>
+  <circle cx="84" cy="38.5" r="2.2" fill="#8a909c"/>
+  <circle cx="84" cy="38.5" r="1" fill="#464c57"/>
+  <!-- para-lamas -->
+  <path d="M17.2 39 A8.8 8.8 0 0 1 34.8 39" fill="none" stroke="#14161a" stroke-width="2.6"/>
+  <path d="M75.2 39 A8.8 8.8 0 0 1 92.8 39" fill="none" stroke="#14161a" stroke-width="2.6"/>
+  <!-- giroflex (frame base: cupula vermelha acesa, azul apagada) -->
+  <circle cx="48.8" cy="6.6" r="5" fill="#ff5040" opacity="0.3"/>
+  <path d="M44.6 2.4 L43.2 0.9 M48.8 1.8 L48.8 0.5 M52.9 2.4 L54.3 0.9" stroke="#ff6a52" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M45.4 8.4 Q45.4 4.4 48.8 4.4 Q52.2 4.4 52.2 8.4 Z" fill="#ff4a36" stroke="#14161a" stroke-width="1.6" stroke-linejoin="round"/>
+  <circle cx="47.5" cy="6" r="0.8" fill="#ffe0da" opacity="0.9"/>
+  <path d="M52.8 8.4 Q52.8 4.4 56.2 4.4 Q59.6 4.4 59.6 8.4 Z" fill="#1c3a6b" stroke="#14161a" stroke-width="1.6" stroke-linejoin="round"/>
+  <circle cx="54.9" cy="6" r="0.8" fill="#8fb2e0" opacity="0.35"/>
+  <rect x="43.8" y="8" width="17.4" height="3.2" rx="1.4" fill="#262b34" stroke="#14161a" stroke-width="1.6"/>
+</svg>

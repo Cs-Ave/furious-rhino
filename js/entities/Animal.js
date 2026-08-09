@@ -24,26 +24,29 @@ export class Animal extends Phaser.Physics.Arcade.Sprite {
   setType(type) {
     this.animalType = type;
     this.anims.stop();
+    const spec = Constants.ANIMAL_SPECS[type];
     if (type === 'bird') {
       // Pássaro tem 5 espécies visuais (mesma hitbox/behavior): sorteia a
       // cada (re)spawn — o pool devolve o mesmo sprite com outra plumagem
       const sp = Phaser.Utils.Array.GetRandom(Constants.BIRD_SPECIES);
-      this.setTexture(`animal-bird-${sp}`);
+      this.baseTex = `animal-bird-${sp}`;
       this.birdAnim = `bird-${sp}-flap`;
     } else {
-      this.setTexture(`animal-${type}`);
+      // Elenco v1.7 usa o prefixo enemy-* (spec.tex); os 5 originais, animal-*
+      this.baseTex = spec.tex || `animal-${type}`;
       this.birdAnim = null;
     }
-    // Texturas 2x exibidas a 1/2: a escala final divide pelo ART_RASTER_SCALE
+    this.setTexture(this.baseTex);
+    // Texturas 2x exibidas a 1/2: a escala final divide pelo ART_RASTER_SCALE.
+    // Veículos/voadores da cidade têm escala própria (spec.scale).
     const S = Constants.ART_RASTER_SCALE;
-    this.setScale(Constants.ANIMAL_SCALE / S);
+    this.setScale((spec.scale || Constants.ANIMAL_SCALE) / S);
     // A arte olha para a direita, mas eles avançam contra o rino. As margens
     // laterais dos ANIMAL_SPECS são simétricas, então o flip não desloca a hitbox.
     this.setFlipX(true);
 
     // Arcade scales the body with the sprite; specs ficam em px lógicos (1x)
     // e viram px de textura multiplicando pelo fator de rasterização
-    const spec = Constants.ANIMAL_SPECS[type];
     this.body.setSize(spec.bodyW * S, spec.bodyH * S);
     this.body.setOffset(spec.offX * S, spec.offY * S);
 
@@ -57,8 +60,9 @@ export class Animal extends Phaser.Physics.Arcade.Sprite {
     this.knockedOut = false;
     this.body.enable = true;
     // Terrestres pisam no chão de verdade (collider no GameScene) para os
-    // pulos do macaco/zebra terem arco físico; o pássaro voa sem gravidade
-    this.body.setAllowGravity(this.animalType !== 'bird');
+    // pulos do macaco/zebra terem arco físico; voadores (pássaro, águia,
+    // drone, avião...) voam sem gravidade
+    this.body.setAllowGravity(!this.isFlyer());
     this.body.setImmovable(false);
     this.body.setVelocity(-Constants.ANIMAL_BEHAVIOR[this.animalType].speed, 0);
     this.body.setAngularVelocity(0);
@@ -83,8 +87,8 @@ export class Animal extends Phaser.Physics.Arcade.Sprite {
       // Saltadores: no chão, agenda e dispara o próximo pulo; no ar fica
       // congelado na pose esticada até pousar de novo
       if (this.body.blocked.down) {
-        if (this.texture.key !== `animal-${this.animalType}`) {
-          this.setTexture(`animal-${this.animalType}`);
+        if (this.texture.key !== this.baseTex) {
+          this.setTexture(this.baseTex);
         }
         if (!this.nextJumpAt) {
           this.nextJumpAt = time + behavior.jumpIntervalMs;
@@ -95,9 +99,16 @@ export class Animal extends Phaser.Physics.Arcade.Sprite {
         }
       }
     } else if (behavior.bobVy) {
-      // Pássaro: ondulação vertical suave (~±15px) durante o voo
+      // Voadores: ondulação vertical suave (~±15px) durante o voo
       this.body.setVelocityY(Math.sin(time * 0.004 + this.bobPhase) * behavior.bobVy);
     }
+  }
+
+  // Pássaro e todo o elenco com behavior.fly (a faixa de voo do spawn dobra
+  // como flag) — o collider do chão e o snap de rampa também filtram por aqui
+  isFlyer() {
+    return this.animalType === 'bird' ||
+      !!Constants.ANIMAL_BEHAVIOR[this.animalType].fly;
   }
 
   deactivate() {

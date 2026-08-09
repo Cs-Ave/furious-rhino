@@ -57,7 +57,7 @@ export function mySummary() {
   const attempts = StorageManager.getAttempts();
   const playTimeS = StorageManager.getPlayTimeS();
 
-  const totals = { w: 0, r: 0, o: 0, a: 0, j: 0, d: 0, x: 0 };
+  const totals = { w: 0, r: 0, o: 0, a: 0, j: 0, d: 0, x: 0, f: 0, b: 0 };
   for (const run of runs) {
     for (const k of Object.keys(totals)) totals[k] += Number(run && run[k]) || 0;
   }
@@ -143,6 +143,8 @@ export function renderMyStats(root) {
       ['🏰 torres derrubadas', t.o],
       ['🦁 animais atropelados', t.a],
       ['💨 investidas', t.d],
+      ['🔥 especiais usados', t.f],
+      ['🎯 camadas do portão quebradas', t.b],
       ['⬆️ pulos', t.j],
     ]));
     if (t.d === 0) {

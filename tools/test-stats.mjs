@@ -63,6 +63,20 @@ eq('causa desconhecida: tier conta, chave nova NÃO nasce', [d2.t1, 'causa-desco
 localStorage.setItem(StorageManager.DEATHS_KEY, '{lixo');
 eq('JSON corrompido volta zerado', StorageManager.getDeaths().t1, 0);
 
+// ---------- 2a. O boss do portão (v1.7) ----------
+localStorage.removeItem(StorageManager.DEATHS_KEY);
+StorageManager.addDeath(4, 'boss'); // rifle do caçador na reta do portão
+const db = StorageManager.getDeaths();
+eq('boss: morte pelo rifle conta em deaths.boss e no tier', [db.boss, db.t5], [1, 1]);
+eq('boss: mapa de mortes segue no teto das rules (13 <= 14)',
+  Object.keys(db).length <= 14, true);
+
+localStorage.removeItem(StorageManager.BOSS_SEEN_KEY);
+StorageManager.addBossEncounter();
+StorageManager.addBossEncounter();
+eq('boss: encontros contados (dicas só nos primeiros)',
+  StorageManager.getBossEncounters(), 2);
+
 // Últimas execuções: janela deslizante de 50 (v1.5.0; era 10)
 localStorage.removeItem(StorageManager.RUNS_KEY);
 for (let i = 1; i <= 52; i++) StorageManager.addRun(i * 10);
@@ -93,6 +107,21 @@ StorageManager.addRun(50, 5, 'fall', { wallsBroken: 99999, jumps: -3 });
 const clamped = StorageManager.getRuns()[2];
 eq('mecânicas: contador com teto', clamped.w, 9999);
 eq('mecânicas: valor negativo é ignorado', 'j' in clamped, false);
+
+// v1.7: o especial FÚRIA TOTAL entra no runs[] como `f` (e zero é omitido)
+StorageManager.addRun(1200, 90, 'win', { specialsUsed: 2 });
+eq('mecânicas: especiais usados gravados (f)', StorageManager.getRuns().at(-1).f, 2);
+StorageManager.addRun(80, 8, 'wall', { specialsUsed: 0 });
+eq('mecânicas: especial zero é omitido', 'f' in StorageManager.getRuns().at(-1), false);
+
+// v1.7: a luta do portão entra como b (camadas), q (quiques) e z (segundos)
+StorageManager.addRun(1000, 80, 'win', { bossLayersBroken: 3, bossBounces: 4, bossFightS: 21 });
+const luta = StorageManager.getRuns().at(-1);
+eq('mecânicas: luta do boss gravada (b/q/z)', [luta.b, luta.q, luta.z], [3, 4, 21]);
+StorageManager.addRun(500, 40, 'wall', { bossLayersBroken: 0, bossBounces: 0, bossFightS: 0 });
+const semLuta = StorageManager.getRuns().at(-1);
+eq('mecânicas: corrida que nem chegou ao boss não ganha chaves',
+  ['b', 'q', 'z'].some((k) => k in semLuta), false);
 
 // ---------- 2b. Histórico acumulado do jogador (v1.5.0) ----------
 localStorage.removeItem(StorageManager.HISTORY_KEY);
@@ -198,7 +227,7 @@ eq('fugas somadas', agg.wins, 2);
 eq('tempo total somado', agg.playTimeS, 210);
 eq('mortes por etapa [t1..t6]', agg.deathsTier, [2, 2, 1, 0, 1, 0]);
 eq('mortes por causa (objeto)', agg.causes,
-  { wall: 1, spike: 0, animal: 1, dart: 1, tower: 1, fall: 1 });
+  { wall: 1, spike: 0, animal: 1, dart: 1, tower: 1, boss: 0, fall: 1 });
 // Funil dinâmico: degraus de 200m até o máximo percorrido (1150 → 1200)
 eq('funil: nº de degraus (200..1200)', agg.funnelSteps.length, 6);
 eq('funil: contagens por degrau', agg.funnelSteps.map(([, v]) => v), [2, 2, 1, 1, 1, 0]);

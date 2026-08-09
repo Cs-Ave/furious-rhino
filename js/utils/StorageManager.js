@@ -179,9 +179,10 @@ export class StorageManager {
   }
 
   // Mortes por tier (t1..t6; t5/t6 = modo infinito) e por causa
-  // (wall/spike/animal/dart/tower/fall)
+  // (wall/spike/animal/dart/tower/boss/fall). 'boss' (v1.7) = rifle do
+  // caçador do portão — 13ª chave do mapa; as rules aceitam até 14.
   static getDeaths() {
-    const empty = { t1: 0, t2: 0, t3: 0, t4: 0, t5: 0, t6: 0, wall: 0, spike: 0, animal: 0, dart: 0, tower: 0, fall: 0 };
+    const empty = { t1: 0, t2: 0, t3: 0, t4: 0, t5: 0, t6: 0, wall: 0, spike: 0, animal: 0, dart: 0, tower: 0, boss: 0, fall: 0 };
     try {
       return { ...empty, ...(JSON.parse(localStorage.getItem(this.DEATHS_KEY)) || {}) };
     } catch (e) {
@@ -196,6 +197,23 @@ export class StorageManager {
     if (cause in deaths) deaths[cause]++;
     localStorage.setItem(this.DEATHS_KEY, JSON.stringify(deaths));
     return deaths;
+  }
+
+  // Encontros com o boss do portão (v1.7): os toasts de ensino só saem nos
+  // primeiros BOSS_HINT_MAX_ENCOUNTERS da vida (padrão das dicas da abertura,
+  // que usam getAttempts — aqui precisa de contador próprio porque chegar ao
+  // boss é raro e as 3 primeiras corridas nunca o veriam)
+  static BOSS_SEEN_KEY = 'furious_rhino_boss_seen';
+
+  static getBossEncounters() {
+    const stored = localStorage.getItem(this.BOSS_SEEN_KEY);
+    return stored ? parseInt(stored, 10) : 0;
+  }
+
+  static addBossEncounter() {
+    const total = this.getBossEncounters() + 1;
+    localStorage.setItem(this.BOSS_SEEN_KEY, total.toString());
+    return total;
   }
 
   static getGeo() {
@@ -238,10 +256,15 @@ export class StorageManager {
     d: 'dashes',        // investidas que SAÍRAM
     x: 'dashesWasted',  // investidas pedidas durante o cooldown (frustração)
     p: 'pauses',        // pausas (inclui trocar de aba)
+    f: 'specialsUsed',  // ativações do especial FÚRIA TOTAL (v1.7)
+    b: 'bossLayersBroken', // camadas do portão blindado quebradas (0-3, v1.7)
+    q: 'bossBounces',   // quiques no portão (atrito com o loop da luta)
+    z: 'bossFightS',    // segundos de luta contra o boss (0 = nem chegou lá)
   };
 
-  // Fúria NÃO entra: ela é posicional (Rhino.getFuryRatio = x / distância),
-  // então "tempo em fúria cheia" já está contido no `m` — seria redundância.
+  // Até a v1.6.1 a fúria não entrava aqui por ser posicional (contida no
+  // `m`). A v1.7 a transformou em recurso gastável — o `f` mede a decisão
+  // de usar, que não está em nenhum outro campo.
 
   static getRuns() {
     try {

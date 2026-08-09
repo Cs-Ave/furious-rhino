@@ -126,10 +126,11 @@ export class SpawnManager {
         continue;
       }
 
-      // Zona livre do portão (respiro na chegada da fuga): o corte só
-      // vale DENTRO da janela — pós-portão o spawn retoma em WIN+1000 com o
-      // tier do modo infinito. (Sem a janela, o corte re-armaria p/ sempre.)
-      if (this.nextSpawnX >= Constants.WIN_DISTANCE_PX - 500 &&
+      // Zona livre do portão — v1.7: a ARENA DO BOSS. Cobre o alcance do
+      // quique (BOSS_ARENA_PX + folga), não só o respiro da chegada. O corte
+      // só vale DENTRO da janela — pós-portão o spawn retoma em WIN+1000 com
+      // o tier do modo infinito. (Sem a janela, o corte re-armaria p/ sempre.)
+      if (this.nextSpawnX >= Constants.WIN_DISTANCE_PX - (Constants.BOSS_ARENA_PX + 200) &&
           this.nextSpawnX < Constants.WIN_DISTANCE_PX + 1000) {
         this.nextSpawnX = Constants.WIN_DISTANCE_PX + 1000;
         break;
@@ -207,7 +208,7 @@ export class SpawnManager {
   // era sempre falsa depois do portão, e o rampW dos tiers 5/6 ia inteiro para
   // o animal — rampas nunca nasciam no modo infinito.
   rampFits(x) {
-    return x + this.rampMaxSpan < Constants.WIN_DISTANCE_PX - 500 ||
+    return x + this.rampMaxSpan < Constants.WIN_DISTANCE_PX - (Constants.BOSS_ARENA_PX + 200) ||
            x >= Constants.WIN_DISTANCE_PX + 1000;
   }
 
@@ -262,23 +263,44 @@ export class SpawnManager {
     }
   }
 
+  // Espécie sorteada do ELENCO DO BIOMA em que o obstáculo vai nascer (v1.7:
+  // antes as mesmas 5 espécies apareciam do zoo à cidade). mode:
+  //   'any'    — roleta normal (voadores incluídos; spawnAnimal posiciona
+  //              cada um na sua faixa de voo)
+  //   'ground' — par wall-animal (precisa ser pulável atrás da parede)
+  //   'fly'    — par spike-bird; bioma sem voador cai no pássaro genérico —
+  //              tucano/arara na floresta é tematicamente honesto
+  pickBiomeAnimal(x, mode = 'any') {
+    const biome = Constants.BIOMES[Constants.getBiomeIndex(x)];
+    const list = Constants.BIOME_ANIMALS[biome] || Constants.ANIMAL_TYPES;
+    const isFly = (t) => t === 'bird' || !!Constants.ANIMAL_BEHAVIOR[t].fly;
+    let pool = list;
+    if (mode === 'fly') pool = list.some(isFly) ? list.filter(isFly) : ['bird'];
+    else if (mode === 'ground') {
+      pool = list.some((t) => !isFly(t)) ? list.filter((t) => !isFly(t)) : list;
+    }
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
   // typeOverride/yOverride: usados pelos combos para fixar espécie e altura
   spawnAnimal(x, typeOverride = null, yOverride = null) {
     const animal = this.animalsGroup.getFirst(false);
     if (!animal) return;
 
-    const type = typeOverride ||
-      Constants.ANIMAL_TYPES[Math.floor(Math.random() * Constants.ANIMAL_TYPES.length)];
+    const type = typeOverride || this.pickBiomeAnimal(x);
     animal.setType(type);
 
-    // Ground species stand on the ground (top at y=620); the bird flies at jump height
+    // Terrestres pisam no topo do chão (y=620); voadores nascem na faixa de
+    // voo da espécie (behavior.fly) — o pássaro mantém a banda histórica
     const groundTop = Constants.GROUND_TOP;
     const spec = Constants.ANIMAL_SPECS[type];
+    const fly = Constants.ANIMAL_BEHAVIOR[type].fly ||
+      (type === 'bird' ? [410, 520] : null);
     const y = yOverride !== null
       ? yOverride
-      : type === 'bird'
-        ? Phaser.Math.Between(410, 520)
-        : groundTop - (spec.h * Constants.ANIMAL_SCALE) / 2;
+      : fly
+        ? Phaser.Math.Between(fly[0], fly[1])
+        : groundTop - (spec.h * (spec.scale || Constants.ANIMAL_SCALE)) / 2;
     animal.reset(x, y);
   }
 
@@ -309,13 +331,14 @@ export class SpawnManager {
 
     if (pattern === 'wall-animal') {
       this.spawnWall(x);
-      const types = ['lion', 'monkey', 'zebra'];
-      this.spawnAnimal(x + 280, types[Math.floor(Math.random() * types.length)]);
+      // Espécie terrestre do bioma local (v1.7): o par continua ensinando
+      // "quebre a parede, pule o bicho", só o elenco muda de cenário
+      this.spawnAnimal(x + 280, this.pickBiomeAnimal(x + 280, 'ground'));
       return 280;
     }
     if (pattern === 'spike-bird') {
       this.spawnSpike(x, 'ground');
-      this.spawnAnimal(x + 220, 'bird', 470);
+      this.spawnAnimal(x + 220, this.pickBiomeAnimal(x + 220, 'fly'), 470);
       return 220;
     }
     this.spawnSpike(x, 'tower');
@@ -335,10 +358,16 @@ export class SpawnManager {
   }
 
   // Chamado pela TranqTower no momento do disparo (mira em 360° / morteiro)
-  fireDart(x, y, vx, vy = 0, gravity = false) {
+  // e, com boss=true, pelo rifle do caçador do portão (v1.7): dardo dourado
+  // + flag fromBoss (vira a causa de morte 'boss' no onDartHit)
+  fireDart(x, y, vx, vy = 0, gravity = false, boss = false) {
     const dart = this.dartsGroup.getFirst(false);
     if (!dart) return;
     dart.fire(x, y, vx, vy, gravity);
+    if (boss) {
+      dart.fromBoss = true;
+      dart.setTint(0xffc84a);
+    }
   }
 
   getWallsGroup() {

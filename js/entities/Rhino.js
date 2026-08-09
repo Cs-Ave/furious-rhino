@@ -28,9 +28,15 @@ export class Rhino {
     this.cooldownTimer = 0;
     this.wasAirborneDash = false;
     this.dashRefunded = false; // torre derrubada nesta investida: sem cooldown
+    // Quique do portão-fortaleza (v1.7): janela em que o FurySystem NÃO
+    // reescreve velocityX. Contador por delta (não timestamp): congela junto
+    // com a cena numa pausa e retoma exato.
+    this.knockbackMsLeft = 0;
   }
 
   update(time, delta) {
+    if (this.knockbackMsLeft > 0) this.knockbackMsLeft -= delta;
+
     // Reset jump count on landing
     if (this.sprite.body.blocked.down && this.jumpCount > 0) {
       this.jumpCount = 0;
@@ -116,6 +122,25 @@ export class Rhino {
   resetDash() {
     if (this.dashState === 'active') this.dashRefunded = true;
     else { this.dashState = 'idle'; this.cooldownTimer = 0; }
+  }
+
+  // Quique do portão blindado (v1.7): arremessa o rino para trás e abre a
+  // janela em que o FurySystem não reescreve velocityX — a reescrita por
+  // frame é a causa documentada do soft-lock das rampas (ver Constants.js).
+  // A investida SEMPRE paga o cooldown cheio aqui (mini-stun): o custo do
+  // contato errado com o portão é tempo sob o fogo do rifle, não a corrida.
+  beginKnockback(vx, vy, ms) {
+    this.knockbackMsLeft = ms;
+    if (this.dashState === 'active' && this.wasAirborneDash) {
+      // Cancela o dash aéreo com segurança: religa a gravidade, senão o
+      // rino sai do quique flutuando (mesma armadilha do resetDash)
+      this.sprite.body.setAllowGravity(true);
+    }
+    this.wasAirborneDash = false;
+    this.dashRefunded = false;
+    this.dashState = 'cooldown';
+    this.cooldownTimer = 0;
+    this.sprite.body.setVelocity(vx, vy);
   }
 
   kill() {

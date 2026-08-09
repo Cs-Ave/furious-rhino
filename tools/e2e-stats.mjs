@@ -109,6 +109,10 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
   await startGame(page);
   await page.evaluate(() => {
     const s = window.game.scene.keys.GameScene;
+    // v1.7: o portão é o BOSS — sem invencível, a banda de contato segura o
+    // rino na arena (a luta tem suíte própria: e2e-boss). O invencível usa o
+    // caminho de bypass (BossFight.standDown) e o gatilho legado cruza.
+    s.invincible = true;
     s.rhino.getSprite().body.reset(39600, 500);
   });
 
@@ -173,6 +177,9 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
   await startGame(page);
   await page.evaluate(() => {
     const s = window.game.scene.keys.GameScene;
+    // v1.7: sem o invencível, o clamp do boss teleportaria o rino de volta
+    // para a face do portão (a banda vale para QUALQUER x além dela)
+    s.invincible = true;
     s.rhino.getSprite().body.reset(399500, 500);
   });
 

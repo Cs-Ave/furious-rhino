@@ -41,6 +41,10 @@ export class TranqDart extends Phaser.Physics.Arcade.Sprite {
     this.body.setVelocity(0, 0);
     this.baseRot = 0;
     this.setRotation(0);
+    // O pool é compartilhado com o rifle do boss (v1.7): limpar a marca e o
+    // tint dourado, senão um dardo de torre nasce fantasiado de boss
+    this.fromBoss = false;
+    this.clearTint();
     this.setActive(false).setVisible(false);
   }
 }

@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 58" width="88" height="58">
+  <!-- FURIOUS RHINO - proposta bioma pantano (em avaliacao, nao usada pelo jogo).
+       Hipopotamo chibi pesado trotando na lama: corpo enorme cinza-arroxeado, barriga
+       rosada, focinho gigante com narinas no topo, sorriso largo com dentes de
+       baixo apoiados sobre a linha da boca, orelhinhas.
+       hitbox sugerida: 74x42 em offset 7,14. Entre frames SO as pernas trocam de fase
+       de trote e os respingos de lama espelham de lado. -->
+  <defs>
+    <linearGradient id="hpb" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8b7a92"/>
+      <stop offset="1" stop-color="#6a5b74"/>
+    </linearGradient>
+    <linearGradient id="hpm" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a496aa"/>
+      <stop offset="1" stop-color="#837389"/>
+    </linearGradient>
+  </defs>
+  <!-- cauda mini com tufo -->
+  <path d="M13.5 25 Q7.5 22.5 7 16.5" fill="none" stroke="#17171b" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M7 16.5 Q3.5 13 6.5 9.5 Q10.5 10.8 9 15.2 Q8.3 17 7 16.5 Z" fill="#4a3f52" stroke="#17171b" stroke-width="1.5"/>
+  <!-- pernas em trote (fase B: traseira proxima e dianteira distante avancam) -->
+  <g>
+    <rect x="19" y="36" width="9" height="20.5" rx="4" fill="#6a5b74" stroke="#17171b" stroke-width="2.4"/>
+    <rect x="20.6" y="53.2" width="2.8" height="3" rx="1.1" fill="#d8ccd6"/>
+    <rect x="24.2" y="53.2" width="2.8" height="3" rx="1.1" fill="#d8ccd6"/>
+  </g>
+  <g transform="rotate(-16 33.5 38)">
+    <rect x="29" y="36" width="9" height="20.5" rx="4" fill="#8b7a92" stroke="#17171b" stroke-width="2.4"/>
+    <rect x="30.6" y="53.2" width="2.8" height="3" rx="1.1" fill="#d8ccd6"/>
+    <rect x="34.2" y="53.2" width="2.8" height="3" rx="1.1" fill="#d8ccd6"/>
+  </g>
+  <g transform="rotate(-16 52.5 38)">
+    <rect x="48" y="36" width="9" height="20.5" rx="4" fill="#6a5b74" stroke="#17171b" stroke-width="2.4"/>
+    <rect x="49.6" y="53.2" width="2.8" height="3" rx="1.1" fill="#d8ccd6"/>
+    <rect x="53.2" y="53.2" width="2.8" height="3" rx="1.1" fill="#d8ccd6"/>
+  </g>
+  <g>
+    <rect x="58.5" y="36" width="9" height="20.5" rx="4" fill="#8b7a92" stroke="#17171b" stroke-width="2.4"/>
+    <rect x="60.1" y="53.2" width="2.8" height="3" rx="1.1" fill="#d8ccd6"/>
+    <rect x="63.7" y="53.2" width="2.8" height="3" rx="1.1" fill="#d8ccd6"/>
+  </g>
+  <!-- corpo enorme -->
+  <ellipse cx="40" cy="31" rx="28.5" ry="19" fill="url(#hpb)" stroke="#17171b" stroke-width="2.8"/>
+  <path d="M17 20 Q40 10.5 58 16.5" fill="none" stroke="#a293ad" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <!-- barriga rosada + sombra -->
+  <ellipse cx="36" cy="42" rx="17" ry="7" fill="#c2a3b1"/>
+  <ellipse cx="37" cy="45" rx="18" ry="5" fill="#574a62" opacity="0.5"/>
+  <!-- orelhinhas -->
+  <circle cx="51" cy="6" r="3.4" fill="#8b7a92" stroke="#17171b" stroke-width="2.2"/>
+  <circle cx="51" cy="6" r="1.5" fill="#c2a3b1"/>
+  <circle cx="64.5" cy="4.8" r="3.4" fill="#8b7a92" stroke="#17171b" stroke-width="2.2"/>
+  <circle cx="64.5" cy="4.8" r="1.5" fill="#c2a3b1"/>
+  <!-- cabeca -->
+  <circle cx="59" cy="19" r="14.5" fill="url(#hpb)" stroke="#17171b" stroke-width="2.8"/>
+  <!-- olhos pequenos no topo -->
+  <circle cx="54" cy="13.5" r="2.2" fill="#17171b"/>
+  <circle cx="64" cy="12" r="2.2" fill="#17171b"/>
+  <circle cx="53.4" cy="12.8" r="0.7" fill="#ffffff"/>
+  <circle cx="63.4" cy="11.3" r="0.7" fill="#ffffff"/>
+  <!-- focinho gigante -->
+  <ellipse cx="69.5" cy="33" rx="16" ry="12.5" fill="url(#hpm)" stroke="#17171b" stroke-width="2.6"/>
+  <path d="M58.5 24 Q69 19.5 80 23.5" fill="none" stroke="#b6a4bb" stroke-width="2.2" stroke-linecap="round" opacity="0.85"/>
+  <!-- narinas grandes no topo -->
+  <ellipse cx="64" cy="25" rx="2.3" ry="1.4" fill="#3a3140" stroke="#17171b" stroke-width="1.2" transform="rotate(-8 64 25)"/>
+  <ellipse cx="72.5" cy="23.8" rx="2.5" ry="1.5" fill="#3a3140" stroke="#17171b" stroke-width="1.2" transform="rotate(-8 72.5 23.8)"/>
+  <!-- boca: sorriso largo simples, dentes de baixo apoiados sobre a linha (estilo jacare) -->
+  <path d="M56.5 38.5 Q69.5 44.5 83.5 37" fill="none" stroke="#17171b" stroke-width="2" stroke-linecap="round"/>
+  <rect x="61.9" y="35" width="4.2" height="6.2" rx="1.2" fill="#f6f3e9" stroke="#17171b" stroke-width="1.4"/>
+  <rect x="72.9" y="34.4" width="4.2" height="6.2" rx="1.2" fill="#f6f3e9" stroke="#17171b" stroke-width="1.4"/>
+  <path d="M60 30 Q63 29 66 30" fill="none" stroke="#6a5b74" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- respingos de lama (fase B, espelhados) -->
+  <path d="M17.5 54.5 Q18.7 51.5 19.9 54.5 Q19.9 56.2 18.7 56.2 Q17.5 56.2 17.5 54.5 Z" fill="#8a6a42"/>
+  <circle cx="57" cy="55" r="1.5" fill="#75552f"/>
+  <path d="M66.5 53.8 Q67.5 51.4 68.5 53.8 Q68.5 55.3 67.5 55.3 Q66.5 55.3 66.5 53.8 Z" fill="#8a6a42"/>
+</svg>

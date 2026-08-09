@@ -69,6 +69,24 @@ export async function initTuningPanel(scene) {
 
   const furia = gui.addFolder('Fúria');
   furia.add(Constants, 'FURY_FULL_DISTANCE_PX', 2000, 40000, 500);
+  furia.add(Constants, 'SPECIAL_DURATION_MS', 1000, 15000, 250).name('especial: duração');
+  furia.add(Constants, 'SPECIAL_SPEED_MULT', 1, 2, 0.05).name('especial: boost');
+  // Testar o especial sem correr 900m: enche o medidor na hora
+  furia.add({
+    encher: () => { scene.furySystem.charge = 1; },
+  }, 'encher').name('🔥 Encher fúria');
+
+  // Quique e rifle são lidos NO MOMENTO do contato/tiro — efeito ao vivo
+  const boss = gui.addFolder('Boss (portão)');
+  boss.add(Constants, 'BOSS_KNOCKBACK_VX', 100, 1000, 20).name('quique: vx');
+  boss.add(Constants, 'BOSS_KNOCKBACK_VY', -800, 0, 20).name('quique: vy');
+  boss.add(Constants, 'BOSS_KNOCKBACK_MS', 100, 2000, 50).name('quique: janela ms');
+  boss.add(Constants, 'BOSS_SHOT_SPEED', 200, 1000, 20).name('rifle: velocidade');
+  for (const layers of [3, 2, 1]) {
+    boss.add(Constants.BOSS_RIFLE[layers], 'intervalMs', 400, 4000, 50)
+      .name(`rifle: cadência ${layers} camada${layers > 1 ? 's' : ''}`);
+  }
+  boss.close();
 
   const debug = gui.addFolder('Debug');
   const state = { hitboxes: false, pausado: false, invencivel: false };
@@ -117,6 +135,18 @@ export async function initTuningPanel(scene) {
     },
   }, 'pular790').name('Pular p/ 990m (portão)');
 
+  // Cai ANTES do gatilho da luta (WIN - BOSS_ARENA_PX): dá para ver a
+  // câmera travar, o horn e o primeiro telegraph do rifle
+  debug.add({
+    pularArena: () => {
+      const sprite = scene.rhino.getSprite();
+      sprite.body.reset(
+        Constants.WIN_DISTANCE_PX - Constants.BOSS_ARENA_PX - 300,
+        Constants.GAME_HEIGHT - 200
+      );
+    },
+  }, 'pularArena').name('⚔️ Pular p/ arena do boss');
+
   // Baixa um .txt SÓ com o que mudou, no formato do Constants.js e com
   // instruções de onde aplicar — colar direto no VS Code
   debug.add({ exportar: () => exportTuning(baseline) }, 'exportar').name('💾 Exportar ajustes');
@@ -129,6 +159,8 @@ const ROOT_KEYS = [
   'RUN_SPEED', 'JUMP_MIN_V', 'JUMP_MAX_V', 'JUMP_CHARGE_MS',
   'FALL_EXTRA_GRAVITY', 'DASH_SPEED', 'DASH_ACTIVE_MS', 'DASH_COOLDOWN_MS',
   'MIN_SAFE_GAP', 'SPAWN_LOOKAHEAD_PX', 'FURY_FULL_DISTANCE_PX',
+  'SPECIAL_DURATION_MS', 'SPECIAL_SPEED_MULT',
+  'BOSS_KNOCKBACK_VX', 'BOSS_KNOCKBACK_VY', 'BOSS_KNOCKBACK_MS', 'BOSS_SHOT_SPEED',
 ];
 
 function exportTuning(baseline) {

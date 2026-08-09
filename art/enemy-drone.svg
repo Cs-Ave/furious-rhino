@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 36" width="56" height="36">
+  <!-- FURIOUS RHINO - proposta bioma cidade (em avaliacao, nao usada pelo jogo).
+       Drone quadricoptero vigilante: corpo cinza arredondado com barriga clara,
+       camera-lente faz o papel de olho (apontada para a direita-baixo), LED
+       vermelho aceso, 2 bracos com motores e helices, luzes verdes e antena.
+       Hitbox sugerida: 40x18 com offset 8,11 (helices fora).
+       Entre frames: so as helices mudam de angulo (ganham borrao translucido)
+       e o LED vermelho apaga (efeito de piscar); o resto fica identico. -->
+  <defs>
+    <linearGradient id="drBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4a4f5a"/>
+      <stop offset="1" stop-color="#31353e"/>
+    </linearGradient>
+    <linearGradient id="drMotor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a616e"/>
+      <stop offset="1" stop-color="#3a3e46"/>
+    </linearGradient>
+  </defs>
+  <!-- bracos -->
+  <path d="M22 18.5 L8 12.5" fill="none" stroke="#14161a" stroke-width="4.6" stroke-linecap="round"/>
+  <path d="M22 18.5 L8 12.5" fill="none" stroke="#4a4f5a" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M34 18.5 L48 12.5" fill="none" stroke="#14161a" stroke-width="4.6" stroke-linecap="round"/>
+  <path d="M34 18.5 L48 12.5" fill="none" stroke="#4a4f5a" stroke-width="2.2" stroke-linecap="round"/>
+  <!-- motores -->
+  <rect x="4.5" y="9" width="7" height="5.4" rx="2.2" fill="url(#drMotor)" stroke="#14161a" stroke-width="1.8"/>
+  <rect x="44.5" y="9" width="7" height="5.4" rx="2.2" fill="url(#drMotor)" stroke="#14161a" stroke-width="1.8"/>
+  <!-- luzes verdes nas pontas -->
+  <circle cx="4.2" cy="15.2" r="1.1" fill="#59d95c" stroke="#14161a" stroke-width="0.9"/>
+  <circle cx="51.8" cy="15.2" r="1.1" fill="#59d95c" stroke="#14161a" stroke-width="0.9"/>
+  <!-- helices -->
+  <g transform="rotate(16 8 7.8)">
+    <ellipse cx="8" cy="7.8" rx="7.4" ry="1.4" fill="#22252b" stroke="#14161a" stroke-width="1.2"/>
+  </g>
+  <g transform="rotate(-16 48 7.8)">
+    <ellipse cx="48" cy="7.8" rx="7.4" ry="1.4" fill="#22252b" stroke="#14161a" stroke-width="1.2"/>
+  </g>
+  <circle cx="8" cy="7.8" r="1.5" fill="#7d8494" stroke="#14161a" stroke-width="1.1"/>
+  <circle cx="48" cy="7.8" r="1.5" fill="#7d8494" stroke="#14161a" stroke-width="1.1"/>
+  <!-- antena -->
+  <path d="M24.5 13 L23.5 8.8" fill="none" stroke="#14161a" stroke-width="1.6" stroke-linecap="round"/>
+  <circle cx="23.3" cy="7.9" r="1.2" fill="#7d8494" stroke="#14161a" stroke-width="1"/>
+  <!-- corpo -->
+  <ellipse cx="28" cy="19.5" rx="12.5" ry="7.2" fill="url(#drBody)" stroke="#14161a" stroke-width="2.2"/>
+  <ellipse cx="26.5" cy="22.5" rx="8.5" ry="3" fill="#22252b" opacity="0.5"/>
+  <path d="M18.5 22.8 Q28 27.6 37.3 22.6 Q33.8 26 28 26 Q22.2 26 18.5 22.8 Z" fill="#6a7180"/>
+  <path d="M20 16.2 Q28 12.6 36 16.2" fill="none" stroke="#7d8494" stroke-width="1.8" stroke-linecap="round" opacity="0.9"/>
+  <!-- parafusos -->
+  <circle cx="21.5" cy="19.5" r="0.7" fill="#171a1f"/>
+  <circle cx="31.5" cy="18" r="0.7" fill="#171a1f"/>
+  <!-- led vermelho -->
+  <circle cx="24" cy="26.2" r="2.4" fill="#ff4545" opacity="0.3"/>
+  <circle cx="24" cy="26.2" r="1.4" fill="#ff4545" stroke="#14161a" stroke-width="1"/>
+  <!-- camera-lente (olho) -->
+  <path d="M33.5 22.5 L37.5 25" fill="none" stroke="#14161a" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="39" cy="25.5" r="4.6" fill="#7d8494" stroke="#14161a" stroke-width="2"/>
+  <circle cx="39.4" cy="25.9" r="2.9" fill="#1b3f6e"/>
+  <circle cx="39.9" cy="26.4" r="1.4" fill="#0e2745"/>
+  <circle cx="38.3" cy="24.6" r="0.9" fill="#ffffff"/>
+</svg>

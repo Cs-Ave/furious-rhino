@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 42" width="70" height="42">
+  <!-- FURIOUS RHINO - proposta bioma pantano (em avaliacao, nao usada pelo jogo).
+       Capivara chibi REMODELADA no vocabulario validado (bufalo/jacare): corpo em
+       elipse macica marrom com pelos no dorso, cabeca em circulo grande, focinho
+       rombudo em elipse contornada sobreposta (como o focinho do bufalo), narina
+       perto do topo, orelhinhas redondas coladas na borda do circulo da cabeca,
+       olhos redondos com palpebra reta por cima (expressao zen), bigodes, sem
+       cauda, respingo d'agua atras (saiu do brejo).
+       Cabeca em grupo proprio animada por um unico transform no grupo.
+       hitbox sugerida: 56x30 em offset 9,10.
+       Entre frames: pernas trocam de fase de trote, o grupo da cabeca baixa 2px e
+       inclina 3 graus para frente no run-1, e o respingo d'agua alterna de pose.
+       Frame base: fase A de trote (traseira distante + dianteira proxima avancam);
+       cabeca sem transform; respingo em pose A. -->
+  <defs>
+    <linearGradient id="cpb" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a9793f"/>
+      <stop offset="1" stop-color="#82571f"/>
+    </linearGradient>
+    <linearGradient id="cph" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b3854c"/>
+      <stop offset="1" stop-color="#8a5e22"/>
+    </linearGradient>
+  </defs>
+  <!-- respingo d'agua do brejo -->
+  <path d="M4.5 21.5 Q6 18.2 7.5 21.5 Q7.5 23.9 6 23.9 Q4.5 23.9 4.5 21.5 Z" fill="#7fb4c9"/>
+  <circle cx="3.5" cy="27.5" r="1.4" fill="#5f98ad"/>
+  <circle cx="8.8" cy="29.5" r="1" fill="#7fb4c9"/>
+  <!-- pernas em trote (fase A: traseira distante e dianteira proxima avancam) -->
+  <g transform="rotate(-14 17.5 33)">
+    <rect x="14.2" y="30.4" width="6.6" height="9.2" rx="2.8" fill="#82571f" stroke="#5a3a10" stroke-width="2.2"/>
+    <rect x="15.2" y="37.8" width="2" height="1.8" rx="0.8" fill="#d3ab72"/>
+    <rect x="17.9" y="37.8" width="2" height="1.8" rx="0.8" fill="#d3ab72"/>
+  </g>
+  <g>
+    <rect x="21.8" y="30.8" width="6.6" height="9.2" rx="2.8" fill="#a9793f" stroke="#5a3a10" stroke-width="2.2"/>
+    <rect x="22.8" y="38.2" width="2" height="1.8" rx="0.8" fill="#d3ab72"/>
+    <rect x="25.5" y="38.2" width="2" height="1.8" rx="0.8" fill="#d3ab72"/>
+  </g>
+  <g>
+    <rect x="36.8" y="30.8" width="6.6" height="9.2" rx="2.8" fill="#82571f" stroke="#5a3a10" stroke-width="2.2"/>
+    <rect x="37.8" y="38.2" width="2" height="1.8" rx="0.8" fill="#d3ab72"/>
+    <rect x="40.5" y="38.2" width="2" height="1.8" rx="0.8" fill="#d3ab72"/>
+  </g>
+  <g transform="rotate(-14 46.5 33)">
+    <rect x="43.2" y="30.4" width="6.6" height="9.2" rx="2.8" fill="#a9793f" stroke="#5a3a10" stroke-width="2.2"/>
+    <rect x="44.2" y="37.8" width="2" height="1.8" rx="0.8" fill="#d3ab72"/>
+    <rect x="46.9" y="37.8" width="2" height="1.8" rx="0.8" fill="#d3ab72"/>
+  </g>
+  <!-- corpo em elipse macica (como o bufalo) -->
+  <ellipse cx="28" cy="24" rx="20" ry="11" fill="url(#cpb)" stroke="#5a3a10" stroke-width="2.6"/>
+  <ellipse cx="26" cy="29.5" rx="13.5" ry="4.2" fill="#6e4a16" opacity="0.5"/>
+  <path d="M12 19 Q26 13.6 42 17" fill="none" stroke="#c79b5e" stroke-width="2.2" stroke-linecap="round" opacity="0.85"/>
+  <!-- pelos do dorso -->
+  <path d="M15 17.8 L17 15.4 M21 16 L23 13.8 M27 15.2 L29 13.1 M33 15.4 L35 13.3 M39 16.4 L41 14.4" fill="none" stroke="#6e4a16" stroke-width="1.3" stroke-linecap="round"/>
+  <!-- cabeca em grupo proprio (o frame run-1 aplica transform aqui) -->
+  <g>
+    <!-- orelhinhas redondas coladas na borda do circulo da cabeca -->
+    <circle cx="47" cy="5.8" r="2.4" fill="#8a5e22" stroke="#5a3a10" stroke-width="1.8"/>
+    <circle cx="53.5" cy="4.6" r="2.6" fill="#a9793f" stroke="#5a3a10" stroke-width="1.8"/>
+    <circle cx="53.9" cy="4.4" r="1" fill="#7c5420"/>
+    <!-- cabeca em circulo grande -->
+    <circle cx="52" cy="14" r="10" fill="url(#cph)" stroke="#5a3a10" stroke-width="2.6"/>
+    <!-- focinho rombudo em elipse contornada (como o focinho do bufalo) -->
+    <ellipse cx="61.8" cy="15.5" rx="5.8" ry="7.6" fill="#b98d54" stroke="#5a3a10" stroke-width="2.2"/>
+    <path d="M58.6 10.6 Q61.8 9.2 64.8 10.8" fill="none" stroke="#d3ab72" stroke-width="1.4" stroke-linecap="round" opacity="0.9"/>
+    <!-- narina perto do topo do focinho -->
+    <ellipse cx="63.6" cy="12" rx="1.2" ry="0.9" fill="#4a3210" transform="rotate(-18 63.6 12)"/>
+    <!-- olhos redondos com palpebra reta por cima (zen) -->
+    <circle cx="48.5" cy="11.8" r="1.7" fill="#2e1d08"/>
+    <circle cx="55" cy="11.2" r="1.9" fill="#2e1d08"/>
+    <circle cx="49" cy="11.2" r="0.55" fill="#ffffff"/>
+    <circle cx="55.6" cy="10.6" r="0.6" fill="#ffffff"/>
+    <path d="M46.7 10.6 Q48.5 10.1 50.3 10.6 M53.1 9.9 Q55 9.4 56.9 9.9" fill="none" stroke="#5a3a10" stroke-width="1.2" stroke-linecap="round"/>
+    <!-- bochecha -->
+    <ellipse cx="50" cy="18.5" rx="4.6" ry="3" fill="#c79b5e" opacity="0.35"/>
+    <!-- boca serena -->
+    <path d="M64.3 19.6 Q62.3 21.2 60 20.4" fill="none" stroke="#5a3a10" stroke-width="1.3" stroke-linecap="round"/>
+    <!-- bigodes: pontinhos no focinho e fios para tras -->
+    <circle cx="60.8" cy="15.4" r="0.45" fill="#6e4a16"/>
+    <circle cx="62.2" cy="16.4" r="0.45" fill="#6e4a16"/>
+    <circle cx="59.8" cy="17" r="0.45" fill="#6e4a16"/>
+    <path d="M58.5 15.5 Q55.5 16.2 53.4 15.8 M58.8 17.3 Q56.2 18.2 54.2 17.9" fill="none" stroke="#6e4a16" stroke-width="0.7" stroke-linecap="round" opacity="0.8"/>
+  </g>
+</svg>

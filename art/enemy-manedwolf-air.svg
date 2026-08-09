@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 76 62" width="76" height="62">
+  <!-- FURIOUS RHINO - proposta bioma floresta (em avaliacao, nao usada pelo jogo).
+       Lobo-guara chibi saltador: pelagem laranja-avermelhada, pernas pretas muito longas
+       com articulacao canina (coxa larga junto ao corpo, joelho/jarrete marcado, canela
+       fina, patinha definida), crina preta na nuca, peito e ponta da cauda brancos,
+       orelhoes triangulares. Cabeca em grupo proprio animada por um unico transform.
+       hitbox sugerida: 56x42 em offset 14,14.
+       Entre frames: pernas mudam de pose (passada de corrida <-> salto esticado) e o
+       grupo da cabeca inclina 4 graus para cima no frame air; o resto e identico.
+       Frame air: salto esticado (dianteiras estendidas a frente com leve dobra no
+       cotovelo, traseiras estendidas para tras, patas fora do chao); cabeca com
+       rotate(-4) olhando o arco do salto. -->
+  <defs>
+    <linearGradient id="mwBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d96f2e"/>
+      <stop offset="1" stop-color="#b04f18"/>
+    </linearGradient>
+    <radialGradient id="mwFace" cx="0.42" cy="0.38" r="0.8">
+      <stop offset="0" stop-color="#e0813f"/>
+      <stop offset="1" stop-color="#c25c1e"/>
+    </radialGradient>
+  </defs>
+  <!-- cauda erguida com ponta branca -->
+  <path d="M14 27 Q6 22 5 13" fill="none" stroke="#5a3a10" stroke-width="5" stroke-linecap="round"/>
+  <path d="M14 27 Q6 22 5 13" fill="none" stroke="#c65f1f" stroke-width="3" stroke-linecap="round"/>
+  <path d="M5.6 16 Q3 12 5.2 8.2 Q9.4 9 8 14 Q7.4 16 5.6 16 Z" fill="#f4ead8" stroke="#5a3a10" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- pernas do fundo, pretas e articuladas (mudam entre frames) -->
+  <g>
+    <path d="M16.8 28.4 L23.2 31.2 L12.6 43 L8.8 39.6 Z" fill="#16110c" stroke="#5a3a10" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M9.4 40 L12.8 42.6 L7 54.6 L3.8 52.6 Z" fill="#16110c" stroke="#5a3a10" stroke-width="1.8" stroke-linejoin="round"/>
+    <ellipse cx="5" cy="54.6" rx="2.9" ry="1.9" transform="rotate(38 5 54.6)" fill="#1f1811" stroke="#5a3a10" stroke-width="1.4"/>
+  </g>
+  <g>
+    <path d="M38.8 28 L44.6 28.4 L48.6 40.2 L43.4 41.2 Z" fill="#16110c" stroke="#5a3a10" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M44 40 L48.4 39.4 L56.6 50.6 L53.8 52.8 Z" fill="#16110c" stroke="#5a3a10" stroke-width="1.8" stroke-linejoin="round"/>
+    <ellipse cx="56.4" cy="52.4" rx="2.9" ry="1.9" transform="rotate(42 56.4 52.4)" fill="#1f1811" stroke="#5a3a10" stroke-width="1.4"/>
+  </g>
+  <!-- corpo -->
+  <ellipse cx="31" cy="29" rx="18" ry="10.5" fill="url(#mwBody)" stroke="#5a3a10" stroke-width="2.5"/>
+  <ellipse cx="30" cy="34" rx="12" ry="4.5" fill="#8f3f10" opacity="0.5"/>
+  <path d="M16 25 Q31 17.5 46 23" fill="none" stroke="#f0904a" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <!-- peito branco -->
+  <path d="M42.5 21.5 Q50 22 52 27 Q52.8 33 47 36.8 Q42.4 34.6 41 29.6 Q40.2 24.6 42.5 21.5 Z" fill="#f4ead8" stroke="#5a3a10" stroke-width="1.8"/>
+  <!-- pernas da frente do quadro, articuladas (mudam entre frames) -->
+  <g>
+    <path d="M20.6 29.6 L27 30.6 L17.4 43.6 L13.2 40.6 Z" fill="#241b12" stroke="#5a3a10" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M13.8 41 L17.2 43.2 L12.8 56.4 L9.4 55 Z" fill="#241b12" stroke="#5a3a10" stroke-width="1.8" stroke-linejoin="round"/>
+    <ellipse cx="10.8" cy="56.6" rx="2.9" ry="1.9" transform="rotate(25 10.8 56.6)" fill="#302417" stroke="#5a3a10" stroke-width="1.4"/>
+  </g>
+  <g>
+    <path d="M42.4 29.2 L48.4 30.2 L51.4 42 L46 43 Z" fill="#241b12" stroke="#5a3a10" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M46.6 41.8 L51 41 L59.4 52.6 L56.4 54.6 Z" fill="#241b12" stroke="#5a3a10" stroke-width="1.8" stroke-linejoin="round"/>
+    <ellipse cx="59.2" cy="54.2" rx="2.9" ry="1.9" transform="rotate(40 59.2 54.2)" fill="#302417" stroke="#5a3a10" stroke-width="1.4"/>
+  </g>
+  <!-- cabeca em grupo proprio (o frame air aplica transform aqui) -->
+  <g transform="rotate(-4 52 28)">
+    <!-- crina preta da nuca (atras da cabeca) -->
+    <path d="M50 6.5 Q44 12 42.5 23.5 L44.4 22 L45.8 24.6 L47.4 22.4 L49 24.8 Q49.8 14.5 54 8.5 Z" fill="#1d1409" stroke="#5a3a10" stroke-width="1.5" stroke-linejoin="round"/>
+    <!-- orelhoes triangulares com miolo claro -->
+    <path d="M47 9 Q45 0.8 54 2.6 Q56 8 50.5 11 Z" fill="#d0682a" stroke="#5a3a10" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M49 7.6 Q48.4 3.4 52.6 4.4 Q53.4 7 50.6 8.8 Z" fill="#f0b47e"/>
+    <path d="M61 7.5 Q62.5 0.2 70 2.4 Q70.6 7.6 64.6 9.6 Z" fill="#dd7330" stroke="#5a3a10" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M63.4 6.4 Q64.2 2.8 68 4 Q68.2 6.4 65.2 7.6 Z" fill="#f0b47e"/>
+    <!-- cabeca elegante -->
+    <circle cx="57" cy="17" r="11.5" fill="url(#mwFace)" stroke="#5a3a10" stroke-width="2.5"/>
+    <!-- crista da crina no topo -->
+    <path d="M50.5 7 Q53.5 3.4 57.5 3.4 Q60.5 3.6 62 5 Q58 5 55 6.8 Q52.5 8 50.5 7 Z" fill="#1d1409"/>
+    <!-- garganta branca -->
+    <path d="M49 25.5 Q55 27 58.5 31.5 Q54 33.5 49.5 31 Q47.5 28 49 25.5 Z" fill="#f4ead8"/>
+    <!-- franja da bochecha -->
+    <path d="M46.8 19 L45 20.4 L46.8 21.6 L45.2 23" fill="none" stroke="#5a3a10" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- olhos grandes -->
+    <circle cx="54" cy="14.8" r="2.6" fill="#241605"/>
+    <circle cx="62.5" cy="14.4" r="2.6" fill="#241605"/>
+    <circle cx="53.3" cy="14" r="0.8" fill="#ffffff"/>
+    <circle cx="61.8" cy="13.6" r="0.8" fill="#ffffff"/>
+    <!-- sobrancelhas -->
+    <path d="M51 10.8 Q53.5 9.6 56 10.4 M60 10.2 Q62.5 9 65 10" fill="none" stroke="#7a4a14" stroke-width="1.2" stroke-linecap="round"/>
+    <!-- focinho alongado, escuro na ponta -->
+    <ellipse cx="65.5" cy="21" rx="8.4" ry="5.2" fill="#d0682a" stroke="#5a3a10" stroke-width="1.8"/>
+    <path d="M60 18.4 Q66 16.6 71 18.6" fill="none" stroke="#b3541c" stroke-width="1.2" stroke-linecap="round"/>
+    <ellipse cx="71.6" cy="20.4" rx="3" ry="2.4" fill="#2b1c0d" stroke="#5a3a10" stroke-width="1.2"/>
+    <circle cx="70.8" cy="19.6" r="0.7" fill="#4a3418"/>
+    <path d="M70.8 23.2 Q68 25.4 64.6 24.6" fill="none" stroke="#5a3a10" stroke-width="1.4" stroke-linecap="round"/>
+    <circle cx="64" cy="22.4" r="0.5" fill="#8a4a16"/>
+    <circle cx="66.4" cy="23" r="0.5" fill="#8a4a16"/>
+  </g>
+</svg>

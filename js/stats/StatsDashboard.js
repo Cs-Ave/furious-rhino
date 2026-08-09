@@ -176,7 +176,8 @@ function allRuns(docs, sinceS = since()) {
       out.push({
         id: d.id, t, m: num(r.m), s: num(r.s), c: str(r.c) || null,
         w: num(r.w), r: num(r.r), o: num(r.o), a: num(r.a),
-        j: num(r.j), d: num(r.d), x: num(r.x), k: num(r.k),
+        j: num(r.j), d: num(r.d), x: num(r.x), f: num(r.f), k: num(r.k),
+        b: num(r.b), q: num(r.q), z: num(r.z),
         attemptIndex: base + i + 1,
       });
     });
@@ -359,7 +360,7 @@ function tabDifficulty(root) {
   // O cruzamento que hoje não existe: as duas dimensões vivem separadas
   root.append(el('h2', null, '🎯 Causa × faixa de distância'));
   const bands = ['0–200', '200–400', '400–600', '600–800', '800–1000', '1000m+'];
-  const causeKeys = ['wall', 'spike', 'animal', 'dart', 'tower', 'fall'];
+  const causeKeys = ['wall', 'spike', 'animal', 'dart', 'tower', 'boss', 'fall'];
   const rows = causeKeys.map((k) => Constants.CAUSE_LABELS[k] || k);
   const matrix = causeKeys.map(() => bands.map(() => 0));
   for (const r of deaths) {
@@ -479,12 +480,13 @@ function tabMechanics(root) {
   // A pergunta central: quem morre cedo é quem não descobriu a investida?
   const byPlayer = new Map();
   for (const r of withData) {
-    const p = byPlayer.get(r.id) || { runs: 0, d: 0, best: 0, r: 0, o: 0, x: 0 };
+    const p = byPlayer.get(r.id) || { runs: 0, d: 0, best: 0, r: 0, o: 0, x: 0, f: 0 };
     p.runs++;
     p.d += r.d;
     p.r += r.r;
     p.o += r.o;
     p.x += r.x;
+    p.f += r.f;
     p.best = Math.max(p.best, r.m);
     byPlayer.set(r.id, p);
   }
@@ -496,6 +498,7 @@ function tabMechanics(root) {
     ['💨 já investiu', players.filter((p) => p.d > 0).length],
     ['🏔️ já destruiu rampa', players.filter((p) => p.r > 0).length],
     ['🏰 já derrubou torre', players.filter((p) => p.o > 0).length],
+    ['🔥 Fúria Total', players.filter((p) => p.f > 0).length],
   ], players.length, (v) => `${v} (${pct(v)})`));
 
   const noDash = players.filter((p) => p.d === 0);
@@ -538,6 +541,27 @@ function tabMechanics(root) {
   root.append(el('h2', null, '🗺️ O que é destruído, e onde'));
   root.append(chartBox(heatmap(rows, bands, matrix, { fmt: (v) => `${v}` }),
     'Cada corrida cai na faixa em que TERMINOU, então as faixas altas somam o caminho inteiro.'));
+
+  // A luta do portão (v1.7): tentativa = qualquer corrida que entrou na
+  // arena (z conta a partir do WIN-1100); fuga = as 3 camadas quebradas
+  const fights = runs.filter((r) => r.z > 0 || r.b > 0 || r.q > 0);
+  if (fights.length) {
+    const bossWins = fights.filter((r) => r.b >= 3).length;
+    const bossDeaths = fights.filter((r) => r.c === 'boss').length;
+    const avg = (f) => fights.reduce((a, r) => a + f(r), 0) / fights.length;
+    root.append(el('h2', null, '⚔️ A luta do portão'));
+    const bossCards = el('div', 'stat-cards');
+    bossCards.append(
+      card(fights.length, 'lutas contra o caçador'),
+      card(`${Math.round((bossWins / fights.length) * 100)}%`, 'terminaram em fuga (3 camadas)'),
+      card(bossDeaths, 'mortes pelo rifle'),
+      card(`${avg((r) => r.z).toFixed(0)}s · ${avg((r) => r.q).toFixed(1)}`, 'duração média · quiques médios'),
+    );
+    root.append(bossCards);
+    root.append(el('p', 'stats-note',
+      'Muitos quiques com poucas camadas quebradas = o loop "recue e invista na fresta" ' +
+      'não está sendo lido. A régua de calibragem do boss vive aqui.'));
+  }
 
   const keyboard = withData.filter((r) => r.k).length;
   root.append(el('h2', null, '⌨️ Teclado × toque'));
@@ -877,7 +901,7 @@ export function aggregate(docs) {
     playTimeS: 0,
     standalone: 0,
     deathsTier: [0, 0, 0, 0, 0, 0],
-    causes: { wall: 0, spike: 0, animal: 0, dart: 0, tower: 0, fall: 0 },
+    causes: { wall: 0, spike: 0, animal: 0, dart: 0, tower: 0, boss: 0, fall: 0 },
     funnelSteps: [],
     escaped: 0,
     device: new Map(),
@@ -921,6 +945,7 @@ export function aggregate(docs) {
     agg.causes.animal += num(deaths.animal);
     agg.causes.dart += num(deaths.dart);
     agg.causes.tower += num(deaths.tower);
+    agg.causes.boss += num(deaths.boss);
     agg.causes.fall += num(deaths.fall);
 
     bests.push(num(d.bestM));

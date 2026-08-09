@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 64" width="96" height="64">
+  <!-- FURIOUS RHINO - proposta especial FURIA TOTAL (em avaliacao, nao usada pelo jogo).
+       Silhueta, pose e ciclo de pernas IDENTICOS ao art/rhino-run-0.svg: corpo, cabeca, chifre,
+       cauda e as 4 pernas usam a mesma geometria do frame 0 (hitbox do jogo 76x54 offset 8,10 inalterada).
+       O que muda e o tratamento: pele chumbo/grafite com veios de lava, olho em brasa, ponta do
+       chifre incandescente, chamas em 3 camadas no dorso/nuca/cauda e brasas soltas.
+       Entre frames: pernas seguem o ciclo original (0 -> 1 -> 2); chamas ondulam em fase propria
+       (mesma quantidade de linguas, pontas em posicoes diferentes) e as brasas mudam de lugar. -->
+  <defs>
+    <linearGradient id="rfb" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a4e55"/>
+      <stop offset="0.55" stop-color="#453b43"/>
+      <stop offset="1" stop-color="#2b2530"/>
+    </linearGradient>
+    <linearGradient id="rfh" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#564a53"/>
+      <stop offset="1" stop-color="#342d39"/>
+    </linearGradient>
+    <linearGradient id="rfho" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ecd5a2"/>
+      <stop offset="0.55" stop-color="#f4b25a"/>
+      <stop offset="1" stop-color="#ff7a1f"/>
+    </linearGradient>
+    <linearGradient id="rff" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff8f28"/>
+      <stop offset="1" stop-color="#f2601a"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(0 0)">
+    <!-- brasas soltas flutuando atras do dorso (fase 0) -->
+    <circle cx="8.5" cy="9.5" r="1.1" fill="#ff7a1f" opacity="0.9"/>
+    <circle cx="16" cy="3" r="0.85" fill="#ffc93c" opacity="0.85"/>
+    <circle cx="3.5" cy="15.5" r="0.75" fill="#ffc93c" opacity="0.8"/>
+    <circle cx="23.5" cy="1.6" r="0.65" fill="#ff9b4a" opacity="0.75"/>
+    <!-- chama da cauda (fase 0) -->
+    <path d="M3.2 21 Q0.9 16 4.2 13.2 Q6.2 15.8 5.6 18.8 Q8 16.8 9.6 18.8 Q8.8 22 6.4 22.6 L4 22.2 Z" fill="url(#rff)" stroke="#14161a" stroke-width="1.1" stroke-linejoin="round"/>
+    <path d="M4.4 18.6 Q3.8 15.8 5.8 15 Q6.9 17.2 5.7 19.6 Q4.9 19.7 4.4 18.6 Z" fill="#ffc93c"/>
+    <!-- cauda erguida com tufo preto espetado (identica ao original) -->
+    <path d="M15 23.5 Q8.5 18.5 6 23" fill="none" stroke="#14161a" stroke-width="4" stroke-linecap="round"/>
+    <path d="M15 23.5 Q8.5 18.5 6 23" fill="none" stroke="#564a52" stroke-width="2" stroke-linecap="round"/>
+    <path d="M7 22 Q1.5 20.5 2.2 26.8 Q3.4 30 7.2 28.6 Q9.4 25.4 7 22 Z" fill="#14161a"/>
+    <!-- chamas do dorso e da nuca, 3 camadas, atras do corpo (fase 0) -->
+    <path d="M12 26 Q7.5 20 10 13.5 Q13 17 16.5 15 Q14.5 8.5 19 4.5 Q21.5 9 25.5 10 Q25 4 30.5 1.8 Q33.5 6.5 37.5 7.5 Q37.5 2.8 43 2.2 Q45.5 5.5 49.5 5.2 Q50 1.4 55.5 0.9 Q57.5 4 60.5 5 Q60 2.4 63.5 3.4 Q64.5 8 63 12 L12 26 Z"
+          fill="url(#rff)" stroke="#14161a" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M15 22 Q12 17 13.5 13 Q15.5 15.5 18.5 14.5 Q17.5 9 21 6.5 Q23 10.5 27 11.5 Q27 6.5 31.5 4.5 Q33.5 8.5 38 9.5 Q39 5.5 44 4.8 Q46 7.5 50.5 7.2 Q51.5 3.5 56 3.2 Q57.5 6 60.5 7 L59 14 L20 20 Z"
+          fill="#ffc93c"/>
+    <path d="M30.5 5.5 Q29.5 8.5 31.8 10 Q34.2 8.8 33.2 5.8 Q31.8 4 30.5 5.5 Z" fill="#fff3c4"/>
+    <path d="M43 4.8 Q42 7.6 44.2 8.8 Q46.4 7.6 45.4 5 Q44.2 3.6 43 4.8 Z" fill="#fff3c4"/>
+    <path d="M54.5 3 Q53.6 5.8 55.6 7 Q57.8 5.8 56.8 3.4 Q55.8 1.9 54.5 3 Z" fill="#fff3c4"/>
+    <!-- pernas: MESMA geometria do frame 0 original, so recoloridas (par distante escurecido) -->
+    <path d="M64 40 L70.6 54.8" stroke="#14161a" stroke-width="14.6" stroke-linecap="round"/>
+    <path d="M64 40 L72 58" stroke="#564a52" stroke-width="11" stroke-linecap="round"/>
+    <path d="M64 40 L72 58" stroke="#14161a" stroke-width="11" stroke-linecap="round" fill="none" opacity="0.12"/>
+    <rect x="67" y="55" width="10" height="7" rx="2" fill="#5f5460" stroke="#14161a" stroke-width="1.6"/>
+    <rect x="68" y="58.4" width="3.6" height="3.4" rx="1.3" fill="#ecc98d" stroke="#14161a" stroke-width="1"/>
+    <rect x="72.4" y="58.4" width="3.6" height="3.4" rx="1.3" fill="#ecc98d" stroke="#14161a" stroke-width="1"/>
+    <path d="M52 42 L45.4 53.5" stroke="#14161a" stroke-width="14.6" stroke-linecap="round"/>
+    <path d="M52 42 L44 56" stroke="#564a52" stroke-width="11" stroke-linecap="round"/>
+    <path d="M52 42 L44 56" stroke="#14161a" stroke-width="11" stroke-linecap="round" fill="none" opacity="0.38"/>
+    <rect x="39" y="53" width="10" height="7" rx="2" fill="#494049" stroke="#14161a" stroke-width="1.6"/>
+    <rect x="40" y="56.4" width="3.6" height="3.4" rx="1.3" fill="#ecc98d" stroke="#14161a" stroke-width="1"/>
+    <rect x="44.4" y="56.4" width="3.6" height="3.4" rx="1.3" fill="#ecc98d" stroke="#14161a" stroke-width="1"/>
+    <path d="M30 40 L34.9 54.8" stroke="#14161a" stroke-width="14.6" stroke-linecap="round"/>
+    <path d="M30 40 L36 58" stroke="#564a52" stroke-width="11" stroke-linecap="round"/>
+    <path d="M30 40 L36 58" stroke="#14161a" stroke-width="11" stroke-linecap="round" fill="none" opacity="0.12"/>
+    <rect x="31" y="55" width="10" height="7" rx="2" fill="#5f5460" stroke="#14161a" stroke-width="1.6"/>
+    <rect x="32" y="58.4" width="3.6" height="3.4" rx="1.3" fill="#ecc98d" stroke="#14161a" stroke-width="1"/>
+    <rect x="36.4" y="58.4" width="3.6" height="3.4" rx="1.3" fill="#ecc98d" stroke="#14161a" stroke-width="1"/>
+    <path d="M18 42 L13.1 53.5" stroke="#14161a" stroke-width="14.6" stroke-linecap="round"/>
+    <path d="M18 42 L12 56" stroke="#564a52" stroke-width="11" stroke-linecap="round"/>
+    <path d="M18 42 L12 56" stroke="#14161a" stroke-width="11" stroke-linecap="round" fill="none" opacity="0.38"/>
+    <rect x="7" y="53" width="10" height="7" rx="2" fill="#494049" stroke="#14161a" stroke-width="1.6"/>
+    <rect x="8" y="56.4" width="3.6" height="3.4" rx="1.3" fill="#ecc98d" stroke="#14161a" stroke-width="1"/>
+    <rect x="12.4" y="56.4" width="3.6" height="3.4" rx="1.3" fill="#ecc98d" stroke="#14161a" stroke-width="1"/>
+    <!-- corpo: mesma silhueta do original, pele chumbo incandescente -->
+    <path d="M13 40 Q10 30 13 21 Q17 13 26 12 Q36 10.5 44 7.5 Q52 4.8 58 7 Q64 9.5 66 14 L67 42 Q60 49 46 50 Q26 51 13 40 Z"
+          fill="url(#rfb)" stroke="#14161a" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M34 10 Q46 6.5 55 8.5" fill="none" stroke="#ff9b4a" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+    <path d="M44 9 Q46.5 13 45.5 17.5" fill="none" stroke="#241e29" stroke-width="1.8" stroke-linecap="round" opacity="0.8"/>
+    <ellipse cx="38" cy="44.8" rx="18" ry="5.2" fill="#1f1a22" opacity="0.5"/>
+    <path d="M18 45 Q34 49.5 52 47.5" fill="none" stroke="#ff7a1f" stroke-width="1.6" stroke-linecap="round" opacity="0.3"/>
+    <!-- veios de lava (magma sob a pele) -->
+    <path d="M21 31 Q26 28 30 30.5 Q34.5 33 39 31" fill="none" stroke="#ff7a1f" stroke-width="1.4" stroke-linecap="round" opacity="0.95"/>
+    <path d="M30 30.5 Q31 34 29 37" fill="none" stroke="#ff7a1f" stroke-width="1.05" stroke-linecap="round" opacity="0.8"/>
+    <path d="M43 20 Q46.5 23.5 45.5 28" fill="none" stroke="#ffc93c" stroke-width="1.05" stroke-linecap="round" opacity="0.9"/>
+    <path d="M22 40 Q26.5 38 30 40.5" fill="none" stroke="#ff7a1f" stroke-width="1" stroke-linecap="round" opacity="0.75"/>
+    <!-- linguas de fogo na frente do corpo (fase 0) -->
+    <path d="M55.5 8 Q54 3.8 57.2 1.8 Q59.4 4.4 58.4 8 Q60.2 6.6 61.4 8.6 Q60.6 11 58 11.2 Q55.9 10.3 55.5 8 Z" fill="url(#rff)" stroke="#14161a" stroke-width="1.1" stroke-linejoin="round"/>
+    <path d="M56.8 6.5 Q56.4 4 58 3.4 Q59 5.4 58.2 7.6 Q57.2 7.6 56.8 6.5 Z" fill="#ffc93c"/>
+    <path d="M35.5 12 Q34 8.6 36.8 6.6 Q38.8 9.2 37.8 12.4 Q36.4 13.4 35.5 12 Z" fill="#ffc93c" opacity="0.95"/>
+    <!-- dobra do pescoco -->
+    <path d="M64.5 15.5 Q61.8 27 65.2 39.5" fill="none" stroke="#221c26" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
+    <!-- orelhas em pe (mesma geometria, chamuscadas) -->
+    <path d="M72 10 Q73.8 1.2 80 2.4 Q78.6 9.8 74.6 11.8 Z" fill="#4c414b" stroke="#14161a" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M73.8 8.9 Q74.8 3.6 78 4.2 Q77 8.6 75 10.2 Z" fill="#2a232d"/>
+    <path d="M64 11.5 Q64.6 1.8 71.5 3.4 Q70 11 66.6 13.2 Z" fill="#5a4d55" stroke="#14161a" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M65.9 10.8 Q66.3 4.4 69.7 5.2 Q68.8 10.2 66.7 11.8 Z" fill="#332b35"/>
+    <!-- cabeca com focinho longo (mesma silhueta) -->
+    <path d="M63 14 Q68 8.5 74 9.5 Q79 10.8 81.5 15 L84 20 Q87 22 89 26.5 Q93 31 93.6 36.5 Q94 41.5 89.5 43.5 Q83 45.5 77 44 Q68 41.5 64.5 34 Q62.5 27 63 19 Z"
+          fill="url(#rfh)" stroke="#14161a" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M67 36 Q71 41.5 77 43" fill="none" stroke="#221c26" stroke-width="1.8" stroke-linecap="round" opacity="0.7"/>
+    <path d="M85 30 Q88 28.8 91 30.4" fill="none" stroke="#221c26" stroke-width="1.2" stroke-linecap="round" opacity="0.8"/>
+    <path d="M69 31 Q72 29.5 74.5 32" fill="none" stroke="#ff7a1f" stroke-width="0.9" stroke-linecap="round" opacity="0.8"/>
+    <!-- chifres: traseiro + chifrao curvo com ponta incandescente -->
+    <path d="M80.2 20.8 Q81.8 12 85.8 15.5 Q85.4 20.6 82.4 22 Z" fill="#e6bd7e" stroke="#14161a" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M85.5 24 Q88.5 16 92 10 Q93.6 7.6 94.3 8.8 Q94.6 15 92.6 21.5 Q91 26.5 89.5 29 Z"
+          fill="url(#rfho)" stroke="#14161a" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M91.8 14 Q92.8 11 94.25 8.85 Q94.45 12 93.5 15.2 Q92.5 15.4 91.8 14 Z" fill="#ffc93c"/>
+    <path d="M92.8 11.5 Q92 16.5 90.6 21" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+    <!-- olho em brasa sob sobrancelha preta pesada -->
+    <circle cx="76.5" cy="25" r="3" fill="#ffa63c" stroke="#14161a" stroke-width="1.2"/>
+    <circle cx="77.5" cy="25.4" r="1.5" fill="#e03c00"/>
+    <circle cx="76" cy="24.2" r="0.55" fill="#ffffff"/>
+    <path d="M71 21 Q76.5 18.8 82 23.5" fill="none" stroke="#14161a" stroke-width="4.2" stroke-linecap="round"/>
+    <path d="M81.5 22.5 Q83 24.6 82.7 26.8" fill="none" stroke="#6b5b63" stroke-width="1.5" stroke-linecap="round"/>
+    <!-- narina -->
+    <ellipse cx="89" cy="38" rx="2.4" ry="1.9" fill="#17131a"/>
+    <path d="M86.8 36.6 Q89 35.5 91.2 36.9" fill="none" stroke="#62525c" stroke-width="1"/>
+    <!-- boca seria (labio para baixo + papada) -->
+    <path d="M92.5 41.2 Q87.5 42.8 83.5 42.7 Q80 42.5 78.2 44.8" fill="none" stroke="#14161a" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M80 44.8 Q78.8 46.2 76.6 46.4" fill="none" stroke="#6b5b63" stroke-width="1.4" stroke-linecap="round"/>
+  </g>
+</svg>

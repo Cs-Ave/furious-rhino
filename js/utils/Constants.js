@@ -1,7 +1,7 @@
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
-  VERSION: '1.6.1',
+  VERSION: '1.7.0',
 
   // Rótulo humano de cada desfecho de corrida. Fonte única para o painel, o
   // resumo do jogador e os pushes — os três diziam a mesma coisa com palavras
@@ -12,6 +12,7 @@ export const Constants = {
     animal: '🦁 Animal',
     dart: '💉 Dardo',
     tower: '🏰 Torre',
+    boss: '🎯 Caçador',
     fall: '🕳️ Anomalia de física',
     win: '🗽 Fuga',
   },
@@ -50,6 +51,43 @@ export const Constants = {
   // Sem esse ajuste ela saturaria aos 70% e o rino chegaria ao portão com 300m
   // de velocidade máxima — apertando o MIN_SAFE_GAP e esticando o trampolim.
   FURY_FULL_DISTANCE_PX: 36000,
+  // ------------------------------------------------- especial FÚRIA TOTAL
+  // Com o medidor cheio, tocar no ícone (ou ↓/SHIFT) transforma o rino:
+  // pega fogo, fica invencível e TUDO que colide explode, enquanto o medidor
+  // drena até zero. A fúria deixou de ser posicional: vira uma CARGA que
+  // acumula por distância percorrida (a primeira carga reproduz a curva
+  // antiga: cheia após FURY_FULL_DISTANCE_PX de corrida) e é gasta no modo.
+  SPECIAL_DURATION_MS: 6000,  // medidor cheio → zero (a duração do modo)
+  SPECIAL_SPEED_MULT: 1.25,   // boost sobre a velocidade vigente durante o modo
+  SPECIAL_WARN_MS: 1500,      // reta final: rino/ícone piscam avisando o fim
+
+  // ------------------------------------------------- BOSS: portão-fortaleza
+  // v1.7: o portão dos 1000m amanhece BLINDADO, com um caçador de rifle na
+  // plataforma do topo. O rino quebra 3 camadas com investidas alinhadas às
+  // frestas (ordem fixa chão → meio → alto, alturas de CRACK_HEIGHTS),
+  // quicando para trás a cada contato — SEM corpo físico no portão: contato
+  // por banda de x + clamp posicional (corpo sólido + FurySystem reescrevendo
+  // velocityX todo frame = o soft-lock documentado das rampas).
+  BOSS_ARENA_PX: 1100,           // luta começa em WIN-1100 (~972m); câmera trava
+  BOSS_GATE_FACE_HALF: 120,      // meia-largura do canvas do portão (banda de contato)
+  BOSS_LAYERS: ['ground', 'mid', 'high'], // ordem FIXA de quebra das camadas
+  BOSS_KNOCKBACK_VX: 520,        // recuo do quique (decai ~0.92/frame → ~300px)
+  BOSS_KNOCKBACK_VY: -360,       // arremesso vertical do quique
+  BOSS_KNOCKBACK_MS: 650,        // janela em que o FurySystem NÃO reescreve velocityX
+  BOSS_LAYER_COOLDOWN_MS: 450,   // 1 contato processado por vez (rampage não zera 3 em 3 frames)
+  BOSS_SHOT_SPEED: 640,          // entre t3 (620) e t6 (700): quem chegou aqui já viu 540+
+  // Padrões do rifle por camadas RESTANTES (objetos mutáveis: TuningPanel
+  // pode ligar sliders aqui). burst = tiros retos em sequência (120ms);
+  // mortar = alterna morteiro em arco caindo na zona de pouso do quique.
+  BOSS_RIFLE: {
+    3: { intervalMs: 1700, telegraphMs: 450, burst: 1, mortar: false },
+    2: { intervalMs: 1400, telegraphMs: 400, burst: 1, mortar: true },
+    1: { intervalMs: 1150, telegraphMs: 350, burst: 3, mortar: true },
+  },
+  // Toasts de ensino só nos 2 primeiros encontros da vida (o glow pulsante
+  // na fresta é permanente — é a mira, não uma dica)
+  BOSS_HINT_MAX_ENCOUNTERS: 2,
+
   SPAWN_LOOKAHEAD_PX: 600,
   RECYCLE_MARGIN_PX: 200,
   // Piso absoluto de vão = ciclo do dash (1,2s) × velocidade máxima (450 px/s)
@@ -114,6 +152,36 @@ export const Constants = {
     // simétricas (offX = (56-36)/2) para o flip não deslocar a hitbox;
     // bicos ficam FORA da colisão, como o chifre do rino
     bird:    { w: 56, h: 32, bodyW: 36, bodyH: 22, offX: 10, offY: 6  },
+
+    // ------------------------------------------------ elenco v1.7 por bioma
+    // tex: as texturas novas usam o prefixo enemy-* (Animal.setType resolve).
+    // offX já vem ESPELHADO (w - offX_arte - bodyW): as hitboxes sugeridas
+    // nos comentários-contrato dos SVGs são assimétricas (rede, bico, cauda
+    // fora da colisão) e o sprite roda sempre com setFlipX(true) — o Arcade
+    // NÃO espelha o offset do body junto com a textura.
+    // scale: só quem foge do ANIMAL_SCALE padrão (veículos/voadores da cidade).
+    zookeeper: { w: 48,  h: 68, bodyW: 32,  bodyH: 52, offX: 8,  offY: 14, tex: 'enemy-zookeeper' },
+    peacock:   { w: 60,  h: 54, bodyW: 34,  bodyH: 46, offX: 4,  offY: 6,  tex: 'enemy-peacock' },
+    ostrich:   { w: 64,  h: 80, bodyW: 42,  bodyH: 66, offX: 11, offY: 12, tex: 'enemy-ostrich' },
+    eagle:     { w: 64,  h: 36, bodyW: 44,  bodyH: 18, offX: 8,  offY: 10, tex: 'enemy-eagle' },
+    hyena:     { w: 66,  h: 46, bodyW: 56,  bodyH: 32, offX: 5,  offY: 12, tex: 'enemy-hyena' },
+    buffalo:   { w: 86,  h: 56, bodyW: 72,  bodyH: 40, offX: 8,  offY: 14, tex: 'enemy-buffalo' },
+    bluebird:  { w: 60,  h: 36, bodyW: 40,  bodyH: 16, offX: 4,  offY: 11, tex: 'enemy-bluebird' },
+    jaguar:    { w: 80,  h: 46, bodyW: 64,  bodyH: 30, offX: 6,  offY: 14, tex: 'enemy-jaguar' },
+    snake:     { w: 72,  h: 26, bodyW: 60,  bodyH: 14, offX: 4,  offY: 10, tex: 'enemy-snake' },
+    manedwolf: { w: 76,  h: 62, bodyW: 56,  bodyH: 42, offX: 6,  offY: 14, tex: 'enemy-manedwolf' },
+    croc:      { w: 92,  h: 38, bodyW: 84,  bodyH: 21, offX: 4,  offY: 15, tex: 'enemy-croc' },
+    hippo:     { w: 88,  h: 58, bodyW: 74,  bodyH: 42, offX: 7,  offY: 14, tex: 'enemy-hippo' },
+    capybara:  { w: 70,  h: 42, bodyW: 56,  bodyH: 30, offX: 5,  offY: 10, tex: 'enemy-capybara' },
+    jabiru:    { w: 84,  h: 44, bodyW: 62,  bodyH: 22, offX: 8,  offY: 10, tex: 'enemy-jabiru' },
+    person:    { w: 40,  h: 62, bodyW: 26,  bodyH: 50, offX: 7,  offY: 10, tex: 'enemy-person' },
+    suit:      { w: 42,  h: 64, bodyW: 28,  bodyH: 52, offX: 7,  offY: 10, tex: 'enemy-suit' },
+    scooter:   { w: 96,  h: 58, bodyW: 84,  bodyH: 40, offX: 6,  offY: 16, tex: 'enemy-scooter', scale: 1.25 },
+    car:       { w: 108, h: 46, bodyW: 96,  bodyH: 32, offX: 6,  offY: 12, tex: 'enemy-car',     scale: 1.25 },
+    police:    { w: 108, h: 48, bodyW: 96,  bodyH: 30, offX: 6,  offY: 16, tex: 'enemy-police',  scale: 1.25 },
+    drone:     { w: 56,  h: 36, bodyW: 40,  bodyH: 18, offX: 8,  offY: 11, tex: 'enemy-drone',   scale: 1.4 },
+    plane:     { w: 120, h: 42, bodyW: 88,  bodyH: 24, offX: 16, offY: 11, tex: 'enemy-plane',   scale: 1.1 },
+    pickup:    { w: 132, h: 56, bodyW: 122, bodyH: 34, offX: 5,  offY: 20, tex: 'enemy-pickup',  scale: 1.25 },
   },
 
   // 5 espécies visuais de pássaro (mesma hitbox/behavior de 'bird');
@@ -180,8 +248,27 @@ export const Constants = {
   // 900 garante que o pouso nunca cai em cima do próximo obstáculo.
   RAMP_EXIT_GAP: 900,
 
-  // Animal types
-  ANIMAL_TYPES: ['lion', 'zebra', 'monkey', 'giraffe', 'bird'],
+  // Todas as espécies spawnáveis (o sorteio real é por bioma, ver
+  // BIOME_ANIMALS; esta lista serve ao pool e ao TuningPanel)
+  ANIMAL_TYPES: [
+    'lion', 'zebra', 'monkey', 'giraffe', 'bird',
+    'zookeeper', 'peacock', 'ostrich', 'eagle', 'hyena', 'buffalo',
+    'bluebird', 'jaguar', 'snake', 'manedwolf', 'croc', 'hippo',
+    'capybara', 'jabiru', 'person', 'suit', 'scooter', 'car', 'police',
+    'drone', 'plane', 'pickup',
+  ],
+
+  // v1.7: cada bioma tem elenco próprio (antes as mesmas 5 espécies
+  // apareciam do zoo à cidade). O sorteio de espécie em SpawnManager.
+  // spawnAnimal consulta esta tabela via getBiomeIndex(x).
+  BIOME_ANIMALS: {
+    jaulas:   ['zookeeper', 'peacock'],
+    aviario:  ['bird', 'ostrich', 'eagle'],
+    savana:   ['lion', 'zebra', 'giraffe', 'hyena', 'buffalo', 'bluebird'],
+    floresta: ['monkey', 'jaguar', 'snake', 'manedwolf'],
+    pantano:  ['croc', 'hippo', 'capybara', 'jabiru'],
+    cidade:   ['person', 'suit', 'scooter', 'car', 'police', 'drone', 'plane', 'pickup'],
+  },
 
   // Comportamento por espécie: todos avançam contra o rino (velocidade para
   // a esquerda, em px/s). jumpV negativo = impulso do pulo; airTexture = pose
@@ -194,6 +281,35 @@ export const Constants = {
     zebra:   { speed: 110, jumpV: -760, jumpIntervalMs: 450, airTexture: 'animal-zebra-air' },
     // anim do pássaro é por espécie (bird-<sp>-flap), resolvida no setType
     bird:    { speed: 180, bobVy: 60 },
+
+    // ---------------------------------------------------- elenco v1.7
+    // fly: [yMin, yMax] — faixa de voo no spawn E flag de voador (sem
+    // gravidade + ondulação bobVy, como o pássaro). Veículos são "animais"
+    // rápidos por ora; mecânicas próprias (dardo da camionete, mergulho da
+    // águia, bando de hienas) ficam para a fase calibrada com dados.
+    zookeeper: { speed: 100, anim: 'zookeeper-run' },
+    peacock:   { speed: 130, anim: 'peacock-run' },
+    ostrich:   { speed: 190, anim: 'ostrich-run' },
+    eagle:     { speed: 180, bobVy: 55, fly: [420, 520], anim: 'eagle-run' },
+    hyena:     { speed: 150, anim: 'hyena-run' },
+    buffalo:   { speed: 140, anim: 'buffalo-run' },
+    // rasante: voa BAIXO, quase na altura do rino — pulo mal cronometrado bate
+    bluebird:  { speed: 210, bobVy: 40, fly: [500, 565], anim: 'bluebird-run' },
+    jaguar:    { speed: 170, anim: 'jaguar-run' },
+    snake:     { speed: 80,  anim: 'snake-run' },
+    manedwolf: { speed: 140, jumpV: -700, jumpIntervalMs: 500, airTexture: 'enemy-manedwolf-air' },
+    croc:      { speed: 100, anim: 'croc-run' },
+    hippo:     { speed: 120, anim: 'hippo-run' },
+    capybara:  { speed: 110, anim: 'capybara-run' },
+    jabiru:    { speed: 170, bobVy: 50, fly: [470, 550], anim: 'jabiru-run' },
+    person:    { speed: 130, anim: 'person-run' },
+    suit:      { speed: 150, anim: 'suit-run' },
+    scooter:   { speed: 230, anim: 'scooter-run' },
+    car:       { speed: 260, anim: 'car-run' },
+    police:    { speed: 240, anim: 'police-run' },
+    drone:     { speed: 160, bobVy: 45, fly: [400, 490], anim: 'drone-run' },
+    plane:     { speed: 290, bobVy: 30, fly: [330, 410], anim: 'plane-run' },
+    pickup:    { speed: 210, anim: 'pickup-run' },
   },
 
   // 6 tiers de dificuldade, um a cada 200m (8000px de mundo). Objetos
