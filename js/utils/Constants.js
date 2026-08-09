@@ -71,18 +71,18 @@ export const Constants = {
   BOSS_ARENA_PX: 1100,           // luta começa em WIN-1100 (~972m); câmera trava
   BOSS_GATE_FACE_HALF: 120,      // meia-largura do canvas do portão (banda de contato)
   BOSS_LAYERS: ['ground', 'mid', 'high'], // ordem FIXA de quebra das camadas
-  BOSS_KNOCKBACK_VX: 520,        // recuo do quique (decai ~0.92/frame → ~300px)
+  BOSS_KNOCKBACK_VX: 3000,        // recuo do quique (decai ~0.92/frame → ~300px)
   BOSS_KNOCKBACK_VY: -360,       // arremesso vertical do quique
   BOSS_KNOCKBACK_MS: 650,        // janela em que o FurySystem NÃO reescreve velocityX
   BOSS_LAYER_COOLDOWN_MS: 450,   // 1 contato processado por vez (rampage não zera 3 em 3 frames)
-  BOSS_SHOT_SPEED: 640,          // entre t3 (620) e t6 (700): quem chegou aqui já viu 540+
+  BOSS_SHOT_SPEED: 800,          // entre t3 (620) e t6 (700): quem chegou aqui já viu 540+
   // Padrões do rifle por camadas RESTANTES (objetos mutáveis: TuningPanel
   // pode ligar sliders aqui). burst = tiros retos em sequência (120ms);
   // mortar = alterna morteiro em arco caindo na zona de pouso do quique.
   BOSS_RIFLE: {
-    3: { intervalMs: 1700, telegraphMs: 450, burst: 1, mortar: false },
-    2: { intervalMs: 1400, telegraphMs: 400, burst: 1, mortar: true },
-    1: { intervalMs: 1150, telegraphMs: 350, burst: 3, mortar: true },
+    3: { intervalMs: 1500, telegraphMs: 450, burst: 1, mortar: false },
+    2: { intervalMs: 1200, telegraphMs: 400, burst: 2, mortar: true },
+    1: { intervalMs: 950, telegraphMs: 350, burst: 3, mortar: true },
   },
   // Toasts de ensino só nos 2 primeiros encontros da vida (o glow pulsante
   // na fresta é permanente — é a mira, não uma dica)
