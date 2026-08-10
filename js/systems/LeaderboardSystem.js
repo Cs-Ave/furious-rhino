@@ -101,6 +101,7 @@ export class LeaderboardSystem {
   static async submit(meters) {
     const name = StorageManager.getPlayerName();
     if (!name) return false;
+    if (!StorageManager.allowsRemoteWrite()) return false;
     try {
       const { fs, db } = await getDb();
       const playerId = StorageManager.getOrCreatePlayerId();
@@ -124,6 +125,7 @@ export class LeaderboardSystem {
   static async rename(name) {
     const best = StorageManager.getBestSent();
     if (!name || best < 1) return false;
+    if (!StorageManager.allowsRemoteWrite()) return false;
     try {
       const { fs, db } = await getDb();
       const playerId = StorageManager.getOrCreatePlayerId();

@@ -31,6 +31,7 @@ export class StorageManager {
   static PLAYER_ID_KEY = 'furious_rhino_player_id';
   static PLAYER_NAME_KEY = 'furious_rhino_player_name';
   static BEST_SENT_KEY = 'furious_rhino_best_sent';
+  static ALLOW_LOCAL_WRITE_KEY = 'furious_rhino_allow_local_write';
 
   static getOrCreatePlayerId() {
     let id = localStorage.getItem(this.PLAYER_ID_KEY);
@@ -39,6 +40,26 @@ export class StorageManager {
       localStorage.setItem(this.PLAYER_ID_KEY, id);
     }
     return id;
+  }
+
+  // Localhost/IP de rede local = ambiente de teste/desenvolvimento — nunca é
+  // um jogador de verdade (o jogo só é servido publicamente pelo GitHub
+  // Pages). Existe para fechar o vazamento que já aconteceu duas vezes: um
+  // contexto de teste sem playerId de sonda mina um UUID real e polui a
+  // telemetria de produção.
+  static isLocalEnv() {
+    const h = location.hostname;
+    if (h === 'localhost' || h === '127.0.0.1' || h === '::1') return true;
+    return /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h);
+  }
+
+  // Fora do ambiente local, sempre permite. Dentro dele, só escreve se um
+  // teste pedir explicitamente (localStorage semeado ANTES da página
+  // carregar, via addInitScript do Playwright) — seguro por padrão: um
+  // teste que esquecer de semear qualquer coisa simplesmente não escreve
+  // nada, em vez de criar um doc real não rastreado.
+  static allowsRemoteWrite() {
+    return !this.isLocalEnv() || localStorage.getItem(this.ALLOW_LOCAL_WRITE_KEY) === '1';
   }
 
   static getPlayerName() {

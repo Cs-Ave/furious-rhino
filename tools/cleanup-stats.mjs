@@ -17,6 +17,12 @@
 //      contextos de Playwright sem playerId de sonda. Antes de apagar, cada
 //      um é RECONFERIDO contra a impressão digital — se o doc mudou (ou se o
 //      id foi reciclado por um jogador real), ele é pulado com aviso.
+//   3. Assinatura de tráfego automatizado: attempts >= RUNS_WINDOW (mesma
+//      constante de StorageManager.RUNS_WINDOW=50) COM playTimeS=0 E runs
+//      vazio/ausente — "muitas tentativas, nenhum tempo jogado, nenhuma
+//      corrida detalhada" não acontece com um humano. Achamos mais docs
+//      assim em 09/08/2026 além dos 16 da lista JUNK — listada, não apagada
+//      sozinha por padrão (é heurística, não fingerprint exato).
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
@@ -45,13 +51,15 @@ const FINGERPRINT = [
   { attempts: 24, bestM: 1145 }, { attempts: 20, bestM: 1145 }, { attempts: 47, bestM: 812 },
 ];
 const CREATED_BEFORE = '2026-08-09T12:00:00Z'; // nenhum doc novo pode entrar na lista
+const RUNS_WINDOW = 50; // StorageManager.RUNS_WINDOW — js/utils/StorageManager.js:267
 
 const dec = (v) => {
   if (!v) return null;
   if ('integerValue' in v) return Number(v.integerValue);
   if ('stringValue' in v) return v.stringValue;
   if ('booleanValue' in v) return Boolean(v.booleanValue);
-  return undefined; // mapas/listas não interessam aqui
+  if ('arrayValue' in v) return (v.arrayValue.values || []).length; // só a contagem interessa aqui
+  return undefined; // mapas não interessam aqui
 };
 
 async function fetchStats() {
@@ -73,6 +81,8 @@ async function fetchStats() {
   }
   return out;
 }
+
+const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
 
 const docs = await fetchStats();
 const byId = new Map(docs.map((d) => [d.id, d]));
@@ -107,6 +117,22 @@ if (pular.length) {
   console.log('PULADOS (não serão tocados):');
   for (const p of pular) console.log(`  ${p.id} — ${p.motivo}`);
   console.log('');
+}
+
+// Categoria 3: assinatura de tráfego automatizado — só relatada, nunca
+// apagada sozinha (é heurística, não fingerprint exato como a lista JUNK).
+// Pra apagar um caso confirmado: node tools/delete-player.mjs <id> --yes
+const jaListado = new Set([...apagar, ...pular].map((x) => x.id));
+const suspeitos = docs.filter((d) =>
+  !jaListado.has(d.id) && !/^claude-/.test(d.id) &&
+  num(d.attempts) >= RUNS_WINDOW && num(d.playTimeS) === 0 && num(d.runs) === 0);
+if (suspeitos.length) {
+  console.log(`SUSPEITOS DE TESTE (attempts>=${RUNS_WINDOW}, playTimeS=0, runs vazio) — ` +
+    `NÃO apagados automaticamente, confira antes:`);
+  for (const s of suspeitos) {
+    console.log(`  stats/${s.id} — attempts=${s.attempts} created=${s.created}`);
+  }
+  console.log('Pra apagar um confirmado: node tools/delete-player.mjs <id> --yes\n');
 }
 
 // `process.exit` com socket de fetch ainda vivo derruba o libuv no Windows

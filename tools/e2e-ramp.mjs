@@ -21,9 +21,12 @@ const context = await browser.newContext({ viewport: { width: 1280, height: 720 
 // Sem alerta de PWA no caminho e sem dicas da abertura sobrepondo a tela
 await context.addInitScript(() => {
   localStorage.setItem('furious_rhino_attempts', '50');
-  // Id curto DE PROPÓSITO: as rules exigem >= 16 chars para criar, então
-  // esta suíte nunca consegue gravar um doc na coleção de produção
-  localStorage.setItem('furious_rhino_player_id', 'e2e-ramp-local');
+  // Sonda claude-* (regra do CLAUDE.md), pra ficar filtrada do painel/digest
+  // se algum dia escrever. Esta suíte não precisa validar a escrita real —
+  // sem o opt-in furious_rhino_allow_local_write, StorageManager.allowsRemoteWrite()
+  // já bloqueia qualquer gravação em ambiente local, então nem depende mais
+  // do tamanho do id pra nunca sujar produção
+  localStorage.setItem('furious_rhino_player_id', 'claude-e2e-ramp-local');
   // A suíte inicia dezenas de corridas: sem isto, cada uma vira um push no
   // celular do dono
   localStorage.setItem('furious_rhino_notify_off', '1');
@@ -255,7 +258,7 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
   // Jogador estreante: é quem recebe as dicas
   await p2.addInitScript(() => {
     localStorage.setItem('furious_rhino_attempts', '0');
-    localStorage.setItem('furious_rhino_player_id', 'e2e-ramp-novato');
+    localStorage.setItem('furious_rhino_player_id', 'claude-e2e-ramp-novato');
   });
   await p2.goto(`${BASE}/?debug=1`, { waitUntil: 'networkidle' });
   await p2.waitForTimeout(1500);
@@ -326,7 +329,7 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
   p3.on('console', (m) => { if (m.type() === 'error') err3.push(m.text()); });
   await p3.addInitScript(() => {
     localStorage.setItem('furious_rhino_attempts', '50');
-    localStorage.setItem('furious_rhino_player_id', 'e2e-ramp-marcas');
+    localStorage.setItem('furious_rhino_player_id', 'claude-e2e-ramp-marcas');
     localStorage.setItem('furious_rhino_record', '100');
     localStorage.setItem('furious_rhino_rivals', JSON.stringify({
       leader: { name: 'Thomas', score: 300 },
@@ -372,7 +375,7 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
   p4.on('console', (m) => { if (m.type() === 'error') err4.push(m.text()); });
   await p4.addInitScript(() => {
     localStorage.setItem('furious_rhino_attempts', '50');
-    localStorage.setItem('furious_rhino_player_id', 'e2e-ramp-portao');
+    localStorage.setItem('furious_rhino_player_id', 'claude-e2e-ramp-portao');
   });
   await p4.goto(`${BASE}/?debug=1`, { waitUntil: 'networkidle' });
   await p4.waitForTimeout(1500);
@@ -521,7 +524,7 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
   p5.on('console', (m) => { if (m.type() === 'error') err5.push(m.text()); });
   await p5.addInitScript(() => {
     localStorage.setItem('furious_rhino_attempts', '50');
-    localStorage.setItem('furious_rhino_player_id', 'e2e-ramp-teclas');
+    localStorage.setItem('furious_rhino_player_id', 'claude-e2e-ramp-teclas');
     // Jogador com nome AUTOMÁTICO: é quem deve receber o convite
     localStorage.setItem('furious_rhino_player_name', 'Anonimo_99');
     localStorage.setItem('furious_rhino_name_is_auto', '1');

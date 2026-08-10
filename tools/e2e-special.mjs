@@ -16,17 +16,21 @@ const browser = await chromium.launch();
 const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
 await context.addInitScript(() => {
   localStorage.setItem('furious_rhino_attempts', '50');
-  // Id curto DE PROPÓSITO: as rules exigem >= 16 chars para criar, então
-  // esta suíte nunca consegue gravar um doc na coleção de produção
-  localStorage.setItem('furious_rhino_player_id', 'e2e-special-loc');
+  // Sonda claude-* (regra do CLAUDE.md), pra ficar filtrada do painel/digest
+  // se algum dia escrever. Esta suíte não precisa validar a escrita real —
+  // sem o opt-in furious_rhino_allow_local_write, StorageManager.allowsRemoteWrite()
+  // já bloqueia qualquer gravação em ambiente local, então nem depende mais
+  // do tamanho do id pra nunca sujar produção
+  localStorage.setItem('furious_rhino_player_id', 'claude-e2e-special');
   localStorage.setItem('furious_rhino_notify_off', '1');
 });
 
 const errors = [];
 const page = await context.newPage();
 page.on('pageerror', (e) => errors.push(String(e)));
-// 403 de rede é ESPERADO: o player_id curto desta suíte não passa nas rules
-// do Firestore (proteção contra sujar produção) — só erro de JS interessa
+// Rede: StorageManager.allowsRemoteWrite() já impede a suíte de sequer
+// tentar escrever no Firestore em ambiente local — filtro mantido como
+// defesa extra caso alguém rode com o opt-in ligado — só erro de JS interessa
 page.on('console', (m) => {
   if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) {
     errors.push(m.text());

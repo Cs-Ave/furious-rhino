@@ -31,6 +31,10 @@ async function probeContext(opts = {}) {
     // A suíte inicia dezenas de corridas: sem isto, cada uma vira um push de
     // "fulano começou a jogar" no celular do dono
     localStorage.setItem('furious_rhino_notify_off', '1');
+    // Opt-in explícito: em localhost/IP local o jogo não escreve no Firestore
+    // por padrão (StorageManager.allowsRemoteWrite) — esta suíte PRECISA da
+    // escrita real pra validar a integração com as rules
+    localStorage.setItem('furious_rhino_allow_local_write', '1');
   }, PROBE_ID);
   return ctx;
 }

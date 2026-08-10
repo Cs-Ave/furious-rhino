@@ -181,6 +181,7 @@ export class StatsSystem {
   // Corridas abandonadas entram no envio seguinte (os totais capturam tudo).
   static async send() {
     if (!LeaderboardSystem.isConfigured()) return false;
+    if (!StorageManager.allowsRemoteWrite()) return false;
     try {
       const [geo, device] = await Promise.all([this.getGeo(), this.buildDeviceInfo()]);
       const { fs, db } = await getDb();
