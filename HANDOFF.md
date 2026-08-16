@@ -1,6 +1,6 @@
 # Handoff — FURIOUS RHINO v1.8.0
 
-**Data:** 14/08/2026 · **Status:** v1.8.0 COMPLETA na árvore de trabalho, **não commitada** · **Sessão anterior documentada:** v1.7.2
+**Data:** 15/08/2026 · **Status:** v1.8.0 **RELEASED em produção** (commit `e775625`, tag `v1.8.0`, smoke 5/5) · **Sessão anterior documentada:** v1.7.2
 
 ---
 
@@ -8,11 +8,11 @@
 
 | | |
 |---|---|
-| Produção (v1.7.2) | https://cs-ave.github.io/furious-rhino/ — publicada pelo dono em 10/08 |
-| Working tree | v1.8.0 inteira SEM commit: 13/08 (fúria no boss, desabamento, skins, gerador) + 14/08 (estúdio /?setup, skins editáveis + flag, rino +30% visual) |
-| Último commit | `fbc5068` (v1.7.2) — topo de `origin/main` |
-| Cache do SW (código local) | `furious-rhino-v180` |
-| Rules do Firestore | **⚠️ MUDARAM em 15/08** (`scoreAt` opcional em `scores/`) — publicar no console ANTES do deploy (regra 3) |
+| Produção (v1.8.0) | https://cs-ave.github.io/furious-rhino/ — **RELEASED 15/08** (push + tag + GitHub Release + smoke 5/5: versão, console limpo, coluna de dias, write com `scoreAt` aceito e sonda removida via `delete-player.mjs`) |
+| Working tree | Limpa — só `.claude/`, `Anotacoes.txt` e `Art AI/` ficam locais (decisão do dono); `art2/`, `CLAUDE.md` e `HANDOFF.md` entraram no repo |
+| Último commit | `e775625` (v1.8.0) — topo de `origin/main`, tag `v1.8.0` |
+| Cache do SW | `furious-rhino-v180` |
+| Rules do Firestore | **Publicadas no console em 15/08** (antes do push, ordem correta) — `scoreAt` opcional em `scores/` |
 | Docs | `docs/` sincronizada em 14/08 (`/atualizar-docs` rodado; entrada v1.8.0 do CHANGELOG emendada — a versão nunca foi lançada) |
 | Registry de skins do dono | Além das 7 originais: **rhinoprata** (criada pelo dono no /?setup, visível); robot/silver/bronze/catisquick/prata estavam **hidden** por escolha dele — estado vivo, conferir `js/systems/SkinRegistry.js` |
 
@@ -97,16 +97,13 @@ Letras livres em `RUN_COUNTERS`: `e h i l u y` (inalterado).
 
 ## 5. Pendências
 
-### Para fechar a release
-| Item | Contexto |
-|---|---|
-| **Commit da v1.8.0** | Decidir untracked: sugestão — `docs/`, `gerador-de-sprites/`, `js/setup/`, `js/systems/Skin*`, `tools/*` novos, `art/*` SIM; `Anotacoes.txt`, `.claude/`, `Art AI/` NÃO; `art2/` a critério (registro histórico). Rules NÃO mudam |
-| **Bump de versão** | 4 lugares (`Constants.VERSION`, `#game-version`, `package.json`, `sw.js CACHE`) — código ainda diz 1.8.0/v180, docs acompanham |
-| **Push + tag + GitHub Release + smoke** | Ritual em `docs/04-referencia-tecnica.md` §5. Push também rearma o cron do digest (desativa ~09/10 sem commit) |
-| **Revisar o registry antes de publicar** | O dono deixou robot/silver/bronze/catisquick/prata `hidden` testando — conferir se é o estado desejado para produção |
+### Release v1.8.0 — ✅ FECHADA em 15/08
+Tudo do checklist antigo foi feito: rules publicadas no console ANTES do push (dono), commit `e775625` (untracked conforme decidido: art2/ + CLAUDE.md + HANDOFF.md entraram; Anotacoes/.claude/Art AI ficaram), versão já batia nos 4 lugares, push + tag `v1.8.0` + GitHub Release + smoke 5/5 em produção (inclui write real com `scoreAt`, sonda apagada depois). Registry publicado **como estava** por decisão do dono — ciente de que a Catisquick's Rhino está grátis com a desc da façanha antiga e a MecaSilver sem desc (ajustável a qualquer hora pelo /?setup, é só dado). O push rearmou o cron do digest (desativaria ~09/10).
 
 ### Opcionais / próximos
-- Leitores de `runs[].g` no painel (medir uso de skins).
+- Catisquick's Rhino: desc anuncia façanha mas o acesso é grátis; MecaSilver sem desc — o dono ajusta pelo /?setup quando quiser.
+- Leitores de `runs[].g` no painel (medir uso de skins) e de `runs[].n` (fúrias negadas na arena).
+- Calibração fina da densidade em campo (guia: `docs/04-referencia-tecnica.md` §8b — exportar do ?debug=1 e fixar no Constants).
 - Skin "color" (`gerador-de-sprites/output/color/`) aguardando decisão; skins novas agora saem 100% pelo /?setup.
 - Mecânicas por espécie — adiadas.
 - Calibrar t6 pós-release; `GAME_DESIGN.md` parado na v1.6.0.
@@ -117,7 +114,7 @@ Letras livres em `RUN_COUNTERS`: `e h i l u y` (inalterado).
 
 ```bash
 cd /c/Users/crist/MobileGame
-git status                     # a v1.8.0 inteira está aqui, sem commit
+git status                     # limpa — v1.8.0 released (tag v1.8.0)
 
 python -m http.server 3000     # servir o jogo (e2e dependem disso)
 npm run sprite-gen             # servidor do gerador/estúdio (:3210)
