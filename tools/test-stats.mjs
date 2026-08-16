@@ -226,6 +226,22 @@ eq('marca: sem timestamp → null, sem afetar os demais',
 eq('marca: de hoje devolve 0',
   LeaderboardSystem.holdDays([{ sinceMs: hojeMeioDia }], hojeMeioDia), [0]);
 
+// v1.8.1: o PÓDIO usa o modo cascata (posse da POSIÇÃO — ultrapassagem
+// reinicia quem caiu), enquanto a lista segue por marca (asserts acima)
+eq('cascata: marca mais nova ACIMA reinicia quem está abaixo',
+  LeaderboardSystem.holdDays([{ sinceMs: marcaHa(2) }, { sinceMs: marcaHa(30) }], hojeMeioDia, { cascade: true }),
+  [2, 2]);
+eq('cascata: marca mais nova ABAIXO não afeta quem está acima',
+  LeaderboardSystem.holdDays([{ sinceMs: marcaHa(10) }, { sinceMs: marcaHa(5) }], hojeMeioDia, { cascade: true }),
+  [10, 5]);
+eq('cascata: sem timestamp → null, sem contaminar os de baixo',
+  LeaderboardSystem.holdDays([{ sinceMs: marcaHa(3) }, { sinceMs: null }, { sinceMs: marcaHa(20) }], hojeMeioDia, { cascade: true }),
+  [3, null, 3]);
+// Rules: o campo skin (vitrine do pódio) entrou na whitelist de scores
+eq('rules de scores aceitam o skin', rules.includes("'skin'"), true);
+eq('rules validam skin como string curta',
+  /skin is string\s*&&[\s\S]{0,80}skin\.size\(\) >= 1/.test(rules), true);
+
 // ---------- 4. Agregação da página ----------
 const docs = [
   { // doc LEGADO achatado (v1.3.0): sem deathTower, sem device/país

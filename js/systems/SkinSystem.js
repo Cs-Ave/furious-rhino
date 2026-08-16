@@ -139,12 +139,14 @@ export class SkinSystem {
   // Retroativo (1× por boot): quem já fez a façanha nas últimas 50 corridas
   // ganha a conquista no primeiro boot após a skin existir. Mapeia os
   // contadores de 1 letra de runs[] para as chaves de condition.
+  // v1.8.1: mesmo contrato dos outros avaliadores — devolve o que é novo
+  // (vira notícia no Diário da Fuga da tela inicial).
   static migrateFromRuns() {
     const owned = StorageManager.getSkins();
     const targets = SKINS.filter(
       (s) => s.access.type === 'achievement' && !s.hidden && !owned.includes(s.id)
     );
-    if (!targets.length) return;
+    if (!targets.length) return [];
     const runsData = StorageManager.getRuns().filter(Boolean).map((r) => ({
       meters: Number(r.m) || 0,
       towersDowned: Number(r.o) || 0,
@@ -155,6 +157,7 @@ export class SkinSystem {
       (s) => runsData.some((data) => this.conditionMet(s.access.condition, data))
     );
     if (earned.length) StorageManager.addSkins(earned.map((s) => s.id));
+    return earned;
   }
 
   // Copy pt-BR do cadeado no hub, gerada da condition — é o que faz o

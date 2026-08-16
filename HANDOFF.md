@@ -1,4 +1,64 @@
-# Handoff — FURIOUS RHINO v1.8.0
+# Handoff — FURIOUS RHINO v1.8.1
+
+**Data:** 15/08/2026 (fim do dia) · **Status:** v1.8.0 **RELEASED de manhã** (tag `v1.8.0`, prod ok) · v1.8.1 **IMPLEMENTADA E TESTADA na árvore, SEM commit** — falta só o ritual de release (2 passos do dono no console + fechamento)
+
+## 1. Estado atual
+
+| | |
+|---|---|
+| Produção (v1.8.0) | https://cs-ave.github.io/furious-rhino/ — released 15/08 de manhã, smoke 5/5 |
+| Working tree | **v1.8.1 inteira sem commit**: home remodelada (index.html + GameScene), `NewsSystem.js` novo, campo `skin` em scores (LeaderboardSystem/StorageManager/rules), pódio+cascata, versão/CACHE já em 1.8.1/v181 |
+| Último commit | `0a997ee` (docs pós-release v1.8.0) — topo de `origin/main`; tag `v1.8.0` em `e775625` |
+| Rules do Firestore | **⚠️ MUDARAM DE NOVO (não publicadas)**: campo `skin` opcional em `scores/` — publicar no console ANTES do push da v1.8.1 |
+| Doc `config/news` | **Ainda não existe** — o dono cria no console (ver §3 passo 2) |
+| Docs | `docs/` sincronizada até a v1.8.0; a v1.8.1 entra no `/atualizar-docs` do fechamento |
+| Suítes (fim do dia, todas verdes) | `test-stats` **87** · `test-skins` 97 · `test-integrate` 49 · `e2e-ramp` **37** · `e2e-boss` 16 · `e2e-special` 25 · `e2e-skins` 15 · `e2e-setup` 15/17 (ramo) · `e2e-stats` 69 |
+
+## 2. O dia 15/08 em resumo
+
+**Manhã (tudo DENTRO da v1.8.0, released):** /?setup v3 (remover físico das originais + `stripSwArtLines`); 3 correções (desabamento p/ esquerda, som/pausa sob os ícones via `alignHudButtons`, "🏳️ Desistir da corrida" sem contabilizar); densidade de animais em 3 rodadas (par → denso → **escolta**; 1,5→3,2 animais/100m, teto ~4; guia de calibração em docs/04 §8b); atropelado voa p/ cima-direita; ranking com "há X dias" (campo `scoreAt`, holdDays por marca); **release completa** (rules publicadas pelo dono → commit `e775625` → push → tag → GH Release → smoke 5/5 → sonda apagada). Detalhes: seção "Handoff anterior" abaixo.
+
+**Tarde (v1.8.1, sem commit):** planejamento + **5 rodadas de mockup** com o dono (A/B/C → C1/C2/C3 → C2 refinado; processo mockup-first: HTML estático com a arte real via `file:///` + screenshot por rodada — funcionou muito bem) → implementação completa da home:
+
+- **Pódio mundial na home** (2·1·3 + degrau VOCÊ tracejado na mesma linha de base): skins de quem cravou cada marca (campo novo **`skin`** em `scores/` — **RULES MUDARAM DE NOVO**, publicar no console antes do deploy; docs antigos caem no rino original), nome, marca e dias de **posse da posição (cascata)** — `holdDays(entries, now, {cascade:true})`; a lista do 🏆 segue por marca. `fetchPodium()` com cache `furious_rhino_podium` TTL 6h (3 reads; refresh pós-submit e o `fetchTop10` realimenta de graça).
+- **Diário da Fuga** (`js/systems/NewsSystem.js`, novo — está no sw ASSETS): 1º card = `config/news` do console (doc com campo `items`, array de strings; 1 read/h, molde do NotifySystem; **o dono precisa criar o doc no console**), demais = eventos locais dedupe-por-chave em `furious_rhino_news` (skin desbloqueada — inclusive as do boot, que eram avisos órfãos; entrou/perdeu pódio via bootRank×fetchMyRank; recorde novo no submit).
+- **Box Campanha**: recorde/tentativas/fugas/maior inimigo + minigráfico SVG das últimas 10 corridas + botões nome (#identity-btn) e Minhas estatísticas dentro; 📣 Chamar a galera alinhado ao "ver top 10 ›" (#ranking-btn reestilizado). **Faixa de medalhas REMOVIDA da home** (decisão do dono; seguem no Minhas estatísticas — `setupMedalStrip` apagado, `#medal-strip` fora do DOM).
+- **Título em chamas** fonte Luckiest Guy (Google Fonts CDN + fallback Impact; `fonts.googleapis.com` já cai no bypass do sw, woff2 do gstatic entra no cache runtime); instruções de jogo em texto puro flanqueando o CTA pulsante; rodapés grandes ("Designed by Thomas Avelino" / v1.8.1).
+- **Contrato de testes PRESERVADO** (asserts 26/26b/27 novos trancam): overlay inteiro clicável, ponto (640,650) livre, `.rhino-anim` = SÓ a skin do jogador (pódio usa `.podium-anim` — o updateRhinoPreview repintaria o pódio), ids mantidos.
+- Versão **1.8.1 nos 4 lugares** (CACHE `furious-rhino-v181`); `NewsSystem.js` no ASSETS do sw.
+
+## 3. Pendências — o ritual da release v1.8.1 (na ordem)
+
+1. **Dono publica as rules no console** (console.firebase.google.com → furious-rhino → Firestore → Regras → colar `firestore.rules` inteiro → Publicar). Mudança: `skin` na whitelist de `scores/`. Retrocompatível — a v1.8.0 no ar não sente.
+2. **Dono cria o doc das notícias**: Firestore → coleção `config` → documento `news` → campo `items`, tipo **array**, valores **string** (cada string = um card do Diário; a 1ª sempre aparece). Ex.: `📣 v1.8.1: a casa nova do rinoceronte — pódio, notícias e você quase lá.` Sem o doc nada quebra (o Diário mostra só os eventos locais).
+3. Assistente: `/atualizar-docs` (docs+CHANGELOG da v1.8.1) → bateria completa → commit → push → tag `v1.8.1` → GitHub Release → smoke em produção (versão, console limpo, pódio com skins, write com `skin` aceito, sonda apagada via `delete-player.mjs`).
+4. Pós-release: conferir o pódio real no ar; os 3 do topo só ganham skin na vitrine quando cravarem marca nova (docs antigos = rino original, por design).
+
+## 4. Como retomar
+
+```bash
+cd /c/Users/crist/MobileGame
+git status                        # a v1.8.1 inteira está aqui, sem commit
+python -m http.server 3000        # subir de novo (o da sessão de 15/08 foi encerrado)
+# http://localhost:3000            → a home nova (pódio real com internet)
+# http://localhost:3000/?debug=1   → painel de tuning (cobre o 2º lugar do pódio — é o overlay, não bug)
+```
+
+Mockups de referência do design aprovado: `scratchpad` da sessão de 15/08 (`mockup-home-v181-final.html` — temporário; a home real é a referência viva).
+
+## 5. Armadilhas novas de 15/08 (tarde)
+
+| Armadilha | Regra |
+|---|---|
+| `.rhino-anim` × pódio | `updateRhinoPreview` repinta TODO `.rhino-anim img` — o pódio usa `.podium-anim` de propósito; nunca reutilizar a classe do jogador |
+| Contrato do toque | O ponto (640,650) em 1280×720 precisa seguir em área sem `stopPropagation` (asserts 26/27 do e2e-ramp trancam); todo botão novo na home = `stopPropagation` em pointerdown E click |
+| `skin` × rename | `setDoc` sem merge: o rename regrava `skin` da cópia local `furious_rhino_best_sent_skin` (mesmo esquema do `scoreAt`) |
+| Animação CSS × transform | Animação que anima `transform` (bob) atropela `scaleX(-1)` estático — flip via propriedade `scale` (aconteceu no mockup) |
+| e2e-setup 15 vs 17 | O nº de asserts depende do ramo (gerador parado/no ar) — 15 não é regressão |
+
+---
+
+# Handoff anterior — FURIOUS RHINO v1.8.0
 
 **Data:** 15/08/2026 · **Status:** v1.8.0 **RELEASED em produção** (commit `e775625`, tag `v1.8.0`, smoke 5/5) · **Sessão anterior documentada:** v1.7.2
 

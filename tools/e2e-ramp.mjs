@@ -699,6 +699,78 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
   await p5.close();
 }
 
+// ---------- 26-27. Home v1.8.1: pódio, diário e o contrato do toque ----------
+{
+  const p6 = await context.newPage();
+  const err6 = [];
+  p6.on('pageerror', (e) => err6.push(String(e)));
+  p6.on('console', (m) => { if (m.type() === 'error') err6.push(m.text()); });
+  const DIA = 86400000;
+  await p6.addInitScript((dia) => {
+    localStorage.setItem('furious_rhino_player_id', 'claude-e2e-ramp-home');
+    localStorage.setItem('furious_rhino_attempts', '7');
+    localStorage.setItem('furious_rhino_wins', '3');
+    localStorage.setItem('furious_rhino_record', '2500');
+    localStorage.setItem('furious_rhino_deaths', JSON.stringify({ t1: 3, wall: 5, spike: 1 }));
+    localStorage.setItem('furious_rhino_last_rank', '4');
+    // pódio semeado SEM depender do registry real: skin desconhecida cai no
+    // rino original (é o fallback que os docs antigos de scores/ usam)
+    localStorage.setItem('furious_rhino_podium', JSON.stringify({
+      at: Date.now(),
+      entries: [
+        { id: 'a', name: 'Alfa', score: 5000, sinceMs: Date.now() - 3 * dia, skin: 'skin-inexistente' },
+        { id: 'b', name: 'Beta', score: 4000, sinceMs: Date.now() - 10 * dia, skin: null },
+        { id: 'c', name: 'Gama', score: 3000, sinceMs: Date.now() - 1 * dia, skin: null },
+      ],
+    }));
+    localStorage.setItem('furious_rhino_news', JSON.stringify([
+      { k: 'teste', t: Date.now(), x: '🧪 notícia local de teste', c: 'gold' },
+    ]));
+  }, DIA);
+  await p6.goto(`${BASE}/?debug=1`, { waitUntil: 'networkidle' });
+  await p6.waitForTimeout(1500);
+  const pwa6 = p6.locator('#pwa-modal');
+  if (await pwa6.isVisible().catch(() => false)) { await p6.click('#pwa-skip'); await p6.waitForTimeout(200); }
+
+  const home = await p6.evaluate(() => {
+    const steps = [...document.querySelectorAll('#podium-steps .step')];
+    return {
+      nomes: steps.map((s) => s.querySelector('.pname').textContent), // ordem visual 2·1·3
+      dias: steps.map((s) => s.querySelector('.pdays').textContent),
+      // skin desconhecida E doc sem skin caem na arte do rino original
+      firstSkinSrc: document.querySelector('#podium-steps .step.first .podium-anim img').getAttribute('src'),
+      voceRank: document.getElementById('start-rank-pos').textContent,
+      voceRankVisivel: !document.getElementById('start-rank').hidden,
+      gap: document.getElementById('podium-gap').textContent,
+      noticias: [...document.querySelectorAll('#news-list .news-item')].map((n) => n.textContent),
+      wins: document.getElementById('start-wins').textContent,
+      causa: document.getElementById('start-cause').textContent,
+      // o preview do jogador segue sendo SÓ o .rhino-anim (contrato do e2e-skins)
+      playerImgs: document.querySelectorAll('.rhino-anim img').length,
+    };
+  });
+  ok('26. home: pódio do cache (2·1·3), cascata, VOCÊ #4 e provocação',
+    home.nomes.join(',') === 'Beta,Alfa,Gama' &&
+    home.dias[1] === 'no trono há 3d' && home.dias[0] === 'no posto há 3d' && home.dias[2] === 'no posto há 1d' &&
+    /rhino-run-0/.test(home.firstSkinSrc) &&
+    home.voceRankVisivel && home.voceRank === '4' && /faltam 501m/.test(home.gap) &&
+    home.playerImgs === 3,
+    `nomes=${home.nomes} dias=${home.dias} gap="${home.gap}" skin=${home.firstSkinSrc}`);
+  ok('26b. home: diário com a notícia local + box campanha preenchido',
+    home.noticias.some((n) => n.includes('notícia local de teste')) &&
+    home.wins === '3' && home.causa.includes('Parede'),
+    `noticias=${home.noticias.length} wins=${home.wins} causa=${home.causa}`);
+
+  // O contrato sagrado: o ponto (640,650) continua começando a corrida
+  await p6.locator('#start-screen').click({ position: { x: 640, y: 650 } });
+  await p6.waitForTimeout(600);
+  const started = await p6.evaluate(() => document.body.classList.contains('started'));
+  ok('27. home nova: toque em (640,650) segue iniciando a corrida', started === true);
+
+  errors.push(...err6);
+  await p6.close();
+}
+
 // ---------- 11. Zero erro de JS ----------
 const fatal = errors.filter((e) => !/net::|Failed to load resource|ERR_/.test(e));
 ok('11. nenhum erro de JS', fatal.length === 0, fatal.slice(0, 3).join(' | '));

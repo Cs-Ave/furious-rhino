@@ -1,6 +1,6 @@
 # Furious Rhino — Arquitetura
 
-> Documentação da versão **1.8.0** · atualizada em 15/08/2026
+> Documentação da versão **1.8.1** · atualizada em 16/08/2026
 > Visão técnica intermediária: como o projeto é organizado, os principais componentes e como eles conversam. Pressupõe noções de programação, mas explica os termos específicos do projeto.
 
 ## 1. Filosofia
@@ -35,7 +35,8 @@ index.html ─── HUD, telas e modais em DOM + CSS (~1300 linhas), carrega Ph
          │    │    ├── SkinRegistry ─────── DADOS das skins (JSON estrito, machine-owned:
          │    │    │                        reescrito pelo estúdio /?setup)
          │    │    ├── MedalSystem ──────── 17 medalhas locais
-         │    │    ├── LeaderboardSystem ── ranking (Firestore: scores/)
+         │    │    ├── LeaderboardSystem ── ranking (Firestore: scores/) + pódio da home (cache 6h)
+         │    │    ├── NewsSystem ───────── Diário da Fuga (config/news do console + eventos locais)
          │    │    ├── StatsSystem ──────── telemetria (Firestore: stats/)
          │    │    ├── NotifySystem ─────── pushes ntfy do administrador
          │    │    └── TuningPanel ──────── painel de debug (?debug=1, lil-gui via CDN)
@@ -120,7 +121,9 @@ A solução: a rampa **não tem corpo físico**. Ela expõe uma função pura `s
 | Dado | Onde mora | Observação |
 |---|---|---|
 | Recorde, medalhas, apelido, totais, últimas 50 corridas, histórico de 60 dias | **localStorage** do aparelho (via `StorageManager`) | O jogo funciona 100% offline com isso |
-| Ranking (`{name, nameLower, score, scoreAt}`) | Firestore **`scores/{playerId}`** | `playerId` = UUID aleatório do aparelho. Escrita só melhora o próprio score. `scoreAt` (v1.8) = quando a marca foi atingida — alimenta o "há X dias" do top 10; a troca de apelido o **preserva** (cópia local `best_sent_at`), e docs antigos sem o campo caem no `updatedAt` |
+| Ranking (`{name, nameLower, score, scoreAt, skin}`) | Firestore **`scores/{playerId}`** | `playerId` = UUID aleatório do aparelho. Escrita só melhora o próprio score. `scoreAt` (v1.8) = quando a marca foi atingida — alimenta o "há X dias"; `skin` (v1.8.1) = a skin usada ao cravar a marca — a vitrine do pódio da home. A troca de apelido **preserva os dois** (cópias locais `best_sent_at`/`best_sent_skin`); docs antigos caem nos fallbacks (`updatedAt` / rino original) |
+| Pódio da home (top 3 + skins) | **localStorage** `furious_rhino_podium` `{at, entries}` | Cache com TTL de 6h (`fetchPodium`, 3 reads); o `fetchTop10` do modal realimenta de graça; offline usa a última foto. Dias no pódio = `holdDays(..., {cascade:true})` — posse da POSIÇÃO; a lista do 🏆 segue por marca |
+| Diário da Fuga | Firestore **`config/news`** (avisos do dono, campo `items` de strings; write só pelo console) + **localStorage** `furious_rhino_news` (eventos locais, dedupe por chave, cap 10) | `NewsSystem`: cache remoto de 1h (molde do `config/notify`); 1º card = 1º aviso do dono, resto = eventos do jogador |
 | Telemetria (tentativas, tempo, mortes por causa/tier, mecânicas por corrida, aparelho, geo aproximada) | Firestore **`stats/{playerId}`** | 1 write idempotente por fim de corrida, com **totais acumulados** (`setDoc` sem merge) |
 | Configuração dos pushes | Firestore **`config/notify`** | Só o console do Firebase escreve (`allow write: if false`) |
 

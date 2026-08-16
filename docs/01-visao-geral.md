@@ -1,6 +1,6 @@
 # Furious Rhino — Visão geral
 
-> Documentação da versão **1.8.0** · atualizada em 15/08/2026
+> Documentação da versão **1.8.1** · atualizada em 16/08/2026
 > Este documento é para quem **não é programador**. Sem jargão — e quando um termo técnico for inevitável, ele vem explicado entre parênteses.
 
 ## O que é
@@ -40,7 +40,8 @@ Pense num daqueles jogos de "corrida sem fim" (como Subway Surfers ou o dinossau
 
 Este projeto não é só o jogo — é também a "sala de controle" dele:
 
-- **Ranking mundial** — placar público com o recorde de cada jogador, por apelido — e há quantos dias cada marca está de pé.
+- **Ranking mundial** — placar público com o recorde de cada jogador, por apelido — e há quantos dias cada marca está de pé. A tela inicial mostra um **pódio ao vivo** com os 3 primeiros do mundo (cada um com a aparência de rinoceronte que usava ao cravar a marca) e o seu lugar logo ao lado, a um degrau do bronze.
+- **Diário da Fuga** — a área de notícias da tela inicial: avisos do criador (novidades de cada versão) e acontecimentos do jogador (skin nova, entrou ou caiu do pódio, recorde batido).
 - **Estatísticas do jogador** — um botão "📊 Minhas estatísticas" mostra seu histórico: onde você costuma morrer, quantas vezes fugiu, suas medalhas.
 - **Medalhas** — 17 conquistas, de "Primeira Fuga" a "Inalcançável" (2000 m).
 - **Skins** — um guarda-roupa de aparências para o rinoceronte (botão 🎨): gratuitas, por conquista difícil e **exclusivas do pódio do ranking** — só quem está naquele degrau do topo do mundo veste a skin do degrau, e a perde se perder o posto. O elenco muda com o tempo (o criador cria e troca skins pelo estúdio).

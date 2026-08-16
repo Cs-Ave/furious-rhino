@@ -23,7 +23,7 @@ service cloud.firestore {
     // Ranking público — 1 doc por aparelho, só melhora
     match /scores/{playerId} {
       function validEntry() {
-        return request.resource.data.keys().hasOnly(['name', 'nameLower', 'score', 'scoreAt', 'updatedAt'])
+        return request.resource.data.keys().hasOnly(['name', 'nameLower', 'score', 'scoreAt', 'skin', 'updatedAt'])
           && request.resource.data.name is string
           && request.resource.data.name.size() >= 3
           && request.resource.data.name.size() <= 12
@@ -43,6 +43,13 @@ service cloud.firestore {
           && (!('scoreAt' in request.resource.data)
               || (request.resource.data.scoreAt is timestamp
                   && request.resource.data.scoreAt <= request.time))
+          // v1.8.1: id da skin usada QUANDO a marca foi cravada — vitrine do
+          // pódio da tela inicial. OPCIONAL; preservado na troca de apelido
+          // pela cópia local (mesmo esquema do scoreAt)
+          && (!('skin' in request.resource.data)
+              || (request.resource.data.skin is string
+                  && request.resource.data.skin.size() >= 1
+                  && request.resource.data.skin.size() <= 24))
           && request.resource.data.updatedAt == request.time;
       }
       allow read: if true;

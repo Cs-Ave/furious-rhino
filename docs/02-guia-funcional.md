@@ -1,6 +1,6 @@
 # Furious Rhino — Guia funcional
 
-> Documentação da versão **1.8.0** · atualizada em 15/08/2026
+> Documentação da versão **1.8.1** · atualizada em 16/08/2026
 > Cada funcionalidade do jogo: o que faz, como o usuário interage e exemplos práticos. Termos técnicos vêm explicados entre parênteses na primeira vez.
 
 ## 1. Controles
@@ -76,17 +76,28 @@ Depois de gasto, o medidor volta a encher com a distância (~900 m por carga). A
 - **Céu**: dia pleno → entardecer chegando junto com o portão (a fuga acontece no pôr do sol) → noite. Depois de ~1450 m ele passa a ciclar: um dia inteiro a cada 600 m.
 - **Clima**: limpo, chuva, neblina ou tempestade com raios e trovão. Os 8 primeiros trechos são roteirizados (neblina na floresta, tempestade logo após a fuga); dali em diante é sorteado de forma determinística (o mesmo trecho tem sempre o mesmo clima).
 
-## 7. Recordes, ranking e apelido
+## 7. A tela inicial, recordes, ranking e apelido
 
-- **Recorde local**: fica salvo no aparelho e aparece na tela inicial.
-- **Ranking mundial**: TOP 10 no botão 🏆. Para entrar, o jogador escolhe um **apelido único** (3–12 caracteres — o jogo confere se já existe; acentos e maiúsculas não diferenciam: "Thómas" e "thomas" são o mesmo apelido). Ao lado da distância de cada um aparece **há quantos dias aquela marca está de pé** ("há 12d", ou "hoje" para marca do dia) — trocar de apelido não zera a contagem.
+**A tela inicial virou a vitrine do jogo (v1.8.1)**, desenhada para provocar o retorno e a caça ao recorde:
+
+- **Título em chamas** — "FURIOUS RHINO" em fonte cartoon com labaredas e brasas animadas (a fonte vem da internet; sem conexão, o jogo usa uma parecida do próprio aparelho — nada quebra).
+- **Pódio mundial ao vivo** — os 3 primeiros do ranking em pedestais de ouro/prata/bronze, cada um representado pela **skin que usava quando cravou a marca** (marcas antigas, de antes da v1.8.1, aparecem com o rinoceronte original), com nome, distância e **há quantos dias segura a posição** ("no trono há 12d"). Aqui a contagem é da **posição**: se alguém novo assume o 1º lugar, os contadores de quem caiu recomeçam naquele dia (efeito cascata) — diferente da lista completa do top 10, que mede a idade de cada marca. O pódio se atualiza sozinho (no máximo a cada 6 horas, para poupar o banco de dados) e funciona offline com a última foto conhecida.
+- **O degrau VOCÊ** — um quarto pedestal tracejado ao lado do 3º lugar, com uma seta dourada apontando: sua skin animada, sua posição no mundo, o botão **🎨 Trocar skin** e a provocação de quantos metros faltam para o pódio (ou "🛡️ defenda o seu posto!", para quem já está lá).
+- **Box Campanha** — recorde, tentativas, fugas, "maior inimigo" (a causa de morte mais comum) e um **minigráfico das últimas 10 corridas** (barra dourada = a melhor; linha tracejada = o recorde), com os botões de apelido e "Minhas estatísticas completas".
+- **Diário da Fuga** — a área de notícias: o primeiro card é o **aviso do criador** (editado no console do Firebase, sem publicar código — é onde as novidades de cada versão são anunciadas); os demais são acontecimentos do próprio jogador: skin desbloqueada, **entrou no pódio**, **perdeu o pódio**, recorde novo. Cada acontecimento aparece uma única vez.
+- As instruções de jogo (pulo/investida) ficam em texto ao lado do **TOQUE PARA COMEÇAR** pulsante — e tocar em qualquer lugar livre da tela continua iniciando a corrida.
+
+Os registros e o ranking:
+
+- **Recorde local**: fica salvo no aparelho e aparece no box Campanha.
+- **Ranking mundial**: a lista completa abre no botão **"ver top 10 ›"** ao lado do pódio. Para entrar, o jogador escolhe um **apelido único** (3–12 caracteres — o jogo confere se já existe; acentos e maiúsculas não diferenciam: "Thómas" e "thomas" são o mesmo apelido). Ao lado da distância de cada um aparece **há quantos dias aquela marca está de pé** ("há 12d", ou "hoje" para marca do dia) — trocar de apelido não zera a contagem nem troca a skin da vitrine.
 - Quem prefere **"Ficar anônimo"** recebe um nome automático (`Anonimo_7`). O jogo volta a convidar para escolher um nome de verdade **no momento de orgulho** — logo depois de o score subir no ranking ("🏆 Você é o #7 do mundo!") — no máximo 1 vez a cada 3 corridas, e nunca de forma bloqueante.
 - **Marcas na pista**: durante a corrida, estacas mostram onde fica **o seu recorde** (🏅), o **rival logo acima de você** no ranking (⚔️) e o **líder mundial** (👑). Ultrapassar cada uma provoca o jogador na tela.
 - **Convite por WhatsApp**: botão para chamar amigos, com link direto do jogo.
 
 ## 8. Medalhas
 
-17 conquistas salvas no aparelho (não dependem de internet). Exemplos:
+17 conquistas salvas no aparelho (não dependem de internet). Desde a v1.8.1 elas são vistas dentro de **"📊 Minhas estatísticas"** (a faixa de ícones saiu da tela inicial para dar lugar ao pódio). Exemplos:
 
 | Medalha | Como ganhar |
 |---|---|

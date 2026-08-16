@@ -94,6 +94,35 @@ export class StorageManager {
     localStorage.setItem(this.BEST_SENT_AT_KEY, ms.toString());
   }
 
+  // v1.8.1: a SKIN usada quando a marca foi cravada — vitrine do pódio.
+  // Mesmo papel do best_sent_at: o rename regrava o campo no doc.
+  static BEST_SENT_SKIN_KEY = 'furious_rhino_best_sent_skin';
+
+  static getBestSentSkin() {
+    return localStorage.getItem(this.BEST_SENT_SKIN_KEY) || '';
+  }
+
+  static setBestSentSkin(id) {
+    localStorage.setItem(this.BEST_SENT_SKIN_KEY, String(id));
+  }
+
+  // v1.8.1: cache do pódio (top 3) da tela inicial — {at: ms, entries: [...]}.
+  // Diferente do rivals, o `at` É lido: TTL de 6h no LeaderboardSystem.
+  static PODIUM_KEY = 'furious_rhino_podium';
+
+  static getPodium() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(this.PODIUM_KEY));
+      return raw && Array.isArray(raw.entries) ? raw : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static setPodium(entries) {
+    localStorage.setItem(this.PODIUM_KEY, JSON.stringify({ at: Date.now(), entries }));
+  }
+
   // --- Medalhas e contadores acumulados (v1.2.1) ---
   static MEDALS_KEY = 'furious_rhino_medals';
   static ANIMALS_TOTAL_KEY = 'furious_rhino_animals_total';

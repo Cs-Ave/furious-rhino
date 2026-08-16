@@ -5,7 +5,18 @@
 
 ---
 
-## v1.8.0 — 15/08/2026 (versão atual)
+## v1.8.1 — 16/08/2026 (versão atual)
+
+**Tema: a casa nova do rinoceronte — a tela inicial virou uma vitrine que provoca a caça ao recorde.**
+
+- **Pódio mundial ao vivo na tela inicial.** Os 3 primeiros do mundo aparecem em pedestais de ouro, prata e bronze — cada um representado pela **skin que usava quando cravou a marca** (o placar agora registra isso; marcas antigas mostram o rinoceronte original), com nome, distância e há quantos dias seguram **a posição**: se alguém novo toma o 1º lugar, o contador de quem caiu recomeça naquele dia. O pódio se atualiza sozinho (no máximo a cada 6 horas, para caber no plano gratuito do banco) e funciona offline com a última foto conhecida.
+- **Você, a um degrau do bronze.** Um quarto pedestal tracejado mostra a SUA posição no mundo ao lado do 3º lugar, com uma seta dourada apontando, sua skin animada, o botão de trocar de skin e a provocação na lata: "faltam 303m p/ 🥉" (ou "defenda o seu posto!", para quem já está no pódio).
+- **Diário da Fuga** — a área de notícias da tela inicial: o primeiro card é o aviso do criador (editado direto no console do banco, sem publicar código — é onde as novidades de cada versão são anunciadas); os demais contam o que aconteceu com você: skin desbloqueada (inclusive as concedidas na abertura do jogo, que antes não avisavam ninguém), entrada e queda do pódio, recorde batido. Cada acontecimento aparece uma única vez.
+- **Box Campanha**: recorde, tentativas, fugas, "maior inimigo" e um minigráfico das últimas 10 corridas — com os botões de apelido e de estatísticas dentro dele. A faixa de medalhas saiu da tela inicial (elas seguem no "Minhas estatísticas").
+- **Título em chamas** com fonte cartoon, labaredas e brasas animadas (sem internet, o título usa uma fonte parecida do aparelho — nada quebra), instruções de jogo em texto limpo e o "TOQUE PARA COMEÇAR" pulsando em dourado.
+- Mudança nas regras do banco de dados: um campo novo e opcional em `scores` (a skin da marca), publicado antes desta versão ir ao ar.
+
+## v1.8.0 — 15/08/2026
 
 **Tema: o guarda-roupa do rinoceronte — skins com pódio vivo (e um estúdio para o criador fazer as suas), o chefe recupera os dentes e as paredes desabam de verdade.**
 

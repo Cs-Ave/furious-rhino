@@ -7,10 +7,11 @@ import { BossFight } from '../systems/BossFight.js';
 import { AudioSystem } from '../systems/AudioSystem.js';
 import { initTuningPanel } from '../systems/TuningPanel.js';
 import { LeaderboardSystem } from '../systems/LeaderboardSystem.js';
-import { MedalSystem, MEDALS } from '../systems/MedalSystem.js';
+import { MedalSystem } from '../systems/MedalSystem.js';
 import { SkinSystem, SKINS } from '../systems/SkinSystem.js';
 import { StatsSystem } from '../systems/StatsSystem.js';
 import { NotifySystem } from '../systems/NotifySystem.js';
+import { NewsSystem } from '../systems/NewsSystem.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -33,11 +34,12 @@ export class GameScene extends Phaser.Scene {
 
     // v1.8: skins — o retro-scan concede a Catisquick a quem já fez a façanha
     // nas últimas 50 corridas; a skin efetiva é resolvida a cada boot (o
-    // "Jogar Novamente" recarrega a página, então toda corrida nasce válida)
-    SkinSystem.migrateFromRuns();
-    // Skins por TOTAIS de vida: os agregados já estão no localStorage, então
-    // o boot é o "retro-scan" delas (sem toast — o hub conta a novidade)
-    SkinSystem.evaluateTotals();
+    // "Jogar Novamente" recarrega a página, então toda corrida nasce válida).
+    // v1.8.1: desbloqueio no boot vira notícia no Diário da Fuga (antes era
+    // um aviso órfão — ninguém ficava sabendo)
+    for (const s of [...SkinSystem.migrateFromRuns(), ...SkinSystem.evaluateTotals()]) {
+      NewsSystem.push(`skin:${s.id}`, `🎨 Você desbloqueou a skin ${s.name}!`, 'gold');
+    }
     this.skin = SkinSystem.resolveEquipped();
     this.rhino = new Rhino(this, 100, Constants.GROUND_TOP, this.skin);
     this.spawnManager = new SpawnManager(this);
@@ -144,14 +146,30 @@ export class GameScene extends Phaser.Scene {
   setupStartScreen() {
     document.getElementById('start-record').textContent = StorageManager.getRecord();
     document.getElementById('start-attempts').textContent = StorageManager.getAttempts();
+    // v1.8.1 — box Campanha: fugas, maior inimigo e o minigráfico
+    document.getElementById('start-wins').textContent = StorageManager.getWins();
+    document.getElementById('start-cause').textContent = this.topCauseLabel();
+    this.renderStartChart();
 
-    // Última posição conhecida no ranking (cacheada — zero rede no load)
-    const rank = StorageManager.getLastRank();
-    if (rank > 0) {
-      document.getElementById('start-rank-pos').textContent = rank;
-      document.getElementById('start-rank').hidden = false;
+    // Última posição conhecida no ranking (cacheada — zero rede no load).
+    // Guardada como bootRank: o refresh da rede compara e vira notícia
+    // quando o jogador ENTRA ou PERDE o pódio.
+    this.bootRank = StorageManager.getLastRank();
+    this.showRank(this.bootRank);
+
+    // v1.8.1 — pódio: pinta o cache na hora; a rede atualiza depois (e o
+    // TTL de 6h segura o custo de reads no plano gratuito)
+    this.renderPodium();
+    if (LeaderboardSystem.isConfigured()) {
+      this.safeTelemetry(() => LeaderboardSystem.fetchPodium().then(() => this.renderPodium()));
     }
-    this.setupMedalStrip();
+
+    // v1.8.1 — Diário da Fuga: cache primeiro, config/news do dono depois
+    NewsSystem.renderInto(document.getElementById('news-list'));
+    this.safeTelemetry(() => NewsSystem.refresh().then((changed) => {
+      if (changed) NewsSystem.renderInto(document.getElementById('news-list'));
+    }));
+
     this.setupIdentityUI();
     this.setupPwaPrompt();
 
@@ -389,43 +407,141 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  // Faixa de medalhas na tela de início + modal com nomes/descrições
-  setupMedalStrip() {
-    const strip = document.getElementById('medal-strip');
-    const modal = document.getElementById('medals-modal');
-    const list = document.getElementById('medals-list');
-    const owned = new Set(StorageManager.getMedals());
+  // v1.8.1: a faixa de medalhas saiu da home (decisão do dono) — as medalhas
+  // seguem visíveis no "Minhas estatísticas". Abaixo, os montadores da home
+  // nova: rank/degrau VOCÊ, box Campanha e pódio mundial.
 
-    strip.textContent = '';
-    list.textContent = '';
-    for (const medal of MEDALS) {
-      const span = document.createElement('span');
-      span.textContent = medal.emoji;
-      span.title = medal.name;
-      if (!owned.has(medal.id)) span.classList.add('locked');
-      strip.appendChild(span);
+  // Mostra a posição no degrau VOCÊ (ou o convite, para quem não tem rank)
+  showRank(rank) {
+    const has = rank > 0;
+    if (has) document.getElementById('start-rank-pos').textContent = rank;
+    document.getElementById('start-rank').hidden = !has;
+    document.getElementById('you-norank').hidden = has;
+    this.updatePodiumGap(rank);
+  }
 
-      const li = document.createElement('li');
-      if (!owned.has(medal.id)) li.classList.add('locked');
-      const emoji = document.createElement('span');
-      emoji.className = 'm-emoji';
-      emoji.textContent = medal.emoji;
-      const text = document.createElement('span');
-      const name = document.createElement('b');
-      name.textContent = `${medal.name} — `;
-      const desc = document.createElement('span');
-      desc.className = 'm-desc';
-      desc.textContent = medal.desc;
-      text.append(name, desc);
-      li.append(emoji, text);
-      list.appendChild(li);
+  // "💀 Maior inimigo" do box Campanha: a causa de morte mais comum
+  topCauseLabel() {
+    const deaths = StorageManager.getDeaths();
+    let best = null;
+    for (const [key, n] of Object.entries(deaths)) {
+      if (/^t\d$/.test(key) || key === 'win') continue;
+      if (n > 0 && (!best || n > best.n)) best = { key, n };
     }
+    return best ? (Constants.CAUSE_LABELS[best.key] || best.key) : '—';
+  }
 
-    // Toques na faixa/modal não podem vazar para o start do overlay
-    strip.addEventListener('pointerdown', (ev) => ev.stopPropagation());
-    modal.addEventListener('pointerdown', (ev) => ev.stopPropagation());
-    strip.addEventListener('click', () => this.openModal(modal));
-    document.getElementById('medals-close').addEventListener('click', () => this.closeModal(modal));
+  // Minigráfico SVG das últimas 10 corridas (barra dourada = a melhor;
+  // linha tracejada = o recorde). Sem corridas: o gráfico se esconde.
+  renderStartChart() {
+    const svg = document.getElementById('start-chart');
+    const label = document.getElementById('start-chart-label');
+    const runs = StorageManager.getRuns().filter(Boolean).slice(-10);
+    const values = runs.map((r) => Number(r.m) || 0);
+    if (!values.length) {
+      svg.style.display = 'none';
+      label.style.display = 'none';
+      return;
+    }
+    const NS = 'http://www.w3.org/2000/svg';
+    const max = Math.max(...values, StorageManager.getRecord(), 1);
+    const shape = (tag, attrs) => {
+      const el = document.createElementNS(NS, tag);
+      for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+      svg.appendChild(el);
+    };
+    svg.textContent = '';
+    shape('line', { class: 'axis', x1: 0, y1: 62, x2: 300, y2: 62 });
+    const recordY = 62 - (StorageManager.getRecord() / max) * 55;
+    shape('line', { class: 'goal', x1: 0, y1: recordY, x2: 300, y2: recordY });
+    const bestIdx = values.indexOf(Math.max(...values));
+    const slot = 300 / Math.max(values.length, 1);
+    values.forEach((v, i) => {
+      const h = Math.max(2, (v / max) * 55);
+      shape('rect', {
+        class: `bar${i === bestIdx ? ' best' : ''}`,
+        x: (i * slot + 3).toFixed(1), y: (62 - h).toFixed(1),
+        width: Math.max(4, slot - 6).toFixed(1), height: h.toFixed(1),
+      });
+    });
+  }
+
+  // O pódio mundial (2·1·3) a partir do cache — skins de quem cravou cada
+  // marca (docs antigos: rino original) e dias de POSSE DA POSIÇÃO (cascata).
+  renderPodium() {
+    const box = document.getElementById('podium-steps');
+    const cached = StorageManager.getPodium();
+    const entries = cached ? cached.entries : null;
+    box.textContent = '';
+    if (!entries || !entries.length) {
+      const p = document.createElement('div');
+      p.className = 'podium-empty';
+      p.textContent = navigator.onLine === false
+        ? 'O pódio aparece quando houver internet.'
+        : 'Escapem do zoológico — o pódio espera pelos 3 primeiros!';
+      box.appendChild(p);
+      return;
+    }
+    const days = LeaderboardSystem.holdDays(entries, Date.now(), { cascade: true });
+    const medals = ['👑', '🥈', '🥉'];
+    const classes = ['first', 'second', 'third'];
+    // ordem visual 2 · 1 · 3 (índices 1, 0, 2 do top 3)
+    for (const i of [1, 0, 2].filter((n) => n < entries.length)) {
+      const e = entries[i];
+      const step = document.createElement('div');
+      step.className = `step ${classes[i]}`;
+      if (i === 0) {
+        const glow = document.createElement('div');
+        glow.className = 'glow';
+        step.appendChild(glow);
+      }
+      const anim = document.createElement('div');
+      anim.className = 'podium-anim';
+      const skin = SkinSystem.get(e.skin || 'default');
+      for (let f = 0; f < 3; f++) {
+        const img = document.createElement('img');
+        img.className = `f${f}`;
+        img.alt = '';
+        img.src = `art/${SkinSystem.textureKey(skin, f)}.svg`;
+        anim.appendChild(img);
+      }
+      step.appendChild(anim);
+      const medal = document.createElement('div');
+      medal.className = 'medal';
+      medal.textContent = medals[i];
+      const name = document.createElement('div');
+      name.className = 'pname';
+      name.textContent = e.name; // textContent: nome vem de terceiros
+      const score = document.createElement('div');
+      score.className = 'pscore';
+      score.textContent = `${e.score}m`;
+      const hold = document.createElement('div');
+      hold.className = 'pdays';
+      const d = days[i];
+      hold.textContent = d === null ? '' : d === 0 ? 'desde hoje'
+        : i === 0 ? `no trono há ${d}d` : `no posto há ${d}d`;
+      const base = document.createElement('div');
+      base.className = 'base';
+      base.textContent = i + 1;
+      step.append(medal, name, score, hold, base);
+      box.appendChild(step);
+    }
+    this.updatePodiumGap(StorageManager.getLastRank());
+  }
+
+  // A provocação sob o degrau VOCÊ: quanto falta para o pódio (ou a defesa)
+  updatePodiumGap(rank) {
+    const el = document.getElementById('podium-gap');
+    const cached = StorageManager.getPodium();
+    const third = cached && cached.entries[2] ? cached.entries[2].score : 0;
+    const record = StorageManager.getRecord();
+    if (rank > 0 && rank <= 3) {
+      el.textContent = '🛡️ defenda o seu posto!';
+    } else if (third > record) {
+      el.textContent = `faltam ${third - record + 1}m p/ 🥉`;
+    } else {
+      el.textContent = '';
+    }
   }
 
   openModal(el) {
@@ -549,8 +665,19 @@ export class GameScene extends Phaser.Scene {
   // volta ao topo), o rino da tela inicial troca na hora — com aviso quando
   // é perda, para a reversão nunca parecer bug
   onRankRefreshed(rank) {
-    document.getElementById('start-rank-pos').textContent = rank;
-    document.getElementById('start-rank').hidden = false;
+    this.showRank(rank);
+    // v1.8.1: cruzou a fronteira do pódio desde o último rank conhecido?
+    // Vira notícia no Diário (a chave por posição deduplica o repeteco).
+    const prev = this.bootRank || 0;
+    if (rank <= 3 && (prev === 0 || prev > 3)) {
+      NewsSystem.push(`podium:in:${rank}`, `👑 Você entrou no pódio mundial — #${rank} do mundo!`, 'gold');
+      NewsSystem.renderInto(document.getElementById('news-list'));
+    } else if (prev > 0 && prev <= 3 && rank > 3) {
+      NewsSystem.push(`podium:out:${prev}>${rank}`,
+        `⚠️ Você perdeu o pódio — caiu de #${prev} para #${rank}. Recupere o seu posto!`, 'red');
+      NewsSystem.renderInto(document.getElementById('news-list'));
+    }
+    this.bootRank = rank;
     const effective = SkinSystem.resolveEquipped();
     if (effective.id === this.skin.id) return;
     const lost = effective.id === 'default';
@@ -579,6 +706,10 @@ export class GameScene extends Phaser.Scene {
       escaped: Boolean(this.escaped),
     });
     if (news.length) this.runSkinUnlocked = news[0];
+    // v1.8.1: a conquista também vira notícia da home (dedupe por skin)
+    for (const s of news) {
+      NewsSystem.push(`skin:${s.id}`, `🎨 Você desbloqueou a skin ${s.name}!`, 'gold');
+    }
     return news;
   }
 
@@ -648,6 +779,8 @@ export class GameScene extends Phaser.Scene {
     }
     const ok = await LeaderboardSystem.submit(distance);
     if (ok) this.showOnlineStatus('🌍 Enviado ao ranking mundial!');
+    // v1.8.1: recorde novo vira notícia da home (dedupe pela própria marca)
+    if (ok) NewsSystem.push(`rec:${Math.floor(distance)}`, `🏅 Novo recorde pessoal: ${Math.floor(distance)}m!`, 'gold');
     // Só depois de o servidor aceitar: a confirmação do topo é uma consulta
     // nova, para nunca anunciar um "recorde mundial" a partir de cache velho
     if (ok) this.safeTelemetry(() => NotifySystem.maybeWorldRecord(distance));

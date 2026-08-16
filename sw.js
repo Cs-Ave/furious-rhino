@@ -1,6 +1,6 @@
 // Network-first service worker: always serves fresh files while online
 // (essential during development), falls back to cache for offline play.
-const CACHE = 'furious-rhino-v180';
+const CACHE = 'furious-rhino-v181';
 const ASSETS = [
   './',
   './index.html',
@@ -130,6 +130,7 @@ const ASSETS = [
   './js/systems/BossFight.js',
   './js/systems/SkinSystem.js',
   './js/systems/SkinRegistry.js',
+  './js/systems/NewsSystem.js',
   './js/systems/AudioSystem.js',
   './js/systems/TuningPanel.js',
   './js/systems/LeaderboardSystem.js',

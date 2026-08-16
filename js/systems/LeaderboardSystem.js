@@ -1,5 +1,6 @@
 import { firebaseConfig } from '../firebase-config.js';
 import { StorageManager } from '../utils/StorageManager.js';
+import { SkinSystem } from './SkinSystem.js';
 
 // Placar online global (Firebase Firestore). Todo o Firebase vive aqui,
 // carregado por import dinâmico SÓ quando o jogador abre o ranking ou
@@ -105,18 +106,23 @@ export class LeaderboardSystem {
     try {
       const { fs, db } = await getDb();
       const playerId = StorageManager.getOrCreatePlayerId();
+      // v1.8.1: a skin EFETIVA no momento da marca — vitrine do pódio
+      const skinId = SkinSystem.resolveEquipped().id;
       await fs.setDoc(fs.doc(db, 'scores', playerId), {
         name,
         nameLower: this.nameSlug(name),
         score: Math.min(Math.floor(meters), MAX_SCORE),
         // v1.8: quando ESTA marca foi atingida — o "há X dias" do top 10.
         // Cópia local em bestSentAt para o rename preservar o valor (setDoc
-        // sem merge apagaria o campo)
+        // sem merge apagaria o campo); mesma dança para a skin.
         scoreAt: fs.serverTimestamp(),
+        skin: skinId,
         updatedAt: fs.serverTimestamp(),
       });
       StorageManager.setBestSent(meters);
       StorageManager.setBestSentAt(Date.now());
+      StorageManager.setBestSentSkin(skinId);
+      this.fetchPodium(true); // fire-and-forget: o pódio pode ter mudado
       this.fetchMyRank(); // fire-and-forget: atualiza o cache da posição
       return true;
     } catch (e) {
@@ -134,15 +140,18 @@ export class LeaderboardSystem {
     try {
       const { fs, db } = await getDb();
       const playerId = StorageManager.getOrCreatePlayerId();
-      // Preserva o scoreAt da marca (a troca de apelido não pode reiniciar o
-      // "há X dias"). Sem cópia local (marca pré-v1.8), o campo fica de fora
-      // e a leitura cai no fallback updatedAt — consistente com docs velhos.
+      // Preserva scoreAt e skin da marca (a troca de apelido não pode
+      // reiniciar o "há X dias" nem trocar a vitrine do pódio). Sem cópia
+      // local (marca pré-v1.8), os campos ficam de fora e a leitura cai nos
+      // fallbacks — consistente com docs velhos.
       const bestAt = StorageManager.getBestSentAt();
+      const bestSkin = StorageManager.getBestSentSkin();
       await fs.setDoc(fs.doc(db, 'scores', playerId), {
         name,
         nameLower: this.nameSlug(name),
         score: Math.min(Math.floor(best), MAX_SCORE),
         ...(bestAt ? { scoreAt: fs.Timestamp.fromMillis(bestAt) } : {}),
+        ...(bestSkin ? { skin: bestSkin } : {}),
         updatedAt: fs.serverTimestamp(),
       });
       return true;
@@ -223,8 +232,22 @@ export class LeaderboardSystem {
     }
   }
 
-  // Retorna { entries: [{id, name, score, sinceMs}], myRank, myBest } ou
-  // null em falha. sinceMs = quando a marca foi atingida (scoreAt; docs
+  // Decodifica um doc de scores no formato das entries da UI
+  static entryFromDoc(d) {
+    const data = d.data();
+    const ts = data.scoreAt || data.updatedAt;
+    return {
+      id: d.id,
+      name: String(data.name || '???'),
+      score: Number(data.score) || 0,
+      sinceMs: ts && typeof ts.toMillis === 'function' ? ts.toMillis() : null,
+      // v1.8.1: skin usada na marca (docs antigos: sem campo → rino original)
+      skin: typeof data.skin === 'string' ? data.skin : null,
+    };
+  }
+
+  // Retorna { entries: [{id, name, score, sinceMs, skin}], myRank, myBest }
+  // ou null em falha. sinceMs = quando a marca foi atingida (scoreAt; docs
   // pré-v1.8 caem no updatedAt) — matéria-prima do holdDays.
   static async fetchTop10() {
     try {
@@ -233,16 +256,9 @@ export class LeaderboardSystem {
       const snap = await fs.getDocs(
         fs.query(scores, fs.orderBy('score', 'desc'), fs.limit(10))
       );
-      const entries = snap.docs.map((d) => {
-        const data = d.data();
-        const ts = data.scoreAt || data.updatedAt;
-        return {
-          id: d.id,
-          name: String(data.name || '???'),
-          score: Number(data.score) || 0,
-          sinceMs: ts && typeof ts.toMillis === 'function' ? ts.toMillis() : null,
-        };
-      });
+      const entries = snap.docs.map((d) => this.entryFromDoc(d));
+      // Os 3 primeiros saem de graça daqui — realimenta o cache do pódio
+      if (entries.length) StorageManager.setPodium(entries.slice(0, 3));
 
       const myBest = StorageManager.getBestSent();
       const myRank = myBest > 0 ? await this.fetchMyRank() : null;
@@ -252,17 +268,46 @@ export class LeaderboardSystem {
     }
   }
 
-  // "Há quantos dias com esta marca": idade da PRÓPRIA marca de cada um.
-  // (v2 da regra, 15/08: a versão original reiniciava o contador de quem
-  // era ultrapassado — uma entrada nova no topo "comprimia" a coluna
-  // inteira para a mesma data, e o dono trocou pela leitura por marca.)
+  // Top 3 para o pódio da tela inicial. Cache com TTL de 6h (3 reads por
+  // atualização — plano gratuito agradece); `force` fura o TTL (pós-submit).
+  // Devolve as entries (do cache ou da rede) ou null se nunca houve nada.
+  static PODIUM_TTL_MS = 6 * 60 * 60 * 1000;
+
+  static async fetchPodium(force = false) {
+    const cached = StorageManager.getPodium();
+    if (!force && cached && Date.now() - cached.at < this.PODIUM_TTL_MS) {
+      return cached.entries;
+    }
+    try {
+      const { fs, db } = await getDb();
+      const snap = await fs.getDocs(
+        fs.query(fs.collection(db, 'scores'), fs.orderBy('score', 'desc'), fs.limit(3))
+      );
+      const entries = snap.docs.map((d) => this.entryFromDoc(d));
+      StorageManager.setPodium(entries);
+      return entries;
+    } catch (e) {
+      return cached ? cached.entries : null; // offline: o cache velho vale
+    }
+  }
+
+  // "Há quantos dias": duas leituras, cada uma no seu lugar (decisão do dono):
+  // — padrão (lista do 🏆): idade da PRÓPRIA marca de cada um;
+  // — { cascade: true } (pódio da tela inicial): posse da POSIÇÃO — começa
+  //   no mais recente entre a própria marca e as marcas de quem está acima
+  //   (alguém te ultrapassa → teu contador reinicia na data da ultrapassagem).
   // Puro e testável no node. Dias em data LOCAL (mesmo recorte do
-  // StorageManager.dayKey); entrada sem timestamp devolve null.
-  static holdDays(entries, nowMs = Date.now()) {
+  // StorageManager.dayKey); entrada sem timestamp devolve null (e no modo
+  // cascata não propaga para os de baixo).
+  static holdDays(entries, nowMs = Date.now(), { cascade = false } = {}) {
     const dayStart = (ms) => new Date(new Date(ms).setHours(0, 0, 0, 0)).getTime();
     const today = dayStart(nowMs);
-    return entries.map((e) => (e.sinceMs
-      ? Math.max(0, Math.round((today - dayStart(e.sinceMs)) / 86400000))
-      : null));
+    let latestAbove = -Infinity;
+    return entries.map((e) => {
+      if (!e.sinceMs) return null;
+      const heldSince = cascade ? Math.max(e.sinceMs, latestAbove) : e.sinceMs;
+      latestAbove = Math.max(latestAbove, e.sinceMs);
+      return Math.max(0, Math.round((today - dayStart(heldSince)) / 86400000));
+    });
   }
 }
