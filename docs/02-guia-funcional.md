@@ -103,21 +103,22 @@ Depois de gasto, o medidor volta a encher com a distância (~900 m por carga). A
 
 O botão **🎨 Skins** na tela inicial abre o guarda-roupa. A skin escolhida veste o rinoceronte na tela inicial (o preview animado troca na hora) e em toda corrida, sem mudar **nada** da física ou das colisões — é só aparência. A escolha fica salva no aparelho. Desde a v1.8.0 o rinoceronte também é exibido **30% maior** em todas as skins (a caixa de colisão continua exatamente a mesma — só a imagem cresceu, para o protagonista não ficar menor que um leão).
 
-O elenco pode mudar com o tempo — o criador cria, edita e tira skins do ar pelo **estúdio de skins** (ver abaixo). As skins que estreiam com a v1.8.0:
+O elenco é **vivo** — o criador cria, edita e tira skins do ar pelo **estúdio de skins** (ver abaixo), então esta tabela é um retrato do lançamento da v1.8.0 (as skins de Ouro/Prata/Bronze originais existem, mas estão fora do ar no momento):
 
 | Skin | Como conseguir |
 |---|---|
 | **Furious Rhino** | O original — sempre disponível |
 | 🎉 **Thanks for playing** | Grátis para todos: o rinoceronte de chapéu de festa e língua-de-sogra |
 | 🤖 **Rino Robô** | Grátis para todos: latão, vapor e chifre de energia |
-| 🥇 **Rino de Ouro** | **Exclusiva de quem está em 1º no ranking mundial** — com um medalhão "1" no peito |
-| 🥈 **Rino de Prata** | Exclusiva do 2º do mundo — medalhão "2" |
-| 🥉 **Rino de Bronze** | Exclusiva do 3º do mundo — medalhão "3" |
-| 🏹 **Catisquick's Rhino** | Conquista permanente: **derrubar 5 torres E vencer o caçador na mesma corrida**. Bônus: a FÚRIA TOTAL dela é o **Rino Vulcão** |
+| 🏹 **Catisquick's Rhino** | Grátis para todos — desenhada por um amigo do criador. Bônus: a FÚRIA TOTAL dela é o **Rino Vulcão** |
+| 🥇 **MecaGold** | **Exclusiva de quem está em 1º no ranking mundial** |
+| 🥈 **MecaSilver** | Exclusiva do 2º do mundo |
+| 🥉 **MecaBronze** | Exclusiva do 3º do mundo |
+| 😎 **Rhino do Catisquick** | Conquista permanente: **derrubar 5 torres E vencer o caçador na mesma corrida** |
 
-As skins de pódio são um **privilégio dinâmico**, não um desbloqueio: caiu de posição, a skin volta ao original sozinha (com um aviso explicando); recuperou o pódio, ela volta a vestir sem precisar reescolher — a escolha nunca é apagada. O jogo revalida a posição ao abrir e ao entrar no guarda-roupa. Cada degrau tem a sua: o nº 1 veste ouro, e só o nº 2 veste prata.
+As skins de pódio são um **privilégio dinâmico**, não um desbloqueio: caiu de posição, a skin volta ao original sozinha (com um aviso explicando); recuperou o pódio, ela volta a vestir sem precisar reescolher — a escolha nunca é apagada. O jogo revalida a posição ao abrir e ao entrar no guarda-roupa. Cada degrau tem a sua skin: a do nº 1 só veste no nº 1, e a do nº 2 só no nº 2.
 
-A Catisquick também é **retroativa**: quem já tinha feito a façanha nas últimas 50 corridas ganha a skin no primeiro jogo após a atualização. Conquistas novas criadas no estúdio seguem a mesma regra — o jogo revê o histórico recente e concede o que já foi merecido.
+As conquistas são **retroativas**: quem já tinha feito a façanha nas últimas 50 corridas ganha a skin no primeiro jogo após a atualização. Conquistas novas criadas no estúdio seguem a mesma regra — o jogo revê o histórico recente e concede o que já foi merecido.
 
 ### O estúdio de skins (`/?setup` — só para o criador)
 
