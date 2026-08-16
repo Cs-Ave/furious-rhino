@@ -69,3 +69,4 @@ Este projeto não é só o jogo — é também a "sala de controle" dele:
 - [`03-arquitetura.md`](03-arquitetura.md) — como o projeto é organizado por dentro (nível intermediário).
 - [`04-referencia-tecnica.md`](04-referencia-tecnica.md) — referência completa para manutenção.
 - [`CHANGELOG.md`](CHANGELOG.md) — o que mudou em cada versão, em linguagem simples.
+- [`QA-Registro.md`](QA-Registro.md) — Q&A vivo: dúvidas pontuais do criador, respondidas e registradas com data.
