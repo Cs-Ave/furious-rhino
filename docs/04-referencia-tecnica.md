@@ -1,6 +1,6 @@
 # Furious Rhino — Referência técnica
 
-> Documentação da versão **1.8.1** · atualizada em 16/08/2026
+> Documentação da versão **1.8.2** · atualizada em 16/08/2026
 > Para quem vai dar manutenção. Complementa (não substitui) `GAME_DESIGN.md` (o design e suas razões) e `HANDOFF.md` (estado da última sessão de trabalho e tabelas completas de parâmetros).
 
 ## 1. Estrutura de pastas
@@ -92,10 +92,10 @@ URLs especiais: `/?debug=1` (painel de tuning + `window.game` para os e2e), `/?s
 
 | Arquivo | Campo |
 |---|---|
-| `js/utils/Constants.js:4` | `VERSION: '1.8.1'` |
-| `index.html` | `<span id="game-version">v1.8.1</span>` |
-| `package.json` | `"version": "1.8.1"` |
-| `sw.js:3` | `const CACHE = 'furious-rhino-v181'` |
+| `js/utils/Constants.js:4` | `VERSION: '1.8.2'` |
+| `index.html` | `<span id="game-version">v1.8.2</span>` |
+| `package.json` | `"version": "1.8.2"` |
+| `sw.js:3` | `const CACHE = 'furious-rhino-v182'` |
 
 ## 5. Ritual de release (ordem não negociável)
 
@@ -214,7 +214,7 @@ Parâmetros completos e receitas: `HANDOFF.md` §4A/§4B. Resumo de operação:
 | `e2e-ramp` (Chromium) | Trajetória frame a frame da travessia da rampa (o assert "nunca trava" protege contra regressão do soft-lock), trampolim, destruição, abertura guiada, portão/cidade, teclado, pausa (inclusive **desistir da corrida** sem contabilizar), par/escolta de animais, knockback para a direita, e (v1.8.1) a **home nova**: pódio do cache com cascata e fallback de skin, Diário com evento local, box Campanha, e o **contrato do toque em (640,650)** iniciando a corrida — zero erro de JS |
 | `e2e-boss` (Chromium) | A luta do portão: quique sem morte e **retomada sozinha** (o assert que mataria a rota de corpo sólido), investida liberada na janela pós-quique, 3 quebras na ordem chão→meio→alto, vitória dispara o `crossGate`, morte pelo rifle com causa `boss` — e (v1.8) a fúria negada na arena com carga preservada, cadeado no medidor, rampage prévio que sobrevive mas **não quebra desalinhado**, e liberação pós-derrota |
 | `e2e-special` (Chromium) | Sorteio de espécies por bioma, o ciclo completo da FÚRIA TOTAL (carga por distância, ativação sem virar dash, destruição do espinho, drenagem e reversão) e (v1.8) o desabamento do topo da parede: crop, tombo, autodestruição e pool limpo na reciclagem |
-| `e2e-skins` (Chromium, v1.8) | Comportamento no navegador contra um **registry canônico injetado por interceptação de rede** (`context.route` + `serviceWorkers: 'block'` — o registry real do dono não pode derrubar a suíte): preview e sprite vestem a skin; destronado vira default **sem regravar a escolha**; hub sem iniciar corrida; persistência após reload; Rino Vulcão; e a guarda da escala visual — **hitbox segue 76×54 com os pés no chão** para qualquer `RHINO_VISUAL_SCALE` |
+| `e2e-skins` (Chromium, v1.8) | Comportamento no navegador contra um **registry canônico injetado por interceptação de rede** (`context.route` + `serviceWorkers: 'block'` — o registry real do dono não pode derrubar a suíte): preview e sprite vestem a skin; destronado vira default **sem regravar a escolha**; hub sem iniciar corrida; persistência após reload; fúria com `firePrefix` próprio (o canônico usa arte do NÚCLEO — `rhino-run`/`rhino-fire-run` — porque qualquer skin real pode ser removida com a arte pelo /?setup); e a guarda da escala visual — **hitbox segue 76×54 com os pés no chão** para qualquer `RHINO_VISUAL_SCALE` |
 | `e2e-setup` (Chromium, v1.8) | O estúdio /?setup: sem chave/chave errada → restrito; chave certa → monta sem Phaser; preview do requisito gerado ao vivo; nome de skin original barrado na digitação; lista com só o default travado e toggle + ✏️ + 🗑 em todas as outras (v3); dois ramos (servidor do gerador no ar/parado) |
 | `e2e-stats` (Chromium) | Telemetria real no Firestore (sonda `claude-rules-check-01`), portão continuar/sair, LENDA, painel + chave, resiliência (telemetria quebrada não trava o jogo), e o assert final que compara a coleção antes/depois — **a suíte não suja a produção**. ⚠️ Os teleportes para além do portão usam `invincible = true` (senão o clamp do boss segura o rinoceronte na arena) |
 

@@ -38,8 +38,12 @@ const CANON_SKINS = [
   { id: 'gold', name: 'Rino de Ouro', prefix: 'rhino-gold-run', access: { type: 'rank', rank: 1 }, desc: 'nº 1' },
   { id: 'silver', name: 'Rino de Prata', prefix: 'rhino-silver-run', access: { type: 'rank', rank: 2 }, desc: 'nº 2' },
   { id: 'bronze', name: 'Rino de Bronze', prefix: 'rhino-bronze-run', access: { type: 'rank', rank: 3 }, desc: 'nº 3' },
-  { id: 'catisquick', name: "Catisquick's Rhino", prefix: 'rhino-catisquick-run',
-    firePrefix: 'rhino-catisquick-fire-run',
+  // v1.8.2: a skin de conquista canônica usa arte do NÚCLEO do jogo
+  // (rhino-run / rhino-fire-run) — o dono pode remover QUALQUER skin real
+  // pelo /?setup (aconteceu: a Catisquick's Rhino foi removida com a arte,
+  // e a entrada canônica antiga apontava para os SVGs apagados)
+  { id: 'catisquick', name: "Catisquick's Rhino", prefix: 'rhino-run',
+    firePrefix: 'rhino-fire-run',
     access: { type: 'achievement', condition: { towersDowned: 5, bossLayers: 3 } }, desc: '5 torres + caçador' },
 ];
 const CANON_MODULE = `export const SKINS = ${JSON.stringify(CANON_SKINS)};\n`;
@@ -254,10 +258,10 @@ const previewSrcs = (page) => page.evaluate(() =>
     await new Promise((r) => setTimeout(r, 500));
     return { runTex, fireAnim, backAnim: s.rhino.getSprite().anims.currentAnim?.key };
   });
-  ok('4c. catisquick equipada: corrida própria e fúria vira o Rino Vulcão',
-    vulcao.runTex.startsWith('rhino-catisquick-run')
-    && vulcao.fireAnim === 'rhino-catisquick-fire-run'
-    && vulcao.backAnim === 'rhino-catisquick-run',
+  ok('4c. conquista equipada: corrida própria e fúria com firePrefix próprio',
+    vulcao.runTex.startsWith('rhino-run')
+    && vulcao.fireAnim === 'rhino-fire-run'
+    && vulcao.backAnim === 'rhino-run',
     JSON.stringify(vulcao));
   await context.close();
 }

@@ -5,7 +5,15 @@
 
 ---
 
-## v1.8.1 — 16/08/2026 (versão atual)
+## v1.8.2 — 16/08/2026 (versão atual)
+
+**Tema: retoques na casa nova — o convite de instalação no lugar certo.**
+
+- **O botão de instalar saiu do meio da tela.** Para quem ainda não instalou o jogo como aplicativo, o convite aparecia num cartão solto no centro da tela inicial nova, atrapalhando o visual. Agora é uma pílula "📲 Instalar o jogo" ao lado do convite de amigos, acima do box Campanha. No iPhone (que não tem instalação de 1 toque), o botão abre a janelinha com o passo a passo — antes era um texto comprido solto na tela.
+- **"Chamar galera" com a cara do WhatsApp**: o botão de convidar amigos ficou verde, com o símbolo do WhatsApp desenhado (em vetor, sem imagem baixada) — dá para saber de longe o que ele faz.
+- **A skin "Catisquick's Rhino" saiu do ar** (removida pelo criador no estúdio de skins, junto com a arte do Rino Vulcão). A conquista "5 torres + caçador na mesma corrida" continua valendo na skin "Rhino do Catisquick". A bateria de testes ficou imune a remoções de skin (usa arte do núcleo do jogo nas verificações).
+
+## v1.8.1 — 16/08/2026
 
 **Tema: a casa nova do rinoceronte — a tela inicial virou uma vitrine que provoca a caça ao recorde.**
 

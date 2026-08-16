@@ -1,6 +1,6 @@
 # Furious Rhino — Arquitetura
 
-> Documentação da versão **1.8.1** · atualizada em 16/08/2026
+> Documentação da versão **1.8.2** · atualizada em 16/08/2026
 > Visão técnica intermediária: como o projeto é organizado, os principais componentes e como eles conversam. Pressupõe noções de programação, mas explica os termos específicos do projeto.
 
 ## 1. Filosofia
@@ -167,11 +167,11 @@ O **resumo diário** é outro caminho: `tools/daily-digest.mjs` roda num cron do
 | Comando | O que é |
 |---|---|
 | `npm run test-stats` | 76 asserts de telemetria/agregação, puro Node (sem navegador), inclusive checagem de consistência contra `firestore.rules` |
-| `npm run test-skins` | 53 asserts puro Node (v1.8): registry das skins, acesso por rank exato/conquista, resolução da equipada sem regravar a escolha, concessão da Catisquick, consistência com `ArtManifest` e `sw.js` |
+| `npm run test-skins` | ~95 asserts puro Node (v1.8, nº varia com o registry): lógica de acesso com skins sintéticas (rank exato/conquista/totais/hidden), resolução da equipada sem regravar a escolha, retro-scan, consistência registry ↔ `art/` ↔ `sw.js` |
 | `npm run test-ramp` | 30 asserts e2e (teste de ponta a ponta, com navegador de verdade via Playwright): grava a trajetória frame a frame na travessia da rampa, portão, cidade, teclado, pausa |
 | `npm run test-boss` | 16 asserts e2e da luta do portão: o quique nunca trava nem mata (anti-soft-lock), a investida volta na janela pós-quique, as 3 quebras em ordem, morte pelo rifle com causa própria — e, na v1.8, a fúria negada na arena (carga preservada, cadeado, paridade de teclado, liberação pós-derrota) |
 | `npm run test-special` | 25 asserts e2e: sorteio por bioma, o ciclo completo da FÚRIA TOTAL (carga, ativação, destruição, drenagem) e o desabamento do topo da parede (crop, tombo, limpeza do pool) |
-| `npm run test-e2e-skins` | 14 asserts e2e (v1.8): preview e sprite vestem a skin, pódio dinâmico (destronado → default sem regravar), hub não inicia corrida, persistência após reload, fúria própria da Catisquick |
+| `npm run test-e2e-skins` | 15 asserts e2e (v1.8): preview e sprite vestem a skin, pódio dinâmico (destronado → default sem regravar), hub não inicia corrida, persistência após reload, fúria com `firePrefix` próprio (registry canônico injetado com arte do núcleo) |
 | `npm run test-e2e-stats` | e2e da telemetria real contra o Firestore (com id de sonda `claude-*`), painel, resiliência, e prova de que a suíte **não sujou a produção** |
 | `npm run digest` | Monta o resumo diário contra dados de produção **sem enviar** |
 | `npm run sprite-gen` | Sobe o **Gerador de Sprites** (ferramenta local, ver §12) |

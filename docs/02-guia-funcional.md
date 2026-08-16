@@ -1,6 +1,6 @@
 # Furious Rhino — Guia funcional
 
-> Documentação da versão **1.8.1** · atualizada em 16/08/2026
+> Documentação da versão **1.8.2** · atualizada em 16/08/2026
 > Cada funcionalidade do jogo: o que faz, como o usuário interage e exemplos práticos. Termos técnicos vêm explicados entre parênteses na primeira vez.
 
 ## 1. Controles
@@ -67,7 +67,7 @@ Com o medidor de fogo **cheio** (ele pulsa e a tela avisa), toque nele — ou **
 - Corre **25% mais rápido** por cima da velocidade de fúria cheia;
 - O medidor **drena** com o tempo; na reta final o rinoceronte pisca avisando que o fogo vai apagar.
 
-Depois de gasto, o medidor volta a encher com a distância (~900 m por carga). A invencibilidade cobre colisões — cair num buraco continua valendo o de sempre. **Na arena do chefe a ativação é bloqueada** (ver item 4); o aviso de "fúria cheia" que ficou devendo dispara na saída do portão. Quem joga com a skin do Catisquick tem um bônus visual: a transformação vira o **Rino Vulcão** (corpo de magma com rachaduras de lava) em vez do fogo padrão.
+Depois de gasto, o medidor volta a encher com a distância (~900 m por carga). A invencibilidade cobre colisões — cair num buraco continua valendo o de sempre. **Na arena do chefe a ativação é bloqueada** (ver item 4); o aviso de "fúria cheia" que ficou devendo dispara na saída do portão. Skins criadas no estúdio podem ter uma **transformação de fúria própria** (uma arte em chamas exclusiva) em vez do fogo padrão.
 
 ## 6. Cenário vivo
 
@@ -121,7 +121,6 @@ O elenco é **vivo** — o criador cria, edita e tira skins do ar pelo **estúdi
 | **Furious Rhino** | O original — sempre disponível |
 | 🎉 **Thanks for playing** | Grátis para todos: o rinoceronte de chapéu de festa e língua-de-sogra |
 | 🤖 **Rino Robô** | Grátis para todos: latão, vapor e chifre de energia |
-| 🏹 **Catisquick's Rhino** | Grátis para todos — desenhada por um amigo do criador. Bônus: a FÚRIA TOTAL dela é o **Rino Vulcão** |
 | 🥇 **MecaGold** | **Exclusiva de quem está em 1º no ranking mundial** |
 | 🥈 **MecaSilver** | Exclusiva do 2º do mundo |
 | 🥉 **MecaBronze** | Exclusiva do 3º do mundo |

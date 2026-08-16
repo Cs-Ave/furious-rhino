@@ -60,14 +60,6 @@ export const SKINS = [
     "hidden": true
   },
   {
-    "id": "catisquick",
-    "name": "Catisquick's Rhino",
-    "prefix": "rhino-catisquick-run",
-    "firePrefix": "rhino-catisquick-fire-run",
-    "access": {"type":"default"},
-    "desc": "🏹 Derrube 5 torres E vença o caçador do portão na mesma corrida."
-  },
-  {
     "id": "pratagrande",
     "name": "MecaSilver",
     "prefix": "rhino-pratagrande-run",
