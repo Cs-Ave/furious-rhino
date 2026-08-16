@@ -1,6 +1,15 @@
 # Handoff — FURIOUS RHINO v1.8.1
 
-**Data:** 16/08/2026 · **Status:** v1.8.2 **RELEASED em produção** (commit `a29f3af`, tag `v1.8.2`, smoke 6/6) — v1.8.1 saiu de manhã (`3b57afe`, smoke 8/8)
+**Data:** 16/08/2026 · **Status:** v1.8.3 **RELEASED em produção** (commit `3e49000`, tag `v1.8.3`, smoke 5/5) — dia com TRÊS releases (v1.8.1 manhã, v1.8.2 e v1.8.3 tarde)
+
+### v1.8.3 (16/08, fim de tarde) — o rank liga de verdade + dardo visível
+- **BUG HISTÓRICO consertado**: o SDK firestore-LITE exporta `getCount`, não `getCountFromServer` — o `fetchMyRank`/`anonymousName` falhavam EM SILÊNCIO desde sempre (catch por design): `last_rank` nunca chegava a jogador real, skins de pódio nunca desbloqueavam, "Sua posição #N" nunca aparecia. Descoberto quando o Thomas (#3 real, primeiro a reivindicar pódio) não conseguiu a MecaBronze. Fix: `LeaderboardSystem.countQuery` com fallback duplo. Smoke prod provou: sonda 3002m → rank 4 (Thomas subiu p/ #2 com 4606m no meio do processo!).
+- **Vitrine do pódio**: backfill admin pontual (dono, via `!` — script no scratchpad, mesmo esquema do config/news): Ícaroo→1-gold, Thomas→pratagrande (sobrescreveu o robot genuíno por escolha dele), Funku→bronze-2. Recordes novos mantêm o campo sozinhos (a marca 4606 do Thomas veio com skin=robot ANTES do backfill — pipeline v1.8.1 confirmado em produção).
+- **Dardo tranquilizante**: 42×15 (+50%), líquido/penacho vermelho vivo + contorno preto; corpo claro preserva o tint dourado do boss; **hitbox intocada** (24×8 no TranqDart, offset 9,3).
+- **test-integrate deixou de pinar o registry** (a remoção real da catisquick derrubou 2 asserts — mesmo pecado já corrigido no test-skins/e2e-skins): "builtins presentes" virou "default presente", e o alvo de remoção é dinâmico (`BUILTIN_IDS.find(viva)`).
+- Suítes: test-stats 87 · test-skins 93 · test-integrate 49 · e2e-ramp 37 · boss 16 · special 25 · e2e-skins 15 · e2e-setup 17 · e2e-stats 69 — todas verdes.
+
+### v1.8.2 (16/08, tarde) — RELEASED (`a29f3af`, smoke 6/6); v1.8.1 de manhã (`3b57afe`, smoke 8/8)
 
 ### v1.8.2 (16/08, tarde) — bugfix da home + remoção de skin
 - **`#install-hint` saiu do meio da tela** (só aparecia p/ quem não instalou o PWA — passou batido no smoke da v1.8.1): virou pílula laranja na headrow da Campanha, ao lado do convite. Android = prompt nativo direto; **iOS melhorou**: a pílula abre o `#pwa-modal` com o passo a passo (antes era texto solto). `.share-icon` desescopado (o ícone do modal iOS estava sem estilo).
