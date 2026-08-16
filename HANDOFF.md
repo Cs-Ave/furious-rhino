@@ -1,18 +1,18 @@
 # Handoff — FURIOUS RHINO v1.8.1
 
-**Data:** 15/08/2026 (fim do dia) · **Status:** v1.8.0 **RELEASED de manhã** (tag `v1.8.0`, prod ok) · v1.8.1 **IMPLEMENTADA E TESTADA na árvore, SEM commit** — falta só o ritual de release (2 passos do dono no console + fechamento)
+**Data:** 16/08/2026 · **Status:** v1.8.1 **RELEASED em produção** (commit `3b57afe`, tag `v1.8.1`, smoke 8/8)
 
 ## 1. Estado atual
 
 | | |
 |---|---|
-| Produção (v1.8.0) | https://cs-ave.github.io/furious-rhino/ — released 15/08 de manhã, smoke 5/5 |
-| Working tree | **v1.8.1 inteira sem commit**: home remodelada (index.html + GameScene), `NewsSystem.js` novo, campo `skin` em scores (LeaderboardSystem/StorageManager/rules), pódio+cascata, versão/CACHE já em 1.8.1/v181 |
-| Último commit | `0a997ee` (docs pós-release v1.8.0) — topo de `origin/main`; tag `v1.8.0` em `e775625` |
-| Rules do Firestore | **⚠️ MUDARAM DE NOVO (não publicadas)**: campo `skin` opcional em `scores/` — publicar no console ANTES do push da v1.8.1 |
-| Doc `config/news` | **Ainda não existe** — o dono cria no console (ver §3 passo 2) |
-| Docs | `docs/` sincronizada até a v1.8.0; a v1.8.1 entra no `/atualizar-docs` do fechamento |
-| Suítes (fim do dia, todas verdes) | `test-stats` **87** · `test-skins` 97 · `test-integrate` 49 · `e2e-ramp` **37** · `e2e-boss` 16 · `e2e-special` 25 · `e2e-skins` 15 · `e2e-setup` 15/17 (ramo) · `e2e-stats` 69 |
+| Produção (v1.8.1) | https://cs-ave.github.io/furious-rhino/ — released 16/08 (smoke 8/8: versão, pódio real com dias de posse, Diário com config/news, write com `skin` aceito, sonda apagada, zero erro de JS) |
+| Working tree | Limpa (só `.claude/`, `Anotacoes.txt`, `Art AI/` locais por decisão) |
+| Último commit | `3b57afe` (v1.8.1) — topo de `origin/main`; tags `v1.8.0` e `v1.8.1` |
+| Rules do Firestore | **Publicadas pelo dono em 16/08** (antes do push, ordem correta) — `skin` opcional em `scores/` |
+| Doc `config/news` | **Criado em 16/08** (via script admin com o login do firebase-tools, rodado pelo dono com `!` — o classificador barrou o assistente, corretamente, por ler credencial): 2 itens no ar; o dono edita no console quando quiser (campo `items`, array de strings; o jogo relê a cada 1h) |
+| Docs | `docs/` + CHANGELOG sincronizados com a v1.8.1 em 16/08 |
+| Suítes (16/08, todas verdes) | `test-stats` **87** · `test-skins` 97 · `test-integrate` 49 · `e2e-ramp` **37** · `e2e-boss` 16 · `e2e-special` 25 · `e2e-skins` 15 · `e2e-setup` 17 · `e2e-stats` 69 |
 
 ## 2. O dia 15/08 em resumo
 
@@ -27,12 +27,14 @@
 - **Contrato de testes PRESERVADO** (asserts 26/26b/27 novos trancam): overlay inteiro clicável, ponto (640,650) livre, `.rhino-anim` = SÓ a skin do jogador (pódio usa `.podium-anim` — o updateRhinoPreview repintaria o pódio), ids mantidos.
 - Versão **1.8.1 nos 4 lugares** (CACHE `furious-rhino-v181`); `NewsSystem.js` no ASSETS do sw.
 
-## 3. Pendências — o ritual da release v1.8.1 (na ordem)
+## 3. Release v1.8.1 — ✅ FECHADA em 16/08
 
-1. **Dono publica as rules no console** (console.firebase.google.com → furious-rhino → Firestore → Regras → colar `firestore.rules` inteiro → Publicar). Mudança: `skin` na whitelist de `scores/`. Retrocompatível — a v1.8.0 no ar não sente.
-2. **Dono cria o doc das notícias**: Firestore → coleção `config` → documento `news` → campo `items`, tipo **array**, valores **string** (cada string = um card do Diário; a 1ª sempre aparece). Ex.: `📣 v1.8.1: a casa nova do rinoceronte — pódio, notícias e você quase lá.` Sem o doc nada quebra (o Diário mostra só os eventos locais).
-3. Assistente: `/atualizar-docs` (docs+CHANGELOG da v1.8.1) → bateria completa → commit → push → tag `v1.8.1` → GitHub Release → smoke em produção (versão, console limpo, pódio com skins, write com `skin` aceito, sonda apagada via `delete-player.mjs`).
-4. Pós-release: conferir o pódio real no ar; os 3 do topo só ganham skin na vitrine quando cravarem marca nova (docs antigos = rino original, por design).
+Ritual completo: rules publicadas pelo dono → `config/news` criado (2 avisos no ar) → docs/CHANGELOG sincronizados → 9 suítes verdes → commit `3b57afe` → push → tag `v1.8.1` → GitHub Release → smoke 8/8 em produção → sonda apagada. GitHub Release: https://github.com/Cs-Ave/furious-rhino/releases/tag/v1.8.1
+
+### Opcionais / próximos
+- Os 3 do pódio ainda aparecem com o rino original na vitrine — ganham a skin quando cravarem marca NOVA (por design; o doc antigo não tem o campo).
+- Desc da Catisquick's Rhino (grátis com texto de façanha) e MecaSilver sem desc — ajustar pelo /?setup quando o dono quiser.
+- Leitores de `runs[].g`/`runs[].n` no painel; calibração fina da densidade em campo (docs/04 §8b); `GAME_DESIGN.md` parado na v1.6.0 (agora 3 versões atrás — candidato à próxima sessão).
 
 ## 4. Como retomar
 
