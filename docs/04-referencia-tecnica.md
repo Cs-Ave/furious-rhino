@@ -1,6 +1,6 @@
 # Furious Rhino — Referência técnica
 
-> Documentação da versão **1.8.2** · atualizada em 16/08/2026
+> Documentação da versão **1.8.3** · atualizada em 16/08/2026
 > Para quem vai dar manutenção. Complementa (não substitui) `GAME_DESIGN.md` (o design e suas razões) e `HANDOFF.md` (estado da última sessão de trabalho e tabelas completas de parâmetros).
 
 ## 1. Estrutura de pastas
@@ -92,10 +92,10 @@ URLs especiais: `/?debug=1` (painel de tuning + `window.game` para os e2e), `/?s
 
 | Arquivo | Campo |
 |---|---|
-| `js/utils/Constants.js:4` | `VERSION: '1.8.2'` |
-| `index.html` | `<span id="game-version">v1.8.2</span>` |
-| `package.json` | `"version": "1.8.2"` |
-| `sw.js:3` | `const CACHE = 'furious-rhino-v182'` |
+| `js/utils/Constants.js:4` | `VERSION: '1.8.3'` |
+| `index.html` | `<span id="game-version">v1.8.3</span>` |
+| `package.json` | `"version": "1.8.3"` |
+| `sw.js:3` | `const CACHE = 'furious-rhino-v183'` |
 
 ## 5. Ritual de release (ordem não negociável)
 
@@ -260,6 +260,7 @@ Regras de higiene dos testes (v1.7.2): rodando em `localhost`, o jogo **não esc
 | `.rhino-anim` × pódio da home | `updateRhinoPreview` repinta TODO `.rhino-anim img` — o pódio usa `.podium-anim` de propósito; nunca reutilizar a classe do jogador |
 | Contrato do toque da home | O ponto (640,650) em 1280×720 precisa ficar em área SEM `stopPropagation` (5 suítes clicam ali para iniciar); todo botão novo na tela inicial = `stopPropagation` em pointerdown E click |
 | `skin`/`scoreAt` × rename | `setDoc` sem merge: a troca de apelido regrava os dois campos das cópias locais (`furious_rhino_best_sent_at`/`_skin`) — esquecê-los apagaria a vitrine/contador do jogador |
+| SDK firestore-LITE ≠ completo | O lite exporta `getCount`, NÃO `getCountFromServer` — a chamada errada falhou EM SILÊNCIO (catch por design) por meses: rank nunca chegava e skins de pódio nunca desbloqueavam em produção. Agregações passam por `LeaderboardSystem.countQuery` (fallback duplo). Função nova do SDK? Testar no navegador contra o build do CDN, não confiar na doc do SDK completo |
 | Animação CSS × transform | Keyframe que anima `transform` atropela um `scaleX(-1)` estático no mesmo elemento — flip com a propriedade `scale`, que compõe separada |
 
 ## 14. Manutenção da documentação

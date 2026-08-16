@@ -164,10 +164,21 @@ export class LeaderboardSystem {
   // N = total de jogadores no ranking + 1 (sem transação no firestore-lite —
   // colisão rara de N é aceitável). Offline: sufixo aleatório de 4 dígitos.
   // 'Anonimo_9999' = 12 chars = teto do name nas rules; acima, encurta.
+  // v1.8.3: o SDK firestore-LITE exporta a agregação como `getCount` —
+  // `getCountFromServer` é só do SDK completo. A chamada errada fazia
+  // fetchMyRank/anonymousName falharem EM SILÊNCIO (catch por design) desde
+  // sempre em produção: last_rank nunca chegava e as skins de pódio nunca
+  // desbloqueavam para jogadores reais (descoberto quando o Thomas, #3 de
+  // verdade, não conseguiu vestir a MecaBronze). O fallback duplo protege
+  // contra o SDK renomear de novo.
+  static countQuery(fs, q) {
+    return (fs.getCount || fs.getCountFromServer)(q);
+  }
+
   static async anonymousName() {
     try {
       const { fs, db } = await getDb();
-      const snap = await fs.getCountFromServer(fs.collection(db, 'scores'));
+      const snap = await this.countQuery(fs, fs.collection(db, 'scores'));
       const n = snap.data().count + 1;
       return n <= 9999 ? `Anonimo_${n}` : `Anon_${n}`;
     } catch (e) {
@@ -221,7 +232,7 @@ export class LeaderboardSystem {
   static async fetchMyRank() {
     try {
       const { fs, db } = await getDb();
-      const countSnap = await fs.getCountFromServer(
+      const countSnap = await this.countQuery(fs,
         fs.query(fs.collection(db, 'scores'), fs.where('score', '>', StorageManager.getBestSent()))
       );
       const rank = countSnap.data().count + 1;

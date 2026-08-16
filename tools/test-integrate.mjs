@@ -37,8 +37,9 @@ const swSrc = readFileSync(join(ROOT, 'sw.js'), 'utf8');
 const skins = parseRegistry(registrySrc);
 eq('locked ⊂ builtin (default é os dois)',
   LOCKED_IDS.every((id) => BUILTIN_IDS.includes(id)) && LOCKED_IDS.includes('default'), true);
-eq('parse: as builtin estão presentes',
-  BUILTIN_IDS.every((id) => skins.some((s) => s.id === id)), true);
+// v3 (16/08): builtins são REMOVÍVEIS pelo /?setup (aconteceu: catisquick) —
+// só o default é garantido no registry; nunca exigir a lista completa
+eq('parse: o default está presente', skins.some((s) => s.id === 'default'), true);
 eq('round-trip byte-idêntico (parse → render == original)',
   renderRegistry(skins) === registrySrc, true);
 eq('parse rejeita arquivo sem o export', throwsWith(
@@ -110,9 +111,13 @@ eq('hidden sobrevive ao round-trip (true grava, false = chave ausente)',
   [true, false]);
 eq('remove tira a skin', parseRegistry(removeSkin(withLava, 'lava')).map((s) => s.id),
   skins.map((s) => s.id));
-// v3 (15/08): original também remove — só o default (LOCKED) é intocável
+// v3 (15/08): original também remove — só o default (LOCKED) é intocável.
+// Alvo DINÂMICO: o dono pode ter removido qualquer builtin de verdade
+// (nunca pinar o registry); sem nenhuma viva, o assert é vacuamente verde.
+const builtinViva = BUILTIN_IDS.find((id) => id !== 'default' && skins.some((s) => s.id === id));
 eq('remove de original FUNCIONA (v3 — só o default é intocável)',
-  parseRegistry(removeSkin(registrySrc, 'catisquick')).some((s) => s.id === 'catisquick'), false);
+  builtinViva ? parseRegistry(removeSkin(registrySrc, builtinViva)).some((s) => s.id === builtinViva) : false,
+  false);
 eq('remove do default lança', throwsWith(() => removeSkin(registrySrc, 'default'), 'fallback'), true);
 eq('remove de inexistente lança', throwsWith(() => removeSkin(registrySrc, 'fantasma'), 'não está'), true);
 

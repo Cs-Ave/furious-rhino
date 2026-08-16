@@ -827,23 +827,30 @@ export class TextureFactory {
     g.destroy();
   }
 
-  // Dardo tranquilizante: seringa com líquido verde, agulha na frente
-  // (voa para a esquerda) e penacho vermelho na cauda
+  // Dardo tranquilizante: seringa com agulha na frente (voa para a esquerda)
+  // e penacho na cauda. v1.8.3 (pedido do dono): 50% MAIOR (42×15 — era
+  // 28×10, difícil de ver) e cores chamativas — líquido e penacho VERMELHO
+  // VIVO com contorno preto grosso. O corpo segue CLARO de propósito: o
+  // rifle do boss pinta o mesmo sprite com tint dourado (multiplicativo), e
+  // partir do branco faz o dourado sair exato. A HITBOX não muda (24×8, no
+  // TranqDart) — só a imagem cresceu.
   static generateTranqDart(scene) {
     const g = scene.make.graphics({ x: 0, y: 0, add: false });
     g.fillStyle(0xcfd4da, 1);
-    g.fillRect(0, 4, 7, 2);
-    g.fillStyle(0xe8f4ec, 1);
-    g.fillRect(7, 2, 13, 6);
-    g.fillStyle(0x46c46a, 1);
-    g.fillRect(9, 3, 9, 4);
-    g.fillStyle(0xffffff, 0.55);
-    g.fillRect(8, 2.6, 8, 1.2);
-    g.lineStyle(1, 0x33363b, 1);
-    g.strokeRect(7, 2, 13, 6);
-    g.fillStyle(0xd6453c, 1);
-    g.fillTriangle(20, 5, 28, 0, 28, 10);
-    g.generateTexture('tranq-dart', 28, 10);
+    g.fillRect(0, 6, 11, 3);
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(11, 3, 19, 9);
+    g.fillStyle(0xff2b2b, 1);
+    g.fillRect(14, 4.5, 13, 6);
+    g.fillStyle(0xffffff, 0.6);
+    g.fillRect(12, 4, 12, 2);
+    g.lineStyle(2, 0x141518, 1);
+    g.strokeRect(11, 3, 19, 9);
+    g.fillStyle(0xff2b2b, 1);
+    g.fillTriangle(30, 7.5, 42, 0, 42, 15);
+    g.lineStyle(2, 0x141518, 1);
+    g.strokeTriangle(30, 7.5, 42, 0, 42, 15);
+    g.generateTexture('tranq-dart', 42, 15);
     g.destroy();
   }
 

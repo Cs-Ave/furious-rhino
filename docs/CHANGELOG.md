@@ -5,7 +5,15 @@
 
 ---
 
-## v1.8.2 — 16/08/2026 (versão atual)
+## v1.8.3 — 16/08/2026 (versão atual)
+
+**Tema: o ranking liga de verdade — e o dardo ficou impossível de não ver.**
+
+- **Consertado o bug que impedia as skins de pódio de desbloquear.** A consulta que descobre a sua posição no mundo chamava uma função com o nome errado do banco de dados — e como falhas de rede são silenciosas por design, a posição **nunca chegava ao aparelho de nenhum jogador real** (descoberto quando o nº 3 do mundo não conseguiu vestir a skin de bronze). Com o conserto, a posição chega, as skins de pódio desbloqueiam sozinhas, o "Sua posição: #N" do ranking e o "Você é o #N do mundo" do convite de apelido passam a funcionar para todo mundo — na prática, a família inteira de recursos de posição ligando pela primeira vez.
+- **O pódio da tela inicial estreou vestido**: os 3 primeiros do mundo receberam as skins dos seus degraus na vitrine (ajuste pontual do criador; daqui em diante cada recorde novo registra sozinho a skin usada).
+- **O dardo tranquilizante está 50% maior e vermelho vivo** com contorno preto — era pequeno e difícil de ver. Só a imagem cresceu: a área de acerto continua exatamente a mesma (a folga visual é a favor do jogador). O dardo dourado do caçador do portão mantém a identidade.
+
+## v1.8.2 — 16/08/2026
 
 **Tema: retoques na casa nova — o convite de instalação no lugar certo.**
 

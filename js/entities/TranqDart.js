@@ -5,8 +5,11 @@ export class TranqDart extends Phaser.Physics.Arcade.Sprite {
     super(scene, x, y, 'tranq-dart');
     this.scene.physics.world.enable(this);
     this.body.setAllowGravity(false);
+    // v1.8.3: a TEXTURA cresceu 50% (42×15) para visibilidade, mas a hitbox
+    // segue a mesma de sempre (24×8, centrada) — jogabilidade intocada; o
+    // que sobra de imagem em volta é "perdão visual" a favor do jogador
     this.body.setSize(24, 8);
-    this.body.setOffset(2, 1);
+    this.body.setOffset(9, 3);
 
     this.scene.add.existing(this);
   }
