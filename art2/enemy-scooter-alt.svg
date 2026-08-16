@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 58" width="96" height="58">
+  <!-- FURIOUS RHINO - proposta bioma cidade (em avaliacao, nao usada pelo jogo).
+       Motoboy de entrega em scooter vermelha rechonchuda: escudo frontal
+       arredondado com farol redondo, guidao com retrovisor, bau laranja com
+       losango na garupa, capacete fechado com viseira azulada refletiva
+       (o brilho da viseira e o olho) e escapamento soltando nuvens.
+       Aponta para a direita.
+       Hitbox sugerida: 84x40 com offset 6,16.
+       Entre frames (alt): raios das calotas giram ~38 graus, as nuvens do
+       escape alternam posicao e o conjunto bau+traseira sobe ~1px
+       (suspensao); o resto fica identico. -->
+  <defs>
+    <linearGradient id="scBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e04a35"/>
+      <stop offset="1" stop-color="#b02a1a"/>
+    </linearGradient>
+    <linearGradient id="scBox" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6a832"/>
+      <stop offset="1" stop-color="#dd7f14"/>
+    </linearGradient>
+    <linearGradient id="scJacket" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4a7de0"/>
+      <stop offset="1" stop-color="#3358ad"/>
+    </linearGradient>
+    <linearGradient id="scVisor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#bfe3fb"/>
+      <stop offset="1" stop-color="#6fa9d8"/>
+    </linearGradient>
+  </defs>
+  <!-- sombra -->
+  <ellipse cx="50" cy="56.6" rx="42" ry="1.6" fill="#14161a" opacity="0.5"/>
+  <!-- nuvens do escapamento -->
+  <g transform="translate(-1.8 -2.4)">
+    <circle cx="6" cy="45.6" r="2.6" fill="#d7dae0" stroke="#9aa3ad" stroke-width="1.2" opacity="0.9"/>
+    <circle cx="9.6" cy="44" r="1.8" fill="#d7dae0" stroke="#9aa3ad" stroke-width="1.2" opacity="0.9"/>
+    <circle cx="4.4" cy="41" r="1.4" fill="#d7dae0" stroke="#9aa3ad" stroke-width="1.2" opacity="0.75"/>
+  </g>
+  <!-- conjunto bau + traseira (quica com a suspensao) -->
+  <g transform="translate(0 -1)">
+    <rect x="5" y="31.8" width="3.2" height="4.6" rx="1.3" fill="#e0402c" stroke="#14161a" stroke-width="1.6"/>
+    <rect x="5.7" y="33.8" width="1.8" height="1.8" rx="0.7" fill="#ff8b3d"/>
+    <rect x="6.2" y="42.6" width="10" height="4.4" rx="2.2" fill="#9aa0ab" stroke="#14161a" stroke-width="2"/>
+    <rect x="3.4" y="43.7" width="3.2" height="2.2" rx="1.1" fill="#6a7180" stroke="#14161a" stroke-width="1.4"/>
+    <rect x="6.5" y="12.5" width="19" height="17" rx="2.4" fill="url(#scBox)" stroke="#14161a" stroke-width="2.4"/>
+    <path d="M6.5 17.2 L25.5 17.2" stroke="#a85e0c" stroke-width="1.3"/>
+    <rect x="14.4" y="16" width="3.2" height="2.2" rx="0.6" fill="#ffd08a" stroke="#14161a" stroke-width="1.2"/>
+    <path d="M16 18.8 L20 22.8 L16 26.8 L12 22.8 Z" fill="#ffe9c2" stroke="#14161a" stroke-width="1.4" stroke-linejoin="round"/>
+    <rect x="8.2" y="25.6" width="15.6" height="2.4" rx="1.2" fill="#b06008" opacity="0.5"/>
+    <path d="M9 15 Q16 13.8 23 15" fill="none" stroke="#ffd08a" stroke-width="1.8" stroke-linecap="round" opacity="0.85"/>
+    <rect x="7.5" y="28.6" width="18" height="2.4" rx="1.2" fill="#3a3e46" stroke="#14161a" stroke-width="1.6"/>
+  </g>
+  <!-- roda traseira -->
+  <circle cx="21" cy="48.5" r="7.5" fill="#23262c" stroke="#14161a" stroke-width="2.4"/>
+  <circle cx="21" cy="48.5" r="4.2" fill="#3a3e46"/>
+  <circle cx="21" cy="48.5" r="3.6" fill="#c7ccd5" stroke="#2a2d33" stroke-width="1"/>
+  <g transform="rotate(38 21 48.5)">
+    <path d="M21 48.5 L21 44.8 M21 48.5 L24.5 47.4 M21 48.5 L23.2 51.5 M21 48.5 L18.8 51.5 M21 48.5 L17.5 47.4" stroke="#5a616e" stroke-width="1.2" stroke-linecap="round"/>
+  </g>
+  <circle cx="21" cy="48.5" r="1.2" fill="#6a7180"/>
+  <!-- carroceria: rabeta, plataforma baixa e escudo frontal -->
+  <path d="M13 43.2 Q7.6 42.4 7.8 36.4 Q8 30.4 14.6 29.6 L31.6 28.6 Q37.4 28.6 39.6 33.4 L41.4 39.6 Q42.2 42.2 45.6 42.2 L58.8 42.2 Q62.4 42.2 63.6 38.6 L67.6 23.6 Q68.8 17.8 73.8 17.4 Q79 17.8 80 23 Q81.8 30.6 78.8 36.4 Q77 40 77.4 43.8 Q73.6 46.6 68.6 46.6 L46.6 46.6 Q42.2 46.6 40.6 43.8 Q39.2 41.6 36.2 41.6 L20.2 41.6 Q16 43.4 13 43.2 Z" fill="url(#scBody)" stroke="#14161a" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- sombras e brilhos da pintura -->
+  <path d="M42 44.8 L68 44.8" fill="none" stroke="#8a1d12" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <path d="M12.5 32.5 Q22 30.8 31 31.6" fill="none" stroke="#f7a08e" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+  <path d="M71.5 21.5 Q70 28 71.8 34" fill="none" stroke="#f7a08e" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+  <!-- assento -->
+  <path d="M27.5 28.9 Q33 26.6 38.6 28.6 Q40.2 30 38.8 31.4 L30.2 31.8 Q27 30.8 27.5 28.9 Z" fill="#23262c" stroke="#14161a" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- farol redondo aceso -->
+  <circle cx="80.2" cy="21.8" r="3.3" fill="#ffd75e" stroke="#14161a" stroke-width="1.8"/>
+  <circle cx="79.2" cy="20.9" r="0.9" fill="#ffffff" opacity="0.95"/>
+  <path d="M85 19.6 L87.6 18.4 M85.4 22.4 L88.2 22.4" stroke="#ffd75e" stroke-width="1.4" stroke-linecap="round" opacity="0.8"/>
+  <!-- coluna do guidao e retrovisor -->
+  <path d="M71.8 17.2 Q74.8 12.4 78.8 9.4" fill="none" stroke="#14161a" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M71.8 17.2 Q74.8 12.4 78.8 9.4" fill="none" stroke="#d84a34" stroke-width="1.6" stroke-linecap="round"/>
+  <rect x="77.6" y="6.6" width="5.6" height="3.4" rx="1.7" fill="#3a3e46" stroke="#14161a" stroke-width="1.8" transform="rotate(28 80.4 8.3)"/>
+  <path d="M76.4 10.6 L74.2 4.8" fill="none" stroke="#14161a" stroke-width="1.8" stroke-linecap="round"/>
+  <ellipse cx="73.8" cy="3.9" rx="2.6" ry="2" fill="#cfeafb" stroke="#14161a" stroke-width="1.6"/>
+  <path d="M72.8 3.2 L74.6 4.6" stroke="#ffffff" stroke-width="1" stroke-linecap="round" opacity="0.7"/>
+  <!-- roda dianteira -->
+  <circle cx="82" cy="48.5" r="7.5" fill="#23262c" stroke="#14161a" stroke-width="2.4"/>
+  <circle cx="82" cy="48.5" r="4.2" fill="#3a3e46"/>
+  <circle cx="82" cy="48.5" r="3.6" fill="#c7ccd5" stroke="#2a2d33" stroke-width="1"/>
+  <g transform="rotate(38 82 48.5)">
+    <path d="M82 48.5 L82 44.8 M82 48.5 L85.5 47.4 M82 48.5 L84.2 51.5 M82 48.5 L79.8 51.5 M82 48.5 L78.5 47.4" stroke="#5a616e" stroke-width="1.2" stroke-linecap="round"/>
+  </g>
+  <circle cx="82" cy="48.5" r="1.2" fill="#6a7180"/>
+  <!-- para-lama dianteiro -->
+  <path d="M73.2 47.5 A9 9 0 0 1 90.8 47.5 L87.6 47.5 A5.8 5.8 0 0 0 76.4 47.5 Z" fill="url(#scBody)" stroke="#14161a" stroke-width="2.2" stroke-linejoin="round"/>
+  <!-- perna do motoboy na plataforma -->
+  <path d="M35.5 31 Q43 32 46.4 35.4 Q48 37 48.4 38.4" fill="none" stroke="#17171b" stroke-width="5.8" stroke-linecap="round"/>
+  <path d="M35.5 31 Q43 32 46.4 35.4 Q48 37 48.4 38.4" fill="none" stroke="#3a4254" stroke-width="3.4" stroke-linecap="round"/>
+  <rect x="45" y="37.8" width="9.4" height="4.6" rx="2.1" fill="#23232b" stroke="#17171b" stroke-width="1.8"/>
+  <path d="M46.6 40.8 L52.8 40.8" stroke="#4a4a58" stroke-width="1" stroke-linecap="round"/>
+  <!-- mochilinha nas costas -->
+  <path d="M36.6 19.8 Q34.2 14.6 39.2 12.4 L45.6 10.8 Q48.8 12.6 48 16.2 L46.2 20 Q40.6 22.2 36.6 19.8 Z" fill="#2f3542" stroke="#17171b" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M38.4 21 Q43 19.6 46 20.2" fill="none" stroke="#17171b" stroke-width="1.4" stroke-linecap="round"/>
+  <!-- tronco da jaqueta debrucado -->
+  <path d="M31.8 33.4 Q31.6 25 38.4 20.6 Q45.2 16.4 52.6 17.2 L56.4 20.8 Q57.4 24.8 52.4 26.8 Q42.6 30.4 38 34.8 Q33.4 37 31.8 33.4 Z" fill="url(#scJacket)" stroke="#17171b" stroke-width="2.2" stroke-linejoin="round"/>
+  <ellipse cx="38" cy="32" rx="5.5" ry="2.6" fill="#2a4a96" opacity="0.5"/>
+  <path d="M35.2 30.8 Q38.6 25.2 45 21.2" fill="none" stroke="#9db8f0" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- braco ate o guidao com luva -->
+  <path d="M52.5 20.5 Q64 13.5 77 9.8" fill="none" stroke="#17171b" stroke-width="5.4" stroke-linecap="round"/>
+  <path d="M52.5 20.5 Q64 13.5 77 9.8" fill="none" stroke="#4a7de0" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="79" cy="9.4" r="3" fill="#2f3542" stroke="#17171b" stroke-width="1.8"/>
+  <!-- capacete fechado com viseira refletiva -->
+  <circle cx="58.5" cy="11.5" r="8.8" fill="url(#scBody)" stroke="#17171b" stroke-width="2.4"/>
+  <path d="M51.8 6.6 Q56.5 3.2 61 4" fill="none" stroke="#f6f4ef" stroke-width="1.8" stroke-linecap="round" opacity="0.85"/>
+  <path d="M51.2 13.8 Q52.6 17.4 56 18.8" fill="none" stroke="#8a1d12" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
+  <path d="M59.5 3.6 Q66.6 5.2 67.2 11.6 Q67.6 16.8 62 18.8 Q59.2 19.6 58.6 17 Q62.6 11.6 59 5.4 Q58.4 3.8 59.5 3.6 Z" fill="url(#scVisor)" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <circle cx="63.8" cy="9.2" r="1.7" fill="#ffffff" opacity="0.95"/>
+  <path d="M61 15.2 Q64.4 14.6 65.8 11.8" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+</svg>

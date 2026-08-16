@@ -109,9 +109,14 @@ export class LeaderboardSystem {
         name,
         nameLower: this.nameSlug(name),
         score: Math.min(Math.floor(meters), MAX_SCORE),
+        // v1.8: quando ESTA marca foi atingida — o "há X dias" do top 10.
+        // Cópia local em bestSentAt para o rename preservar o valor (setDoc
+        // sem merge apagaria o campo)
+        scoreAt: fs.serverTimestamp(),
         updatedAt: fs.serverTimestamp(),
       });
       StorageManager.setBestSent(meters);
+      StorageManager.setBestSentAt(Date.now());
       this.fetchMyRank(); // fire-and-forget: atualiza o cache da posição
       return true;
     } catch (e) {
@@ -129,10 +134,15 @@ export class LeaderboardSystem {
     try {
       const { fs, db } = await getDb();
       const playerId = StorageManager.getOrCreatePlayerId();
+      // Preserva o scoreAt da marca (a troca de apelido não pode reiniciar o
+      // "há X dias"). Sem cópia local (marca pré-v1.8), o campo fica de fora
+      // e a leitura cai no fallback updatedAt — consistente com docs velhos.
+      const bestAt = StorageManager.getBestSentAt();
       await fs.setDoc(fs.doc(db, 'scores', playerId), {
         name,
         nameLower: this.nameSlug(name),
         score: Math.min(Math.floor(best), MAX_SCORE),
+        ...(bestAt ? { scoreAt: fs.Timestamp.fromMillis(bestAt) } : {}),
         updatedAt: fs.serverTimestamp(),
       });
       return true;
@@ -213,7 +223,9 @@ export class LeaderboardSystem {
     }
   }
 
-  // Retorna { entries: [{id, name, score}], myRank, myBest } ou null em falha.
+  // Retorna { entries: [{id, name, score, sinceMs}], myRank, myBest } ou
+  // null em falha. sinceMs = quando a marca foi atingida (scoreAt; docs
+  // pré-v1.8 caem no updatedAt) — matéria-prima do holdDays.
   static async fetchTop10() {
     try {
       const { fs, db } = await getDb();
@@ -221,11 +233,16 @@ export class LeaderboardSystem {
       const snap = await fs.getDocs(
         fs.query(scores, fs.orderBy('score', 'desc'), fs.limit(10))
       );
-      const entries = snap.docs.map((d) => ({
-        id: d.id,
-        name: String(d.data().name || '???'),
-        score: Number(d.data().score) || 0,
-      }));
+      const entries = snap.docs.map((d) => {
+        const data = d.data();
+        const ts = data.scoreAt || data.updatedAt;
+        return {
+          id: d.id,
+          name: String(data.name || '???'),
+          score: Number(data.score) || 0,
+          sinceMs: ts && typeof ts.toMillis === 'function' ? ts.toMillis() : null,
+        };
+      });
 
       const myBest = StorageManager.getBestSent();
       const myRank = myBest > 0 ? await this.fetchMyRank() : null;
@@ -233,5 +250,19 @@ export class LeaderboardSystem {
     } catch (e) {
       return null;
     }
+  }
+
+  // "Há quantos dias com esta marca": idade da PRÓPRIA marca de cada um.
+  // (v2 da regra, 15/08: a versão original reiniciava o contador de quem
+  // era ultrapassado — uma entrada nova no topo "comprimia" a coluna
+  // inteira para a mesma data, e o dono trocou pela leitura por marca.)
+  // Puro e testável no node. Dias em data LOCAL (mesmo recorte do
+  // StorageManager.dayKey); entrada sem timestamp devolve null.
+  static holdDays(entries, nowMs = Date.now()) {
+    const dayStart = (ms) => new Date(new Date(ms).setHours(0, 0, 0, 0)).getTime();
+    const today = dayStart(nowMs);
+    return entries.map((e) => (e.sinceMs
+      ? Math.max(0, Math.round((today - dayStart(e.sinceMs)) / 86400000))
+      : null));
   }
 }

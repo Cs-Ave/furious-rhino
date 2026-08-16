@@ -32,6 +32,9 @@ export const ART_MANIFEST = {
   'rhino-fire-run-0': { w: 96, h: 64 },
   'rhino-fire-run-1': { w: 96, h: 64 },
   'rhino-fire-run-2': { w: 96, h: 64 },
+  // v1.8.0 — skins: SAÍRAM do manifesto. Os frames (rig fixo de 96x64) são
+  // derivados do SkinRegistry no preload do BootScene — assim a página
+  // /?setup só reescreve o registry, sem tocar aqui.
   // v1.7.0 — inimigos por bioma (art2/ aprovado, dimensões 1:1 com o viewBox)
   'enemy-zookeeper': { w: 48, h: 68 },
   'enemy-zookeeper-run-1': { w: 48, h: 68 },

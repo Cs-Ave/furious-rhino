@@ -158,10 +158,13 @@ export class SpawnManager {
       const rampW = this.rampFits(this.nextSpawnX) ? (tier.rampW || 0) : 0;
       if (roll < tier.wallW) {
         this.spawnWall(this.nextSpawnX);
+        this.nextSpawnX += this.maybeEscort(this.nextSpawnX, 'wall', tier);
       } else if (roll < tier.wallW + tier.spikeW) {
         this.spawnSpike(this.nextSpawnX);
+        this.nextSpawnX += this.maybeEscort(this.nextSpawnX, 'spike', tier);
       } else if (roll < tier.wallW + tier.spikeW + tier.towerW) {
         this.spawnTower(this.nextSpawnX);
+        this.nextSpawnX += this.maybeEscort(this.nextSpawnX, 'tower', tier);
       } else if (roll < tier.wallW + tier.spikeW + tier.towerW + rampW) {
         // A rampa OCUPA largura: soma o próprio comprimento antes do gap (o
         // mesmo padrão do combo), de modo que o vão passa a ser medido da
@@ -177,6 +180,17 @@ export class SpawnManager {
         // encontro — nasce mais à frente para compensar
         this.nextSpawnX += tier.animalLeadPx;
         this.spawnAnimal(this.nextSpawnX);
+        // v1.8: par de animais — um segundo logo à frente, por tier. As
+        // guardas repetem as do laço: nunca dentro da janela da arena do
+        // boss nem na chegada da LENDA (o offset pode cruzar a fronteira
+        // que o primeiro animal respeitou).
+        const packX = this.nextSpawnX + Constants.ANIMAL_PACK_OFFSET_PX;
+        const inArena = packX >= Constants.WIN_DISTANCE_PX - (Constants.BOSS_ARENA_PX + 200) &&
+                        packX < Constants.WIN_DISTANCE_PX + 1000;
+        if (Math.random() < (tier.animalPackChance || 0) &&
+            !inArena && packX < Constants.WORLD_END_PX - 1500) {
+          this.spawnAnimal(packX);
+        }
       }
 
       this.nextSpawnX += Math.max(
@@ -184,6 +198,27 @@ export class SpawnManager {
         tier.gapMin + Math.random() * tier.gapRand
       );
     }
+  }
+
+  // v1.8 (3ª rodada de densidade): escolta — um animal nasce JUNTO do
+  // obstáculo sorteado, na coreografia dos combos (parede→terrestre a +280,
+  // espinho→voador a +220, torre→qualquer a +300), sem substituir nada.
+  // Devolve o span ocupado (soma no nextSpawnX, como os combos fazem) para o
+  // gap seguinte contar a partir do animal. Guardas idênticas às do par:
+  // nunca dentro da janela da arena do boss nem na chegada da LENDA.
+  maybeEscort(x, kind, tier) {
+    if (Math.random() >= (tier.animalEscortChance || 0)) return 0;
+    const offset = kind === 'wall' ? 280 : kind === 'spike' ? 220 : 300;
+    const ex = x + offset;
+    const inArena = ex >= Constants.WIN_DISTANCE_PX - (Constants.BOSS_ARENA_PX + 200) &&
+                    ex < Constants.WIN_DISTANCE_PX + 1000;
+    if (inArena || ex >= Constants.WORLD_END_PX - 1500) return 0;
+    if (kind === 'spike') {
+      this.spawnAnimal(ex, this.pickBiomeAnimal(ex, 'fly'), 470);
+    } else {
+      this.spawnAnimal(ex, this.pickBiomeAnimal(ex, kind === 'wall' ? 'ground' : 'any'));
+    }
+    return offset;
   }
 
   spawnWall(x, heightOverride = null) {

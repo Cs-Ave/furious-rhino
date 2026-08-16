@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 54" width="60" height="54">
+  <!-- FURIOUS RHINO - proposta bioma jaulas (em avaliacao, nao usada pelo jogo).
+       Pavao fujao chibi correndo: corpo azul-royal, pescoco em S curto, crista com
+       tres antenas de ponta em gota, bico dourado, cauda em leque atras com seis
+       penas verde-esmeralda e ocelos dourados, pernas finas alaranjadas.
+       hitbox sugerida: 34x46 em offset 22,6 (cauda em leque fora da hitbox).
+       Entre os frames mudam SO: (1) as pernas trocam de fase (dianteira e traseira
+       invertem) e (2) o grupo pescoco+cabeca (crista, rosto e bico juntos) faz a
+       bicada de ave que corre: ganha transform translate(-1.5 2) rotate(5 41 30.5),
+       pivo na base do pescoco: cabeca abaixa ~2.8px e inclina 5 graus para frente,
+       sem sair do viewBox nem tocar a cauda; todo o resto e byte-identico. -->
+  <defs>
+    <linearGradient id="pvb" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f6bd8"/>
+      <stop offset="1" stop-color="#1d4aa8"/>
+    </linearGradient>
+    <linearGradient id="pvt" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3dbb7e"/>
+      <stop offset="1" stop-color="#1f8a55"/>
+    </linearGradient>
+  </defs>
+  <!-- hastes das penas -->
+  <path d="M29 34 L31 7 M29 34 L20 8 M29 34 L11 13 M29 34 L6 22 M29 34 L6 32 M29 34 L11 41" fill="none" stroke="#17171b" stroke-width="3.4" stroke-linecap="round"/>
+  <path d="M29 34 L31 7 M29 34 L20 8 M29 34 L11 13 M29 34 L6 22 M29 34 L6 32 M29 34 L11 41" fill="none" stroke="#2ea36b" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- penas do leque com ocelos -->
+  <ellipse cx="31" cy="7" rx="4.3" ry="6" transform="rotate(4 31 7)" fill="url(#pvt)" stroke="#17171b" stroke-width="1.8"/>
+  <circle cx="31" cy="7" r="2.4" fill="#f0b73a" stroke="#17171b" stroke-width="1"/>
+  <circle cx="31" cy="7" r="1.2" fill="#1d4aa8"/>
+  <circle cx="30.6" cy="6.6" r="0.45" fill="#ffffff"/>
+  <ellipse cx="20" cy="8" rx="4.3" ry="6" transform="rotate(-19 20 8)" fill="url(#pvt)" stroke="#17171b" stroke-width="1.8"/>
+  <circle cx="20" cy="8" r="2.4" fill="#f0b73a" stroke="#17171b" stroke-width="1"/>
+  <circle cx="20" cy="8" r="1.2" fill="#1d4aa8"/>
+  <circle cx="19.6" cy="7.6" r="0.45" fill="#ffffff"/>
+  <ellipse cx="11" cy="13" rx="4.3" ry="6" transform="rotate(-40 11 13)" fill="url(#pvt)" stroke="#17171b" stroke-width="1.8"/>
+  <circle cx="11" cy="13" r="2.4" fill="#f0b73a" stroke="#17171b" stroke-width="1"/>
+  <circle cx="11" cy="13" r="1.2" fill="#1d4aa8"/>
+  <circle cx="10.6" cy="12.6" r="0.45" fill="#ffffff"/>
+  <ellipse cx="6" cy="22" rx="4.3" ry="6" transform="rotate(-63 6 22)" fill="url(#pvt)" stroke="#17171b" stroke-width="1.8"/>
+  <circle cx="6" cy="22" r="2.4" fill="#f0b73a" stroke="#17171b" stroke-width="1"/>
+  <circle cx="6" cy="22" r="1.2" fill="#1d4aa8"/>
+  <circle cx="5.6" cy="21.6" r="0.45" fill="#ffffff"/>
+  <ellipse cx="6" cy="32" rx="4.3" ry="6" transform="rotate(-86 6 32)" fill="url(#pvt)" stroke="#17171b" stroke-width="1.8"/>
+  <circle cx="6" cy="32" r="2.4" fill="#f0b73a" stroke="#17171b" stroke-width="1"/>
+  <circle cx="6" cy="32" r="1.2" fill="#1d4aa8"/>
+  <circle cx="5.6" cy="31.6" r="0.45" fill="#ffffff"/>
+  <ellipse cx="11" cy="41" rx="4.3" ry="6" transform="rotate(-114 11 41)" fill="url(#pvt)" stroke="#17171b" stroke-width="1.8"/>
+  <circle cx="11" cy="41" r="2.4" fill="#f0b73a" stroke="#17171b" stroke-width="1"/>
+  <circle cx="11" cy="41" r="1.2" fill="#1d4aa8"/>
+  <circle cx="10.6" cy="40.6" r="0.45" fill="#ffffff"/>
+  <!-- pernas em passada -->
+  <g>
+    <path d="M32 42 Q28.5 46 25.5 52.2" fill="none" stroke="#17171b" stroke-width="3.4" stroke-linecap="round"/>
+    <path d="M32 42 Q28.5 46 25.5 52.2" fill="none" stroke="#e8912a" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M25.5 52.2 L22.8 52.9 M25.5 52.2 L25.8 53 M25.5 52.2 L28.4 52.8" fill="none" stroke="#17171b" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M25.5 52.2 L22.8 52.9 M25.5 52.2 L25.8 53 M25.5 52.2 L28.4 52.8" fill="none" stroke="#e8912a" stroke-width="1.1" stroke-linecap="round"/>
+  </g>
+  <g>
+    <path d="M38 42 Q43 43 46.5 48.2" fill="none" stroke="#17171b" stroke-width="3.4" stroke-linecap="round"/>
+    <path d="M38 42 Q43 43 46.5 48.2" fill="none" stroke="#e8912a" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M46.5 48.2 L49.4 49 M46.5 48.2 L48 50.2 M46.5 48.2 L45 50.4" fill="none" stroke="#17171b" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M46.5 48.2 L49.4 49 M46.5 48.2 L48 50.2 M46.5 48.2 L45 50.4" fill="none" stroke="#e8912a" stroke-width="1.1" stroke-linecap="round"/>
+  </g>
+  <!-- corpo -->
+  <ellipse cx="35" cy="35" rx="13" ry="10" fill="url(#pvb)" stroke="#17171b" stroke-width="2.4"/>
+  <ellipse cx="34" cy="40" rx="9" ry="3.8" fill="#16367e" opacity="0.5"/>
+  <path d="M25 31 Q34 25.5 44 30" fill="none" stroke="#6f9be8" stroke-width="2.6" stroke-linecap="round" opacity="0.85"/>
+  <!-- asa -->
+  <path d="M32 30.5 Q25 33.5 27 40 Q32.5 44 38.5 40.5 Q31.5 39 32 30.5 Z" fill="#2453b8" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M29.5 34 Q30.5 38 34.5 40" fill="none" stroke="#6f9be8" stroke-width="1" stroke-linecap="round"/>
+  <path d="M31.8 33 Q32.6 37 36.6 39" fill="none" stroke="#6f9be8" stroke-width="1" stroke-linecap="round"/>
+  <!-- grupo pescoco+cabeca: pescoco, crista, rosto e bico (anima junto entre frames) -->
+  <g>
+  <!-- pescoco em S -->
+  <path d="M41 30.5 Q48 28 47.5 20 Q47.2 16 49 13.5" fill="none" stroke="#17171b" stroke-width="6.6" stroke-linecap="round"/>
+  <path d="M41 30.5 Q48 28 47.5 20 Q47.2 16 49 13.5" fill="none" stroke="#2f6bd8" stroke-width="4.4" stroke-linecap="round"/>
+  <path d="M43 28.5 Q47.4 26.4 47 20.5" fill="none" stroke="#6f9be8" stroke-width="1.2" stroke-linecap="round" opacity="0.9"/>
+  <!-- cabeca -->
+  <circle cx="49" cy="12" r="6.3" fill="url(#pvb)" stroke="#17171b" stroke-width="2.2"/>
+  <!-- crista com pontas em gota -->
+  <path d="M47.3 6.6 L45.2 3.4 M49.3 6 L49.2 3.2 M51.2 6.6 L53 3.6" fill="none" stroke="#17171b" stroke-width="1.1" stroke-linecap="round"/>
+  <ellipse cx="45" cy="2.8" rx="1.2" ry="1.4" fill="#2f6bd8" stroke="#17171b" stroke-width="1.1"/>
+  <ellipse cx="49.2" cy="2.5" rx="1.2" ry="1.4" fill="#2f6bd8" stroke="#17171b" stroke-width="1.1"/>
+  <ellipse cx="53.2" cy="3" rx="1.2" ry="1.4" fill="#2f6bd8" stroke="#17171b" stroke-width="1.1"/>
+  <!-- rosto -->
+  <ellipse cx="52" cy="14.2" rx="1.8" ry="1.1" fill="#f6f1e6" opacity="0.95"/>
+  <circle cx="50.8" cy="11" r="2.6" fill="#17171b"/>
+  <circle cx="50" cy="10.2" r="0.85" fill="#ffffff"/>
+  <!-- bico dourado -->
+  <path d="M54.4 10.4 L59 12.4 L54.4 14.2 Q55.4 12.3 54.4 10.4 Z" fill="#f0b73a" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M55.4 11.6 L57.2 12.4" fill="none" stroke="#d9a01e" stroke-width="0.8" stroke-linecap="round"/>
+  </g>
+</svg>

@@ -43,6 +43,12 @@ export class CrackedWall extends Phaser.Physics.Arcade.Sprite {
     if (this.broken) return;
     this.broken = true;
     this.setTexture(`cracked-${this.crackHeight}${this.skin}-broken`);
+    // v1.8: só o "toco" fica de pé — tudo acima do centro da fresta sai do
+    // frame (o GameScene.collapseWallTop anima o pedaço tombando p/ esquerda).
+    // Cortar em cy (não no topo do buraco) leva junto a franja superior do
+    // rasgo e, na cidade, o coroamento do prédio.
+    const cy = Constants.CRACK_HEIGHTS[this.crackHeight.toUpperCase()] * this.wallHeight;
+    this.setCrop(0, cy, 100, this.wallHeight - cy);
     this.body.enable = false;
   }
 
@@ -50,13 +56,26 @@ export class CrackedWall extends Phaser.Physics.Arcade.Sprite {
     this.setPosition(x, 0);
     this.broken = false;
     this.setTexture(`cracked-${this.crackHeight}${this.skin}`);
+    this.clearCollapse();
     this.body.enable = true;
     this.setActive(true).setVisible(true);
   }
 
   deactivate() {
     this.broken = false;
+    this.clearCollapse();
     this.body.enable = false;
     this.setActive(false).setVisible(false);
+  }
+
+  // O pool recicla esta parede: sem esta limpeza o crop do toco vazaria para
+  // a próxima parede e o pedaço tombando viraria sprite órfão.
+  clearCollapse() {
+    this.setCrop();
+    if (this.topPiece) {
+      this.scene.tweens.killTweensOf(this.topPiece);
+      this.topPiece.destroy();
+      this.topPiece = null;
+    }
   }
 }

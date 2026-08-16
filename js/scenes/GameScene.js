@@ -8,6 +8,7 @@ import { AudioSystem } from '../systems/AudioSystem.js';
 import { initTuningPanel } from '../systems/TuningPanel.js';
 import { LeaderboardSystem } from '../systems/LeaderboardSystem.js';
 import { MedalSystem, MEDALS } from '../systems/MedalSystem.js';
+import { SkinSystem, SKINS } from '../systems/SkinSystem.js';
 import { StatsSystem } from '../systems/StatsSystem.js';
 import { NotifySystem } from '../systems/NotifySystem.js';
 
@@ -30,7 +31,15 @@ export class GameScene extends Phaser.Scene {
 
     this.createBackground();
 
-    this.rhino = new Rhino(this, 100, Constants.GROUND_TOP);
+    // v1.8: skins — o retro-scan concede a Catisquick a quem já fez a façanha
+    // nas últimas 50 corridas; a skin efetiva é resolvida a cada boot (o
+    // "Jogar Novamente" recarrega a página, então toda corrida nasce válida)
+    SkinSystem.migrateFromRuns();
+    // Skins por TOTAIS de vida: os agregados já estão no localStorage, então
+    // o boot é o "retro-scan" delas (sem toast — o hub conta a novidade)
+    SkinSystem.evaluateTotals();
+    this.skin = SkinSystem.resolveEquipped();
+    this.rhino = new Rhino(this, 100, Constants.GROUND_TOP, this.skin);
     this.spawnManager = new SpawnManager(this);
     this.furySystem = new FurySystem(this);
 
@@ -72,9 +81,14 @@ export class GameScene extends Phaser.Scene {
     this.runPauses = 0;
     // v1.7: usos do especial FÚRIA TOTAL (contador `f` do runs[])
     this.runSpecials = 0;
+    // v1.8: ativações negadas na arena do boss (contador `n` — mede quantos
+    // ainda tentam o exploit antigo)
+    this.runFuryDenied = 0;
     // v1.7: a luta do portão — camadas quebradas (b) e quiques (q)
     this.runBossLayers = 0;
     this.runBossBounces = 0;
+    // v1.8: skin concedida NESTA corrida (para a mensagem do fim de jogo)
+    this.runSkinUnlocked = null;
     this.usedKeyboard = false;
     this.terrainRamp = null; // rampa em que o rino pisou no frame anterior
     // Tweens/timers de festa (fuga e cutscene de LENDA), para poderem ser
@@ -169,6 +183,16 @@ export class GameScene extends Phaser.Scene {
       this.safeTelemetry(() => LeaderboardSystem.fetchRivals());
     }
 
+    // v1.8: preview do rino da abertura veste a skin, e o pódio é revalidado
+    // no boot (antes o last_rank só atualizava pós-submit/ranking — um
+    // destronado manteria a skin de ouro até abrir o ranking por acaso)
+    this.updateRhinoPreview(this.skin);
+    if (LeaderboardSystem.isConfigured() && StorageManager.getBestSent() > 0) {
+      this.safeTelemetry(() => LeaderboardSystem.fetchMyRank().then((rank) => {
+        if (rank) this.onRankRefreshed(rank);
+      }));
+    }
+
     // Handler nomeado com guarda em vez de {once:true}: com um modal aberto
     // (ranking/apelido), nenhuma tecla ou toque pode iniciar a corrida
     const overlay = document.getElementById('start-screen');
@@ -209,6 +233,7 @@ export class GameScene extends Phaser.Scene {
     if (!navigator.share && !navigator.clipboard) inviteBtn.style.display = 'none';
 
     this.setupMyStatsUI();
+    this.setupSkinsUI();
   }
 
   // "📊 Minhas estatísticas": o módulo é carregado por import DINÂMICO, só no
@@ -413,6 +438,150 @@ export class GameScene extends Phaser.Scene {
     document.body.classList.remove('modal-open');
   }
 
+  // ------------------------------------------------------------- skins v1.8
+  // Hub de skins: botão na tela inicial → modal com a grade. Mesmo contrato
+  // dos outros modais do overlay: stopPropagation em pointerdown E click,
+  // senão o toque inicia a corrida.
+  setupSkinsUI() {
+    const btn = document.getElementById('skins-btn');
+    const modal = document.getElementById('skins-modal');
+    if (!btn || !modal) return;
+    const stop = (ev) => ev.stopPropagation();
+
+    btn.addEventListener('pointerdown', stop);
+    modal.addEventListener('pointerdown', stop);
+    btn.addEventListener('click', (ev) => {
+      stop(ev);
+      this.renderSkinsGrid();
+      this.openModal(modal);
+      // Revalida o pódio com o modal aberto — fire-and-forget; a grade se
+      // redesenha quando (e se) a resposta chegar
+      if (LeaderboardSystem.isConfigured() && StorageManager.getBestSent() > 0) {
+        this.safeTelemetry(() => LeaderboardSystem.fetchMyRank().then((rank) => {
+          if (rank) this.renderSkinsGrid();
+        }));
+      }
+    });
+    document.getElementById('skins-close').addEventListener('click', (ev) => {
+      stop(ev);
+      this.closeModal(modal);
+    });
+  }
+
+  renderSkinsGrid() {
+    const grid = document.getElementById('skins-grid');
+    const status = document.getElementById('skins-status');
+    grid.innerHTML = '';
+    const equipped = SkinSystem.resolveEquipped();
+    const chosenId = StorageManager.getSelectedSkin();
+    const myRank = StorageManager.getLastRank();
+
+    for (const skin of SKINS) {
+      // "fora do jogo" (flag do /?setup): nem célula ganha — como se não existisse
+      if (skin.hidden) continue;
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = 'skin-cell';
+      const img = document.createElement('img');
+      img.alt = skin.name;
+      // Célula "em produção" mostra a silhueta do rino base (a arte da skin
+      // ainda não existe; o CSS .pending escurece)
+      img.src = `art/${skin.pending ? 'rhino-run-0' : SkinSystem.textureKey(skin, 0)}.svg`;
+      const name = document.createElement('b');
+      name.textContent = skin.name;
+      const state = document.createElement('span');
+      state.className = 'skin-state';
+
+      if (skin.pending) {
+        cell.classList.add('locked', 'pending');
+        state.textContent = SkinSystem.isUnlocked(skin)
+          ? '🎨 conquistada — arte em produção!' : '🎨 em produção';
+      } else if (skin.id === equipped.id) {
+        cell.classList.add('equipped');
+        state.textContent = '✓ Equipada';
+      } else if (SkinSystem.isEquippable(skin)) {
+        state.textContent = 'Toque para vestir';
+      } else {
+        cell.classList.add('locked');
+        state.textContent = skin.access.type === 'rank'
+          ? `🔒 só do nº ${skin.access.rank} do mundo`
+            + (myRank > 0 ? ` — você está em #${myRank}` : '')
+          // Conquista/total: o requisito é gerado da condition (a desc fica
+          // livre para o texto de "vitrine" da skin)
+          : `🔒 ${SkinSystem.requirementText(skin) || skin.desc}`;
+      }
+
+      cell.append(img, name, state);
+      cell.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        this.equipSkin(skin);
+      });
+      grid.appendChild(cell);
+    }
+
+    // A escolhida ficou inacessível (perdeu o pódio): explicar que ela volta
+    // sozinha — a seleção nunca é apagada
+    const chosen = SkinSystem.get(chosenId);
+    status.textContent = (chosen.id !== equipped.id && chosen.access.type === 'rank')
+      ? `${chosen.name} fica guardada para o nº ${chosen.access.rank} — recupere o pódio e ela volta sozinha.`
+      : '';
+  }
+
+  equipSkin(skin) {
+    if (!SkinSystem.isEquippable(skin)) return;
+    StorageManager.setSelectedSkin(skin.id);
+    this.skin = SkinSystem.resolveEquipped();
+    this.rhino.setSkin(this.skin);
+    this.updateRhinoPreview(this.skin);
+    this.renderSkinsGrid();
+  }
+
+  // O rino animado da abertura são 3 <img> HTML fora do Phaser — trocar os
+  // src é o preview "de graça" da skin equipada
+  updateRhinoPreview(skin) {
+    const imgs = document.querySelectorAll('.rhino-anim img');
+    imgs.forEach((img, i) => {
+      img.src = `art/${SkinSystem.textureKey(skin, i)}.svg`;
+    });
+  }
+
+  // Pódio revalidado no boot: se a skin efetiva mudou (destronado ou de
+  // volta ao topo), o rino da tela inicial troca na hora — com aviso quando
+  // é perda, para a reversão nunca parecer bug
+  onRankRefreshed(rank) {
+    document.getElementById('start-rank-pos').textContent = rank;
+    document.getElementById('start-rank').hidden = false;
+    const effective = SkinSystem.resolveEquipped();
+    if (effective.id === this.skin.id) return;
+    const lost = effective.id === 'default';
+    this.skin = effective;
+    if (!this.started) this.rhino.setSkin(effective);
+    this.updateRhinoPreview(effective);
+    if (lost) {
+      const chosen = SkinSystem.get(StorageManager.getSelectedSkin());
+      const notice = document.getElementById('skin-notice');
+      if (notice && chosen.access.type === 'rank') {
+        notice.textContent = `${chosen.name} é só do nº ${chosen.access.rank} do mundo — `
+          + `você está em #${rank}. Recupere o pódio para vesti-la de volta.`;
+      }
+    }
+  }
+
+  // Conquistas por corrida (ex.: Catisquick = 5 torres + caçador vencido NA
+  // MESMA corrida). Chamado no crossGate (o momento da festa) e de novo no
+  // endGame (rede de segurança para o caso raro de a façanha fechar só no
+  // modo infinito) — idempotente. As condições vivem no SkinRegistry.
+  maybeUnlockSkins() {
+    const news = SkinSystem.evaluateRun({
+      meters: this.rhino ? this.rhino.getDistance() : 0,
+      towersDowned: this.runTowersDowned,
+      bossLayers: this.runBossLayers,
+      escaped: Boolean(this.escaped),
+    });
+    if (news.length) this.runSkinUnlocked = news[0];
+    return news;
+  }
+
   async openRanking() {
     const modal = document.getElementById('ranking-modal');
     const list = document.getElementById('ranking-list');
@@ -439,14 +608,26 @@ export class GameScene extends Phaser.Scene {
     status.textContent = '';
 
     const myId = StorageManager.getOrCreatePlayerId();
+    // v1.8: há quantos dias cada um está com a marca exibida
+    const days = LeaderboardSystem.holdDays(data.entries);
     data.entries.forEach((entry, i) => {
       const li = document.createElement('li');
       if (entry.id === myId) li.classList.add('me');
       const name = document.createElement('span');
       name.textContent = `${i + 1}. ${entry.name}`; // textContent: nome vem de terceiros
+      const right = document.createElement('span');
+      right.className = 'rank-right';
       const score = document.createElement('span');
       score.textContent = `${entry.score}m`;
-      li.append(name, score);
+      right.append(score);
+      if (days[i] !== null) {
+        const hold = document.createElement('span');
+        hold.className = 'rank-days';
+        hold.textContent = days[i] === 0 ? 'hoje' : `há ${days[i]}d`;
+        hold.title = 'há quanto tempo com esta marca';
+        right.append(hold);
+      }
+      li.append(name, right);
       list.appendChild(li);
     });
 
@@ -1245,6 +1426,13 @@ export class GameScene extends Phaser.Scene {
   // quando dá). O modo em si vive no FurySystem (drenagem/velocidade/sprite).
   doSpecial(fromKeyboard = false) {
     if (fromKeyboard) this.usedKeyboard = true;
+    // v1.8: na arena do boss a fúria não pega — feedback só quando o jogador
+    // tinha carga para gastar (toque com medidor vazio segue silencioso)
+    if (this.furySystem.isBlocked() && this.furySystem.charge >= 1) {
+      this.runFuryDenied++;
+      this.showToast('🔒 A fúria não pega no portão!', { y: 250, size: 30, duration: 1500 });
+      return;
+    }
     if (!this.furySystem.activate(this.rhino)) return;
     this.runSpecials++;
     // O estouro da transformação: flash alaranjado + tremida + trovão
@@ -1278,6 +1466,15 @@ export class GameScene extends Phaser.Scene {
       stop(ev);
       this.togglePause();
     });
+    // Desistir: a run é CANCELADA — o endGame nunca roda (nada de runs[],
+    // morte, playtime ou telemetria) e a tentativa contada no startRun é
+    // devolvida. O reload é o mesmo caminho do "Jogar Novamente": cai na
+    // start screen limpa.
+    document.getElementById('pause-quit').addEventListener('click', (ev) => {
+      stop(ev);
+      StorageManager.removeAttempt();
+      location.reload();
+    });
 
     // Tecla no WINDOW, não no Phaser: com a cena pausada o input dela morre
     window.addEventListener('keydown', (ev) => {
@@ -1292,6 +1489,26 @@ export class GameScene extends Phaser.Scene {
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) this.pauseGame();
     });
+
+    this.alignHudButtons();
+    this.scale.on('resize', () => this.alignHudButtons());
+  }
+
+  // Som/pausa são DOM fixos no viewport, mas os ícones de fúria e dash vivem
+  // no canvas escalado por Scale.FIT — um top de CSS não acompanha. Alinha os
+  // botões logo ABAIXO da linha dos ícones usando o retângulo real do canvas
+  // (o fallback top:20px do CSS só vale até o boot chegar aqui).
+  alignHudButtons() {
+    const canvas = this.game && this.game.canvas;
+    if (!canvas) return;
+    const b = canvas.getBoundingClientRect();
+    // base dos ícones: HUD_MARGIN + 30 (centro) + 30 (meia altura do ícone)
+    const iconsBottom = Constants.HUD_MARGIN + 60;
+    const top = Math.round(b.top + (iconsBottom / Constants.GAME_HEIGHT) * b.height + 8);
+    for (const id of ['pause-btn', 'mute-btn']) {
+      const el = document.getElementById(id);
+      if (el) el.style.top = `${top}px`;
+    }
   }
 
   pauseGame() {
@@ -1411,8 +1628,10 @@ export class GameScene extends Phaser.Scene {
     if (wall.broken) return;
 
     const bounds = wall.getCrackBounds();
-    // Rhino sprite origin is (0.5, 1): y is the bottom edge
-    const rhinoTop = rhino.y - rhino.displayHeight;
+    // Rhino sprite origin is (0.5, 1): y is the bottom edge. RHINO_H (rig em
+    // px de mundo) e não displayHeight: a escala VISUAL não pode alargar a
+    // janela de alinhamento da fresta (gameplay invariante ao +15% da v1.8.1)
+    const rhinoTop = rhino.y - Constants.RHINO_H;
     const rhinoBottom = rhino.y;
 
     const aligned = rhinoBottom > bounds.top && rhinoTop < bounds.bottom;
@@ -1422,6 +1641,7 @@ export class GameScene extends Phaser.Scene {
     // invencibilidade que destrói (diferente do debug, que só atravessa)
     if (this.furySystem.rampage || (aligned && isDashing)) {
       wall.break();
+      this.collapseWallTop(wall);
       this.runWallsBroken++;
       const crackCenterY = (bounds.top + bounds.bottom) / 2;
       this.audio.playBreak();
@@ -1612,8 +1832,44 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  createBreakParticles(x, y) {
-    for (let i = 0; i < 10; i++) {
+  // v1.8: o topo da parede/prédio desaba quando o rino a quebra — um clone
+  // da textura INTACTA, recortado do topo até o centro da fresta, tomba em
+  // torno da própria base (o break() já escondeu essa faixa no sprite real
+  // via setCrop). Tomba para a ESQUERDA (−x = ângulo NEGATIVO no Phaser),
+  // contra o sentido da corrida — pedido do dono em 15/08.
+  collapseWallTop(wall) {
+    const cy = Constants.CRACK_HEIGHTS[wall.crackHeight.toUpperCase()] * wall.wallHeight;
+    if (cy < 40) return; // nada relevante acima da fresta
+    const piece = this.add.image(wall.x, wall.y + cy, `cracked-${wall.crackHeight}${wall.skin}`)
+      // Origem em fração do FRAME de 720px (não do recorte): pivô na base do
+      // pedaço, senão o tombo giraria em raio de parede inteira
+      .setOrigin(0.5, cy / wall.wallHeight)
+      .setCrop(0, 0, 100, cy)
+      .setDepth(wall.depth);
+    wall.topPiece = piece;
+    this.tweens.add({
+      targets: piece,
+      angle: Phaser.Math.Between(-96, -78),
+      y: piece.y + 30,
+      alpha: 0,
+      duration: 900, // mesmo tempo do tombo do caçador (HunterSniper.defeat)
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        if (wall.topPiece === piece) wall.topPiece = null;
+        piece.destroy();
+      },
+    });
+    // Esfarelamento: duas levas curtas na linha de ruptura, escalonadas para
+    // acompanhar o tombo sem dobrar o pico de partículas da quebra
+    for (const ms of [180, 420]) {
+      this.time.delayedCall(ms, () => {
+        if (piece.active) this.createBreakParticles(wall.x, wall.y + cy, 5);
+      });
+    }
+  }
+
+  createBreakParticles(x, y, count = 10) {
+    for (let i = 0; i < count; i++) {
       const px = x + Phaser.Math.Between(-20, 20);
       const py = y + Phaser.Math.Between(-50, 50);
       const particle = this.add.image(px, py, 'debris-chunk')
@@ -1692,10 +1948,12 @@ export class GameScene extends Phaser.Scene {
     // Wind streaks while dashing (e durante a FÚRIA TOTAL — rastro contínuo)
     if (this.rhino.dashState === 'active' || this.furySystem.rampage) {
       const sprite = this.rhino.getSprite();
+      // faixa do rastro acompanha a escala visual (senão o lombo fica sem vento)
+      const k = sprite.scaleX * Constants.ART_RASTER_SCALE;
       for (let i = 0; i < 3; i++) {
         this.windEmitter.emitParticleAt(
-          sprite.x - Phaser.Math.Between(20, 60),
-          sprite.y - Phaser.Math.Between(8, 56)
+          sprite.x - Phaser.Math.Between(20 * k, 60 * k),
+          sprite.y - Phaser.Math.Between(8 * k, 56 * k)
         );
       }
     }
@@ -1789,6 +2047,17 @@ export class GameScene extends Phaser.Scene {
       if (this.gameOver) return;
       this.showToast('∞ MODO INFINITO', { y: 250, size: 34, color: '#ffe9a8', duration: 2000 });
     });
+
+    // v1.8: a Catisquick sai na festa do portão (depois dos 2 toasts da fuga)
+    const newSkins = this.maybeUnlockSkins();
+    if (newSkins.length) {
+      this.time.delayedCall(3600, () => {
+        if (this.gameOver) return;
+        this.showToast(`🎨 SKIN NOVA: ${newSkins[0].name}!`,
+          { y: 250, size: 34, color: '#ffd23f', duration: 2500 });
+        this.audio.playFanfare();
+      });
+    }
   }
 
   // Confete em coordenadas de tela. Usado pela fuga (1000m) e pela cutscene
@@ -1933,6 +2202,16 @@ export class GameScene extends Phaser.Scene {
       if (!won) this.audio.playFanfare(); // na vitória a fanfarra já tocou acima
     }
 
+    // v1.8: rede de segurança da Catisquick (caso raro: a 5ª torre caiu só
+    // no modo infinito, depois do crossGate) + anúncio na tela de fim
+    this.maybeUnlockSkins();
+    if (this.runSkinUnlocked) {
+      const id = won ? 'win-medal-message' : 'medal-message';
+      const el = document.getElementById(id);
+      const line = `🎨 Skin nova: ${this.runSkinUnlocked.name}!`;
+      el.textContent = el.textContent ? `${el.textContent} · ${line}` : line;
+    }
+
     if (LeaderboardSystem.shouldSubmit(distance)) {
       this.submitScore(distance); // fire-and-forget: rede nunca trava o fim de jogo
     }
@@ -1957,13 +2236,24 @@ export class GameScene extends Phaser.Scene {
       dashesWasted: this.runDashWasted,
       pauses: this.runPauses,
       specialsUsed: this.runSpecials,
+      furyDeniedBoss: this.runFuryDenied,
       bossLayersBroken: this.runBossLayers,
       bossBounces: this.runBossBounces,
       bossFightS: Math.round((this.bossFight ? this.bossFight.fightMs : 0) / 1000),
       keyboard: this.usedKeyboard,
       version: Constants.VERSION,
+      skin: this.skin ? this.skin.id : 'default',
     });
     if (won && !this.winCounted) StorageManager.addWin(); // o portão já contou
+    // Skins por totais de vida: avaliadas DEPOIS de addAnimalsHit/addWin
+    // contarem esta corrida (attempts já entrou no startRun)
+    const totalSkins = SkinSystem.evaluateTotals();
+    if (totalSkins.length) {
+      const msgId = won ? 'win-medal-message' : 'medal-message';
+      const msgEl = document.getElementById(msgId);
+      const line = `🎨 Skin nova: ${totalSkins.map((s) => s.name).join(' · ')}!`;
+      msgEl.textContent = msgEl.textContent ? `${msgEl.textContent} · ${line}` : line;
+    }
     if (!won) StorageManager.addDeath(Constants.getTierIndex(this.rhino.getSprite().x), cause || 'wall');
     // Acumula aparelho/local/versão desta corrida ANTES do envio (o send
     // roda várias vezes por sessão; o recordRun, uma por corrida)
@@ -2025,10 +2315,12 @@ export class GameScene extends Phaser.Scene {
       repeat: 2,
       ease: 'Quad.easeOut',
     }));
+    // Squash & stretch RELATIVO à escala base do sprite (que é k/2 por causa
+    // do supersampling) — com valores absolutos o rino inflava ~2.2x na festa
     this.cutsceneTweens.push(this.tweens.add({
       targets: sprite,
-      scaleY: 1.12,
-      scaleX: 0.92,
+      scaleY: sprite.scaleY * 1.12,
+      scaleX: sprite.scaleX * 0.92,
       duration: 280,
       yoyo: true,
       repeat: 2,

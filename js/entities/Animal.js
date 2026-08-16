@@ -126,9 +126,11 @@ export class Animal extends Phaser.Physics.Arcade.Sprite {
     this.anims.stop();
     this.body.setAllowGravity(true);
     this.body.setImmovable(false);
+    // Voa para a diagonal superior DIREITA (v1.8, pedido do dono — era
+    // esquerda e mais lento); a rotação continua a mesma
     this.body.setVelocity(
-      Phaser.Math.Between(-400, -200),
-      Phaser.Math.Between(-600, -300)
+      Phaser.Math.Between(Constants.ANIMAL_KB_VX_MIN, Constants.ANIMAL_KB_VX_MAX),
+      Phaser.Math.Between(Constants.ANIMAL_KB_VY_MIN, Constants.ANIMAL_KB_VY_MAX)
     );
     this.body.setAngularVelocity(Phaser.Math.Between(-400, 400));
   }

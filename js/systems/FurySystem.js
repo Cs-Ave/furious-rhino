@@ -30,6 +30,14 @@ export class FurySystem {
     this.fireIconFull = scene.add.sprite(iconX, iconY, 'fury-fire-full')
       .setScrollFactor(0).setDepth(101).setScale(iconScale);
 
+    // v1.8: cadeado do estado "bloqueado na arena do boss" (BOSS_BLOCKS_FURY)
+    this.lockIcon = scene.add.text(iconX, iconY, '🔒', { fontSize: '30px' })
+      .setOrigin(0.5).setScrollFactor(0).setDepth(102).setVisible(false);
+    this.wasBlocked = false;
+    // signalFull disparado durante o bloqueio: o aviso fica devendo e sai
+    // na liberação (senão o toast "FÚRIA CHEIA" mentiria dentro da arena)
+    this.fullPending = false;
+
     // O ícone fica na metade DIREITA da tela — a zona do toque de dash. O
     // stopPropagation cancela o POINTER_DOWN global do setupInput (ordem
     // garantida pelo InputPlugin: GAMEOBJECT_DOWN sai antes), então tocar no
@@ -80,6 +88,7 @@ export class FurySystem {
     }
     this.furyRatio = this.charge;
 
+    this.updateBlockedState();
     this.updateFireIcon();
     this.updateRhinoTint(rhino);
     this.updateSmoke(rhino);
@@ -104,9 +113,53 @@ export class FurySystem {
     );
   }
 
+  // v1.8: dentro da arena do boss a ativação é negada — a carga segue
+  // enchendo, mas o medidor tranca. `=== 'fight'` de propósito: no bypass de
+  // debug e na derrota o estado vira 'defeated' e a fúria libera sozinha.
+  isBlocked() {
+    const bf = this.scene.bossFight;
+    return Boolean(
+      Constants.BOSS_BLOCKS_FURY && bf && bf.state === 'fight' && !this.rampage
+    );
+  }
+
+  // Transições do tranca/destranca do medidor (cinza + cadeado, sem pulso).
+  // Na liberação, um signalFull que ficou devendo dispara agora.
+  updateBlockedState() {
+    const blocked = this.isBlocked();
+    if (blocked === this.wasBlocked) return;
+    this.wasBlocked = blocked;
+    if (blocked) {
+      this.stopPulse();
+      this.fireIconFull.setTint(0x9aa4b5);
+      this.fireIconEmpty.setTint(0x9aa4b5);
+      this.lockIcon.setVisible(true);
+    } else {
+      this.fireIconFull.clearTint();
+      this.fireIconEmpty.clearTint();
+      this.lockIcon.setVisible(false);
+      if (this.charge >= 1) {
+        this.startPulse();
+        if (this.fullPending && this.onFull) this.onFull();
+      }
+      this.fullPending = false;
+    }
+  }
+
   // Medidor encheu: pulso no ícone + aviso da cena (toast/som). O pulso fica
   // até o jogador gastar — é a sinalização pedida de "dá para usar AGORA".
   signalFull() {
+    if (this.isBlocked()) {
+      this.fullPending = true;
+      return;
+    }
+    this.startPulse();
+    if (this.onFull) this.onFull();
+  }
+
+  // Só o tween do pulso — a liberação do bloqueio religa por aqui para NÃO
+  // redisparar o onFull de quem já tinha visto o aviso antes da arena.
+  startPulse() {
     if (!this.pulseTween) {
       const base = 1 / Constants.ART_RASTER_SCALE;
       this.pulseTween = this.scene.tweens.add({
@@ -118,7 +171,6 @@ export class FurySystem {
         ease: 'Sine.easeInOut',
       });
     }
-    if (this.onFull) this.onFull();
   }
 
   stopPulse() {
@@ -133,12 +185,17 @@ export class FurySystem {
 
   // Pedido de ativação (toque no ícone, ↓ ou SHIFT). true = transformou.
   activate(rhino) {
+    // v1.8: guarda canônica do bloqueio na arena — cobre os 4 pontos de
+    // entrada de uma vez; o feedback (toast) mora no GameScene.doSpecial
+    if (this.isBlocked()) return false;
     if (this.rampage || this.charge < 1) return false;
     this.rampage = true;
     this.stopPulse();
     const sprite = rhino.getSprite();
     sprite.clearTint(); // a arte de fogo tem as próprias cores
-    sprite.play('rhino-fire-run', true);
+    // v1.8: skins podem ter fúria própria (Catisquick = "Rino Vulcão");
+    // fallback pela mesma razão do endRampage (mistura de versões em cache)
+    sprite.play(rhino.fireAnim || 'rhino-fire-run', true);
     return true;
   }
 
@@ -146,7 +203,9 @@ export class FurySystem {
     this.rampage = false;
     const sprite = rhino.getSprite();
     sprite.setAlpha(1);
-    sprite.play('rhino-run', true);
+    // v1.8: volta para a anim DA SKIN (fallback: mistura de versões em cache
+    // — FurySystem novo com Rhino velho — já mordeu o projeto duas vezes)
+    sprite.play(rhino.runAnim || 'rhino-run', true);
     if (this.onEnd) this.onEnd();
   }
 
@@ -188,8 +247,11 @@ export class FurySystem {
 
   updateSmoke(rhino) {
     const sprite = rhino.getSprite();
-    const snoutX = sprite.x + Constants.SNOUT_OFFSET_X;
-    const snoutY = sprite.y + Constants.SNOUT_OFFSET_Y;
+    // Os SNOUT_OFFSET_* são do rig 96×64; a escala visual desloca a narina
+    // real, então acompanha (derivado de scaleX = slider do painel funciona)
+    const k = sprite.scaleX * Constants.ART_RASTER_SCALE;
+    const snoutX = sprite.x + Constants.SNOUT_OFFSET_X * k;
+    const snoutY = sprite.y + Constants.SNOUT_OFFSET_Y * k;
 
     // Emission probability per frame scales with fury (none when calm);
     // em chamas, fumaça no talo — o rastro faz parte do espetáculo

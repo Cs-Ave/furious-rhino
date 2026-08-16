@@ -1,0 +1,74 @@
+# Furious Rhino — Histórico de versões (CHANGELOG)
+
+> O que mudou em cada versão, em linguagem simples. A entrada mais recente fica no topo.
+> Mantido pelo comando `/atualizar-docs` a cada release.
+
+---
+
+## v1.8.0 — 15/08/2026 (versão atual)
+
+**Tema: o guarda-roupa do rinoceronte — skins com pódio vivo (e um estúdio para o criador fazer as suas), o chefe recupera os dentes e as paredes desabam de verdade.**
+
+- **Skins!** O botão 🎨 na tela inicial abre o guarda-roupa com 7 aparências: o original, duas gratuitas (**Thanks for playing**, de chapéu de festa e língua-de-sogra, e o **Rino Robô** de latão com chifre de energia), três **exclusivas do pódio mundial** (Ouro, Prata e Bronze, cada uma com um medalhão numerado no peito — só quem está naquela posição do ranking pode vestir, e **perde a skin ao perder o posto**; ela volta sozinha se o posto voltar) e a **Catisquick's Rhino**, desenhada por um amigo do criador, que se conquista para sempre derrubando 5 torres E vencendo o caçador na mesma corrida — e cuja FÚRIA TOTAL vira o **Rino Vulcão**, um rinoceronte de magma. A escolha veste o rinoceronte na tela inicial e em toda corrida, sem mudar nada da jogabilidade.
+- **O chefe recuperou os dentes.** Os dados mostraram que a FÚRIA TOTAL tinha anulado a luta do portão (120 camadas quebradas com apenas 8 mortes): ela quebrava camada sem mirar na fresta e deixava o rifle inofensivo. Agora **a fúria não pode ser ativada dentro da arena** (o medidor mostra um cadeado e continua enchendo — libera na saída, como fôlego para o modo infinito), e mesmo quem entra em chamas precisa acertar as 3 frestas na ordem.
+- **Paredes e prédios desabam.** Ao quebrar uma parede (ou fachada de prédio, na cidade), todo o topo acima do buraco **tomba para trás se esfarelando** — antes ficava um pedaço flutuando no ar.
+- **Estúdio de skins (`/?setup`)** — o criador agora faz uma skin nova **de ponta a ponta, sem programar**: solta a folha de desenhos gerada por IA, escolhe os quadros, ajusta a paleta, vê a prévia animada e configura como o jogador a conquista (grátis, pódio exato do ranking, façanha numa única corrida — metros, torres, vencer o caçador, escapar — ou totais de vida, como "jogue 100 corridas"). O texto do cadeado no guarda-roupa é gerado sozinho a partir da regra. Skins podem ser **editadas** depois e têm uma chave **"no jogo / fora do jogo"** (reversível — ninguém perde conquista); só a Furious Rhino original é intocável. Cada gravação roda a bateria de testes do jogo e **desfaz tudo se algo reprovar**; nada vai ao ar sem a publicação normal do jogo. (O motor por trás é o Gerador de Sprites, com fatiamento automático ou por grade, paleta amostrada das cores reais e detecção de folhas problemáticas — agora com folha de fúria própria opcional.)
+- **O rinoceronte está 30% maior na tela** — em todas as skins. As skins vetorizadas são mais magras que o desenho original, e o protagonista tinha ficado menor que um leão. Só a imagem cresceu: a caixa de colisão continua exatamente a mesma, então nenhum pulo, vão ou luta ficou mais fácil ou difícil (as baterias de teste de rampa, chefe e especial provam). De quebra, dois retoques: o rinoceronte não infla mais de forma estranha nos pulinhos da festa da fuga, e as skins geradas por IA agora preenchem o quadro no mesmo porte da arte original.
+- Tudo medido, como sempre: cada corrida registra a skin usada e as tentativas de ativar a fúria dentro da arena (para saber quantos ainda tentam o truque antigo).
+- **O zoológico persegue de verdade.** O criador achou o cenário vazio — e os números confirmaram: a matemática do sorteio de obstáculos gerava só ~1,5 animal a cada 100 m. Agora animais podem vir **em dupla**, e paredes, espinhos e torres costumam aparecer **escoltados** por um animal logo atrás — o total de perseguidores **dobrou** (~3,2/100 m), sem trocar nenhum obstáculo letal por animal: a dificuldade dos obstáculos é a mesma, o zoológico é que ficou mais cheio. Tudo calibrável ao vivo pelo painel de ajustes (guia na referência técnica).
+- **Atropelou, voou.** Animais atingidos pela investida agora saem voando **para a frente e para o alto** (antes voavam para trás), mais rápido e girando — combina com o sentido da carga do rinoceronte.
+- **O topo da parede desaba para trás de verdade** — na direção contrária à corrida (antes tombava para a frente, junto com o rinoceronte).
+- **Ranking com "há quantos dias"**: o TOP 10 mostra, ao lado da distância de cada jogador, há quantos dias aquela marca está de pé ("há 12d" / "hoje") — trocar de apelido não zera a contagem. Marcas antigas já aparecem com a data que o servidor conhecia. (Única mudança nas regras do banco de dados desta versão: um campo novo e opcional em `scores`.)
+- **Desistir sem sujar as estatísticas**: o popup de pausa ganhou o botão "🏳️ Desistir da corrida" — cancela a corrida, devolve a tentativa contada e volta à tela inicial sem registrar nada.
+- **Botões no lugar certo**: som e pausa desceram para logo abaixo dos ícones de fúria e investida, acompanhando o tamanho da tela — não cobrem mais nada.
+- **Estúdio de skins v3**: o criador agora pode **remover de vez** qualquer skin, inclusive as originais (com aviso extra — a arte delas não tem cópia no gerador); só a Furious Rhino original é intocável. A bateria de testes ganhou uma rede de segurança específica para isso.
+
+## v1.7.2 — 09/08/2026
+
+**Tema: faxina no banco de dados — ambiente de teste isolado da produção.**
+
+- **Testar o jogo em `localhost` (ou num IP da rede local) deixa de gravar dados de verdade no banco por padrão.** Antes, um teste automatizado que esquecesse um detalhe de configuração podia criar jogadores fantasmas em produção — já aconteceu duas vezes. Agora isso só acontece se o próprio teste pedir explicitamente.
+- **Faxina**: 37 registros de teste e de jogadores que nunca escolheram apelido (a maioria com 1 tentativa e marca muito baixa) foram removidos do banco de produção.
+- **Nova ferramenta de manutenção** para apagar um jogador específico (por nome ou por identificador) direto do banco, com conferência antes de apagar de verdade.
+- A ferramenta de limpeza existente aprendeu a reconhecer o "cheiro" de tráfego automatizado (muitas tentativas registradas, zero tempo jogado) mesmo sem saber os identificadores de antemão — ela agora avisa, mesmo quando é um tipo de lixo novo que ninguém tinha visto antes.
+
+## v1.7.1 — 09/08/2026
+
+**Tema: a fuga virou uma batalha — o chefe do portão, a FÚRIA TOTAL e um zoológico inteiro de perseguidores novos.**
+
+- **O portão dos 1000 m agora é um chefe.** Ele amanhece blindado do chão ao teto, com um **caçador de rifle tranquilizante** no topo. É preciso quebrar 3 camadas com investidas na fresta que brilha (chão → meio → alto, cada uma exigindo mais técnica), enquanto o caçador atira com aviso de **mira laser** — e atira cada vez mais rápido. Bater errado no portão não mata: o rinoceronte **ricocheteia** e a investida volta pronta junto com o controle. O tiro do rifle, esse sim, é morte na hora.
+- **FÚRIA TOTAL, o especial do jogo:** com o medidor de fogo cheio (enche aos 900 m — bem na porta da luta), um toque nele transforma o rinoceronte numa bola de fogo invencível por ~6 segundos que **explode tudo** no caminho, até o espinho. Guardar a carga para o chefe é a jogada esperta: ela quebra camadas mesmo fora da fresta.
+- **Cada cenário ganhou seus próprios perseguidores** (22 espécies novas, 27 no total): tratador com rede e pavão nas jaulas, avestruz e águia no aviário, hiena, búfalo e ave de rasante na savana, onça, cobra e lobo-guará na floresta, jacaré, hipopótamo, capivara e tuiuiú no pântano — e a cidade estreia elenco completo: pedestres em pânico, executivo, motoboy, carro, viatura, drone, teco-teco e a camionete do caçador.
+- **Tudo isso é medido**: o painel ganhou a seção "A luta do portão" (quantos tentam, quantos escapam, quantos caem pelo rifle, quanto dura a luta) e o resumo do jogador mostra os especiais usados e as camadas quebradas — a régua de calibragem do chefe são dados, não achismo.
+- Ajustes de campo da v1.7.1 (testados pelo criador): ricochete mais forte, rifle mais rápido, e a fresta-alvo sinalizada com **moldura dourada pulsante** — a versão anterior lia suave demais.
+
+## v1.6.1 — 09/08/2026
+
+**Tema: enxergar melhor quem joga — telemetria de comportamento, avisos no celular do criador e painel repaginado.**
+
+- **O jogo agora registra COMO cada corrida foi jogada**, não só até onde: pulos, investidas (inclusive as negadas durante a recarga — uma medida de frustração), paredes quebradas, morros destruídos, torres derrubadas, animais atropelados e pausas. Isso permite responder perguntas como *"quem morre cedo é quem ainda não descobriu a investida?"* com dados em vez de chute.
+- **Novo botão "📊 Minhas estatísticas"** na tela inicial: o jogador vê seu histórico, onde costuma morrer, dicas personalizadas e sua posição no mundo — tudo instantâneo e funcionando offline. Dá para compartilhar o resumo no WhatsApp.
+- **Avisos automáticos para o criador** (via ntfy): quando alguém começa a jogar, um resumo quando a sessão termina, um alerta quando o recorde mundial cai — e um resumo diário às 20h que chega **até nos dias em que ninguém jogou**. Tudo configurável sem publicar código novo, e com silêncio noturno (0h–7h).
+- **Painel `/?stats` repaginado**: seis abas com gráficos novos — histograma de onde os jogadores morrem, mapa de calor causa × distância, curva de aprendizado, retenção (quantos voltam depois de dias) e jogadores únicos × execuções por dia.
+- **Localização sempre atual**: a cidade do jogador (aproximada, sem guardar IP) passa a ser revalidada a cada 12 horas, e uma falha na consulta não apaga mais a última cidade conhecida (era um bug).
+
+## v1.6.0 — 08/08/2026
+
+**Tema: o mundo ficou maior e mais vivo — morros, portão aos 1000 m e a cidade.**
+
+- **Morros e trampolins**: obstáculo novo que nunca mata — dá para subir por cima, destruir com uma investida rasante, ou usar o trampolim para voar longe (a parte mais divertida do jogo).
+- **O portão da fuga mudou de 800 m para 1000 m**, e cruzá-lo virou um espetáculo: o portão explode, sobem fogos e confete — e a corrida continua sem parar, no **modo infinito**.
+- **Seis cenários temáticos** (jaulas, aviário, savana, floresta, pântano e a **cidade** à noite no modo infinito), com clima (chuva, neblina, tempestade com raios), entardecer no fim do percurso e troca de cenário celebrada na tela.
+- **Abertura guiada**: os três primeiros obstáculos agora ensinam a jogar em ordem (morro → espinho → parede), com dicas nas primeiras corridas. Motivo: os dados mostravam que 16% das corridas morriam logo no primeiro obstáculo.
+- **Marcas na pista**: estacas mostram onde fica o seu recorde, o rival logo acima e o líder mundial — ultrapassá-las provoca o jogador na tela.
+
+## Versões anteriores (resumo)
+
+- **v1.5.0** — Apelido único no ranking com convite não-bloqueante, painel `/?stats` com lista de jogadores e ficha individual, telemetria com memória (histórico de aparelhos, locais e versões).
+- **v1.4.0** — Elenco de arte v2 validado (pássaros em 5 espécies), sprites nítidos em telas de alta densidade (rasterização 2×).
+- **v1.3.x** — Primeiras estatísticas agregadas (`/?stats` com funil), invencibilidade de debug, painel de ajustes.
+- **v1.0–1.2** — O jogo em si: rinoceronte, pulo e investida, paredes/espinhos/animais/torres, fúria, medalhas, ranking mundial, PWA instalável com jogo offline, arte e áudio 100% procedurais.
+
+---
+
+*Formato das entradas: `## vX.Y.Z — DD/MM/AAAA`, com tema em negrito e bullets em linguagem acessível (o "porquê" junto com o "o quê"). Detalhes técnicos de cada release ficam no `HANDOFF.md` e nas releases do GitHub.*

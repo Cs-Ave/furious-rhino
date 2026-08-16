@@ -2,7 +2,13 @@
 // O index.html só injeta o script do Phaser fora do modo stats, e as cenas
 // referenciam window.Phaser na definição das classes — por isso o boot do
 // jogo importa tudo dinamicamente, só quando o global existe.
-if (new URLSearchParams(location.search).has('stats')) {
+if (new URLSearchParams(location.search).has('setup')) {
+  // /?setup=0929: estúdio de skins do dono (upload → desbloqueio → aplicar).
+  // Página estática como o /?stats — a escrita real acontece no servidor
+  // local do gerador (localhost:3210); sem ele, a página só instrui.
+  document.body.classList.add('setup-mode');
+  import('./setup/SetupPage.js').then((m) => m.render());
+} else if (new URLSearchParams(location.search).has('stats')) {
   document.body.classList.add('stats-mode');
   (async () => {
     // Espelha os totais DESTE aparelho antes de agregar: quem morre e vem

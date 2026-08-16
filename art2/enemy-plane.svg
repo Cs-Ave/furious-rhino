@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 42" width="120" height="42">
+  <!-- FURIOUS RHINO - proposta bioma cidade (em avaliacao, nao usada pelo jogo).
+       Teco-teco monomotor cartoon: fuselagem amarela rechonchuda com listra
+       vermelha, asa alta com montante, cupula do piloto, leme vermelho, rodinhas
+       e helice no nariz. Hitbox sugerida: 88x24 com offset 16,11 (helice fora,
+       como o chifre do rino). Entre frames: so a helice muda (pas verticais
+       viram horizontais com arco de borrao) e a fumaca desloca 2px. -->
+  <defs>
+    <linearGradient id="plBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f0b73a"/>
+      <stop offset="1" stop-color="#d09018"/>
+    </linearGradient>
+    <linearGradient id="plWing" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6c75c"/>
+      <stop offset="1" stop-color="#dd9c22"/>
+    </linearGradient>
+    <linearGradient id="plGlass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cdeffb"/>
+      <stop offset="1" stop-color="#7fc0e2"/>
+    </linearGradient>
+  </defs>
+  <!-- fumaca do escapamento -->
+  <g transform="translate(0 0)">
+    <circle cx="7.5" cy="31.5" r="3.4" fill="#e3e7ee" stroke="#9aa1ae" stroke-width="1.4" opacity="0.85"/>
+    <circle cx="13.5" cy="29.5" r="2.3" fill="#eef1f6" stroke="#9aa1ae" stroke-width="1.2" opacity="0.85"/>
+  </g>
+  <!-- cauda: leme vermelho -->
+  <path d="M30 16 Q24 4.5 14.5 4 Q10.5 4.5 11.5 9 Q13.5 16 20 20 Z" fill="#d3402e" stroke="#14161a" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M15.5 6.5 Q13.6 7 14.2 9.4" fill="none" stroke="#f0796a" stroke-width="1.6" stroke-linecap="round"/>
+  <!-- estabilizador -->
+  <path d="M30 19.5 L14 17.5 Q10.5 20 14 23 L30 24.5 Z" fill="url(#plWing)" stroke="#14161a" stroke-width="2.2" stroke-linejoin="round"/>
+  <!-- fuselagem -->
+  <ellipse cx="62" cy="23" rx="41" ry="9.6" fill="url(#plBody)" stroke="#14161a" stroke-width="2.4"/>
+  <ellipse cx="58" cy="27.5" rx="30" ry="4" fill="#b87f14" opacity="0.5"/>
+  <path d="M32 17.5 Q60 13.5 92 17" fill="none" stroke="#f8d47c" stroke-width="2.6" stroke-linecap="round" opacity="0.85"/>
+  <!-- listra vermelha -->
+  <path d="M25.5 21.5 Q62 25.5 99.5 21.8 L99 26.2 Q62 29.8 26.5 25.8 Z" fill="#d3402e" stroke="#a92c1e" stroke-width="1" opacity="0.95"/>
+  <!-- rebites -->
+  <circle cx="95.5" cy="19.5" r="0.7" fill="#a97a12"/>
+  <circle cx="91.5" cy="19" r="0.7" fill="#a97a12"/>
+  <!-- escapamento -->
+  <path d="M25 27.5 L18.5 30.5" fill="none" stroke="#14161a" stroke-width="3.4" stroke-linecap="round"/>
+  <!-- trem de pouso com rodinhas -->
+  <path d="M48 31 L45 36 M70 31 L67 36" fill="none" stroke="#14161a" stroke-width="2.6" stroke-linecap="round"/>
+  <circle cx="45" cy="36.5" r="4" fill="#2a2d33" stroke="#14161a" stroke-width="1.8"/>
+  <circle cx="45" cy="36.5" r="1.5" fill="#9aa1ae"/>
+  <circle cx="67" cy="36.5" r="4" fill="#2a2d33" stroke="#14161a" stroke-width="1.8"/>
+  <circle cx="67" cy="36.5" r="1.5" fill="#9aa1ae"/>
+  <!-- montantes da asa -->
+  <path d="M40 10 L50 17.5 M64 10 L57 17.5" fill="none" stroke="#14161a" stroke-width="2.6" stroke-linecap="round"/>
+  <!-- asa alta -->
+  <path d="M29 4.5 Q30.5 2.6 35 2.6 L67 2.6 Q73.5 3 72.8 7 Q72 10.2 65 10.2 L34.5 10.2 Q29.6 9.8 29 4.5 Z" fill="url(#plWing)" stroke="#14161a" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M33.5 5.2 Q50 4 66.5 5" fill="none" stroke="#f8d47c" stroke-width="1.6" stroke-linecap="round" opacity="0.9"/>
+  <!-- janela do piloto (cupula) -->
+  <path d="M74 15 Q75.5 5.6 82.5 5.6 Q90.5 5.6 92 15 Z" fill="url(#plGlass)" stroke="#14161a" stroke-width="2.2" stroke-linejoin="round"/>
+  <!-- capacete e oculos do piloto -->
+  <circle cx="83.5" cy="11.5" r="3.7" fill="#a0622f" stroke="#14161a" stroke-width="1.4"/>
+  <path d="M80 10.9 L87.1 10.9" fill="none" stroke="#2a2d33" stroke-width="1.6" stroke-linecap="round"/>
+  <circle cx="85.3" cy="10.9" r="1.3" fill="#cdeffb" stroke="#2a2d33" stroke-width="0.9"/>
+  <path d="M76.2 12.6 Q77 7.8 80.3 6.6" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" opacity="0.75"/>
+  <!-- helice -->
+  <g>
+    <ellipse cx="106.5" cy="13.2" rx="2.6" ry="7.4" fill="#3a3e46" stroke="#14161a" stroke-width="1.8"/>
+    <ellipse cx="106.5" cy="32.8" rx="2.6" ry="7.4" fill="#3a3e46" stroke="#14161a" stroke-width="1.8"/>
+    <path d="M100.5 17.5 Q111.5 18.8 111.5 23 Q111.5 27.2 100.5 28.5 Z" fill="#d3402e" stroke="#14161a" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="107.5" cy="22.2" r="1.9" fill="#f0796a"/>
+  </g>
+</svg>

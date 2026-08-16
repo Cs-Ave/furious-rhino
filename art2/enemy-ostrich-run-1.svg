@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 80" width="64" height="80">
+  <!-- FURIOUS RHINO - proposta bioma aviario (em avaliacao, nao usada pelo jogo).
+       Avestruz veloz chibi: corpo-bola de plumas escuras com asa em festao, pescoco
+       longo rosado em S, pernas compridas em passada larga de corrida.
+       hitbox sugerida: 42x66 em offset 11,12.
+       Entre frames as pernas trocam de fase (frente esticada <-> tras dobrada) e no
+       frame -run-1 o grupo pescoco+cabeca ganha translate(-0.5 0.5) rotate(5 30 42)
+       (avanca ~2px e inclina 5 graus para frente, pivo na base do pescoco em 30,42);
+       resto byte-identico. -->
+  <defs>
+    <linearGradient id="osb" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a3a41"/>
+      <stop offset="1" stop-color="#26262c"/>
+    </linearGradient>
+  </defs>
+  <!-- plumas da cauda -->
+  <path d="M14 42 Q6 36 8 30 Q13 31 13.5 36 Q17 32 20 35 Q18 40 15 41 Z" fill="#d9d4c8" stroke="#17171b" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M13 48 Q4 47 5 39 Q10 41 11 45 Q13 46 13 48 Z" fill="#c9c4b8" stroke="#17171b" stroke-width="2" stroke-linejoin="round"/>
+  <!-- perna tras esticada -->
+  <g>
+    <path d="M24 58 L32 67 L36.5 78" fill="none" stroke="#17171b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M24 58 L32 67 L36.5 78" fill="none" stroke="#eba193" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <ellipse cx="32" cy="67" rx="1.6" ry="1.6" fill="#d98d7c"/>
+    <path d="M36.5 78 L42 78.8 M36.5 78 L40.5 79.2" fill="none" stroke="#17171b" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M36.5 78 L42 78.8 M36.5 78 L40.5 79.2" fill="none" stroke="#eba193" stroke-width="1.4" stroke-linecap="round"/>
+  </g>
+  <!-- perna frente dobrada -->
+  <g>
+    <path d="M33 58 L24.5 66 L19.5 74" fill="none" stroke="#17171b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M33 58 L24.5 66 L19.5 74" fill="none" stroke="#eba193" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <ellipse cx="24.5" cy="66" rx="1.6" ry="1.6" fill="#d98d7c"/>
+    <path d="M19.5 74 L15 76.5 M19.5 74 L16.5 77.5" fill="none" stroke="#17171b" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M19.5 74 L15 76.5 M19.5 74 L16.5 77.5" fill="none" stroke="#eba193" stroke-width="1.4" stroke-linecap="round"/>
+  </g>
+  <!-- corpo -->
+  <ellipse cx="28" cy="50" rx="17" ry="14" fill="url(#osb)" stroke="#17171b" stroke-width="2.5"/>
+  <ellipse cx="26" cy="57" rx="11" ry="5" fill="#1c1c21" opacity="0.5"/>
+  <path d="M14 44 Q26 34 40 40" fill="none" stroke="#55555e" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <!-- asa em festao (2 camadas) -->
+  <path d="M15 45 Q14 38 21 40 Q23 33 29 37 Q34 32 37.5 38 Q43 36.5 41.5 43 Q46.5 46 40.5 50 Q43 56 35.5 54.5 Q33 59.5 27.5 55.5 Q21 58 21.5 51.5 Q14.5 52.5 15 45 Z" fill="#4a4a52" stroke="#17171b" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M20 45.5 Q20 41 25 42.5 Q27 38 31 40.5 Q35 38 36.5 42.5 Q40.5 43 38.5 47 Q41 50 36.5 51.5 Q36 55 31 53 Q27 55.5 25.5 51.5 Q20.5 51.5 20 45.5 Z" fill="#35353c"/>
+  <!-- grupo pescoco+cabeca (movel entre frames) -->
+  <g transform="translate(-0.5 0.5) rotate(5 30 42)">
+    <!-- pescoco -->
+    <path d="M30 42 Q23 33 31 27 Q41 22 42.5 14" fill="none" stroke="#17171b" stroke-width="7.5" stroke-linecap="round"/>
+    <path d="M30 42 Q23 33 31 27 Q41 22 42.5 14" fill="none" stroke="#f0b3a3" stroke-width="4.6" stroke-linecap="round"/>
+    <!-- tufo da cabeca -->
+    <path d="M39.5 8 Q38 3 42.5 4.2 Q43.8 1 47 3.2 Q50.5 1.8 50 6 Q45 3.8 39.5 8 Z" fill="#3a3a41" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+    <!-- cabeca -->
+    <circle cx="45" cy="12" r="7.5" fill="#f2bcac" stroke="#17171b" stroke-width="2.4"/>
+    <ellipse cx="42" cy="15.5" rx="1.8" ry="1.1" fill="#e89a88" opacity="0.6"/>
+    <!-- bico achatado laranja -->
+    <path d="M51.5 12.5 Q58 11 61 13.5 Q61.5 15.5 58 16 Q54 16.6 51.5 15.5 Z" fill="#f0902e" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M53 14.4 Q57 15 60 14" fill="none" stroke="#b5661a" stroke-width="1" stroke-linecap="round"/>
+    <circle cx="54" cy="13.2" r="0.55" fill="#b5661a"/>
+    <!-- olhos com cilios -->
+    <circle cx="44" cy="10.5" r="2.8" fill="#17171b"/>
+    <circle cx="49.5" cy="10" r="2.8" fill="#17171b"/>
+    <circle cx="44.7" cy="9.7" r="0.85" fill="#ffffff"/>
+    <circle cx="50.2" cy="9.2" r="0.85" fill="#ffffff"/>
+    <path d="M41.6 8.2 L40.2 6.8 M43 7.6 L42.2 6" fill="none" stroke="#17171b" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M51.4 7.4 L52.6 6 M49.9 7.1 L50.5 5.4" fill="none" stroke="#17171b" stroke-width="1.2" stroke-linecap="round"/>
+  </g>
+</svg>

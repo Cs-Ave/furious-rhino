@@ -1,6 +1,6 @@
 {
   "name": "mobilegame",
-  "version": "1.7.2",
+  "version": "1.8.0",
   "description": "Um rinoceronte rabujento decide fugir do zoológico — investindo contra as paredes de forma contínua e em linha reta, enquanto os outros animais tentam (sem sucesso) ficar no caminho.",
   "main": "sw.js",
   "scripts": {
@@ -11,7 +11,12 @@
     "test-e2e-stats": "node tools/e2e-stats.mjs",
     "test-special": "node tools/e2e-special.mjs",
     "test-boss": "node tools/e2e-boss.mjs",
-    "digest": "node tools/daily-digest.mjs --dry-run"
+    "test-skins": "node tools/test-skins.mjs",
+    "test-e2e-skins": "node tools/e2e-skins.mjs",
+    "test-integrate": "node tools/test-integrate.mjs",
+    "test-e2e-setup": "node tools/e2e-setup.mjs",
+    "digest": "node tools/daily-digest.mjs --dry-run",
+    "sprite-gen": "node gerador-de-sprites/server.mjs"
   },
   "repository": {
     "type": "git",
@@ -27,7 +32,9 @@
   "homepage": "https://github.com/Cs-Ave/furious-rhino#readme",
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",
+    "jimp": "0.14.0",
     "phaser": "3.85.2",
-    "playwright": "^1.62.1"
+    "playwright": "^1.62.1",
+    "potrace": "^2.1.8"
   }
 }

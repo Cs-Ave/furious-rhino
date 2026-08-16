@@ -1,4 +1,5 @@
 import { Constants } from '../utils/Constants.js';
+import { SkinSystem, SKINS } from './SkinSystem.js';
 
 // Painel de ajuste ao vivo (lil-gui via CDN), ativo só com ?debug=1.
 // Constants é um objeto mutável lido por frame nos pontos expostos aqui,
@@ -46,9 +47,18 @@ export async function initTuningPanel(scene) {
   Constants.DIFFICULTY_TIERS.forEach((t, i) => {
     const f = tiers.addFolder(`Tier ${i + 1} (${i * 200}-${(i + 1) * 200}m)`);
     f.add(t, 'gapMin', 300, 1200, 10);
+    f.add(t, 'gapRand', 0, 300, 10);
     f.add(t, 'animalSpeedMult', 0.5, 2.5, 0.05);
     f.add(t, 'animalLeadPx', 0, 800, 25);
+    // A roleta: fatia do animal = 1 − (wallW+spikeW+towerW+rampW) — baixar
+    // pesos = mais bicho; o par soma um segundo animal por cima do sorteio
+    f.add(t, 'wallW', 0, 0.6, 0.01);
+    f.add(t, 'spikeW', 0, 0.6, 0.01);
+    f.add(t, 'towerW', 0, 0.6, 0.01);
+    f.add(t, 'rampW', 0, 0.6, 0.01);
     f.add(t, 'comboChance', 0, 1, 0.05);
+    f.add(t, 'animalPackChance', 0, 1, 0.05).name('🐾 par de animais');
+    f.add(t, 'animalEscortChance', 0, 1, 0.05).name('🐾 escolta (junto de obstáculo)');
     f.add(t, 'towerIntervalMs', 400, 4000, 100);
     f.add(t, 'dartSpeed', 200, 1000, 20);
     f.close();
@@ -65,7 +75,33 @@ export async function initTuningPanel(scene) {
   animais.add(Constants.ANIMAL_BEHAVIOR.monkey, 'jumpIntervalMs', 0, 2000, 50).name('macaco intervalo');
   animais.add(Constants.ANIMAL_BEHAVIOR.zebra, 'jumpV', -1100, -400, 10).name('zebra pulo');
   animais.add(Constants.ANIMAL_BEHAVIOR.zebra, 'jumpIntervalMs', 0, 2000, 50).name('zebra intervalo');
+  // Knockback da investida (lido no momento do atropelo — efeito ao vivo)
+  animais.add(Constants, 'ANIMAL_KB_VX_MIN', 0, 1000, 10).name('voo: vx mín');
+  animais.add(Constants, 'ANIMAL_KB_VX_MAX', 0, 1200, 10).name('voo: vx máx');
+  animais.add(Constants, 'ANIMAL_KB_VY_MIN', -1200, 0, 10).name('voo: vy mín');
+  animais.add(Constants, 'ANIMAL_KB_VY_MAX', -1200, 0, 10).name('voo: vy máx');
   animais.close();
+
+  // v1.8: vestir qualquer skin sem desbloqueio, para teste visual (rino,
+  // preview da abertura e fúria própria). SÓ nesta sessão — nada persiste:
+  // não passa por isEquippable nem grava furious_rhino_skin, então o reload
+  // volta à skin realmente equipada do jogador.
+  const skinsFolder = gui.addFolder('Skins');
+  const skinState = { skin: scene.skin ? scene.skin.id : 'default' };
+  skinsFolder.add(skinState, 'skin', SKINS.map((s) => s.id)).name('🎨 vestir (teste)')
+    .onChange((id) => {
+      const skin = SkinSystem.get(id);
+      scene.skin = skin;
+      scene.rhino.setSkin(skin);
+      if (scene.updateRhinoPreview) scene.updateRhinoPreview(skin);
+    });
+  // v1.8.1: calibrar a escala VISUAL em campo (hitbox segue 76×54 — a
+  // compensação vive em Rhino.applyVisualScale). Não persiste; o valor de
+  // release é RHINO_VISUAL_SCALE em Constants.js.
+  skinsFolder.add(Constants, 'RHINO_VISUAL_SCALE', 1.0, 1.3, 0.01)
+    .name('📏 escala visual')
+    .onChange((k) => scene.rhino.applyVisualScale(k));
+  skinsFolder.close();
 
   const furia = gui.addFolder('Fúria');
   furia.add(Constants, 'FURY_FULL_DISTANCE_PX', 2000, 40000, 500);
@@ -82,6 +118,8 @@ export async function initTuningPanel(scene) {
   boss.add(Constants, 'BOSS_KNOCKBACK_VY', -800, 0, 20).name('quique: vy');
   boss.add(Constants, 'BOSS_KNOCKBACK_MS', 100, 2000, 50).name('quique: janela ms');
   boss.add(Constants, 'BOSS_SHOT_SPEED', 200, 1000, 20).name('rifle: velocidade');
+  // v1.8: lido no momento da ativação — dá para testar o exploit antigo
+  boss.add(Constants, 'BOSS_BLOCKS_FURY').name('🔒 bloquear fúria na arena');
   for (const layers of [3, 2, 1]) {
     boss.add(Constants.BOSS_RIFLE[layers], 'intervalMs', 400, 4000, 50)
       .name(`rifle: cadência ${layers} camada${layers > 1 ? 's' : ''}`);
@@ -161,6 +199,7 @@ const ROOT_KEYS = [
   'MIN_SAFE_GAP', 'SPAWN_LOOKAHEAD_PX', 'FURY_FULL_DISTANCE_PX',
   'SPECIAL_DURATION_MS', 'SPECIAL_SPEED_MULT',
   'BOSS_KNOCKBACK_VX', 'BOSS_KNOCKBACK_VY', 'BOSS_KNOCKBACK_MS', 'BOSS_SHOT_SPEED',
+  'ANIMAL_KB_VX_MIN', 'ANIMAL_KB_VX_MAX', 'ANIMAL_KB_VY_MIN', 'ANIMAL_KB_VY_MAX',
 ];
 
 function exportTuning(baseline) {

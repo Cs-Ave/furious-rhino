@@ -201,6 +201,31 @@ eq('history cabe no teto do mapa de topo (size <= 6)',
   Object.keys(StorageManager.getHistory()).length <= 6, true);
 eq('janela local de runs bate com o teto das rules', StorageManager.RUNS_WINDOW, 50);
 
+// ---------- 3b. Top 10: "há X dias segurando a posição" (v1.8) ----------
+// Rules: scoreAt entrou na whitelist de scores e é timestamp <= request.time
+// (trava o esquecimento de publicar as rules novas na release)
+eq('rules de scores aceitam o scoreAt', rules.includes("'scoreAt'"), true);
+eq('rules validam scoreAt como timestamp passado',
+  /scoreAt is timestamp\s*&&\s*request\.resource\.data\.scoreAt <= request\.time/.test(rules), true);
+
+// holdDays é pura: idade da PRÓPRIA marca de cada linha (v2 da regra — a
+// versão por posição reiniciava todo mundo abaixo de uma entrada nova e a
+// coluna inteira convergia para a mesma data; o dono trocou em 15/08)
+const { LeaderboardSystem } = await import('../js/systems/LeaderboardSystem.js');
+const DIA_MS = 86400000;
+const hojeMeioDia = new Date(2026, 7, 15, 12).getTime(); // meio-dia local: sem beira de dia
+const marcaHa = (d) => hojeMeioDia - d * DIA_MS;
+eq('marca: cada linha mostra a idade da própria marca',
+  LeaderboardSystem.holdDays([{ sinceMs: marcaHa(10) }, { sinceMs: marcaHa(30) }], hojeMeioDia), [10, 30]);
+eq('marca: vizinhos não se contaminam (sem cascata)',
+  LeaderboardSystem.holdDays([{ sinceMs: marcaHa(2) }, { sinceMs: marcaHa(7) }, { sinceMs: marcaHa(5) }], hojeMeioDia),
+  [2, 7, 5]);
+eq('marca: sem timestamp → null, sem afetar os demais',
+  LeaderboardSystem.holdDays([{ sinceMs: marcaHa(3) }, { sinceMs: null }, { sinceMs: marcaHa(20) }], hojeMeioDia),
+  [3, null, 20]);
+eq('marca: de hoje devolve 0',
+  LeaderboardSystem.holdDays([{ sinceMs: hojeMeioDia }], hojeMeioDia), [0]);
+
 // ---------- 4. Agregação da página ----------
 const docs = [
   { // doc LEGADO achatado (v1.3.0): sem deathTower, sem device/país

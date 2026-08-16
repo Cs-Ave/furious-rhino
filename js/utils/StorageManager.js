@@ -80,6 +80,20 @@ export class StorageManager {
     localStorage.setItem(this.BEST_SENT_KEY, meters.toString());
   }
 
+  // v1.8: QUANDO a marca acima foi enviada (ms epoch) — o rename regrava o
+  // scoreAt do doc com este valor (setDoc sem merge apagaria o campo e a
+  // troca de apelido reiniciaria o "há X dias" do top 10)
+  static BEST_SENT_AT_KEY = 'furious_rhino_best_sent_at';
+
+  static getBestSentAt() {
+    const stored = localStorage.getItem(this.BEST_SENT_AT_KEY);
+    return stored ? parseInt(stored, 10) : 0;
+  }
+
+  static setBestSentAt(ms) {
+    localStorage.setItem(this.BEST_SENT_AT_KEY, ms.toString());
+  }
+
   // --- Medalhas e contadores acumulados (v1.2.1) ---
   static MEDALS_KEY = 'furious_rhino_medals';
   static ANIMALS_TOTAL_KEY = 'furious_rhino_animals_total';
@@ -96,6 +110,35 @@ export class StorageManager {
   static addMedals(ids) {
     const merged = [...new Set([...this.getMedals(), ...ids])];
     localStorage.setItem(this.MEDALS_KEY, JSON.stringify(merged));
+  }
+
+  // --- Skins (v1.8.0) ---
+  // SKIN_KEY = a escolhida (id); SKINS_KEY = desbloqueios PERMANENTES (só
+  // conquistas — as skins de pódio ouro/prata/bronze não entram aqui: o
+  // acesso delas é dinâmico, resolvido na leitura contra o last_rank).
+  static SKIN_KEY = 'furious_rhino_skin';
+  static SKINS_KEY = 'furious_rhino_skins';
+
+  static getSelectedSkin() {
+    return localStorage.getItem(this.SKIN_KEY) || 'default';
+  }
+
+  static setSelectedSkin(id) {
+    localStorage.setItem(this.SKIN_KEY, String(id));
+  }
+
+  static getSkins() {
+    try {
+      const list = JSON.parse(localStorage.getItem(this.SKINS_KEY));
+      return Array.isArray(list) ? list : [];
+    } catch (e) {
+      return []; // JSON corrompido — recomeça sem travar o jogo
+    }
+  }
+
+  static addSkins(ids) {
+    const merged = [...new Set([...this.getSkins(), ...ids])];
+    localStorage.setItem(this.SKINS_KEY, JSON.stringify(merged));
   }
 
   // Total de animais atropelados somando todas as corridas
@@ -173,6 +216,14 @@ export class StorageManager {
 
   static addAttempt() {
     const total = this.getAttempts() + 1;
+    localStorage.setItem(this.ATTEMPTS_KEY, total.toString());
+    return total;
+  }
+
+  // Desfaz o addAttempt do início da corrida quando o jogador DESISTE pelo
+  // popup de pausa — a run cancelada não conta em nada (o endGame nem roda).
+  static removeAttempt() {
+    const total = Math.max(0, this.getAttempts() - 1);
     localStorage.setItem(this.ATTEMPTS_KEY, total.toString());
     return total;
   }
@@ -278,6 +329,7 @@ export class StorageManager {
     x: 'dashesWasted',  // investidas pedidas durante o cooldown (frustração)
     p: 'pauses',        // pausas (inclui trocar de aba)
     f: 'specialsUsed',  // ativações do especial FÚRIA TOTAL (v1.7)
+    n: 'furyDeniedBoss', // ativações da fúria NEGADAS na arena do boss (v1.8)
     b: 'bossLayersBroken', // camadas do portão blindado quebradas (0-3, v1.7)
     q: 'bossBounces',   // quiques no portão (atrito com o loop da luta)
     z: 'bossFightS',    // segundos de luta contra o boss (0 = nem chegou lá)
@@ -308,6 +360,9 @@ export class StorageManager {
       }
       if (extra.keyboard) run.k = 1; // separa desktop de verdade de mobile
       if (extra.version) run.v = String(extra.version).slice(0, 10);
+      // v1.8: skin usada na corrida — default é omitido (byte-budget: a
+      // janela inteira viaja a cada envio)
+      if (extra.skin && extra.skin !== 'default') run.g = String(extra.skin).slice(0, 8);
     }
     runs.push(run);
     while (runs.length > this.RUNS_WINDOW) runs.shift();

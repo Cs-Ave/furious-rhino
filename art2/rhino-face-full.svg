@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" width="60" height="60">
+  <!-- FURIOUS RHINO v1.4.0 - proposta "cartoon rico" (em avaliacao, nao usada pelo jogo).
+       Mesma geometria do art/rhino-face-full.svg (o par full/empty precisa alinhar no setCrop). -->
+  <defs>
+    <linearGradient id="fh" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d7d7db"/>
+      <stop offset="1" stop-color="#b6b6be"/>
+    </linearGradient>
+    <linearGradient id="fmz" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ebebef"/>
+      <stop offset="1" stop-color="#d0d0d6"/>
+    </linearGradient>
+    <linearGradient id="fho" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f8f4e6"/>
+      <stop offset="1" stop-color="#d9d0ae"/>
+    </linearGradient>
+  </defs>
+  <g opacity="1">
+    <!-- ears -->
+    <ellipse cx="11" cy="11" rx="8" ry="9" fill="#a8a8ae" stroke="#4a4a50" stroke-width="2.5"/>
+    <ellipse cx="49" cy="11" rx="8" ry="9" fill="#a8a8ae" stroke="#4a4a50" stroke-width="2.5"/>
+    <ellipse cx="11" cy="12" rx="4.2" ry="5.2" fill="#83838b"/>
+    <ellipse cx="49" cy="12" rx="4.2" ry="5.2" fill="#83838b"/>
+    <ellipse cx="11" cy="12" rx="2.2" ry="3" fill="#6e6e76"/>
+    <ellipse cx="49" cy="12" rx="2.2" ry="3" fill="#6e6e76"/>
+    <!-- head -->
+    <path d="M8 22 Q8 8 30 8 Q52 8 52 22 L52 36 Q52 44 44 46 L16 46 Q8 44 8 36 Z"
+          fill="url(#fh)" stroke="#4a4a50" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M13 15 Q30 7.5 47 15" fill="none" stroke="#eceff3" stroke-width="2.8" stroke-linecap="round" opacity="0.8"/>
+    <!-- muzzle -->
+    <path d="M14 38 Q14 30 30 30 Q46 30 46 38 L46 50 Q46 57 30 57 Q14 57 14 50 Z"
+          fill="url(#fmz)" stroke="#4a4a50" stroke-width="3" stroke-linejoin="round"/>
+    <!-- horn over the muzzle -->
+    <path d="M25 36 L30 16 L35 36 Q30 40 25 36 Z" fill="url(#fho)" stroke="#4a4a50" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M29 32 L30.5 20" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" opacity="0.85"/>
+    <!-- nostrils -->
+    <ellipse cx="22" cy="49" rx="4" ry="3" fill="#3a3a40"/>
+    <ellipse cx="38" cy="49" rx="4" ry="3" fill="#3a3a40"/>
+    <path d="M20 47.4 Q22 46 24 47.4 M36 47.4 Q38 46 40 47.4" fill="none" stroke="#6a6a72" stroke-width="1"/>
+    <!-- angry V brows + eyes -->
+    <path d="M10 22 L24 27" stroke="#4a4a50" stroke-width="4" stroke-linecap="round"/>
+    <path d="M50 22 L36 27" stroke="#4a4a50" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="19" cy="28" r="3.5" fill="#ffffff" stroke="#4a4a50" stroke-width="1.5"/>
+    <circle cx="41" cy="28" r="3.5" fill="#ffffff" stroke="#4a4a50" stroke-width="1.5"/>
+    <circle cx="20" cy="29" r="1.9" fill="#cc2222"/>
+    <circle cx="40" cy="29" r="1.9" fill="#cc2222"/>
+    <circle cx="19.4" cy="28.3" r="0.7" fill="#ffffff"/>
+    <circle cx="40.6" cy="28.3" r="0.7" fill="#ffffff"/>
+  </g>
+</svg>

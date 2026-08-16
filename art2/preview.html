@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FURIOUS RHINO — proposta de sprites “cartoon rico”</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: linear-gradient(#4aa8e8, #bfe6fb); min-height: 100vh; padding: 16px; color: #17263a; }
+  body.claro { background: #f2f2f5; }
+  body.escuro { background: #23232b; color: #eee; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.sub { margin: 0 0 12px; font-size: 13px; opacity: .85; }
+  code { background: rgba(0,0,0,.08); padding: 1px 5px; border-radius: 4px; }
+  body.escuro code { background: rgba(255,255,255,.15); }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; font-size: 14px; }
+  .controls button { padding: 6px 12px; border: 2px solid #26518f; background: #fff; color: #17263a; border-radius: 8px; font-weight: 600; cursor: pointer; }
+  .controls button.on { background: #26518f; color: #fff; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 12px; }
+  .card { background: rgba(255,255,255,.85); border-radius: 12px; padding: 10px 12px; color: #17263a; }
+  body.escuro .card { background: rgba(42,42,54,.92); color: #eee; }
+  .card h3 { margin: 0 0 8px; font-size: 15px; }
+  .card.wide { grid-column: 1 / -1; }
+  .pair { display: flex; gap: 10px; align-items: flex-end; justify-content: space-around; flex-wrap: wrap; }
+  figure { margin: 0; text-align: center; }
+  figcaption { font-size: 11px; opacity: .7; margin-top: 4px; }
+  img { display: block; margin: 0 auto; height: auto; }
+  .strip { margin-top: 16px; background: rgba(255,255,255,.85); border-radius: 12px; padding: 10px 12px; color: #17263a; }
+  body.escuro .strip { background: rgba(42,42,54,.92); color: #eee; }
+  .strip h3 { margin: 0 0 4px; font-size: 15px; }
+  .strip p { margin: 0 0 6px; font-size: 12px; opacity: .75; }
+  .lane { display: flex; align-items: flex-end; gap: 22px; padding: 12px 8px 0; border-bottom: 8px solid #6aae3a; overflow-x: auto; }
+</style>
+</head>
+<body>
+<h1>🦏 FURIOUS RHINO — proposta “cartoon rico” (v1.4.0)</h1>
+<p class="sub">Esquerda = arte atual · Direita = proposta. Nada disso entrou no jogo — os arquivos vivem apenas em <code>art2/</code>, aguardando sua avaliação.</p>
+<div class="controls">
+  Fundo:
+  <button data-bg="" class="on">Céu do jogo</button>
+  <button data-bg="claro">Claro</button>
+  <button data-bg="escuro">Escuro</button>
+  <label><input type="checkbox" id="anim" checked> animar</label>
+</div>
+<div class="grid">
+  <div class="card wide">
+    <h3>🦏 Rino (ciclo de corrida)</h3>
+    <div class="pair">
+      <figure><img id="rhino-old" src="../art/rhino-run-0.svg" width="240"><figcaption>atual</figcaption></figure>
+      <figure><img id="rhino-new" src="rhino-run-0.svg" width="240"><figcaption>proposta</figcaption></figure>
+    </div>
+  </div>
+  <div class="card">
+    <h3>🦁 Leão</h3>
+    <div class="pair">
+      <figure><img id="lion-old" src="../art/animal-lion.svg" width="145"><figcaption>atual</figcaption></figure>
+      <figure><img id="lion-new" src="animal-lion.svg" width="145"><figcaption>proposta</figcaption></figure>
+    </div>
+  </div>
+  <div class="card">
+    <h3>🦓 Zebra (chão / ar)</h3>
+    <div class="pair">
+      <figure><img id="zebra-old" src="../art/animal-zebra.svg" width="145"><figcaption>atual</figcaption></figure>
+      <figure><img id="zebra-new" src="animal-zebra.svg" width="145"><figcaption>proposta</figcaption></figure>
+    </div>
+  </div>
+  <div class="card">
+    <h3>🐒 Macaco (chão / ar)</h3>
+    <div class="pair">
+      <figure><img id="monkey-old" src="../art/animal-monkey.svg" width="110"><figcaption>atual</figcaption></figure>
+      <figure><img id="monkey-new" src="animal-monkey.svg" width="110"><figcaption>proposta</figcaption></figure>
+    </div>
+  </div>
+  <div class="card">
+    <h3>🦒 Girafa</h3>
+    <div class="pair">
+      <figure><img id="giraffe-old" src="../art/animal-giraffe.svg" width="110"><figcaption>atual</figcaption></figure>
+      <figure><img id="giraffe-new" src="animal-giraffe.svg" width="110"><figcaption>proposta</figcaption></figure>
+    </div>
+  </div>
+  <div class="card wide">
+    <h3>🐦 Pássaros — de 1 para 5 espécies (batem asas)</h3>
+    <div class="pair">
+      <figure><img id="bird-old" src="../art/animal-bird.svg" width="110"><figcaption>atual (único)</figcaption></figure>
+      <figure><img id="mcw" src="animal-bird-macaw.svg" width="168"><figcaption>🦜 arara</figcaption></figure>
+      <figure><img id="owl" src="animal-bird-owl.svg" width="168"><figcaption>🦉 coruja</figcaption></figure>
+      <figure><img id="ckt" src="animal-bird-cockatiel.svg" width="168"><figcaption>🐤 calopsita</figcaption></figure>
+      <figure><img id="tcn" src="animal-bird-toucan.svg" width="168"><figcaption>🥭 tucano</figcaption></figure>
+      <figure><img id="jay" src="animal-bird-jay.svg" width="168"><figcaption>💙 azulão</figcaption></figure>
+    </div>
+  </div>
+  <div class="card">
+    <h3>😤 Ícone do dash (cheio / vazio)</h3>
+    <div class="pair">
+      <figure><img src="../art/rhino-face-full.svg" width="64"><figcaption>atual</figcaption></figure>
+      <figure><img src="rhino-face-full.svg" width="64"><figcaption>proposta</figcaption></figure>
+      <figure><img src="../art/rhino-face-empty.svg" width="64"><figcaption>atual</figcaption></figure>
+      <figure><img src="rhino-face-empty.svg" width="64"><figcaption>proposta</figcaption></figure>
+    </div>
+  </div>
+  <div class="card">
+    <h3>🔥 Ícone da fúria (cheio / vazio)</h3>
+    <div class="pair">
+      <figure><img src="../art/fury-fire-full.svg" width="64"><figcaption>atual</figcaption></figure>
+      <figure><img src="fury-fire-full.svg" width="64"><figcaption>proposta</figcaption></figure>
+      <figure><img src="../art/fury-fire-empty.svg" width="64"><figcaption>atual</figcaption></figure>
+      <figure><img src="fury-fire-empty.svg" width="64"><figcaption>proposta</figcaption></figure>
+    </div>
+  </div>
+</div>
+<div class="strip">
+  <h3>No tamanho do jogo (proposta)</h3>
+  <p>Rino em 1×, animais em 1,5× — como aparecem na tela do jogo.</p>
+  <div class="lane">
+    <img id="rhino-g" src="rhino-run-0.svg" width="96">
+    <img id="lion-g" src="animal-lion.svg" width="105">
+    <img id="zebra-g" src="animal-zebra.svg" width="114">
+    <img id="monkey-g" src="animal-monkey.svg" width="72">
+    <img id="giraffe-g" src="animal-giraffe.svg" width="90">
+    <img id="mcw-g" src="animal-bird-macaw.svg" width="84">
+    <img id="owl-g" src="animal-bird-owl.svg" width="84">
+    <img id="ckt-g" src="animal-bird-cockatiel.svg" width="84">
+    <img id="tcn-g" src="animal-bird-toucan.svg" width="84">
+    <img id="jay-g" src="animal-bird-jay.svg" width="84">
+  </div>
+</div>
+<script>
+  const $ = (id) => document.getElementById(id);
+  document.querySelectorAll('.controls button').forEach((b) => {
+    b.onclick = () => {
+      document.body.className = b.dataset.bg;
+      document.querySelectorAll('.controls button').forEach((x) => x.classList.toggle('on', x === b));
+    };
+  });
+  // Mesmos ciclos do BootScene: rino 12fps ping-pong, leão 10, girafa/pássaros 8;
+  // zebra/macaco alternam chão/ar (troca de textura no jogo, sem anim).
+  // ids terminados em -old carregam de ../art/; os demais, de art2/.
+  const ANIMS = [
+    [['rhino-old', 'rhino-new', 'rhino-g'], ['rhino-run-0', 'rhino-run-1', 'rhino-run-2', 'rhino-run-1'], 12],
+    [['lion-old', 'lion-new', 'lion-g'], ['animal-lion', 'animal-lion-run-1'], 10],
+    [['giraffe-old', 'giraffe-new', 'giraffe-g'], ['animal-giraffe', 'animal-giraffe-run-1'], 8],
+    [['zebra-old', 'zebra-new', 'zebra-g'], ['animal-zebra', 'animal-zebra-air'], 2],
+    [['monkey-old', 'monkey-new', 'monkey-g'], ['animal-monkey', 'animal-monkey-air'], 2],
+    [['bird-old'], ['animal-bird', 'animal-bird-flap'], 8],
+    [['mcw', 'mcw-g'], ['animal-bird-macaw', 'animal-bird-macaw-flap'], 8],
+    [['owl', 'owl-g'], ['animal-bird-owl', 'animal-bird-owl-flap'], 8],
+    [['ckt', 'ckt-g'], ['animal-bird-cockatiel', 'animal-bird-cockatiel-flap'], 8],
+    [['tcn', 'tcn-g'], ['animal-bird-toucan', 'animal-bird-toucan-flap'], 8],
+    [['jay', 'jay-g'], ['animal-bird-jay', 'animal-bird-jay-flap'], 8],
+  ];
+  for (const [ids, frames] of ANIMS) {
+    const temOld = ids.some((id) => id.endsWith('-old'));
+    const soOld = ids.every((id) => id.endsWith('-old'));
+    for (const f of frames) {
+      if (!soOld) new Image().src = f + '.svg';
+      if (temOld) new Image().src = '../art/' + f + '.svg';
+    }
+  }
+  for (const [ids, frames, fps] of ANIMS) {
+    let i = 0;
+    setInterval(() => {
+      if (!$('anim').checked) return;
+      i = (i + 1) % frames.length;
+      for (const id of ids) {
+        const el = $(id);
+        if (el) el.src = (id.endsWith('-old') ? '../art/' : '') + frames[i] + '.svg';
+      }
+    }, 1000 / fps);
+  }
+</script>
+</body>
+</html>

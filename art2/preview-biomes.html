@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FURIOUS RHINO — inimigos por bioma (proposta)</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: linear-gradient(#4aa8e8, #bfe6fb); min-height: 100vh; padding: 16px; color: #17263a; }
+  body.claro { background: #f2f2f5; }
+  body.escuro { background: #23232b; color: #eee; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.sub { margin: 0 0 12px; font-size: 13px; opacity: .85; }
+  code { background: rgba(0,0,0,.08); padding: 1px 5px; border-radius: 4px; }
+  body.escuro code { background: rgba(255,255,255,.15); }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; font-size: 14px; position: sticky; top: 0; z-index: 5; padding: 8px; background: rgba(255,255,255,.75); border-radius: 10px; backdrop-filter: blur(4px); }
+  body.escuro .controls { background: rgba(30,30,38,.85); }
+  .controls button { padding: 6px 12px; border: 2px solid #26518f; background: #fff; color: #17263a; border-radius: 8px; font-weight: 600; cursor: pointer; }
+  .controls button.on { background: #26518f; color: #fff; }
+  .bioma { border-radius: 14px; padding: 12px 14px; margin-bottom: 16px; }
+  body.ceu .bioma, body.claro .bioma, body.escuro .bioma { background: none !important; padding: 0 0 4px; }
+  .bioma h2 { font-size: 17px; margin: 0 0 2px; }
+  .bioma p.faixa { margin: 0 0 10px; font-size: 12px; opacity: .75; }
+  .b-jaulas   { background: linear-gradient(#dcedc4, #c4dfa6); }
+  .b-aviario  { background: linear-gradient(#cfe9f5, #aed6ec); }
+  .b-savana   { background: linear-gradient(#f0dfae, #e2c98a); }
+  .b-floresta { background: linear-gradient(#2f5a3c, #1f4029); color: #e8f2e0; }
+  .b-pantano  { background: linear-gradient(#8fa06e, #6d7f52); color: #f2f5e8; }
+  .b-cidade   { background: linear-gradient(#3a4150, #2a303c); color: #e8ecf5; }
+  .b-especial { background: linear-gradient(#3a1c10, #200e08); color: #ffe8d0; }
+  body.ceu .b-especial, body.claro .b-especial { color: inherit; }
+  body.ceu .b-floresta, body.ceu .b-pantano, body.ceu .b-cidade,
+  body.claro .b-floresta, body.claro .b-pantano, body.claro .b-cidade { color: inherit; }
+  body.escuro .bioma { color: #eee; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+  .card { background: rgba(255,255,255,.88); border-radius: 12px; padding: 10px 12px; color: #17263a; }
+  body.escuro .card { background: rgba(42,42,54,.92); color: #eee; }
+  .card h3 { margin: 0 0 8px; font-size: 14px; }
+  .card .meta { font-size: 11px; opacity: .65; margin-top: 6px; }
+  .card.ref { outline: 2px dashed rgba(0,0,0,.25); outline-offset: -6px; opacity: .92; }
+  body.escuro .card.ref { outline-color: rgba(255,255,255,.3); }
+  .card.ref h3::after { content: " · elenco atual"; font-weight: 400; font-size: 11px; opacity: .6; }
+  .pair { display: flex; gap: 10px; align-items: flex-end; justify-content: space-around; flex-wrap: wrap; min-height: 100px; }
+  figure { margin: 0; text-align: center; }
+  figcaption { font-size: 11px; opacity: .7; margin-top: 4px; }
+  img { display: block; margin: 0 auto; height: auto; }
+  .strip { margin-top: 16px; background: rgba(255,255,255,.88); border-radius: 12px; padding: 10px 12px; color: #17263a; }
+  body.escuro .strip { background: rgba(42,42,54,.92); color: #eee; }
+  .strip h3 { margin: 0 0 4px; font-size: 15px; }
+  .strip p { margin: 0 0 6px; font-size: 12px; opacity: .75; }
+  .lane { display: flex; align-items: flex-end; gap: 20px; padding: 12px 8px 0; border-bottom: 8px solid #6aae3a; overflow-x: auto; }
+  .lane figure { flex: 0 0 auto; }
+</style>
+</head>
+<body>
+<h1>🦏 FURIOUS RHINO — inimigos por bioma (proposta)</h1>
+<p class="sub">Sprites novos vivem só em <code>art2/</code> — nada entrou no jogo. Os cards tracejados são o elenco atual (<code>art/</code>), para comparar o estilo. Mecânicas e integração ficam para a próxima fase.</p>
+<div class="controls">
+  Fundo:
+  <button data-bg="" class="on">Biomas</button>
+  <button data-bg="ceu">Céu do jogo</button>
+  <button data-bg="claro">Claro</button>
+  <button data-bg="escuro">Escuro</button>
+  <label><input type="checkbox" id="anim" checked> animar</label>
+</div>
+
+<section class="bioma b-especial">
+  <h2>⭐ O ESPECIAL — FÚRIA TOTAL</h2>
+  <p class="faixa">fúria cheia + toque no medidor · Rhino em chamas, invencível por ~6s, tudo explode</p>
+  <div class="grid">
+    <div class="card ref"><h3>🦏 Rino normal</h3><div class="pair"><figure><img id="ref-rhino2" src="../art/rhino-run-0.svg" width="220"></figure></div><div class="meta">referência — mesmo ciclo de corrida</div></div>
+    <div class="card"><h3>🔥 Rino em chamas</h3><div class="pair"><figure><img id="rfire" src="rhino-fire-run-0.svg" width="220"></figure></div><div class="meta">rhino-fire-run · mesma silhueta e hitbox; chamas ondulam no ciclo 0,1,2,1 a 12fps</div></div>
+  </div>
+</section>
+
+<section class="bioma b-especial">
+  <h2>🎯 O CHEFE — o caçador do portão</h2>
+  <p class="faixa">1000m · portão blindado, rifle no topo · alterna vigia ↔ mira (telegraph com laser)</p>
+  <div class="grid">
+    <div class="card"><h3>🧍 Vigia</h3><div class="pair"><figure><img src="boss-hunter.svg" width="150"></figure></div><div class="meta">boss-hunter · de pé na plataforma do portão, rifle em descanso</div></div>
+    <div class="card"><h3>🎯 Mirando</h3><div class="pair"><figure><img src="boss-hunter-aim.svg" width="150"></figure></div><div class="meta">boss-hunter-aim · pose do telegraph — a mira laser e o dardo saem da boca do cano (5,30)</div></div>
+    <div class="card"><h3>🔁 Ciclo em jogo</h3><div class="pair"><figure><img id="bh" src="boss-hunter.svg" width="150"></figure></div><div class="meta">vigia na cadência, mira ~400ms antes de cada tiro (aqui: alternância lenta ilustrativa)</div></div>
+    <div class="card ref"><h3>🧑‍🌾 Tratador</h3><div class="pair"><figure><img src="enemy-zookeeper.svg" width="100"></figure></div><div class="meta">referência de estilo (mesma linguagem chibi)</div></div>
+  </div>
+</section>
+
+<section class="bioma b-jaulas">
+  <h2>🦁 ALA DAS JAULAS</h2>
+  <p class="faixa">0–200m · entrada do zoo, jaulas, tratadores</p>
+  <div class="grid">
+    <div class="card"><h3>🧑‍🌾 Tratador com rede</h3><div class="pair"><figure><img id="zk" src="enemy-zookeeper.svg" width="110"></figure></div><div class="meta">enemy-zookeeper · corre + rede de captura</div></div>
+    <div class="card"><h3>🦚 Pavão fujão</h3><div class="pair"><figure><img id="pv" src="enemy-peacock.svg" width="130"></figure></div><div class="meta">enemy-peacock · corre, cauda em leque</div></div>
+    <div class="card ref"><h3>🦏 Rino (jogador)</h3><div class="pair"><figure><img id="ref-rhino" src="../art/rhino-run-0.svg" width="150"></figure></div><div class="meta">referência de estilo</div></div>
+  </div>
+</section>
+
+<section class="bioma b-aviario">
+  <h2>🦜 VIVEIRO DAS AVES</h2>
+  <p class="faixa">200–400m · cúpula do aviário, bandos no céu</p>
+  <div class="grid">
+    <div class="card"><h3>🪶 Avestruz veloz</h3><div class="pair"><figure><img id="os" src="enemy-ostrich.svg" width="130"></figure></div><div class="meta">enemy-ostrich · corredora terrestre</div></div>
+    <div class="card"><h3>🦅 Águia de mergulho</h3><div class="pair"><figure><img id="eg" src="enemy-eagle.svg" width="150"></figure></div><div class="meta">enemy-eagle · voa (futuro: mergulho)</div></div>
+    <div class="card ref"><h3>🐦 Pássaros atuais</h3><div class="pair">
+      <figure><img id="ref-mcw" src="../art/animal-bird-macaw.svg" width="84"><figcaption>arara</figcaption></figure>
+      <figure><img id="ref-owl" src="../art/animal-bird-owl.svg" width="84"><figcaption>coruja</figcaption></figure>
+      <figure><img id="ref-tcn" src="../art/animal-bird-toucan.svg" width="84"><figcaption>tucano</figcaption></figure>
+    </div><div class="meta">referência de estilo (ficam neste bioma)</div></div>
+  </div>
+</section>
+
+<section class="bioma b-savana">
+  <h2>🦓 SAVANA</h2>
+  <p class="faixa">400–600m · colinas ocre, acácias, capim seco</p>
+  <div class="grid">
+    <div class="card"><h3>🐺 Hiena</h3><div class="pair"><figure><img id="hy" src="enemy-hyena.svg" width="140"></figure></div><div class="meta">enemy-hyena · corre (futuro: bando)</div></div>
+    <div class="card"><h3>🐃 Búfalo</h3><div class="pair"><figure><img id="bf" src="enemy-buffalo.svg" width="170"></figure></div><div class="meta">enemy-buffalo · investida pesada</div></div>
+    <div class="card"><h3>🐦 Ave azul de rasante</h3><div class="pair"><figure><img id="bb" src="enemy-bluebird.svg" width="140"></figure></div><div class="meta">enemy-bluebird · voo baixo em mergulho</div></div>
+    <div class="card ref"><h3>🦁🦒🦓 Elenco atual da savana</h3><div class="pair">
+      <figure><img id="ref-lion" src="../art/animal-lion.svg" width="105"><figcaption>leão</figcaption></figure>
+      <figure><img id="ref-giraffe" src="../art/animal-giraffe.svg" width="90"><figcaption>girafa</figcaption></figure>
+      <figure><img id="ref-zebra" src="../art/animal-zebra.svg" width="114"><figcaption>zebra</figcaption></figure>
+    </div><div class="meta">referência de estilo</div></div>
+  </div>
+</section>
+
+<section class="bioma b-floresta">
+  <h2>🌴 FLORESTA TROPICAL</h2>
+  <p class="faixa">600–800m · selva fechada, cipós, feixes de luz</p>
+  <div class="grid">
+    <div class="card"><h3>🐆 Onça-pintada</h3><div class="pair"><figure><img id="jg" src="enemy-jaguar.svg" width="165"></figure></div><div class="meta">enemy-jaguar · galope (futuro: bote)</div></div>
+    <div class="card"><h3>🐍 Cobra rasteira</h3><div class="pair"><figure><img id="sn" src="enemy-snake.svg" width="160"></figure></div><div class="meta">enemy-snake · rasteira, obriga a pular</div></div>
+    <div class="card"><h3>🐺 Lobo-guará</h3><div class="pair"><figure><img id="mw" src="enemy-manedwolf.svg" width="160"></figure></div><div class="meta">enemy-manedwolf · salta (chão/ar)</div></div>
+    <div class="card ref"><h3>🐒 Macaco</h3><div class="pair"><figure><img id="ref-monkey" src="../art/animal-monkey.svg" width="80"></figure></div><div class="meta">referência de estilo (fica neste bioma)</div></div>
+  </div>
+</section>
+
+<section class="bioma b-pantano">
+  <h2>🐊 PÂNTANO</h2>
+  <p class="faixa">800–1000m · água escura, mangues, bruma · <em>sem elenco atual — bioma ganha os 2 primeiros moradores</em></p>
+  <div class="grid">
+    <div class="card"><h3>🐊 Jacaré</h3><div class="pair"><figure><img id="cr" src="enemy-croc.svg" width="180"></figure></div><div class="meta">enemy-croc · baixo e comprido (futuro: bote da água) — frame alt abre a boca e mexe as patas</div></div>
+    <div class="card"><h3>🦛 Hipopótamo</h3><div class="pair"><figure><img id="hp" src="enemy-hippo.svg" width="170"></figure></div><div class="meta">enemy-hippo · trote pesado</div></div>
+    <div class="card"><h3>🪿 Tuiuiú</h3><div class="pair"><figure><img id="jb" src="enemy-jabiru.svg" width="175"></figure></div><div class="meta">enemy-jabiru · rasante pantaneiro</div></div>
+    <div class="card"><h3>🦫 Capivara</h3><div class="pair"><figure><img id="cp" src="enemy-capybara.svg" width="150"></figure></div><div class="meta">enemy-capybara · trote zen</div></div>
+  </div>
+</section>
+
+<section class="bioma b-cidade">
+  <h2>🌆 A CIDADE</h2>
+  <p class="faixa">1000m+ · modo endless · <em>sem elenco atual — estreia completa</em></p>
+  <div class="grid">
+    <div class="card"><h3>🚗 Carro popular</h3><div class="pair"><figure><img id="cc" src="enemy-car.svg" width="200"></figure></div><div class="meta">enemy-car · vem na contramão</div></div>
+    <div class="card"><h3>🚓 Viatura</h3><div class="pair"><figure><img id="pc" src="enemy-police.svg" width="200"></figure></div><div class="meta">enemy-police · giroflex alternando</div></div>
+    <div class="card"><h3>🏃 Pedestre em pânico</h3><div class="pair"><figure><img id="pd" src="enemy-person.svg" width="95"></figure></div><div class="meta">enemy-person · dispara gritando</div></div>
+    <div class="card"><h3>🕴️ Executivo apressado</h3><div class="pair"><figure><img id="st" src="enemy-suit.svg" width="100"></figure></div><div class="meta">enemy-suit · pedestre 2: gravata e papéis voando</div></div>
+    <div class="card"><h3>🛵 Motoboy de entrega</h3><div class="pair"><figure><img id="sc" src="enemy-scooter.svg" width="190"></figure></div><div class="meta">enemy-scooter · scooter com baú, entre o pedestre e o carro</div></div>
+    <div class="card"><h3>✈️ Teco-teco</h3><div class="pair"><figure><img id="pl" src="enemy-plane.svg" width="220"></figure></div><div class="meta">enemy-plane · camada aérea</div></div>
+    <div class="card"><h3>🛸 Drone vigilante</h3><div class="pair"><figure><img id="dr" src="enemy-drone.svg" width="130"></figure></div><div class="meta">enemy-drone · paira (futuro: torre voadora)</div></div>
+    <div class="card"><h3>🛻 Camionete do caçador</h3><div class="pair"><figure><img id="pk" src="enemy-pickup.svg" width="230"></figure></div><div class="meta">enemy-pickup · caçador atira dardos da caçamba (futuro: torre móvel) · rodas + sirene + disparo animados</div></div>
+  </div>
+</section>
+
+<div class="strip">
+  <h3>No tamanho do jogo</h3>
+  <p>Rino em 1× · animais e pedestre em 1,5× (ANIMAL_SCALE) · carros em ~1,25× · voadores flutuando na altura sugerida. Escalas finais se decidem na integração.</p>
+  <div class="lane">
+    <figure><img id="rhino-g" src="../art/rhino-run-0.svg" width="96"><figcaption>rino 1×</figcaption></figure>
+    <figure><img id="rfire-g" src="rhino-fire-run-0.svg" width="96"><figcaption>🔥 especial 1×</figcaption></figure>
+    <figure><img id="bh-g" src="boss-hunter.svg" width="64"><figcaption>🎯 caçador 1×</figcaption></figure>
+    <figure><img id="zk-g" src="enemy-zookeeper.svg" width="72"><figcaption>tratador</figcaption></figure>
+    <figure><img id="pv-g" src="enemy-peacock.svg" width="90"><figcaption>pavão</figcaption></figure>
+    <figure><img id="os-g" src="enemy-ostrich.svg" width="96"><figcaption>avestruz</figcaption></figure>
+    <figure style="margin-bottom:48px"><img id="eg-g" src="enemy-eagle.svg" width="96"><figcaption>águia</figcaption></figure>
+    <figure><img id="hy-g" src="enemy-hyena.svg" width="99"><figcaption>hiena</figcaption></figure>
+    <figure><img id="bf-g" src="enemy-buffalo.svg" width="129"><figcaption>búfalo</figcaption></figure>
+    <figure style="margin-bottom:40px"><img id="bb-g" src="enemy-bluebird.svg" width="90"><figcaption>ave azul</figcaption></figure>
+    <figure><img id="mw-g" src="enemy-manedwolf.svg" width="114"><figcaption>lobo-guará</figcaption></figure>
+    <figure><img id="jg-g" src="enemy-jaguar.svg" width="120"><figcaption>onça</figcaption></figure>
+    <figure><img id="sn-g" src="enemy-snake.svg" width="108"><figcaption>cobra</figcaption></figure>
+    <figure><img id="cr-g" src="enemy-croc.svg" width="138"><figcaption>jacaré</figcaption></figure>
+    <figure><img id="hp-g" src="enemy-hippo.svg" width="132"><figcaption>hipopótamo</figcaption></figure>
+    <figure style="margin-bottom:45px"><img id="jb-g" src="enemy-jabiru.svg" width="126"><figcaption>tuiuiú</figcaption></figure>
+    <figure><img id="cp-g" src="enemy-capybara.svg" width="105"><figcaption>capivara</figcaption></figure>
+    <figure><img id="cc-g" src="enemy-car.svg" width="135"><figcaption>carro</figcaption></figure>
+    <figure><img id="pc-g" src="enemy-police.svg" width="135"><figcaption>viatura</figcaption></figure>
+    <figure><img id="pk-g" src="enemy-pickup.svg" width="165"><figcaption>camionete</figcaption></figure>
+    <figure><img id="pd-g" src="enemy-person.svg" width="60"><figcaption>pedestre</figcaption></figure>
+    <figure><img id="st-g" src="enemy-suit.svg" width="63"><figcaption>executivo</figcaption></figure>
+    <figure><img id="sc-g" src="enemy-scooter.svg" width="120"><figcaption>motoboy</figcaption></figure>
+    <figure style="margin-bottom:70px"><img id="pl-g" src="enemy-plane.svg" width="132"><figcaption>avião</figcaption></figure>
+    <figure style="margin-bottom:55px"><img id="dr-g" src="enemy-drone.svg" width="78"><figcaption>drone</figcaption></figure>
+  </div>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  document.querySelectorAll('.controls button').forEach((b) => {
+    b.onclick = () => {
+      document.body.className = b.dataset.bg;
+      document.querySelectorAll('.controls button').forEach((x) => x.classList.toggle('on', x === b));
+    };
+  });
+  // fps por tipo: corredores 8-10, asas 8, girofex/cobra 4, jacare 2, helices 8-10.
+  // Referencias (../art/) usam os mesmos ciclos do BootScene.
+  const ANIMS = [
+    [['zk', 'zk-g'], ['enemy-zookeeper.svg', 'enemy-zookeeper-run-1.svg'], 8],
+    [['pv', 'pv-g'], ['enemy-peacock.svg', 'enemy-peacock-run-1.svg'], 8],
+    [['os', 'os-g'], ['enemy-ostrich.svg', 'enemy-ostrich-run-1.svg'], 10],
+    [['eg', 'eg-g'], ['enemy-eagle.svg', 'enemy-eagle-flap.svg'], 8],
+    [['hy', 'hy-g'], ['enemy-hyena.svg', 'enemy-hyena-run-1.svg'], 10],
+    [['bf', 'bf-g'], ['enemy-buffalo.svg', 'enemy-buffalo-run-1.svg'], 8],
+    [['jg', 'jg-g'], ['enemy-jaguar.svg', 'enemy-jaguar-run-1.svg'], 10],
+    [['sn', 'sn-g'], ['enemy-snake.svg', 'enemy-snake-alt.svg'], 4],
+    [['cr', 'cr-g'], ['enemy-croc.svg', 'enemy-croc-alt.svg'], 4],
+    [['hp', 'hp-g'], ['enemy-hippo.svg', 'enemy-hippo-run-1.svg'], 8],
+    [['cc', 'cc-g'], ['enemy-car.svg', 'enemy-car-alt.svg'], 8],
+    [['pc', 'pc-g'], ['enemy-police.svg', 'enemy-police-alt.svg'], 4],
+    [['pd', 'pd-g'], ['enemy-person.svg', 'enemy-person-run-1.svg'], 8],
+    [['pl', 'pl-g'], ['enemy-plane.svg', 'enemy-plane-alt.svg'], 10],
+    [['dr', 'dr-g'], ['enemy-drone.svg', 'enemy-drone-alt.svg'], 8],
+    [['mw', 'mw-g'], ['enemy-manedwolf.svg', 'enemy-manedwolf-air.svg'], 2],
+    [['bb', 'bb-g'], ['enemy-bluebird.svg', 'enemy-bluebird-flap.svg'], 8],
+    [['jb', 'jb-g'], ['enemy-jabiru.svg', 'enemy-jabiru-flap.svg'], 8],
+    [['cp', 'cp-g'], ['enemy-capybara.svg', 'enemy-capybara-run-1.svg'], 8],
+    [['pk', 'pk-g'], ['enemy-pickup.svg', 'enemy-pickup-alt.svg'], 6],
+    [['st', 'st-g'], ['enemy-suit.svg', 'enemy-suit-run-1.svg'], 8],
+    [['sc', 'sc-g'], ['enemy-scooter.svg', 'enemy-scooter-alt.svg'], 8],
+    [['ref-rhino', 'ref-rhino2', 'rhino-g'], ['../art/rhino-run-0.svg', '../art/rhino-run-1.svg', '../art/rhino-run-2.svg', '../art/rhino-run-1.svg'], 12],
+    [['rfire', 'rfire-g'], ['rhino-fire-run-0.svg', 'rhino-fire-run-1.svg', 'rhino-fire-run-2.svg', 'rhino-fire-run-1.svg'], 12],
+    [['bh', 'bh-g'], ['boss-hunter.svg', 'boss-hunter-aim.svg'], 1],
+    [['ref-lion'], ['../art/animal-lion.svg', '../art/animal-lion-run-1.svg'], 10],
+    [['ref-giraffe'], ['../art/animal-giraffe.svg', '../art/animal-giraffe-run-1.svg'], 8],
+    [['ref-zebra'], ['../art/animal-zebra.svg', '../art/animal-zebra-air.svg'], 2],
+    [['ref-monkey'], ['../art/animal-monkey.svg', '../art/animal-monkey-air.svg'], 2],
+    [['ref-mcw'], ['../art/animal-bird-macaw.svg', '../art/animal-bird-macaw-flap.svg'], 8],
+    [['ref-owl'], ['../art/animal-bird-owl.svg', '../art/animal-bird-owl-flap.svg'], 8],
+    [['ref-tcn'], ['../art/animal-bird-toucan.svg', '../art/animal-bird-toucan-flap.svg'], 8],
+  ];
+  for (const [, frames] of ANIMS) for (const f of frames) new Image().src = f;
+  for (const [ids, frames, fps] of ANIMS) {
+    let i = 0;
+    setInterval(() => {
+      if (!$('anim').checked) return;
+      i = (i + 1) % frames.length;
+      for (const id of ids) { const el = $(id); if (el) el.src = frames[i]; }
+    }, 1000 / fps);
+  }
+</script>
+</body>
+</html>

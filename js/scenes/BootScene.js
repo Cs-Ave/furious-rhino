@@ -1,6 +1,7 @@
 import { TextureFactory } from '../systems/TextureFactory.js';
 import { ART_MANIFEST } from '../art/ArtManifest.js';
 import { Constants } from '../utils/Constants.js';
+import { SKINS } from '../systems/SkinSystem.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -14,6 +15,19 @@ export class BootScene extends Phaser.Scene {
     const S = Constants.ART_RASTER_SCALE;
     for (const [key, size] of Object.entries(ART_MANIFEST)) {
       this.load.svg(key, 'art/' + key + '.svg', { width: size.w * S, height: size.h * S });
+    }
+
+    // Skins: frames derivados do registry, fora do manifesto — o rig é fixo
+    // (96x64, o mesmo do rhino-run), então listar cada frame lá só criava um
+    // segundo lugar para a página /?setup editar. `pending` fica de fora: os
+    // SVGs ainda não existem.
+    for (const skin of SKINS) {
+      if (!skin.prefix || skin.pending) continue;
+      for (const prefix of [skin.prefix, skin.firePrefix].filter(Boolean)) {
+        for (const f of [0, 1, 2]) {
+          this.load.svg(`${prefix}-${f}`, `art/${prefix}-${f}.svg`, { width: 96 * S, height: 64 * S });
+        }
+      }
     }
   }
 
@@ -35,6 +49,26 @@ export class BootScene extends Phaser.Scene {
       frameRate: 12,
       repeat: -1,
     });
+
+    // Skins (v1.8): mesmo ciclo ping-pong do rhino-run por skin com arte
+    // própria; skins com fúria própria (firePrefix) ganham a anim de rampage
+    // também. `pending` fica de fora — os SVGs ainda não existem.
+    const pingPong = (prefix) => this.anims.create({
+      key: prefix,
+      frames: [
+        { key: `${prefix}-0`, frame: '__BASE' },
+        { key: `${prefix}-1`, frame: '__BASE' },
+        { key: `${prefix}-2`, frame: '__BASE' },
+        { key: `${prefix}-1`, frame: '__BASE' },
+      ],
+      frameRate: 12,
+      repeat: -1,
+    });
+    for (const skin of SKINS) {
+      if (!skin.prefix || skin.pending) continue;
+      pingPong(skin.prefix);
+      if (skin.firePrefix) pingPong(skin.firePrefix);
+    }
 
     // Uma anim de bater asas por espécie de pássaro (v1.4: 5 espécies)
     for (const sp of Constants.BIRD_SPECIES) {

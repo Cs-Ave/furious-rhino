@@ -1,7 +1,7 @@
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
-  VERSION: '1.7.2',
+  VERSION: '1.8.0',
 
   // Rótulo humano de cada desfecho de corrida. Fonte única para o painel, o
   // resumo do jogador e os pushes — os três diziam a mesma coisa com palavras
@@ -28,6 +28,12 @@ export const Constants = {
   // nitidez em telas de alta densidade. Hitboxes usam px de textura, então
   // todo setSize/setOffset/setCrop de textura SVG multiplica por este fator.
   ART_RASTER_SCALE: 2,
+  // v1.8.1: escala VISUAL do rino (todas as skins) — as vetorizadas são mais
+  // magras e o leão (ANIMAL_SCALE 1.5 = 105px) passava o protagonista. SÓ
+  // aparência: a hitbox é compensada em Rhino.applyVisualScale e continua
+  // 76×54 px de mundo (tuning de campo intacto). Calibrável ao vivo no
+  // painel ?debug=1 (pasta Skins).
+  RHINO_VISUAL_SCALE: 1.30,
 
   // Rhino physics
   RUN_SPEED: 300,
@@ -69,6 +75,12 @@ export const Constants = {
   // por banda de x + clamp posicional (corpo sólido + FurySystem reescrevendo
   // velocityX todo frame = o soft-lock documentado das rampas).
   BOSS_ARENA_PX: 1100,           // luta começa em WIN-1100 (~972m); câmera trava
+  // v1.8: dentro da arena a ATIVAÇÃO da fúria é negada (a carga segue
+  // enchendo). Dados da v1.7.1: 120 camadas quebradas × 6 quiques × 8 mortes
+  // — o rampage (cheio aos 900m, de propósito) anulava fresta E rifle e a
+  // luta virou formalidade. Quem ativa ANTES da arena mantém o fogo, mas o
+  // alinhamento à fresta voltou a ser obrigatório (BossFight.onContact).
+  BOSS_BLOCKS_FURY: true,
   BOSS_GATE_FACE_HALF: 120,      // meia-largura do canvas do portão (banda de contato)
   BOSS_LAYERS: ['ground', 'mid', 'high'], // ordem FIXA de quebra das camadas
   BOSS_KNOCKBACK_VX: 3000,        // recuo do quique (decai ~0.92/frame → ~600px; tuning do dono na v1.7.1)
@@ -131,7 +143,8 @@ export const Constants = {
     fenceBrown: 0x7a5230,
   },
 
-  // Rhino sprite canvas (art is 96x64; body trimmed via setSize/setOffset)
+  // Rig do rino em px de MUNDO para LÓGICA (alinhamento de fresta usa
+  // RHINO_H) — a escala visual muda só a exibição, nunca estes números
   RHINO_W: 96,
   RHINO_H: 64,
   SNOUT_OFFSET_X: 42,
@@ -199,7 +212,9 @@ export const Constants = {
   POOL_SIZES: {
     crackedWalls: 8,
     spikes: 8,
-    animals: 8,
+    // 16: headroom para o "par de animais" (animalPackChance) — sem folga o
+    // spawnAnimal devolve silêncio com o pool cheio e a densidade some
+    animals: 16,
     towers: 4,
     darts: 16,
     // Janela viva: 200 (reciclagem) + 1280 (tela) + 600 (lookahead) + 540
@@ -324,17 +339,41 @@ export const Constants = {
   // ficou praticamente igual; quem pagou a conta foi a parede.
   // t1 também ficou mais generoso no gap: 43% das corridas morriam antes dos
   // 200m e metade dos estreantes não passava do primeiro obstáculo.
+  // v1.8 (15/08): animalPackChance — quando a roleta sorteia animal, chance
+  // de nascer um SEGUNDO logo à frente (ANIMAL_PACK_OFFSET_PX). Pedido do
+  // dono: mais bicho em tela; calibrável por tier no ?debug=1.
+  // Preset "denso sem facilitar" (15/08, 2ª rodada): gapMin −15% até o piso
+  // de 540 (ciclo do dash — MIN_SAFE_GAP clampa abaixo disso) + par mais
+  // frequente. Os PESOS ficaram — a proporção de obstáculos letais é a mesma,
+  // só a cadência de encontros subiu.
+  // animalEscortChance (3ª rodada): a roleta sozinha tem teto baixo de bicho
+  // (fatia do animal = a sobra dos pesos, 22–33% nos tiers iniciais) — a
+  // escolta faz um animal nascer JUNTO de parede/espinho/torre, na coreografia
+  // dos combos, sem substituir nada. Monte Carlo (4000 corridas simuladas):
+  // v1.7 = 1,5 animais/100m; este preset = 3,2; teto com tudo a 100% = ~4,0
+  // (o limite é o nº de slots — passar disso exige mexer nos PESOS, o que
+  // facilita o jogo, ou nos gaps abaixo do piso do dash, não recomendado).
   DIFFICULTY_TIERS: [
-    { gapMin: 1000, gapRand: 150, animalSpeedMult: 1.0,  animalLeadPx: 350, wallW: 0.42, spikeW: 0.20, towerW: 0.06, rampW: 0.10, comboChance: 0,    towerIntervalMs: 1200, dartSpeed: 460 },
-    { gapMin: 760,  gapRand: 140, animalSpeedMult: 1.15, animalLeadPx: 400, wallW: 0.33, spikeW: 0.15, towerW: 0.12, rampW: 0.10, comboChance: 0.15, towerIntervalMs: 1000, dartSpeed: 460 },
-    { gapMin: 640,  gapRand: 120, animalSpeedMult: 1.35, animalLeadPx: 450, wallW: 0.24, spikeW: 0.14, towerW: 0.17, rampW: 0.12, comboChance: 0.25, towerIntervalMs: 800,  dartSpeed: 540 },
-    { gapMin: 560,  gapRand: 100, animalSpeedMult: 1.6,  animalLeadPx: 500, wallW: 0.18, spikeW: 0.12, towerW: 0.20, rampW: 0.12, comboChance: 0.35, towerIntervalMs: 650,  dartSpeed: 620 },
+    { gapMin: 850,  gapRand: 150, animalSpeedMult: 1.0,  animalLeadPx: 350, wallW: 0.42, spikeW: 0.20, towerW: 0.06, rampW: 0.10, comboChance: 0,    animalPackChance: 0.50, animalEscortChance: 0.60, towerIntervalMs: 1200, dartSpeed: 460 },
+    { gapMin: 650,  gapRand: 140, animalSpeedMult: 1.15, animalLeadPx: 400, wallW: 0.33, spikeW: 0.15, towerW: 0.12, rampW: 0.10, comboChance: 0.15, animalPackChance: 0.55, animalEscortChance: 0.65, towerIntervalMs: 1000, dartSpeed: 460 },
+    { gapMin: 550,  gapRand: 120, animalSpeedMult: 1.35, animalLeadPx: 450, wallW: 0.24, spikeW: 0.14, towerW: 0.17, rampW: 0.12, comboChance: 0.25, animalPackChance: 0.60, animalEscortChance: 0.70, towerIntervalMs: 800,  dartSpeed: 540 },
+    { gapMin: 540,  gapRand: 100, animalSpeedMult: 1.6,  animalLeadPx: 500, wallW: 0.18, spikeW: 0.12, towerW: 0.20, rampW: 0.12, comboChance: 0.35, animalPackChance: 0.65, animalEscortChance: 0.75, towerIntervalMs: 650,  dartSpeed: 620 },
     // Modo infinito (pós-portão). t6 é o TETO — justo mas implacável:
     // dardo 700 = fechamento 1150px/s → ~0,73s de reação + telegraph;
     // gapMin 540 = piso do ciclo do dash (1,2s × 450px/s), nunca abaixo.
-    { gapMin: 540,  gapRand: 90,  animalSpeedMult: 1.8,  animalLeadPx: 520, wallW: 0.14, spikeW: 0.12, towerW: 0.22, rampW: 0.14, comboChance: 0.42, towerIntervalMs: 580,  dartSpeed: 660 },
-    { gapMin: 540,  gapRand: 80,  animalSpeedMult: 2.0,  animalLeadPx: 560, wallW: 0.12, spikeW: 0.12, towerW: 0.24, rampW: 0.14, comboChance: 0.50, towerIntervalMs: 520,  dartSpeed: 700 },
+    { gapMin: 540,  gapRand: 90,  animalSpeedMult: 1.8,  animalLeadPx: 520, wallW: 0.14, spikeW: 0.12, towerW: 0.22, rampW: 0.14, comboChance: 0.42, animalPackChance: 0.70, animalEscortChance: 0.80, towerIntervalMs: 580,  dartSpeed: 660 },
+    { gapMin: 540,  gapRand: 80,  animalSpeedMult: 2.0,  animalLeadPx: 560, wallW: 0.12, spikeW: 0.12, towerW: 0.24, rampW: 0.14, comboChance: 0.50, animalPackChance: 0.75, animalEscortChance: 0.80, towerIntervalMs: 520,  dartSpeed: 700 },
   ],
+
+  // Distância do segundo animal do par (à frente do primeiro)
+  ANIMAL_PACK_OFFSET_PX: 300,
+
+  // Knockback do animal atropelado: diagonal superior DIREITA (v1.8, 15/08 —
+  // era esquerda e mais lento; a rotação continua a mesma no Animal.knockback)
+  ANIMAL_KB_VX_MIN: 350,
+  ANIMAL_KB_VX_MAX: 650,
+  ANIMAL_KB_VY_MIN: -800,
+  ANIMAL_KB_VY_MAX: -500,
 
   // Abertura guiada: os 3 primeiros obstáculos são FIXOS e em ordem de lição.
   // Antes da v1.6 o primeiro obstáculo nascia em x=1480 (34m, 4,3s de corrida)

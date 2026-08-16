@@ -144,6 +144,70 @@ ok('rampage: parede quebrou mesmo desalinhado da fresta',
   smash.wallBroken === true || smash.wallBroken === 'reciclada', String(smash.wallBroken));
 ok('rampage: rino continua vivo', smash.gameOver === false);
 
+// ---------- 4b. v1.8: o topo da parede desaba (crop + tombo + pool limpo) ----------
+const collapse = await page.evaluate(async () => {
+  const s = window.game.scene.keys.GameScene;
+  const sprite = s.rhino.getSprite();
+  // Parede do zoo à frente — o rampage ainda está ativo, quebra no contato
+  s.spawnManager.spawnWall(sprite.x + 700, 'ground');
+  const wall = s.spawnManager.getWallsGroup().children.entries
+    .find((e) => e.active && !e.broken);
+  await new Promise((resolve) => {
+    const t0 = performance.now();
+    const tick = () => ((wall.broken || performance.now() - t0 > 4000)
+      ? resolve() : requestAnimationFrame(tick));
+    tick();
+  });
+  const justBroken = {
+    broken: wall.broken,
+    cropped: wall.isCropped,
+    hasPiece: Boolean(wall.topPiece),
+    pieceActive: wall.topPiece ? wall.topPiece.active : false,
+  };
+  await new Promise((r) => setTimeout(r, 350));
+  const midAngle = wall.topPiece ? wall.topPiece.angle : -1;
+  await new Promise((r) => setTimeout(r, 950));
+  const pieceGone = wall.topPiece === null;
+  // Reciclagem do pool de 8: deactivate + reset DEVEM limpar crop e pedaço
+  wall.deactivate();
+  wall.reset(999000);
+  const recycled = { cropped: wall.isCropped, piece: wall.topPiece, broken: wall.broken };
+  wall.deactivate();
+  return { justBroken, midAngle, pieceGone, recycled };
+});
+ok('desabamento: parede quebrada vira toco cropado com pedaço animando',
+  collapse.justBroken.broken && collapse.justBroken.cropped &&
+  collapse.justBroken.hasPiece && collapse.justBroken.pieceActive,
+  JSON.stringify(collapse.justBroken));
+// v1.8 (15/08): o tombo virou para a ESQUERDA — ângulo negativo crescendo em
+// módulo (o sentinela "sem pedaço" é -1, que segue reprovando: -1 > -5)
+ok('desabamento: o topo tomba para a esquerda (ângulo negativo crescendo)',
+  collapse.midAngle < -5, `angle=${collapse.midAngle.toFixed(1)}`);
+ok('desabamento: pedaço se autodestrói ao fim do tombo', collapse.pieceGone);
+ok('desabamento: reciclagem limpa crop e pedaço (sem vazamento no pool)',
+  !collapse.recycled.cropped && collapse.recycled.piece === null && !collapse.recycled.broken,
+  JSON.stringify(collapse.recycled));
+
+// Prédio da cidade (pós-portão): mesma família de contrato, sem depender de
+// atravessar a arena do boss — quebra direta na entidade
+const city = await page.evaluate(() => {
+  const s = window.game.scene.keys.GameScene;
+  s.spawnManager.spawnWall(50000, 'high');
+  const w = s.spawnManager.getWallsGroup().children.entries
+    .find((e) => e.active && e.x === 50000);
+  const tex = w.texture.key;
+  const skin = w.skin;
+  w.break();
+  const brokenTex = w.texture.key;
+  const cropped = w.isCropped;
+  w.deactivate();
+  return { tex, skin, brokenTex, cropped };
+});
+ok('cidade: parede pós-portão é prédio (-city) e o toco cropa igual',
+  city.skin === '-city' && city.tex === 'cracked-high-city' &&
+  city.brokenTex === 'cracked-high-city-broken' && city.cropped,
+  JSON.stringify(city));
+
 // ---------- 5. Drenagem reverte a transformação ----------
 const drained = await page.evaluate(async () => {
   const { Constants } = await import('./js/utils/Constants.js');

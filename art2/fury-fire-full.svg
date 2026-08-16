@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" width="60" height="60">
+  <!-- FURIOUS RHINO v1.4.0 - proposta "cartoon rico" (em avaliacao, nao usada pelo jogo).
+       Mesma geometria do art/fury-fire-full.svg (o par full/empty precisa alinhar no setCrop). -->
+  <defs>
+    <linearGradient id="fo" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff6b3a"/>
+      <stop offset="1" stop-color="#d63113"/>
+    </linearGradient>
+    <linearGradient id="fm2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffa63a"/>
+      <stop offset="1" stop-color="#ef7212"/>
+    </linearGradient>
+    <linearGradient id="fc" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe97e"/>
+      <stop offset="1" stop-color="#ffc43a"/>
+    </linearGradient>
+  </defs>
+  <g opacity="1">
+    <!-- sparks -->
+    <circle cx="19" cy="9" r="1.4" fill="#ffb63a" opacity="0.9"/>
+    <circle cx="42" cy="6.5" r="1.1" fill="#ffd94a" opacity="0.9"/>
+    <circle cx="47" cy="30" r="1" fill="#ff8a3a" opacity="0.8"/>
+    <!-- outer flame -->
+    <path d="M30 4 Q34 14 42 20 Q52 28 50 40 Q48 54 30 56 Q12 54 10 40 Q8 28 18 20 Q26 14 26 8 Q28 5 30 4 Z"
+          fill="url(#fo)" stroke="#7a1c0c" stroke-width="3" stroke-linejoin="round"/>
+    <!-- side lick -->
+    <path d="M44 18 Q48 14 47 9 Q52 15 50 22 Q48 26 44 24 Z" fill="url(#fo)" stroke="#7a1c0c" stroke-width="2.5" stroke-linejoin="round"/>
+    <!-- mid flame -->
+    <path d="M30 18 Q33 26 39 31 Q45 37 42 45 Q39 52 30 53 Q21 52 18 45 Q15 37 21 31 Q27 26 30 18 Z"
+          fill="url(#fm2)"/>
+    <!-- hot core -->
+    <path d="M30 32 Q35 38 34 44 Q33 50 30 50 Q27 50 26 44 Q25 38 30 32 Z" fill="url(#fc)"/>
+    <path d="M30 40 Q32.5 44 31.5 48 Q30.8 50.2 30 50.2 Q29 50.2 28.5 48 Q27.8 44 30 40 Z" fill="#fff3c0"/>
+  </g>
+</svg>

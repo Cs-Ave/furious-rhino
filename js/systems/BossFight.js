@@ -115,7 +115,9 @@ export class BossFight {
     const rampage = scene.furySystem.rampage;
     const smash = scene.rhino.dashState === 'active' || rampage;
 
-    if (smash && (aligned || rampage)) {
+    // v1.8: rampage dispensa o DASH (smash), mas não mais o alinhamento —
+    // era o exploit que anulava a luta (120 camadas × 6 quiques × 8 mortes)
+    if (smash && aligned) {
       this.breakLayer();
     } else {
       // Errou (sem dash, ou dash fora da fresta): quique cheio + clang.

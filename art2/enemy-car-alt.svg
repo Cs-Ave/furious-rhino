@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 46" width="108" height="46">
+  <!-- FURIOUS RHINO - proposta bioma cidade (em avaliacao, nao usada pelo jogo).
+       Carro popular hatch vermelho rechonchudo vindo na contramao, aponta para a direita.
+       hitbox sugerida: 96x32 em offset 6,12.
+       Entre frames: so os raios das calotas giram ~36 graus e os tracinhos de velocidade
+       atras do carro aparecem/somem. -->
+  <defs>
+    <linearGradient id="ccBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9402f"/>
+      <stop offset="1" stop-color="#a82418"/>
+    </linearGradient>
+    <linearGradient id="ccGlass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cfeafb"/>
+      <stop offset="1" stop-color="#8fc6e8"/>
+    </linearGradient>
+  </defs>
+  <!-- sombra -->
+  <ellipse cx="54" cy="43.9" rx="46" ry="2" fill="#14161a" opacity="0.5"/>
+  <!-- tracinhos de velocidade (so no frame alt) -->
+  <path d="M1 15.5 L8.5 15.5 M0.5 22.5 L7 22.5 M2 29.5 L9 29.5" fill="none" stroke="#9aa3ad" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <!-- carroceria -->
+  <path d="M14 37 Q7 37 6.5 30 L6.5 23 Q6.5 17.5 11.5 15 L16 9.5 Q19 5.5 27 5.5 L57 5.5 Q64 5.5 68.5 9 L80 16.5 L92 18 Q100 19 101.5 25 L101.5 30.5 Q101.5 37 94 37 Z" fill="url(#ccBody)" stroke="#14161a" stroke-width="2.5" stroke-linejoin="round"/>
+  <rect x="11" y="32.6" width="87" height="3.8" rx="1.9" fill="#8a1d12" opacity="0.5"/>
+  <path d="M12 25.5 Q52 23 97 26.5" fill="none" stroke="#8a1d12" stroke-width="1.3" opacity="0.55"/>
+  <!-- brilho de pintura -->
+  <path d="M25 8.2 Q42 6 57 7.6" fill="none" stroke="#f7a08e" stroke-width="2.4" stroke-linecap="round" opacity="0.85"/>
+  <path d="M83 20 Q92 21 96.5 24.6" fill="none" stroke="#f7a08e" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+  <!-- vidros -->
+  <path d="M17.8 16.8 L21.3 10.4 Q22.8 8 27.5 8 L33 8 L33 16.8 Z" fill="url(#ccGlass)" stroke="#14161a" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M37 8 L55 8 Q60.5 8 63.4 10.4 L69.6 16.8 L37 16.8 Z" fill="url(#ccGlass)" stroke="#14161a" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M70.6 10.9 L78.8 16.1 L74.6 16.7 L68.4 12.4 Z" fill="url(#ccGlass)" stroke="#14161a" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- reflexo dos vidros -->
+  <path d="M23 16.8 L28 8 L30.4 8 L25.4 16.8 Z" fill="#ffffff" opacity="0.45"/>
+  <path d="M44 16.8 L51 8 L54.6 8 L47.6 16.8 Z" fill="#ffffff" opacity="0.5"/>
+  <path d="M57.5 16.8 L63.6 9.4" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" opacity="0.5"/>
+  <!-- portas e macanetas -->
+  <path d="M36.2 18.5 Q35.4 27 36.6 35.8" fill="none" stroke="#14161a" stroke-width="1.5" opacity="0.85"/>
+  <path d="M69 18.3 Q70 27 69.2 35.8" fill="none" stroke="#14161a" stroke-width="1.5" opacity="0.85"/>
+  <rect x="39.5" y="20.8" width="6" height="2.4" rx="1.2" fill="#c7ccd5" stroke="#14161a" stroke-width="1.2"/>
+  <rect x="61.5" y="20.8" width="5.5" height="2.4" rx="1.2" fill="#c7ccd5" stroke="#14161a" stroke-width="1.2"/>
+  <!-- retrovisor -->
+  <path d="M73.4 15.6 L76.6 13" fill="none" stroke="#14161a" stroke-width="2" stroke-linecap="round"/>
+  <rect x="75.4" y="10" width="5.6" height="4.2" rx="1.5" fill="#c9351f" stroke="#14161a" stroke-width="1.6"/>
+  <rect x="76.4" y="11" width="3.6" height="2.2" rx="0.9" fill="#cfeafb"/>
+  <!-- farol aceso -->
+  <ellipse cx="97.4" cy="22.8" rx="3.5" ry="2.6" fill="#ffd75e" stroke="#14161a" stroke-width="1.8"/>
+  <circle cx="96.2" cy="22" r="0.9" fill="#ffffff" opacity="0.95"/>
+  <path d="M102 20.6 L104.6 19.4 M102.6 23 L105.4 23" stroke="#ffd75e" stroke-width="1.4" stroke-linecap="round" opacity="0.8"/>
+  <!-- lanterna traseira -->
+  <rect x="4.6" y="19.6" width="3.4" height="6.4" rx="1.4" fill="#e0402c" stroke="#14161a" stroke-width="1.6"/>
+  <rect x="5.3" y="22.6" width="2" height="2.6" rx="0.9" fill="#ff8b3d"/>
+  <!-- para-choques -->
+  <rect x="96.5" y="28.5" width="9.5" height="6.8" rx="2.6" fill="#9aa0ab" stroke="#14161a" stroke-width="2"/>
+  <rect x="2" y="28.5" width="8" height="6.8" rx="2.6" fill="#9aa0ab" stroke="#14161a" stroke-width="2"/>
+  <!-- placa dianteira -->
+  <rect x="98" y="30.2" width="7" height="3.6" rx="0.8" fill="#d7dae0" stroke="#14161a" stroke-width="1.2"/>
+  <!-- rodas -->
+  <circle cx="26" cy="36.5" r="8" fill="#23262c" stroke="#14161a" stroke-width="2.4"/>
+  <circle cx="26" cy="36.5" r="5.2" fill="#3a3e46"/>
+  <circle cx="26" cy="36.5" r="4.6" fill="#c7ccd5" stroke="#2a2d33" stroke-width="1"/>
+  <path d="M26 36.5 L28.35 33.25 M26 36.5 L29.8 37.75 M26 36.5 L26 40.5 M26 36.5 L22.2 37.75 M26 36.5 L23.65 33.25" stroke="#5a616e" stroke-width="1.3" stroke-linecap="round"/>
+  <circle cx="26" cy="36.5" r="1.3" fill="#6a7180"/>
+  <circle cx="84" cy="36.5" r="8" fill="#23262c" stroke="#14161a" stroke-width="2.4"/>
+  <circle cx="84" cy="36.5" r="5.2" fill="#3a3e46"/>
+  <circle cx="84" cy="36.5" r="4.6" fill="#c7ccd5" stroke="#2a2d33" stroke-width="1"/>
+  <path d="M84 36.5 L86.35 33.25 M84 36.5 L87.8 37.75 M84 36.5 L84 40.5 M84 36.5 L80.2 37.75 M84 36.5 L81.65 33.25" stroke="#5a616e" stroke-width="1.3" stroke-linecap="round"/>
+  <circle cx="84" cy="36.5" r="1.3" fill="#6a7180"/>
+  <!-- para-lamas -->
+  <path d="M17.2 37 A8.8 8.8 0 0 1 34.8 37" fill="none" stroke="#14161a" stroke-width="2.6"/>
+  <path d="M75.2 37 A8.8 8.8 0 0 1 92.8 37" fill="none" stroke="#14161a" stroke-width="2.6"/>
+</svg>

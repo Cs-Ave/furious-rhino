@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 42 64" width="42" height="64">
+  <!-- FURIOUS RHINO - proposta bioma cidade (em avaliacao, nao usada pelo jogo).
+       Executivo apressado em panico: terno cinza-azulado, gravata vermelha
+       esvoacando para tras, maleta marrom soltando papeis, celular aceso na
+       mao da frente, oculos retangulares tortos e boca aberta de grito.
+       Aponta para a direita.
+       Hitbox sugerida: 28x52 com offset 7,10.
+       Entre frames: pernas trocam de fase, a gravata muda o balanco
+       (esvoaca mais para cima) e os papeis voando trocam de posicao;
+       o resto fica identico. -->
+  <defs>
+    <linearGradient id="stSuit" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#46536b"/>
+      <stop offset="1" stop-color="#333e52"/>
+    </linearGradient>
+    <linearGradient id="stCase" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a06a38"/>
+      <stop offset="1" stop-color="#7c4e22"/>
+    </linearGradient>
+    <radialGradient id="stSkin" cx="0.42" cy="0.36" r="0.8">
+      <stop offset="0" stop-color="#ffd9ae"/>
+      <stop offset="1" stop-color="#f2b884"/>
+    </radialGradient>
+  </defs>
+  <!-- gotas de suor -->
+  <path d="M4.6 3 Q6.2 5.8 4.6 7.3 Q3 5.8 4.6 3 Z" fill="#6cc7ec" stroke="#2b7fae" stroke-width="1"/>
+  <path d="M37.2 4 Q38.7 6.6 37.2 8 Q35.7 6.6 37.2 4 Z" fill="#6cc7ec" stroke="#2b7fae" stroke-width="1"/>
+  <!-- papeis voando da maleta -->
+  <g transform="translate(0 0)">
+    <rect x="1.5" y="26" width="6.4" height="8" rx="0.8" fill="#f6f4ef" stroke="#17171b" stroke-width="1.3" transform="rotate(-14 4.7 30)"/>
+    <path d="M3 29 L6.6 29 M3 31.4 L6.6 31.4" stroke="#c9ccd4" stroke-width="0.9" stroke-linecap="round" transform="rotate(-14 4.7 30)"/>
+    <rect x="8.5" y="33.5" width="6.4" height="8" rx="0.8" fill="#f6f4ef" stroke="#17171b" stroke-width="1.3" transform="rotate(12 11.7 37.5)"/>
+    <path d="M10 36.5 L13.6 36.5 M10 38.9 L13.6 38.9" stroke="#c9ccd4" stroke-width="0.9" stroke-linecap="round" transform="rotate(12 11.7 37.5)"/>
+    <rect x="11" y="39.5" width="5.6" height="7" rx="0.8" fill="#f6f4ef" stroke="#17171b" stroke-width="1.2" transform="rotate(24 13.8 43)"/>
+  </g>
+  <!-- gravata vermelha esvoacando para tras -->
+  <g transform="rotate(5 21.5 28.2)">
+    <path d="M21 28.6 Q14.5 31.4 9.5 30 Q5.4 28.8 3.4 25 Q7.2 27 10.6 26.8 Q15.5 26.5 21 25.8 Z" fill="#d8302f" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M8 28.6 Q12 28 16 27.4" fill="none" stroke="#a51e20" stroke-width="1.2" stroke-linecap="round"/>
+  </g>
+  <!-- braco de tras com a maleta -->
+  <path d="M14 31 Q9 35 7 39.5" fill="none" stroke="#17171b" stroke-width="5.4" stroke-linecap="round"/>
+  <path d="M14 31 Q9 35 7 39.5" fill="none" stroke="#46536b" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="6.8" cy="40.5" r="2.8" fill="url(#stSkin)" stroke="#17171b" stroke-width="1.8"/>
+  <path d="M4.5 43.2 Q6.8 41 9.5 43.2" fill="none" stroke="#17171b" stroke-width="2" stroke-linecap="round"/>
+  <rect x="1.2" y="43" width="12" height="9" rx="1.6" fill="url(#stCase)" stroke="#17171b" stroke-width="2"/>
+  <path d="M1.2 46.2 L13.2 46.2" stroke="#5c3a18" stroke-width="1.2"/>
+  <rect x="6" y="45" width="2.4" height="2" rx="0.5" fill="#e8c26a" stroke="#17171b" stroke-width="1"/>
+  <path d="M3 48.6 Q7 47.8 11.4 48.6" fill="none" stroke="#b98a4a" stroke-width="1" stroke-linecap="round" opacity="0.8"/>
+  <!-- pernas em disparada -->
+  <g>
+    <path d="M18.5 46.5 Q14 51 11.5 56" fill="none" stroke="#17171b" stroke-width="6.4" stroke-linecap="round"/>
+    <path d="M18.5 46.5 Q14 51 11.5 56" fill="none" stroke="#333e52" stroke-width="3.8" stroke-linecap="round"/>
+    <rect x="4.5" y="54.5" width="10" height="5" rx="2" fill="#23232b" stroke="#17171b" stroke-width="1.8"/>
+    <path d="M6 57.6 L12.8 57.6" stroke="#4a4a58" stroke-width="1" stroke-linecap="round"/>
+  </g>
+  <g>
+    <path d="M24.5 46.5 Q28.5 52 30 57" fill="none" stroke="#17171b" stroke-width="6.4" stroke-linecap="round"/>
+    <path d="M24.5 46.5 Q28.5 52 30 57" fill="none" stroke="#3a4660" stroke-width="3.8" stroke-linecap="round"/>
+    <rect x="26" y="57" width="10" height="5" rx="2" fill="#23232b" stroke="#17171b" stroke-width="1.8"/>
+    <path d="M27.5 60 L34.3 60" stroke="#4a4a58" stroke-width="1" stroke-linecap="round"/>
+  </g>
+  <!-- tronco do terno -->
+  <path d="M12.5 27.5 Q21.5 24.5 30.5 27.5 L32.5 45 Q21.5 48.5 10.5 45 Z" fill="url(#stSuit)" stroke="#17171b" stroke-width="2.2" stroke-linejoin="round"/>
+  <ellipse cx="21" cy="42.8" rx="9.5" ry="3.2" fill="#232c3d" opacity="0.5"/>
+  <!-- camisa branca e no da gravata -->
+  <path d="M18 27.5 L21.5 26.5 L25 27.5 L24 34 L21.5 36 L19 34 Z" fill="#f6f4ef" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M19.9 27.4 L23.1 27.4 L23.7 29.8 L21.5 31.2 L19.3 29.8 Z" fill="#d8302f" stroke="#17171b" stroke-width="1.4" stroke-linejoin="round"/>
+  <!-- lapelas -->
+  <path d="M18 27.5 L15.5 33 L18.8 31 Z" fill="#2c3648" stroke="#17171b" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M25 27.5 L27.5 33 L24.2 31 Z" fill="#2c3648" stroke="#17171b" stroke-width="1.2" stroke-linejoin="round"/>
+  <!-- lenco no bolso e costura -->
+  <path d="M26.5 33.5 L29 33.5 L27.8 35.2 Z" fill="#f6f4ef" stroke="#17171b" stroke-width="1"/>
+  <path d="M14.2 30 Q15.8 34.6 15 39" fill="none" stroke="#5a6a86" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+  <circle cx="20" cy="39.5" r="0.9" fill="#17171b"/>
+  <!-- quadril da calca -->
+  <path d="M11.5 43.5 Q21.5 46.5 31.5 43.5 L31 50 Q21.5 52.5 12 50 Z" fill="#2b3242" stroke="#17171b" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M21.5 46.4 L21.5 50.6" stroke="#1d222e" stroke-width="1.4" stroke-linecap="round"/>
+  <!-- cabeca -->
+  <circle cx="21.5" cy="15" r="11.5" fill="url(#stSkin)" stroke="#17171b" stroke-width="2.4"/>
+  <!-- orelha -->
+  <circle cx="11.4" cy="16.5" r="2.1" fill="#f2b884" stroke="#17171b" stroke-width="1.6"/>
+  <!-- cabelo com penteado repartido -->
+  <path d="M10.2 12.6 Q8.6 5 15.4 3.2 Q20.6 1.6 26 2.8 Q32.4 4.2 32.9 9.6 Q33.1 11.6 32 13.2 Q30.2 9.4 25.8 8.6 Q20.4 7.6 16.2 9 Q12.4 10.2 10.2 12.6 Z" fill="#3e2a1a" stroke="#17171b" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M16.2 9 Q17.4 6 20.2 4.6" fill="none" stroke="#6a4a30" stroke-width="1.2" stroke-linecap="round"/>
+  <path d="M26.6 2.9 Q28.4 1 30.4 2" fill="none" stroke="#3e2a1a" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- sobrancelhas erguidas -->
+  <path d="M13.6 9 Q16.8 7.6 20 8.6 M24 8.2 Q27.4 7.2 30.6 8.4" fill="none" stroke="#17171b" stroke-width="1.6" stroke-linecap="round"/>
+  <!-- olhos arregalados -->
+  <circle cx="17.6" cy="14.9" r="3.9" fill="#ffffff" stroke="#17171b" stroke-width="1.6"/>
+  <circle cx="28" cy="13.6" r="3.9" fill="#ffffff" stroke="#17171b" stroke-width="1.6"/>
+  <circle cx="18.7" cy="15.2" r="1.9" fill="#17171b"/>
+  <circle cx="29" cy="13.9" r="1.9" fill="#17171b"/>
+  <circle cx="18.1" cy="14.5" r="0.7" fill="#ffffff"/>
+  <circle cx="28.4" cy="13.3" r="0.7" fill="#ffffff"/>
+  <!-- oculos retangulares tortos -->
+  <g transform="rotate(-7 22.5 14.2)">
+    <rect x="13.4" y="10.6" width="8.8" height="7" rx="1.5" fill="none" stroke="#17171b" stroke-width="1.9"/>
+    <rect x="24.2" y="10.2" width="8.8" height="7" rx="1.5" fill="none" stroke="#17171b" stroke-width="1.9"/>
+    <path d="M22.2 13.6 L24.2 13.4" fill="none" stroke="#17171b" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M13.4 13.6 L10.8 15" fill="none" stroke="#17171b" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M15 16.4 L18.6 11.6 M25.4 16 L29 11.2" fill="none" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
+  </g>
+  <!-- nariz -->
+  <path d="M23 17.8 Q24.2 18.6 23.3 19.6" fill="none" stroke="#d99a66" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- boca aberta em grito -->
+  <ellipse cx="24.8" cy="22.6" rx="4" ry="3" fill="#611e29" stroke="#17171b" stroke-width="1.6"/>
+  <rect x="22.8" y="19.9" width="4" height="1.3" rx="0.6" fill="#ffffff"/>
+  <ellipse cx="24.8" cy="24.4" rx="2" ry="1" fill="#d3606a"/>
+  <!-- bochecha -->
+  <path d="M14 19.6 Q15.4 20.2 16.6 19.8" fill="none" stroke="#e6a06c" stroke-width="1.1" stroke-linecap="round"/>
+  <!-- braco da frente com celular aceso -->
+  <path d="M28.5 31.5 Q33.5 28 35.5 24.5" fill="none" stroke="#17171b" stroke-width="5.4" stroke-linecap="round"/>
+  <path d="M28.5 31.5 Q33.5 28 35.5 24.5" fill="none" stroke="#46536b" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="35.8" cy="23.6" r="2.8" fill="url(#stSkin)" stroke="#17171b" stroke-width="1.8"/>
+  <rect x="33.2" y="13.8" width="6.2" height="9.6" rx="1.3" fill="#23262c" stroke="#17171b" stroke-width="1.6" transform="rotate(10 36.3 18.6)"/>
+  <rect x="34.3" y="15.2" width="4" height="6.8" rx="0.7" fill="#cfeafb" transform="rotate(10 36.3 18.6)"/>
+  <circle cx="35.6" cy="16.8" r="0.8" fill="#ffffff" opacity="0.9"/>
+</svg>

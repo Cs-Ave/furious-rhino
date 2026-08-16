@@ -249,6 +249,76 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
     `n=${settled.length} desvio=${worst.toFixed(1)}px topo=${minBottom.toFixed(0)}`);
 }
 
+// ---------- 10b/10c. Par de animais + knockback p/ direita (v1.8) ----------
+{
+  const r = await page.evaluate(async () => {
+    const { Constants } = await import('./js/utils/Constants.js');
+    const s = window.game.scene.keys.GameScene;
+    const sm = s.spawnManager;
+    sm.getAnimalsGroup().children.entries.forEach((e) => e.deactivate());
+    sm.openingIndex = 999;
+    // Roleta 100% animal + par garantido, no tier 1 (spawn antes de x=8000)
+    const t0 = Constants.DIFFICULTY_TIERS[0];
+    const antes = { ...t0 };
+    Object.assign(t0, {
+      wallW: 0, spikeW: 0, towerW: 0, rampW: 0, comboChance: 0,
+      animalPackChance: 1, gapMin: 600, gapRand: 0,
+    });
+    sm.nextSpawnX = 7000;
+    // câmera sintética: spawnObstacles só lê scrollX e width
+    sm.spawnObstacles({ scrollX: 6500, width: 1280 });
+    const vivos = sm.getAnimalsGroup().children.entries.filter((e) => e.active);
+    const count = vivos.length;
+    // Knockback: o atropelado voa para a diagonal superior DIREITA
+    const alvo = vivos[0];
+    alvo.knockback();
+    const { x: vx, y: vy } = alvo.body.velocity;
+    // restaura o mundo para os blocos seguintes
+    Object.assign(t0, antes);
+    vivos.forEach((e) => e.deactivate());
+    sm.nextSpawnX = 900000;
+    return { count, vx, vy };
+  });
+  ok('10b. par de animais: chance 1 dobra os spawns do ramo animal',
+    r.count === 4, `animais=${r.count} (2 sorteios × par)`);
+  ok('10c. animal atropelado voa para cima-DIREITA',
+    r.vx > 0 && r.vy < 0, `vx=${Math.round(r.vx)} vy=${Math.round(r.vy)}`);
+}
+
+// ---------- 10d. Escolta: animal nasce junto do obstáculo ----------
+{
+  const r = await page.evaluate(async () => {
+    const { Constants } = await import('./js/utils/Constants.js');
+    const s = window.game.scene.keys.GameScene;
+    const sm = s.spawnManager;
+    sm.getAnimalsGroup().children.entries.forEach((e) => e.deactivate());
+    sm.getWallsGroup().children.entries.forEach((e) => e.deactivate());
+    sm.openingIndex = 999;
+    // Roleta 100% parede + escolta garantida, sem par nem combo
+    const t0 = Constants.DIFFICULTY_TIERS[0];
+    const antes = { ...t0 };
+    Object.assign(t0, {
+      wallW: 1, spikeW: 0, towerW: 0, rampW: 0, comboChance: 0,
+      animalPackChance: 0, animalEscortChance: 1, gapMin: 600, gapRand: 0,
+    });
+    sm.nextSpawnX = 7000;
+    sm.spawnObstacles({ scrollX: 6500, width: 1280 });
+    const animais = sm.getAnimalsGroup().children.entries.filter((e) => e.active);
+    const paredes = sm.getWallsGroup().children.entries.filter((e) => e.active);
+    // cada parede em x deve ter um animal terrestre a +280
+    const pares = paredes.filter((w) =>
+      animais.some((a) => Math.abs(a.x - (w.x + 280)) < 2)).length;
+    Object.assign(t0, antes);
+    animais.forEach((e) => e.deactivate());
+    paredes.forEach((e) => e.deactivate());
+    sm.nextSpawnX = 900000;
+    return { paredes: paredes.length, animais: animais.length, pares };
+  });
+  ok('10d. escolta: cada parede sorteada vem com um animal a +280',
+    r.paredes >= 2 && r.animais === r.paredes && r.pares === r.paredes,
+    `paredes=${r.paredes} animais=${r.animais} pares=${r.pares}`);
+}
+
 // ---------- 12-14. Abertura guiada, numa corrida de verdade ----------
 {
   const p2 = await context.newPage();
@@ -600,6 +670,30 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
     invite.nomeDepois === 'Anonimo_99' && invite.aindaAuto === '1' &&
     invite.fechou === 'none',
     `"${invite.title}" / "${invite.skipTxt}" / nome=${invite.nomeDepois}`);
+
+  // Desistir pela pausa: a run é cancelada — a tentativa do startRun volta
+  // (50 seed → 51 na corrida → 50 de novo), runs[] não ganha entrada e o
+  // reload cai na start screen. O endGame nunca roda.
+  const antesQuit = await p5.evaluate(() => ({
+    attempts: localStorage.getItem('furious_rhino_attempts'),
+    runs: localStorage.getItem('furious_rhino_runs'),
+  }));
+  await p5.keyboard.press('p');
+  await p5.waitForTimeout(300);
+  await p5.click('#pause-quit');
+  await p5.waitForLoadState('load');
+  await p5.waitForTimeout(1500);
+  const depoisQuit = await p5.evaluate(() => ({
+    attempts: localStorage.getItem('furious_rhino_attempts'),
+    runs: localStorage.getItem('furious_rhino_runs'),
+    startScreen: getComputedStyle(document.getElementById('start-screen')).display,
+    started: document.body.classList.contains('started'),
+  }));
+  ok('25. desistir cancela a run: tentativa devolvida, runs[] intacta, start screen de volta',
+    antesQuit.attempts === '51' && depoisQuit.attempts === '50' &&
+    depoisQuit.runs === antesQuit.runs &&
+    depoisQuit.startScreen !== 'none' && !depoisQuit.started,
+    `attempts=${antesQuit.attempts}→${depoisQuit.attempts} runsIguais=${depoisQuit.runs === antesQuit.runs} start=${depoisQuit.startScreen}`);
 
   errors.push(...err5);
   await p5.close();

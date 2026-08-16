@@ -177,7 +177,7 @@ function allRuns(docs, sinceS = since()) {
         id: d.id, t, m: num(r.m), s: num(r.s), c: str(r.c) || null,
         w: num(r.w), r: num(r.r), o: num(r.o), a: num(r.a),
         j: num(r.j), d: num(r.d), x: num(r.x), f: num(r.f), k: num(r.k),
-        b: num(r.b), q: num(r.q), z: num(r.z),
+        b: num(r.b), q: num(r.q), z: num(r.z), n: num(r.n),
         attemptIndex: base + i + 1,
       });
     });

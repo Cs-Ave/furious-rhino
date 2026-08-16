@@ -1,23 +1,22 @@
 import { Constants } from '../utils/Constants.js';
+import { SkinSystem } from '../systems/SkinSystem.js';
 
 export class Rhino {
-  constructor(scene, x, y) {
+  constructor(scene, x, y, skin = null) {
     this.scene = scene;
-    this.sprite = scene.physics.add.sprite(x, y, 'rhino-run-0').setOrigin(0.5, 1);
-    // Textura rasterizada a 2x, exibida a 1/2 (nitidez); Arcade escala o body
-    // junto, então os setSize/setOffset abaixo (em px de textura) multiplicam
-    // pelo mesmo fator e o tamanho em mundo fica idêntico ao de sempre
-    const S = Constants.ART_RASTER_SCALE;
-    this.sprite.setScale(1 / S);
+    // v1.8: a skin só troca textura/anim — hitbox, física e âncora da
+    // fumaça (narina) são invariantes do rig de 96×64
+    this.skin = skin || SkinSystem.get('default');
+    this.runAnim = SkinSystem.runAnimKey(this.skin);
+    this.fireAnim = SkinSystem.fireAnimKey(this.skin);
+    this.sprite = scene.physics.add.sprite(x, y, SkinSystem.textureKey(this.skin, 0))
+      .setOrigin(0.5, 1);
     // World bounds only check the ceiling (configured in GameScene) so the
     // infinite jump can't fly the rhino out of the scene
     this.sprite.body.setCollideWorldBounds(true);
-    // Trim horn tip (front) and tail (back) out of the hitbox; body bottom
-    // stays flush with the sprite bottom (10 + 54 = 64) so feet touch ground
-    this.sprite.body.setSize(76 * S, 54 * S);
-    this.sprite.body.setOffset(8 * S, 10 * S);
+    this.applyVisualScale(Constants.RHINO_VISUAL_SCALE);
     this.sprite.body.setVelocityX(Constants.RUN_SPEED);
-    this.sprite.play('rhino-run');
+    this.sprite.play(this.runAnim);
 
     this.jumpCount = 0;
     this.isChargingJump = false;
@@ -32,6 +31,31 @@ export class Rhino {
     // reescreve velocityX. Contador por delta (não timestamp): congela junto
     // com a cena numa pausa e retoma exato.
     this.knockbackMsLeft = 0;
+  }
+
+  // Escala VISUAL do rino (v1.8.1: +15% porque as skins vetorizadas são mais
+  // magras e o leão de 1.5x passava o protagonista). A hitbox NÃO acompanha:
+  // o Arcade multiplica tamanho E offset do body pela escala do sprite, então
+  // os valores em px de textura são divididos por k para o body continuar
+  // 76×54 px de MUNDO — todo o tuning de campo (rampas, boss, dardos) segue
+  // valendo. Fundo do body colado nos pés e centro-x 2px à esquerda do centro
+  // do sprite, como sempre (k=1 reproduz os 8/10 históricos). Chamado no boot
+  // e pelo slider do TuningPanel (calibração ao vivo).
+  applyVisualScale(k) {
+    const S = Constants.ART_RASTER_SCALE; // textura 2x, exibida a k/2 (nitidez)
+    this.sprite.setScale(k / S);
+    this.sprite.body.setSize(76 * S / k, 54 * S / k);
+    this.sprite.body.setOffset((48 * k - 40) * S / k, (64 * k - 54) * S / k);
+  }
+
+  // v1.8: troca de skin com o jogo carregado (hub na tela inicial e o
+  // refresh de rank do boot). Nunca toca em setSize/setOffset.
+  setSkin(skin) {
+    this.skin = skin;
+    this.runAnim = SkinSystem.runAnimKey(skin);
+    this.fireAnim = SkinSystem.fireAnimKey(skin);
+    this.sprite.setTexture(SkinSystem.textureKey(skin, 0));
+    this.sprite.play(this.runAnim, true);
   }
 
   update(time, delta) {

@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🎨 Gerador de Sprites — Furious Rhino</title>
+<style>
+  :root { --bg:#2a3140; --card:#3a4254; --line:#4a5468; --hi:#ffd23f; --ok:#6aae3a; --err:#ff6a5e; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; background: var(--bg); color: #eee; margin: 0; padding: 20px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 0 0 10px; color: var(--hi); }
+  .muted { color: rgba(255,255,255,.55); font-size: 13px; }
+  .card { background: var(--card); border-radius: 12px; padding: 16px; margin: 14px 0; max-width: 980px; }
+  button { font: inherit; background: #56617a; color: #fff; border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+  button:hover { filter: brightness(1.12); }
+  button:disabled { opacity: .4; cursor: default; }
+  button.primary { background: #b8862c; font-weight: 700; }
+  button.danger { background: #8a4040; }
+  input[type=text] { font: inherit; background: #262c3a; color: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  code { background: #262c3a; padding: 2px 7px; border-radius: 6px; font-size: 13px; }
+  /* painel do servidor */
+  #server-panel { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  #server-dot { font-size: 20px; }
+  #server-help { width: 100%; }
+  /* upload */
+  #drop { border: 2px dashed var(--line); border-radius: 12px; padding: 28px; text-align: center; cursor: pointer; }
+  #drop.armed:hover, #drop.over { border-color: var(--hi); background: rgba(255,210,63,.06); }
+  /* frames */
+  #frames { display: flex; flex-wrap: wrap; gap: 10px; }
+  .frame { position: relative; border: 3px solid transparent; border-radius: 10px; cursor: pointer; background: #e8e2d0; padding: 4px; }
+  .frame img { display: block; max-width: 220px; max-height: 130px; }
+  .frame.sel { border-color: var(--hi); }
+  .frame .badge { position: absolute; top: -10px; left: -10px; background: var(--hi); color: #222; font-weight: 800;
+    border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; }
+  /* paleta */
+  #palette { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .swatch { display: flex; align-items: center; gap: 6px; background: #262c3a; border-radius: 8px; padding: 6px 8px; }
+  .swatch input[type=color] { width: 34px; height: 30px; border: 0; background: none; padding: 0; cursor: pointer; }
+  .swatch label { font-size: 12px; display: flex; align-items: center; gap: 3px; cursor: pointer; }
+  /* resultado */
+  .anim { position: relative; width: 288px; height: 192px; background: #5a89c0; border-radius: 8px; overflow: hidden; }
+  .anim .fr { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; opacity: 0; }
+  .anim svg { width: 288px; height: 192px; }
+  @keyframes c0 { 0%,24.9% {opacity:1} 25%,100% {opacity:0} }
+  @keyframes c1 { 0%,24.9% {opacity:0} 25%,49.9% {opacity:1} 50%,74.9% {opacity:0} 75%,100% {opacity:1} }
+  @keyframes c2 { 0%,49.9% {opacity:0} 50%,74.9% {opacity:1} 75%,100% {opacity:0} }
+  .fr0 { animation: c0 .34s steps(1) infinite; } .fr1 { animation: c1 .34s steps(1) infinite; } .fr2 { animation: c2 .34s steps(1) infinite; }
+  .onion .fr { opacity: 1 !important; animation: none !important; }
+  .onion .fr + .fr { opacity: .45 !important; }
+  #result-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  #status-line { min-height: 20px; font-size: 14px; }
+  .ok { color: #9fdc70; } .err { color: var(--err); }
+  pre { background: #262c3a; border-radius: 8px; padding: 12px; overflow-x: auto; font-size: 12.5px; }
+  a { color: #8fd3ff; }
+</style>
+</head>
+<body>
+  <h1>🎨 Gerador de Sprites</h1>
+  <p class="muted">Folha do Gemini (JPG/PNG) → skin vetorizada no rig do jogo (96×64, corpo fixo + pernas animadas).</p>
+
+  <div class="card" id="server-card">
+    <h2>Servidor de processamento</h2>
+    <div id="server-panel">
+      <span id="server-dot">⚪</span>
+      <b id="server-text">verificando…</b>
+      <span id="server-uptime" class="muted"></span>
+      <button id="btn-stop" class="danger" disabled>⏻ Parar servidor</button>
+      <div id="server-help" hidden>
+        <p class="muted">O navegador não pode iniciar programas — suba o servidor por um destes caminhos
+        (esta página detecta sozinha quando ele estiver no ar):</p>
+        <p>• Duplo-clique em <code>gerador-de-sprites\iniciar-gerador.bat</code><br>
+           • Ou no terminal: <code id="cmd">npm run sprite-gen</code>
+           <button id="btn-copy">copiar comando</button></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>1 · A folha de sprites</h2>
+    <div id="drop">
+      <p><b>Solte a folha aqui</b> (JPG, PNG ou SVG) ou clique para escolher</p>
+      <p class="muted">Receita do prompt (o que dá certo): 3+ células em linha, fundo branco puro, margens
+      largas e <b>NADA atravessando os vãos entre células</b> — sem rastros, brilhos, estrelas, poeira ou
+      partículas; cel-shading chapado (máx. 5 cores + contorno grosso), sem degradê nem brilho glossy;
+      rinoceronte de perfil virado para a DIREITA, corpo idêntico entre poses — só as pernas mudam.
+      <b>Baixe na resolução máxima</b> (≥2000px de largura; o download "com marca d'água" vem miniaturizado
+      e degrada o traço). PNG é preferível a JPG.</p>
+      <input type="file" id="file" accept="image/*" hidden>
+    </div>
+  </div>
+
+  <div class="card" id="card-frames" hidden>
+    <h2>2 · Escolha 3 frames na ordem do galope</h2>
+    <p class="muted">Clique na sequência: <b>① estendida</b> (pernas lançadas) → <b>② apoio</b> (pata fincada)
+    → <b>③ recolhida</b> (pernas sob o corpo). Clique de novo para desfazer.</p>
+    <p id="grid-row">
+      <span class="muted">Fatiou errado (efeitos ligando as células atrapalham a detecção)? Refatie em grade fixa:</span>
+      <input type="number" id="grid-rows" min="1" max="6" value="2" style="width:52px"> linhas ×
+      <input type="number" id="grid-cols" min="1" max="8" value="3" style="width:52px"> colunas
+      <button id="btn-regrid">Refatiar em grade</button>
+    </p>
+    <div id="frames"></div>
+  </div>
+
+  <div class="card" id="card-options" hidden>
+    <h2>3 · Paleta e nome</h2>
+    <div id="palette"></div>
+    <p><button id="btn-addcolor">+ cor</button>
+       <span class="muted">A paleta foi amostrada da folha — ajuste as cores e marque qual é o contorno.</span></p>
+    <p>
+      <label>Nome da skin: <input type="text" id="skin-name" placeholder="ex.: robot-fire" maxlength="24"></label>
+      &nbsp;&nbsp;
+      <label><input type="checkbox" id="master-body" checked> corpo-mestre (recomendado: corpo 100% estável)</label>
+    </p>
+    <p><button id="btn-generate" class="primary">⚙️ Gerar sprite</button> <span id="status-line"></span></p>
+  </div>
+
+  <div class="card" id="card-result" hidden>
+    <h2>4 · Resultado</h2>
+    <div id="result-row">
+      <div>
+        <p class="muted">Animado (12fps, ciclo 0-1-2-1)</p>
+        <div class="anim" id="anim"></div>
+      </div>
+      <div>
+        <p class="muted">Onion-skin (corpo nítido = certo)</p>
+        <div class="anim onion" id="onion"></div>
+      </div>
+    </div>
+    <p id="result-warn" style="color:#ffb75e; max-width:760px"></p>
+    <p id="result-meta" class="muted"></p>
+    <p>🔗 <a id="preview-link" target="_blank">Abrir o preview animado em página própria</a></p>
+    <p><button id="btn-apply">📥 Aplicar em art/ (e mostrar os passos de integração)</button></p>
+    <pre id="snippets" hidden></pre>
+  </div>
+
+<script>
+const API = 'http://localhost:3210';
+const $ = (id) => document.getElementById(id);
+let serverUp = false;
+let sessionId = null;
+let selection = []; // índices dos frames na ordem clicada
+let generatedName = null;
+let lastB64 = null; // a folha atual, para refatiar em grade sem re-upload
+
+// ---------------------------------------------------------- painel do server
+async function pollStatus() {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 1500);
+    const r = await fetch(API + '/api/status', { signal: ctrl.signal });
+    clearTimeout(t);
+    const j = await r.json();
+    setServer(true, j.uptimeS);
+  } catch (e) {
+    setServer(false);
+  }
+}
+function setServer(up, uptimeS) {
+  if (up !== serverUp) {
+    serverUp = up;
+    document.querySelectorAll('#drop, #btn-generate, #btn-apply, #btn-addcolor')
+      .forEach((el) => { el.classList?.toggle('armed', up); });
+  }
+  $('server-dot').textContent = up ? '🟢' : '🔴';
+  $('server-text').textContent = up ? 'executando' : 'parado';
+  $('server-uptime').textContent = up && uptimeS != null ? `há ${Math.floor(uptimeS / 60)}min ${uptimeS % 60}s` : '';
+  $('btn-stop').disabled = !up;
+  $('server-help').hidden = up;
+}
+$('btn-stop').addEventListener('click', async () => {
+  if (!confirm('Parar o servidor do gerador?')) return;
+  try { await fetch(API + '/api/shutdown', { method: 'POST' }); } catch (e) { /* caiu, como pedido */ }
+  setTimeout(pollStatus, 400);
+});
+$('btn-copy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText('npm run sprite-gen'); $('btn-copy').textContent = 'copiado ✓'; }
+  catch (e) { $('btn-copy').textContent = 'copie à mão'; }
+  setTimeout(() => { $('btn-copy').textContent = 'copiar comando'; }, 2000);
+});
+pollStatus();
+setInterval(pollStatus, 2000);
+
+// ------------------------------------------------------------------- upload
+$('drop').addEventListener('click', () => { if (guardServer()) $('file').click(); });
+$('drop').addEventListener('dragover', (ev) => { ev.preventDefault(); $('drop').classList.add('over'); });
+$('drop').addEventListener('dragleave', () => $('drop').classList.remove('over'));
+$('drop').addEventListener('drop', (ev) => {
+  ev.preventDefault();
+  $('drop').classList.remove('over');
+  if (guardServer() && ev.dataTransfer.files[0]) handleFile(ev.dataTransfer.files[0]);
+});
+$('file').addEventListener('change', () => { if ($('file').files[0]) handleFile($('file').files[0]); });
+
+function guardServer() {
+  if (!serverUp) { alert('O servidor de processamento está parado — inicie-o pelo painel no topo.'); return false; }
+  return true;
+}
+
+function handleFile(file) {
+  status('Fatiando a folha…');
+  const reader = new FileReader();
+  reader.onload = () => {
+    lastB64 = reader.result.split(',')[1];
+    sliceNow(null);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function sliceNow(grid) {
+  try {
+    const r = await post('/api/slice', { imageBase64: lastB64, grid });
+    sessionId = r.sessionId;
+    selection = [];
+    renderFrames(r.frames);
+    renderPalette(r.suggestedPalette, r.suggestedOutline);
+    $('card-frames').hidden = false;
+    $('card-options').hidden = false;
+    $('card-result').hidden = true;
+    status(`${r.frames.length} frames ${grid ? 'na grade fixa' : 'detectados'} — escolha 3 na ordem do galope.`
+      + (!grid && r.frames.length < 3 ? ' Poucos frames? Use a grade fixa abaixo.' : ''),
+      r.frames.length >= 3 ? 'ok' : 'err');
+  } catch (e) { status(e.message, 'err'); }
+}
+
+$('btn-regrid').addEventListener('click', () => {
+  if (!guardServer() || !lastB64) return;
+  status('Refatiando em grade…');
+  sliceNow({ rows: Number($('grid-rows').value) || 2, cols: Number($('grid-cols').value) || 3 });
+});
+
+// ------------------------------------------------------------------- frames
+function renderFrames(frames) {
+  const box = $('frames');
+  box.innerHTML = '';
+  for (const f of frames) {
+    const div = document.createElement('div');
+    div.className = 'frame';
+    div.dataset.index = f.index;
+    const img = document.createElement('img');
+    img.src = 'data:image/png;base64,' + f.png;
+    img.alt = 'frame ' + f.index;
+    div.appendChild(img);
+    div.addEventListener('click', () => toggleFrame(div));
+    box.appendChild(div);
+  }
+}
+function toggleFrame(div) {
+  const idx = Number(div.dataset.index);
+  const pos = selection.indexOf(idx);
+  if (pos >= 0) selection.splice(pos, 1);
+  else if (selection.length < 3) selection.push(idx);
+  document.querySelectorAll('.frame').forEach((el) => {
+    const i = selection.indexOf(Number(el.dataset.index));
+    el.classList.toggle('sel', i >= 0);
+    el.querySelector('.badge')?.remove();
+    if (i >= 0) {
+      const b = document.createElement('span');
+      b.className = 'badge';
+      b.textContent = ['①', '②', '③'][i];
+      el.appendChild(b);
+    }
+  });
+}
+
+// ------------------------------------------------------------------- paleta
+function renderPalette(hexes, outline) {
+  const box = $('palette');
+  box.innerHTML = '';
+  hexes.forEach((hex) => addSwatch(hex, hex === outline));
+}
+function addSwatch(hex, isOutline) {
+  const box = $('palette');
+  const sw = document.createElement('div');
+  sw.className = 'swatch';
+  sw.innerHTML = `<input type="color" value="${hex}">
+    <label><input type="radio" name="outline" ${isOutline ? 'checked' : ''}> contorno</label>
+    <button title="remover" style="padding:2px 8px">×</button>`;
+  sw.querySelector('button').addEventListener('click', () => sw.remove());
+  box.appendChild(sw);
+}
+$('btn-addcolor').addEventListener('click', () => addSwatch('#888888', false));
+
+// -------------------------------------------------------------------- gerar
+$('btn-generate').addEventListener('click', async () => {
+  if (!guardServer()) return;
+  if (selection.length !== 3) return status('Escolha exatamente 3 frames (①②③).', 'err');
+  const palette = [...document.querySelectorAll('.swatch')].map((sw) => ({
+    hex: sw.querySelector('input[type=color]').value,
+    outline: sw.querySelector('input[type=radio]').checked,
+  }));
+  const name = $('skin-name').value.trim();
+  status('Vetorizando (uns ~20s — potrace por camada de cor)…');
+  $('btn-generate').disabled = true;
+  try {
+    const r = await post('/api/generate', {
+      sessionId, frameIndexes: selection, palette, name,
+      masterBody: $('master-body').checked,
+    });
+    generatedName = r.name;
+    $('anim').innerHTML = r.svgs.map((s, f) => `<div class="fr fr${f}">${s}</div>`).join('');
+    $('onion').innerHTML = r.svgs.map((s) => `<div class="fr">${s}</div>`).join('');
+    $('result-warn').textContent = (r.warnings || []).join(' ');
+    $('result-meta').textContent =
+      `Arquivos em gerador-de-sprites/output/${r.name}/ · ${r.sizesKb.join(' / ')} KB · upscale ${r.upscale}×`
+      + (r.diagnostics ? ` · corpo-mestre ${r.diagnostics.masterBodyUsed ? 'ligado' : 'desligado'}` : '');
+    $('preview-link').href = API + r.previewUrl;
+    $('snippets').hidden = true;
+    $('card-result').hidden = false;
+    $('card-result').scrollIntoView({ behavior: 'smooth' });
+    status('Sprite gerado! Confira o animado e o onion-skin.', 'ok');
+  } catch (e) { status(e.message, 'err'); }
+  $('btn-generate').disabled = false;
+});
+
+// ------------------------------------------------------------------ aplicar
+$('btn-apply').addEventListener('click', async () => {
+  if (!guardServer() || !generatedName) return;
+  if (!confirm(`Copiar os 3 SVGs de "${generatedName}" para art/? (sobrescreve se já existirem)`)) return;
+  try {
+    const r = await post('/api/apply', { name: generatedName });
+    $('snippets').textContent =
+      `✅ Copiados: ${r.copied.join(', ')}\n\nPassos de integração (colar no código):\n\n${r.snippets}`;
+    $('snippets').hidden = false;
+  } catch (e) { status(e.message, 'err'); }
+});
+
+// ------------------------------------------------------------------ helpers
+async function post(route, body) {
+  const r = await fetch(API + route, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || `erro ${r.status}`);
+  return j;
+}
+function status(msg, cls) {
+  const el = $('status-line');
+  el.textContent = msg;
+  el.className = cls || '';
+}
+</script>
+</body>
+</html>

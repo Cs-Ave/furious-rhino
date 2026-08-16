@@ -179,6 +179,83 @@ await page.waitForTimeout(1500);
     `camadas=${r.layerIdx} spawns=${JSON.stringify(r.spawnsNaArena)}`);
 }
 
+// ---------- 5b-5e. v1.8: fúria bloqueada na arena ----------
+{
+  const r1 = await page.evaluate(async () => {
+    const s = window.game.scene.keys.GameScene;
+    s.furySystem.charge = 1;
+    // o tranca/destranca do medidor assenta no próximo update
+    await new Promise((r2) => setTimeout(r2, 150));
+    const denied0 = s.runFuryDenied;
+    s.doSpecial();
+    return {
+      state: s.bossFight.state,
+      rampage: s.furySystem.rampage,
+      charge: s.furySystem.charge,
+      denied0,
+      denied: s.runFuryDenied,
+      lockVisible: s.furySystem.lockIcon.visible,
+      pulsing: Boolean(s.furySystem.pulseTween),
+    };
+  });
+  ok('5b. doSpecial na arena é negado: sem rampage, carga intacta, contador n sobe',
+    r1.state === 'fight' && !r1.rampage && r1.charge === 1 && r1.denied === r1.denied0 + 1,
+    `state=${r1.state} rampage=${r1.rampage} charge=${r1.charge} denied=${r1.denied0}→${r1.denied}`);
+  ok('5c. medidor trancado: cadeado visível e sem pulso',
+    r1.lockVisible && !r1.pulsing, `lock=${r1.lockVisible} pulso=${r1.pulsing}`);
+
+  await page.keyboard.press('ArrowDown');
+  await page.waitForTimeout(150);
+  const r2 = await page.evaluate(() => {
+    const s = window.game.scene.keys.GameScene;
+    return { rampage: s.furySystem.rampage, denied: s.runFuryDenied };
+  });
+  ok('5d. paridade de teclado: ↓ na arena também é negado',
+    !r2.rampage && r2.denied >= r1.denied + 1,
+    `rampage=${r2.rampage} denied=${r2.denied}`);
+
+  // Quem ativou ANTES da arena mantém o fogo — mas o fogo não dispensa mais
+  // o alinhamento: contato desalinhado quica em vez de quebrar (o exploit
+  // da v1.7 morreu aqui)
+  const r3 = await page.evaluate(async () => {
+    const s = window.game.scene.keys.GameScene;
+    const sp = s.rhino.getSprite();
+    // Simula a ativação pré-arena (equivale a ativar 1px antes do gatilho)
+    s.bossFight.state = 'dormant';
+    s.furySystem.charge = 1;
+    const activated = s.furySystem.activate(s.rhino);
+    s.bossFight.state = 'fight';
+    s.rhino.dashState = 'idle';
+    s.rhino.knockbackMsLeft = 0;
+    s.bossFight.contactCdMs = 0;
+    const q0 = s.runBossBounces;
+    const l0 = s.bossFight.layerIdx;
+    // Contato no ALTO com a camada atual sendo a do chão = desalinhado
+    sp.body.reset(40000 - 160, 200);
+    await new Promise((resolve) => {
+      const t0 = performance.now();
+      const tick = () => ((s.runBossBounces > q0 || performance.now() - t0 > 3000)
+        ? resolve() : requestAnimationFrame(tick));
+      tick();
+    });
+    const res = {
+      activated,
+      rampage: s.furySystem.rampage,
+      layerHeld: s.bossFight.layerIdx === l0,
+      bounced: s.runBossBounces > q0,
+    };
+    // Apaga o fogo e afasta o rino: a seção 6 conta com fúria cheia (sem
+    // rampage) e posição própria
+    sp.body.reset(40000 - 600, 620);
+    s.furySystem.endRampage(s.rhino);
+    s.furySystem.charge = 1;
+    return res;
+  });
+  ok('5e. rampage prévio sobrevive na arena mas NÃO quebra desalinhado (quica)',
+    r3.activated && r3.rampage && r3.layerHeld && r3.bounced,
+    `ativou=${r3.activated} fogo=${r3.rampage} camadaIntacta=${r3.layerHeld} quicou=${r3.bounced}`);
+}
+
 // ---------- 6-8. As 3 investidas alinhadas: chão → meio → alto → fuga ----------
 {
   const r = await page.evaluate(async () => {
@@ -237,6 +314,25 @@ await page.waitForTimeout(1500);
   ok('8. o caçador cai e a câmera volta a seguir o rino',
     !r.hunterEngaged && r.camFollowing,
     `rifle=${r.hunterEngaged} follow=${r.camFollowing}`);
+}
+
+// ---------- 8b. v1.8: derrotado o boss, a fúria libera de novo ----------
+{
+  const r = await page.evaluate(async () => {
+    const s = window.game.scene.keys.GameScene;
+    s.furySystem.charge = 1;
+    await new Promise((r2) => setTimeout(r2, 150));
+    const lockVisible = s.furySystem.lockIcon.visible;
+    s.doSpecial();
+    const rampage = s.furySystem.rampage;
+    // Apaga o fogo: a seção 9 precisa que o dardo MATE (em rampage ele estoura)
+    s.furySystem.charge = 0;
+    s.furySystem.endRampage(s.rhino);
+    return { state: s.bossFight.state, lockVisible, rampage };
+  });
+  ok('8b. pós-derrota a fúria ativa normalmente e o cadeado some',
+    r.state === 'defeated' && !r.lockVisible && r.rampage,
+    `state=${r.state} lock=${r.lockVisible} rampage=${r.rampage}`);
 }
 
 // ---------- 9. Morte pelo rifle = causa própria 'boss' ----------
