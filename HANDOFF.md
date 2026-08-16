@@ -1,6 +1,13 @@
 # Handoff — FURIOUS RHINO v1.8.1
 
-**Data:** 16/08/2026 · **Status:** v1.8.1 **RELEASED em produção** (commit `3b57afe`, tag `v1.8.1`, smoke 8/8)
+**Data:** 16/08/2026 · **Status:** v1.8.2 **RELEASED em produção** (commit `a29f3af`, tag `v1.8.2`, smoke 6/6) — v1.8.1 saiu de manhã (`3b57afe`, smoke 8/8)
+
+### v1.8.2 (16/08, tarde) — bugfix da home + remoção de skin
+- **`#install-hint` saiu do meio da tela** (só aparecia p/ quem não instalou o PWA — passou batido no smoke da v1.8.1): virou pílula laranja na headrow da Campanha, ao lado do convite. Android = prompt nativo direto; **iOS melhorou**: a pílula abre o `#pwa-modal` com o passo a passo (antes era texto solto). `.share-icon` desescopado (o ícone do modal iOS estava sem estilo).
+- **`#invite-btn`**: "Chamar galera", **verde WhatsApp (#25D366)** com glifo SVG inline (zero binário).
+- **Dono removeu a "Catisquick's Rhino" via /?setup DURANTE a release** (armadilha conhecida — detectado pelo test-skins 97→93 e e2e-skins vermelho): remoção confirmada como intencional e embarcada. **e2e-skins ficou imune a remoções**: o registry canônico agora usa arte do NÚCLEO (`rhino-run`/`rhino-fire-run`) no lugar de arte de skin real.
+- ⚠️ **Lição de encoding**: `Get-Content -Raw | -replace | Set-Content` no PowerShell 5.1 SEM `-Encoding` nos DOIS lados corrompeu os docs (UTF-8 lido como ANSI e regravado) — recuperado via `git show HEAD:arquivo > arquivo` no Bash (byte-fiel) + reedição. **Texto acentuado: sempre Edit/Write, nunca pipeline de texto do PowerShell.**
+- Bump v1.8.2 nos 4 lugares; rules NÃO mudaram; suítes verdes (test-skins agora 93 — nº acompanha o registry).
 
 ## 1. Estado atual
 
