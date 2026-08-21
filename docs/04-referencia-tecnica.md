@@ -266,3 +266,5 @@ Regras de higiene dos testes (v1.7.2): rodando em `localhost`, o jogo **não esc
 ## 14. Manutenção da documentação
 
 Esta pasta `docs/` é mantida pelo comando **`/atualizar-docs`** (definido em `.claude/commands/atualizar-docs.md`): a cada release, ele compara o código com a última versão documentada via git, atualiza os arquivos e registra a mudança no [`CHANGELOG.md`](CHANGELOG.md).
+
+Além dos quatro guias versionados por release, a pasta tem o [`QA-Registro.md`](QA-Registro.md) — o **Q&A vivo** de dúvidas pontuais do dono (append-only, entradas datadas, fora do ciclo de versões): dúvida respondida numa sessão vira entrada lá ("responda e registre no Q&A").

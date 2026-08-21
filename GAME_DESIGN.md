@@ -1,6 +1,6 @@
 # FURIOUS RHINO — Documento de Design
 
-> Estado atual do jogo (v1.6.0). Este documento descreve o que **é**, não o que
+> Estado atual do jogo (v1.8.3). Este documento descreve o que **é**, não o que
 > se imaginou no começo — as decisões de v1.1 em diante estão registradas aqui
 > com o motivo, e várias delas foram tomadas a partir dos dados reais de
 > telemetria (ver "Decisões orientadas por dados" no fim).
@@ -31,8 +31,19 @@ tom caótico e divertido.
   recarga. No ar,
   desliga a gravidade — voo horizontal puro. É a investida que **quebra parede,
   derruba torre, atropela animal, estoura dardo e destrói morro**.
-- **Fúria**: cresce com a distância. Muda velocidade, tinge o rino de vermelho,
-  solta fumaça pelas narinas e sobe a intensidade da música.
+- **Fúria (v1.7: virou uma CARGA gastável)**: enche com a distância percorrida
+  (a primeira aos 900m) e, cheia, pode ser **gasta** na **FÚRIA TOTAL** — ~6s de
+  invencibilidade em que tudo que colide explode (até o espinho, que a
+  investida normal não destrói) e a velocidade sobe mais 25%. Enquanto enche,
+  muda velocidade, tinge o rino de vermelho, solta fumaça pelas narinas e sobe
+  a intensidade da música. Decisão de design: a fúria posicional antiga era um
+  bônus passivo; a carga transforma "quando gastar" numa escolha do jogador —
+  e recomeça do zero após o uso, dando ritmo ao modo infinito.
+- **Escala visual 1,30** (`RHINO_VISUAL_SCALE`, calibrada em campo pelo dono):
+  só a IMAGEM cresce — a hitbox segue 76×54 de mundo com os pés no chão
+  (compensação em `Rhino.applyVisualScale`). Motivo: as skins vetorizadas são
+  mais magras que o desenho original e o protagonista tinha ficado menor que
+  um leão; nenhum pulo/vão/luta mudou de dificuldade.
 
 ## 🧱 Obstáculos
 
@@ -48,6 +59,28 @@ tom caótico e divertido.
 **Torre**: atira alternando tiro reto mirado em 360° e morteiro em arco, com
 telegraph de 280ms. Derrubá-la **devolve a investida na hora** (sem recarga) —
 é o que a transforma de pedágio em oportunidade.
+
+**Parede que desaba (v1.8)**: ao quebrar, todo o topo acima da fresta **tomba
+para trás** (contra o sentido da corrida — pedido do dono; antes um pedaço
+ficava flutuando) e se esfarela. Feedback visual puro: a colisão já acabou
+quando o tombo começa.
+
+**Animais em peso (v1.8.1, "denso sem facilitar")**: além da roleta, animais
+podem vir **em dupla** (`animalPackChance`) e parede/espinho/torre podem nascer
+**escoltados** por um animal na coreografia dos combos (`animalEscortChance`) —
+os dois crescem por tier (~50%→80%). Motivo, medido em Monte Carlo com a roleta
+real: a fatia do animal é a SOBRA dos pesos (22–33% nos tiers iniciais) e o
+jogo gerava só **1,5 animal/100m**; o padrão atual entrega **~3,2/100m** com o
+teto físico do sistema em ~4 — SEM trocar obstáculo letal por animal (a
+proporção de mortes por parede/espinho não muda, só a cadência de encontros).
+Atropelado, o animal **voa para a frente e para o alto** girando (v1.8.3;
+combina com o sentido da carga — antes voava para trás).
+
+**Dardo visível (v1.8.3)**: a arte cresceu 50% (42×15) com líquido e penacho
+**vermelho vivo** e contorno preto — mas a **hitbox segue 24×8**: a folga
+visual é perdão a favor do jogador, nunca contra. O dardo do caçador do portão
+usa o MESMO sprite com tint dourado — por isso o corpo da seringa é claro (o
+tint multiplica; partir do branco faz o dourado sair exato).
 
 **Morro / trampolim** (`Ramp`) — três variantes:
 - `small` e `big`: sobe, platô, desce. O `big` ganha 150px de altura, mais que
@@ -78,13 +111,36 @@ rino (e dos animais terrestres) nessa superfície uma vez por frame, em
 - A superfície começa e termina em y=620, então o collider do chão único
   (404.000px) e o resolvedor manual nunca brigam.
 
+## 🛡️ O chefe do portão (v1.7) — e por que a fúria não resolve a luta
+
+O portão dos 1000m amanhece **blindado em 3 camadas**, com um **caçador de
+rifle tranquilizante** no topo. Vencer = investir na camada cuja fresta brilha,
+na ordem chão → meio → alto (a última exige pulo duplo + investida NO AR — a
+técnica-clímax do jogo). Errar o toque **não mata**: o rino ricocheteia com um
+CLANG e a investida volta junto com o controle. O perigo é o rifle: mira laser
+~0,4s antes de cada tiro, três padrões (reto / morteiro / rajada), cadência
+que acelera a cada camada quebrada. O portão **não tem corpo físico** (mesma
+família de decisão da rampa): banda de x + clamp posicional + janela de
+knockback em que o `FurySystem` não reescreve `velocityX` — corpo sólido +
+reescrita por frame é a receita do soft-lock.
+
+**A fúria é BLOQUEADA dentro da arena (v1.8)** — decisão 100% orientada por
+dados: a telemetria mostrou a luta anulada (120 camadas quebradas com apenas
+8 mortes) porque a FÚRIA TOTAL, guardada para os 1000m, quebrava camada sem
+alinhamento e ignorava o rifle. Agora o medidor mostra um cadeado na arena, a
+carga **continua enchendo** e libera na queda do portão — vira o fôlego de
+largada do modo infinito. Quem entra em chamas (ativou antes da arena) mantém
+o fogo, mas **precisa alinhar as 3 frestas como todo mundo**. O contador
+`runs[].n` mede quantos ainda tentam o truque antigo.
+
 ## 📊 Progressão
 
 - **1 metro = 1 ponto**. Recorde local + ranking mundial (Firestore).
-- **Portão dos 1000m** = a fuga. Cruzar conta a vitória **sem parar a corrida** —
-  o modo infinito começa na mesma passada. Ao cruzar, o portão **explode**
-  (estilhaços, flash, tremor de câmera), sobem fogos e confete, e o cenário vira
-  a **cidade**. O fim físico do mundo é 10.000m ("LENDA").
+- **Portão dos 1000m** = a fuga, agora uma **batalha de chefe** (acima). Vencer
+  conta a vitória **sem parar a corrida** — o modo infinito começa na mesma
+  passada: o portão **explode** (estilhaços, flash, tremor de câmera), sobem
+  fogos e confete, e o cenário vira a **cidade**. O fim físico do mundo é
+  10.000m ("LENDA").
 - **6 tiers de dificuldade**, um a cada 200m. Cada tier tem sua roleta de spawn
   (parede / espinho / torre / rampa; a sobra é animal), vão mínimo, velocidade
   dos animais, cadência e velocidade dos dardos.
@@ -107,6 +163,14 @@ rino (e dos animais terrestres) nessa superfície uma vez por frame, em
   concreto e asfalto com pichação, e a **torre** vira poste de vigilância com
   caixa d'água. O padrão é o `setSkin` do `CrackedWall`, replicado nas quatro
   entidades e decidido por posição no `SpawnManager`.
+- **O elenco de perseguidores muda com o bioma (v1.7)** — 27 espécies, cada
+  trecho com as suas (`BIOME_ANIMALS` + `pickBiomeAnimal`): tratador e pavão
+  nas jaulas, avestruz e águia no aviário, leão/zebra/hiena/búfalo na savana,
+  macaco/onça/cobra/lobo-guará na floresta, jacaré/hipopótamo/capivara no
+  pântano — e na cidade pedestres, carros, viatura, drone, teco-teco. Motivo:
+  o inimigo é metade da identidade visual do trecho; o combo continua pedindo
+  o MODO certo (terrestre atrás da parede, voador sobre o espinho), só o
+  elenco troca de cenário.
 - A **população do céu** muda com o bioma: enxame de aves no aviário, quase
   nada no pântano, pombos na cidade.
 - **Céu**: dia pleno, entardecer chegando junto com o portão (a fuga acontece no
@@ -121,6 +185,60 @@ rino (e dos animais terrestres) nessa superfície uma vez por frame, em
   chão para nunca esconder obstáculo).
 - Regra permanente: **tint atmosférico jamais em elemento de gameplay**.
 
+## 🎭 Skins (v1.8) — privilégio dinâmico, não desbloqueio
+
+O guarda-roupa (botão 🎨) veste o rino na home e em toda corrida **sem tocar
+em nada da física** — é só aparência, e a escolha nunca é apagada. Quatro
+formas de acesso, todas declarativas no `SkinRegistry.js`:
+
+- **Grátis** · **Pódio exato** (rank 1/2/3) · **Façanha numa corrida**
+  (`{meters, towersDowned, bossLayers, escaped}`, semântica E) · **Totais de
+  vida** (`{attempts, wins, animals}`). O texto do cadeado é **gerado da
+  regra** — desbloqueio novo se explica sozinho.
+- **Pódio é privilégio, não conquista**: caiu do posto, a skin volta ao
+  original SOZINHA (com aviso); recuperou, ela volta a vestir — a resolução é
+  feita **na leitura** (`resolveEquipped`), nunca regravando a escolha. Cada
+  degrau tem a sua: a skin do nº 1 só veste no nº 1.
+- **Conquistas são retroativas**: o retro-scan das últimas 50 corridas concede
+  o que já foi merecido no primeiro boot após a skin existir.
+- **Fúria própria opcional** (`firePrefix`): skin com folha em chamas própria
+  transforma no seu próprio "vulcão"; sem ela, o fogo compartilhado.
+- **O estúdio `/?setup`** dá ao dono independência total: criar (folha de IA →
+  frames → paleta → vetorização), editar, esconder (reversível) e remover
+  skins **sem programar** — toda gravação roda a suíte-portão e faz rollback
+  se reprovar. O elenco é VIVO por design; por isso **nenhum teste pode pinar
+  valores do registry** (regra aprendida três vezes: test-skins, e2e-skins e
+  test-integrate caíram um a um por fixar skins reais).
+
+## 🏠 A tela inicial (v1.8.1) — uma vitrine que provoca o retorno
+
+A home deixou de ser "título + botão" e virou o motor de retenção do jogo
+(desenho fechado com o dono em 5 rodadas de mockup navegável antes de uma
+linha de código):
+
+- **Pódio mundial ao vivo** no centro: os 3 primeiros com **a skin que usavam
+  ao cravar a marca** (campo `skin` em `scores/`; docs antigos mostram o rino
+  original), nome, marca e **dias de POSSE DA POSIÇÃO** — aqui a contagem é
+  em **cascata** (alguém toma o topo → o contador de quem caiu reinicia
+  naquele dia). Cache local com TTL de 6h: 3 leituras por atualização cabem
+  no plano gratuito, e offline vale a última foto.
+- **O degrau VOCÊ**: um 4º pedestal tracejado na mesma linha do bronze, com
+  seta animada, sua skin, o botão de trocar e a provocação na lata ("faltam
+  303m p/ 🥉" / "defenda o seu posto!"). É a tese da tela: o jogador precisa
+  se ver **a um passo** do pódio.
+- **Duas semânticas de "há quantos dias", cada uma no seu lugar** (decisão do
+  dono após ver o efeito real): o PÓDIO mede posse da posição (cascata); a
+  LISTA do top 10 mede a idade da marca — porque a cascata na lista fazia
+  "todos há 2d" sempre que alguém novo entrava no topo.
+- **Diário da Fuga**: 1º card = aviso do dono (doc `config/news`, editável no
+  console sem deploy); os demais são eventos do próprio jogador (skin
+  desbloqueada, entrou/perdeu o pódio, recorde), cada um mostrado UMA vez.
+- **Box Campanha**: recorde, tentativas, fugas, "maior inimigo" e o
+  minigráfico das últimas 10 corridas — os números do jogador saíram da faixa
+  de rodapé e viraram um painel de identidade.
+- O contrato técnico da tela não mudou: o overlay inteiro inicia a corrida ao
+  toque, e todo botão isola o toque (`stopPropagation`) — trancado por teste.
+
 ## 🏁 Engajamento
 
 - **Marcas na pista**: estacas com nome e distância do **seu recorde**, do
@@ -128,9 +246,17 @@ rino (e dos animais terrestres) nessa superfície uma vez por frame, em
   Ultrapassar cada uma provoca o jogador na tela. Lidas de cache local — a
   corrida nunca espera a rede.
 - **Medalhas** locais (sem rede), de "Primeira Fuga" a "Inalcançável" (2000m),
-  incluindo Escavadeira (3 morros destruídos) e Torre Abaixo (2 torres).
-- **Ranking mundial** com apelido único, **convite por WhatsApp** e alerta de
-  instalação do PWA (nunca bloqueante).
+  incluindo Escavadeira (3 morros destruídos) e Torre Abaixo (2 torres) —
+  visíveis dentro do "Minhas estatísticas" (a faixa de ícones saiu da home
+  na v1.8.1 para dar lugar ao pódio).
+- **Ranking mundial** com apelido único e **"há quantos dias" ao lado de cada
+  marca** (v1.8) — a idade do feito é metade da provocação. **Convite por
+  WhatsApp** (botão verde com o glifo do app) e **instalação do PWA como
+  pílula** ao lado dele (no iPhone, abre o passo a passo; nunca bloqueante).
+- **Desistir sem sujar os números (v1.8)**: o popup de pausa tem "🏳️ Desistir
+  da corrida" — cancela a run sem contar NADA (nem a tentativa). Motivo: uma
+  corrida abandonada de propósito não é dado de dificuldade; contá-la
+  poluiria o funil.
 - **Nome próprio**: quem escolhe "Ficar anônimo" recebe um `Anonimo_N` e fica
   marcado como nome automático. O jogo volta a convidar **no momento do
   orgulho** — logo depois de o score subir no ranking — com o texto dizendo o
@@ -148,14 +274,16 @@ Firestore (regra de arquitetura nº 2 abaixo).
 
 | Onde | Campos | Por que ali |
 |---|---|---|
-| `runs[]` (últimas 50) | `t, m, s, c` + `w` paredes, `r` rampas, `o` torres, `a` animais, `j` pulos, `d` investidas, `x` investidas negadas no cooldown, `p` pausas, `k` teclado, `v` versão | As rules validam só `is list && size() <= 50` — a FORMA do elemento é livre. Sai de graça. |
+| `runs[]` (últimas 50) | `t, m, s, c` + `w` paredes, `r` rampas, `o` torres, `a` animais, `j` pulos, `d` investidas, `x` investidas negadas no cooldown, `p` pausas, `k` teclado, `v` versão, e (v1.7–v1.8) `f` Fúrias Totais usadas, `n` fúrias negadas na arena do boss, `b` camadas do portão, `q` quiques, `z` segundos de luta, `g` skin usada | As rules validam só `is list && size() <= 50` — a FORMA do elemento é livre. Sai de graça. |
 | `history.days` | `{'AAAA-MM-DD': {r, s, b}}`, 60 dias, poda por idade | Contagem exata de execuções/sessões/melhor marca por dia. `runs[]` só guarda 50 e falsearia dias muito ativos. |
 | `client.tz` | fuso do aparelho | Conferência cruzada do geo por IP: VPN aparece como divergência. |
 | `geo.at` | epoch da medição | Deixa o painel dizer a IDADE da localização. |
 
-Fúria ficou **de fora de propósito**: ela é posicional
-(`Rhino.getFuryRatio = x / FURY_FULL_DISTANCE_PX`), então já está contida no
-`m` — gravá-la seria redundância paga em bytes.
+A fúria era posicional até a v1.6 e por isso ficava fora da telemetria (estava
+contida no `m`). Na v1.7 ela virou carga gastável e ganhou o contador `f` —
+que mede a **decisão de usar** o especial, informação que não existe em nenhum
+outro campo. O `n` (fúrias negadas na arena) mede quantos ainda tentam o
+truque antigo contra o boss.
 
 **Cidade sempre atual.** O TTL do geo caiu de 30 dias para 12h, a revalidação
 roda na tela inicial (fire-and-forget, tirando a rede do fim de corrida) e uma
@@ -225,13 +353,35 @@ Leitura de 48 jogadores, 981 tentativas, 512 corridas e 945 mortes da v1.5:
 | Os 5 biomas eram variações da mesma cena e o cenário congelava após a fuga. | 6 biomas com tema forte, portão movido para 1000m (5 trechos de 200m cabem inteiros) e a cidade no modo infinito. |
 | A análise só foi possível pelas 50 últimas corridas de cada jogador — mas sem duração nem causa. | `runs[]` passou a gravar `{t, m, s, c}` (segundos e desfecho), sem tocar nas rules. |
 
+## 📈 Decisões orientadas por dados (v1.7 → v1.8.3)
+
+| O que os dados (ou o campo) mostraram | O que mudou |
+|---|---|
+| **A FÚRIA TOTAL anulava o chefe: 120 camadas quebradas com só 8 mortes** — guardada para os 1000m, quebrava camada sem alinhamento e ignorava o rifle. | Ativação **bloqueada dentro da arena** (cadeado no medidor, carga preservada e liberada na queda do portão); quem entra em chamas precisa alinhar as 3 frestas como todo mundo. `runs[].n` mede quem ainda tenta. |
+| O dono achava o jogo vazio de animais; **Monte Carlo da roleta real: 1,5 animal/100m**, porque a fatia do animal é a SOBRA dos pesos (22–33% nos tiers iniciais) e o teto do sistema é ~4/100m. Smokes curtos de navegador tinham variância demais para medir (um A/B de 60s deu 8×8). | Preset "denso sem facilitar": par de animais + **escolta** junto de parede/espinho/torre (~3,2/100m), SEM trocar obstáculo letal por animal. Sliders por tier no ?debug=1 + guia de calibração na referência técnica. |
+| Com a cascata na lista do top 10, **"todos há 2d"**: qualquer entrada nova no topo comprimia a coluna inteira para a mesma data — parecia bug. | Duas semânticas, cada uma no seu lugar: **lista = idade da marca** (diferencia os jogadores); **pódio da home = posse da posição** (cascata — mede o reinado, como o dono especificou). |
+| **O rank NUNCA tinha funcionado em produção**: o SDK firestore-lite exporta `getCount`, o código chamava `getCountFromServer` (só do SDK completo) e a falha era silenciosa por design. Descoberto no PRIMEIRO pedido real de skin de pódio (o #3 não conseguia a MecaBronze). | `countQuery` com fallback duplo; lição registrada: função "nova" de SDK se testa contra o build real do CDN (`typeof fs.X` no navegador), não contra a doc do SDK completo. As features de posição (skins de pódio, "Sua posição #N", convite com rank) ligaram de verdade na v1.8.3. |
+| Os primeiros **190m são a abertura roteirizada, sem animal nenhum** — quem morre cedo "não vê bicho", e qualquer medição curta de densidade sai distorcida. | Mantido de propósito (onboarding vale mais); registrado como pegadinha de medição no guia de calibração. |
+| A marca nova do dono (4606m) subiu sozinha com `skin=robot` na vitrine — **pipeline da vitrine validado em campo** no primeiro recorde pós-v1.8.1. | Confirmou o desenho "a vitrine registra a skin da MARCA" (e a troca de apelido preserva, via cópia local). |
+
 ## 🧪 Testes
 
-| Comando | O que cobre |
-|---|---|
-| `npm run test-stats` | 69 asserts de telemetria/agregação e do resumo diário, sem navegador |
-| `npm run test-e2e-stats` | 66 asserts em Chromium: telemetria real, portão, as 6 abas do painel, resumo do jogador, compartilhamento e os padrões do ntfy |
-| `npm run digest` | Monta o resumo diário contra os dados de produção **sem enviar** |
-| `npm run test-ramp` | 30 asserts em Chromium: travessia da rampa, trampolim, destruição, animais no morro, 20fps, abertura guiada, marcas na pista, explosão do portão, paredes-prédio, teclas de PC, pausa, convite do apelido e os skins de cidade de todos os obstáculos |
+Nove suítes (detalhe por suíte em `docs/04-referencia-tecnica.md` §11); números
+de 16/08/2026 — os que dependem do registry de skins variam com ele:
 
-Os dois e2e exigem o jogo servido em `localhost:3000` (`python -m http.server 3000`).
+| Comando | Asserts | Foco |
+|---|---|---|
+| `npm run test-stats` | 87 | Telemetria/agregação, `holdDays` nas duas semânticas, consistência contra as rules, digest — sem navegador |
+| `npm run test-skins` | ~93 | Portão do /?setup (roda a cada gravação, com rollback): lógica de acesso com skins sintéticas + estrutura do registry real |
+| `npm run test-integrate` | 49 | A integração do estúdio como funções puras (round-trip, upsert/remove, patch do sw) |
+| `npm run test-ramp` | 37 | Rampa/trampolim, abertura guiada, teclado, pausa + desistir, par/escolta, knockback, a home nova e o contrato do toque |
+| `npm run test-boss` | 16 | A luta do portão: quique, ordem das camadas, fúria negada na arena, causa `boss` |
+| `npm run test-special` | 25 | Bioma dos animais, ciclo completo da FÚRIA TOTAL, desabamento |
+| `npm run test-e2e-skins` | 15 | Comportamento das skins no navegador contra registry canônico injetado (arte do núcleo — imune a remoções do dono) |
+| `npm run test-e2e-setup` | 15–17 | O estúdio /?setup (nº varia com o servidor do gerador no ar ou não) |
+| `npm run test-e2e-stats` | 69 | Telemetria REAL no Firestore com sonda `claude-*`; prova que a suíte não suja produção |
+| `npm run digest` | — | Monta o resumo diário contra produção **sem enviar** |
+
+Os e2e exigem o jogo servido em `localhost:3000` (`python -m http.server 3000`).
+Regra aprendida a ferro: **a regressão de release roda as 9 — sempre** (um
+subconjunto deixou passar um teste quebrado na v1.8.2).

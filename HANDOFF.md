@@ -1,6 +1,6 @@
-# Handoff — FURIOUS RHINO v1.8.1
+# Handoff — FURIOUS RHINO v1.8.3
 
-**Data:** 16/08/2026 · **Status:** v1.8.3 **RELEASED em produção** (commit `3e49000`, tag `v1.8.3`, smoke 5/5) — dia com TRÊS releases (v1.8.1 manhã, v1.8.2 e v1.8.3 tarde)
+**Data:** 16/08/2026 (docs fechados em 21/08) · **Status:** v1.8.3 **RELEASED em produção** (commit `3e49000`, tag `v1.8.3`, smoke 5/5) — dia com TRÊS releases (v1.8.1 manhã, v1.8.2 e v1.8.3 tarde)
 
 ### v1.8.3 (16/08, fim de tarde) — o rank liga de verdade + dardo visível
 - **BUG HISTÓRICO consertado**: o SDK firestore-LITE exporta `getCount`, não `getCountFromServer` — o `fetchMyRank`/`anonymousName` falhavam EM SILÊNCIO desde sempre (catch por design): `last_rank` nunca chegava a jogador real, skins de pódio nunca desbloqueavam, "Sua posição #N" nunca aparecia. Descoberto quando o Thomas (#3 real, primeiro a reivindicar pódio) não conseguiu a MecaBronze. Fix: `LeaderboardSystem.countQuery` com fallback duplo. Smoke prod provou: sonda 3002m → rank 4 (Thomas subiu p/ #2 com 4606m no meio do processo!).
@@ -22,13 +22,13 @@
 
 | | |
 |---|---|
-| Produção (v1.8.1) | https://cs-ave.github.io/furious-rhino/ — released 16/08 (smoke 8/8: versão, pódio real com dias de posse, Diário com config/news, write com `skin` aceito, sonda apagada, zero erro de JS) |
+| Produção (v1.8.3) | https://cs-ave.github.io/furious-rhino/ — released 16/08 (smoke 5/5: rank de verdade via `getCount`, vitrine do pódio com as skins do backfill, dardo 50% maior, sonda apagada, zero erro de JS) |
 | Working tree | Limpa (só `.claude/`, `Anotacoes.txt`, `Art AI/` locais por decisão) |
-| Último commit | `3b57afe` (v1.8.1) — topo de `origin/main`; tags `v1.8.0` e `v1.8.1` |
+| Último commit | `3e49000` (v1.8.3) é a release; por cima só commits de documentação — topo de `origin/main`; tags `v1.8.0`…`v1.8.3` |
 | Rules do Firestore | **Publicadas pelo dono em 16/08** (antes do push, ordem correta) — `skin` opcional em `scores/` |
 | Doc `config/news` | **Criado em 16/08** (via script admin com o login do firebase-tools, rodado pelo dono com `!` — o classificador barrou o assistente, corretamente, por ler credencial): 2 itens no ar; o dono edita no console quando quiser (campo `items`, array de strings; o jogo relê a cada 1h) |
-| Docs | `docs/` + CHANGELOG sincronizados com a v1.8.1 em 16/08 |
-| Suítes (16/08, todas verdes) | `test-stats` **87** · `test-skins` 97 · `test-integrate` 49 · `e2e-ramp` **37** · `e2e-boss` 16 · `e2e-special` 25 · `e2e-skins` 15 · `e2e-setup` 17 · `e2e-stats` 69 |
+| Docs | `docs/` + CHANGELOG sincronizados com a v1.8.3 em 16/08; **`GAME_DESIGN.md` saiu da v1.6.0 e foi para a v1.8.3 em 21/08** (fúria-carga + FÚRIA TOTAL, escala visual 1,30, parede que desaba, par/escolta de animais, dardo 42×15, seções novas do chefe do portão, das skins e da home v1.8.1, telemetria `f/n/b/q/z/g`, decisões por dados v1.7→v1.8.3 e as 9 suítes) |
+| Suítes (16/08, todas verdes) | `test-stats` **87** · `test-skins` **93** · `test-integrate` 49 · `e2e-ramp` **37** · `e2e-boss` 16 · `e2e-special` 25 · `e2e-skins` 15 · `e2e-setup` 17 · `e2e-stats` 69 |
 
 ## 2. O dia 15/08 em resumo
 
@@ -50,7 +50,8 @@ Ritual completo: rules publicadas pelo dono → `config/news` criado (2 avisos n
 ### Opcionais / próximos
 - Os 3 do pódio ainda aparecem com o rino original na vitrine — ganham a skin quando cravarem marca NOVA (por design; o doc antigo não tem o campo).
 - Desc da Catisquick's Rhino (grátis com texto de façanha) e MecaSilver sem desc — ajustar pelo /?setup quando o dono quiser.
-- Leitores de `runs[].g`/`runs[].n` no painel; calibração fina da densidade em campo (docs/04 §8b); `GAME_DESIGN.md` parado na v1.6.0 (agora 3 versões atrás — candidato à próxima sessão).
+- Leitores de `runs[].g`/`runs[].n` no painel; calibração fina da densidade em campo (docs/04 §8b).
+- ~~`GAME_DESIGN.md` parado na v1.6.0~~ — **fechado em 21/08**: sincronizado com a v1.8.3 (ver a linha *Docs* da tabela de estado).
 
 ## 4. Como retomar
 
