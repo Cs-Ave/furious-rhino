@@ -1,6 +1,6 @@
 # Furious Rhino — Referência técnica
 
-> Documentação da versão **1.8.4** · atualizada em 21/08/2026
+> Documentação da versão **1.8.5** · atualizada em 21/08/2026
 > Para quem vai dar manutenção. Complementa (não substitui) `GAME_DESIGN.md` (o design e suas razões) e `HANDOFF.md` (estado da última sessão de trabalho e tabelas completas de parâmetros).
 
 ## 1. Estrutura de pastas
@@ -17,7 +17,7 @@ MobileGame/
 ├── GAME_DESIGN.md          # Documento de design com o porquê de cada decisão
 ├── HANDOFF.md              # Estado da última release + referência completa de parâmetros
 ├── docs/                   # Esta documentação
-├── art/                    # 95 SVGs — a arte que o jogo carrega (fonte da verdade)
+├── art/                    # 105 SVGs — a arte que o jogo carrega (fonte da verdade)
 ├── art2/                   # Propostas de arte aprovadas + preview (registro do fluxo
 │                           #   "arte primeiro"; o jogo carrega SÓ o que foi copiado p/ art/)
 │                           #   art2/skins/ = folhas-fonte das skins + CLIs do pipeline
@@ -30,7 +30,7 @@ MobileGame/
 │   ├── notify-config.js    # Defaults dos pushes ntfy (topic vazio = tudo desligado)
 │   ├── scenes/             # BootScene (preload) e GameScene (o jogo inteiro)
 │   ├── entities/           # Rhino, Animal, CrackedWall, Spike, TranqTower, TranqDart,
-│   │                       #   Ramp, HunterSniper (o caçador do boss)
+│   │                       #   Ramp, HunterSniper (o atirador dos 3 bosses, paramétrico)
 │   ├── systems/            # TextureFactory, SpawnManager, FurySystem, BossFight,
 │   │                       #   AudioSystem, SkinSystem + SkinRegistry (v1.8 — o registry
 │   │                       #   é DADOS, reescrito pelo /?setup), MedalSystem,
@@ -52,7 +52,7 @@ MobileGame/
 
 | Pacote | Uso |
 |---|---|
-| `playwright` | Testes e2e em Chromium (`e2e-ramp`, `e2e-stats`, `e2e-boss`, `e2e-special`, `e2e-skins`, `e2e-setup`) |
+| `playwright` | Testes e2e em Chromium (`e2e-ramp`, `e2e-stats`, `e2e-boss`, `e2e-boss2`, `e2e-boss3`, `e2e-special`, `e2e-skins`, `e2e-setup`) |
 | `@resvg/resvg-js` | Rasterizar `icon.svg` → PNGs (`make-icons`) e SVGs enviados ao gerador de sprites |
 | `potrace` | Vetorização raster→SVG do gerador de sprites (porta JS do potrace, v1.8) |
 | `jimp` | Processamento raster do gerador de sprites (fixado em 0.14.0 — antes vinha só como dependência transitiva do potrace, o que era frágil) |
@@ -71,12 +71,14 @@ Para os testes e ferramentas (Node 18+):
 
 ```bash
 npm install                     # só devDependencies
-npm run test-stats              # 76 asserts, sem navegador
-npm run test-score              # 71 asserts da pontuação composta, sem navegador
+npm run test-stats              # 99 asserts, sem navegador
+npm run test-score              # 83 asserts da pontuação composta, sem navegador
 npm run test-skins              # ~94 asserts das skins, sem navegador (nº varia com o registry)
 npm run test-integrate          # 42 asserts da integração do /?setup, sem navegador
-npm run test-ramp               # 30 asserts em Chromium — exige o servidor acima no ar
+npm run test-ramp               # 39 asserts em Chromium — exige o servidor acima no ar
 npm run test-boss               # 16 asserts e2e da luta do portão — idem
+npm run test-boss2              # 13 asserts e2e do Cerco (2000m) — idem
+npm run test-boss3              # 10 asserts e2e do Guardião do Fim — idem
 npm run test-special            # 25 asserts e2e da FÚRIA TOTAL, biomas e desabamento — idem
 npm run test-e2e-skins          # 15 asserts e2e das skins — idem
 npm run test-e2e-setup          # 17 asserts e2e do estúdio /?setup — idem (2 ramos: gerador no ar/parado)
@@ -93,10 +95,10 @@ URLs especiais: `/?debug=1` (painel de tuning + `window.game` para os e2e), `/?s
 
 | Arquivo | Campo |
 |---|---|
-| `js/utils/Constants.js:4` | `VERSION: '1.8.4'` |
-| `index.html` | `<span id="game-version">v1.8.4</span>` |
-| `package.json` | `"version": "1.8.4"` |
-| `sw.js:3` | `const CACHE = 'furious-rhino-v184'` |
+| `js/utils/Constants.js:4` | `VERSION: '1.8.5'` |
+| `index.html` | `<span id="game-version">v1.8.5</span>` |
+| `package.json` | `"version": "1.8.5"` |
+| `sw.js:3` | `const CACHE = 'furious-rhino-v185'` |
 
 ## 5. Ritual de release (ordem não negociável)
 
@@ -115,7 +117,7 @@ Projeto `furious-rhino`. Credenciais em `js/firebase-config.js` são **públicas
 | Coleção | Leitura | Escrita |
 |---|---|---|
 | `scores/{playerId}` | pública | só campos `{name, nameLower, score, scoreAt, skin, updatedAt, scoreM}`; name 3–12 chars; **`score` int 1–20000 e só cresce — desde a v1.8.4 é o TOTAL (metros + bônus), não os metros**; `scoreM` (v1.8.4) opcional, int 1–10000, os metros da marca, com `score >= scoreM` e `score <= scoreM * 2` (o teto do bônus vira trava anti-abuso); sem `scoreM` o teto do `score` continua 10000 (é o cliente velho, cujo score AINDA são os metros); `scoreAt` (v1.8) opcional, timestamp `<= request.time` — o "quando a marca foi atingida"; `skin` (v1.8.1) opcional, string 1–24 — a skin usada ao cravar a marca (vitrine do pódio). Ambos regravados com o valor ANTIGO na troca de apelido (cópias locais `furious_rhino_best_sent_at`/`_skin`; sem elas os campos saem e a leitura cai nos fallbacks); delete proibido |
-| `stats/{playerId}` | pública (é o que faz o painel funcionar) | 12 campos de topo no máximo; núcleos monotônicos (`attempts/playTimeS/wins/bestM` só crescem); `runs` ≤ 50; `deaths` ≤ 14 chaves; `client` ≤ 10; `geo` ≤ 4; delete proibido |
+| `stats/{playerId}` | pública (é o que faz o painel funcionar) | 12 campos de topo no máximo; núcleos monotônicos (`attempts/playTimeS/wins/bestM` só crescem); `runs` ≤ 50; `deaths` ≤ 15 chaves (v1.8.5 — entraram `boss2`/`boss3`); `client` ≤ 10; `geo` ≤ 4; delete proibido |
 | `config/notify` e `config/news` | pública | **proibida** — só o console (o wildcard `config/{doc}` cobre os dois). `config/news` (v1.8.1) = o Diário da Fuga: campo `items`, array de strings — cada string é um card na home, a 1ª sempre aparece; o jogo relê a cada 1h |
 
 **A restrição que governa tudo:** o orçamento de avaliação das rules estoura com campos soltos — constatado que **19 campos de topo passavam e 20 falhavam**, negando writes legítimos em silêncio. Portanto: **nenhum campo novo de primeiro nível em `stats`**. Campo novo entra nos mapas existentes ou nos elementos de `runs[]` (forma livre).
@@ -129,12 +131,12 @@ Projeto `furious-rhino`. Credenciais em `js/firebase-config.js` são **públicas
 ## 7. Telemetria — formato dos dados
 
 - 1 write **idempotente** por fim de corrida (`setDoc` sem merge, totais acumulados). Também na tela inicial e ao abrir `/?stats`.
-- `runs[]` (últimas 50): `{t, m}` + opcionais `s` segundos, `c` causa, `k` teclado, `v` versão, `g` skin usada (v1.8, string ≤8, omitida na default) e 13 contadores de mecânica (`w` paredes, `r` rampas, `o` torres, `a` animais, `j` pulos, `d` investidas, `x` investidas negadas no cooldown, `p` pausas, `f` Fúrias Totais usadas, `n` ativações da fúria **negadas na arena do boss** (v1.8 — mede quem ainda tenta o truque antigo), `b` camadas do portão quebradas, `q` quiques na luta, `z` segundos de luta contra o boss). Zero é omitido.
-- Causas de morte: `wall/spike/animal/dart/tower/boss/fall` — `boss` (v1.7) é o rifle do caçador, 13ª chave do mapa `deaths` (as rules aceitam até 14).
+- `runs[]` (últimas 50): `{t, m}` + opcionais `s` segundos, `c` causa, `k` teclado, `v` versão, `g` skin usada (v1.8, string ≤8, omitida na default) e 13 contadores de mecânica (`w` paredes, `r` rampas, `o` torres, `a` animais, `j` pulos, `d` investidas, `x` investidas negadas no cooldown, `p` pausas, `f` Fúrias Totais usadas, `n` ativações da fúria **negadas na arena do boss** (v1.8 — mede quem ainda tenta o truque antigo), `b` camadas do portão quebradas, `q` quiques na luta, `z` segundos de luta contra o boss — e, v1.8.5, `e` camadas do Cerco, `h` segundos de luta do Cerco e `l` camadas do Guardião; `q` segue **exclusivo do portão**, para não poluir a baseline que calibrou a v1.8). Zero é omitido.
+- Causas de morte: `wall/spike/animal/dart/tower/boss/boss2/boss3/fall` — `boss` (v1.7) é o rifle do caçador do portão; `boss2`/`boss3` (v1.8.5) são a rede do Capturador e o rifle do Caçador-Mor. 15 chaves no mapa `deaths` (as rules aceitam até 15 — bump publicado nesta release).
 - `history` (localStorage e espelhado): `{clients, geos, versions}` podados pelo **menos usado**; `days` (60 dias) podado por **idade** — série temporal não pode ganhar buracos.
 - Geo por IP no cliente (geojs.io → ipwho.is, timeout 4 s), TTL 12 h ok / 6 h falha; **falha preserva** a última cidade (`stale: true`) — um `setDoc` sem merge com campo ausente **apaga** o valor no servidor (bug real corrigido na v1.6.1).
 - A fúria deixou de ser posicional na v1.7 (virou carga gastável): o contador `f` mede a **decisão de usar** o especial, que não está em nenhum outro campo.
-- **O bônus da pontuação composta (v1.8.4) NÃO tem letra em `runs[]`** — e isso é decisão, não esquecimento: ele é recomputável de `w r o a b` + `c` + `m` + `z` por `ScoreSystem.runBonus(run)`, e o `v` já versiona a fórmula. Gravá-lo seria byte pago por informação derivada, e as letras livres (só sobram 6) estão reservadas para os bosses futuros. `tools/test-score.mjs` tranca a igualdade "recomputado == somado ao vivo" com um assert dedicado — se ela quebrar, o painel passa a mentir.
+- **O bônus da pontuação composta (v1.8.4) NÃO tem letra em `runs[]`** — e isso é decisão, não esquecimento: ele é recomputável de `w r o a b` + `c` + `m` + `z` por `ScoreSystem.runBonus(run)`, e o `v` já versiona a fórmula. Gravá-lo seria byte pago por informação derivada. A v1.8.5 gastou 3 letras com os bosses do deserto (`e h l`) — **restam 3 livres** (`i u y`). A recomputação cobre os bosses novos: camada de qualquer chefe vale o mesmo `bossLayer`, e a vitória do Cerco (`e >= 4`) paga o peso `boss2`. `tools/test-score.mjs` tranca a igualdade "recomputado == somado ao vivo" com um assert dedicado — se ela quebrar, o painel passa a mentir.
 - Tudo passa por `safeTelemetry` no `GameScene` — erro nunca derruba o jogo.
 
 Chaves completas de `localStorage`/`sessionStorage`: ver `js/utils/StorageManager.js` (todas prefixadas `furious_rhino_`).
@@ -200,7 +202,7 @@ Fluxo de trabalho: ajustar os sliders em campo → jogar → gostou? botão **ex
 ## 9. Service worker (`sw.js`)
 
 - Estratégia **network-first** com `cache: 'no-cache'` (força revalidação HTTP — sem isso o cache do navegador misturava versões de JS).
-- `ASSETS`: ~135 entradas explícitas (v1.8.1 somou `NewsSystem.js`). **Todo `.js` novo entra na lista E o `CACHE` sobe de versão** (`furious-rhino-v181`) — esquecer = `addAll` falha inteiro no install e o PWA instalado toma 404.
+- `ASSETS`: ~140 entradas explícitas (v1.8.5 somou os 4 SVGs dos caçadores novos; as barricadas são procedurais e não têm arquivo). **Todo `.js` novo entra na lista E o `CACHE` sobe de versão** (`furious-rhino-v185`) — esquecer = `addAll` falha inteiro no install e o PWA instalado toma 404.
 - **Fonte do título** (v1.8.1): `fonts.googleapis.com` (o CSS) já cai no bypass `endsWith('googleapis.com')` — offline o título usa Impact (`font-display: swap`); o `.woff2` de `fonts.gstatic.com` entra no cache de runtime como o SDK do Firebase.
 - Entre os marcadores `// @setup:skins —` e `// @setup:skins:fim` fica o **bloco gerenciado pelo estúdio /?setup**: os SVGs de skins criadas pelo dono são reescritos ali pelo servidor do gerador (`patchSwAssets`). As 7 skins originais ficam FORA do bloco, listadas à mão. **Não editar o miolo nem duplicar os marcadores** — o `test-skins` valida.
 - Bypass (vai direto à rede, sem cache): não-GET e os hosts `*.googleapis.com`, `get.geojs.io`, `ipwho.is`, `ntfy.sh`. **Serviço externo novo precisa entrar nessa lista.**
@@ -223,6 +225,8 @@ Parâmetros completos e receitas: `HANDOFF.md` §4A/§4B. Resumo de operação:
 | `test-integrate` (Node puro, v1.8) | A integração do estúdio como funções puras: round-trip byte-idêntico do `SkinRegistry.js`, upsert/remove (só o `default` intocável; originais também removem, com `stripSwArtLines` limpando as linhas manuscritas do `sw.js`), flag `hidden`, validação de entradas/condições, e o patch idempotente do bloco `@setup:skins` no `sw.js` (CACHE jamais tocado) |
 | `e2e-ramp` (Chromium) | Trajetória frame a frame da travessia da rampa (o assert "nunca trava" protege contra regressão do soft-lock), trampolim, destruição, abertura guiada, portão/cidade, teclado, pausa (inclusive **desistir da corrida** sem contabilizar), par/escolta de animais, knockback para a direita, e (v1.8.1) a **home nova**: pódio do cache com cascata e fallback de skin, Diário com evento local, box Campanha, e o **contrato do toque em (640,650)** iniciando a corrida — zero erro de JS |
 | `e2e-boss` (Chromium) | A luta do portão: quique sem morte e **retomada sozinha** (o assert que mataria a rota de corpo sólido), investida liberada na janela pós-quique, 3 quebras na ordem chão→meio→alto, vitória dispara o `crossGate`, morte pelo rifle com causa `boss` — e (v1.8) a fúria negada na arena com carga preservada, cadeado no medidor, rampage prévio que sobrevive mas **não quebra desalinhado**, e liberação pós-derrota |
+| `e2e-boss2` (Chromium, v1.8.5) | O Cerco: texturas urban, câmera travada na âncora, anti-soft-lock, clamp, zero spawn na arena, fúria negada (`n` sobe), ordem **mid→ground→high→mid** com as texturas acompanhando, **a 4ª camada NÃO chama `crossGate`** (gameOver false, +250 pts ao vivo, câmera recola), Capturador cai, morte com causa `boss2` e título "CAPTURADO! 🕸️", enrage muda a cadência. ⚠️ Teleporte para a arena exige semear `gateReached`/`escaped` antes do `body.reset`, senão o gatilho legado do portão dispara `crossGate` no mesmo frame |
+| `e2e-boss3` (Chromium, v1.8.5) | O Guardião do Fim: arena dentro da zona da LENDA (zero spawn de graça), palíndromo **ground→mid→high→mid→ground**, fúria negada, **a 5ª camada dispara a LENDA** (`legend`/`won`/overlay com a linha do chefe no breakdown), morte com causa `boss3` |
 | `e2e-special` (Chromium) | Sorteio de espécies por bioma, o ciclo completo da FÚRIA TOTAL (carga por distância, ativação sem virar dash, destruição do espinho, drenagem e reversão) e (v1.8) o desabamento do topo da parede: crop, tombo, autodestruição e pool limpo na reciclagem |
 | `e2e-skins` (Chromium, v1.8) | Comportamento no navegador contra um **registry canônico injetado por interceptação de rede** (`context.route` + `serviceWorkers: 'block'` — o registry real do dono não pode derrubar a suíte): preview e sprite vestem a skin; destronado vira default **sem regravar a escolha**; hub sem iniciar corrida; persistência após reload; fúria com `firePrefix` próprio (o canônico usa arte do NÚCLEO — `rhino-run`/`rhino-fire-run` — porque qualquer skin real pode ser removida com a arte pelo /?setup); e a guarda da escala visual — **hitbox segue 76×54 com os pés no chão** para qualquer `RHINO_VISUAL_SCALE` |
 | `e2e-setup` (Chromium, v1.8) | O estúdio /?setup: sem chave/chave errada → restrito; chave certa → monta sem Phaser; preview do requisito gerado ao vivo; nome de skin original barrado na digitação; lista com só o default travado e toggle + ✏️ + 🗑 em todas as outras (v3); dois ramos (servidor do gerador no ar/parado) |

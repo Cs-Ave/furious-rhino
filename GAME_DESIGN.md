@@ -1,6 +1,6 @@
 # FURIOUS RHINO — Documento de Design
 
-> Estado atual do jogo (v1.8.4). Este documento descreve o que **é**, não o que
+> Estado atual do jogo (v1.8.5). Este documento descreve o que **é**, não o que
 > se imaginou no começo — as decisões de v1.1 em diante estão registradas aqui
 > com o motivo, e várias delas foram tomadas a partir dos dados reais de
 > telemetria (ver "Decisões orientadas por dados" no fim).
@@ -133,14 +133,58 @@ largada do modo infinito. Quem entra em chamas (ativou antes da arena) mantém
 o fogo, mas **precisa alinhar as 3 frestas como todo mundo**. O contador
 `runs[].n` mede quantos ainda tentam o truque antigo.
 
+## 🏙️ Os bosses do deserto (v1.8.5) — O Cerco e o Guardião do Fim
+
+**O dado que motivou** (levantamento de 16/08, `docs/IDEIAS-FUTURAS.md` §4.3):
+depois do portão existia um **deserto de 2.000 m a 10.000 m** — a dificuldade
+teta no tier 6 e não havia nenhum marco até a LENDA. Só 10 corridas da janela
+passaram de 2.000 m, e quem vencia o boss não tinha próximo objetivo.
+
+**O Cerco (2.000 m).** Barricada de contenção urbana em **4 camadas**, com o
+**Capturador** (canhão de redes) no topo. Ancorado em 80.000 px de propósito: a
+face do clamp cai a ~3 m da medalha "Inalcançável" — a medalha vira a recompensa
+da luta **de graça**. Para não ser o mesmo chefe de novo: ordem **não monótona**
+`mid → ground → high → mid` (obriga a ler o glow em vez de decorar a sequência),
+tiro em **leque** (3 dardos, ±12°), **rasante** anti-camping (tiro rente ao chão
+— pular é a resposta, e pular é o que o camper não estava fazendo; o morteiro
+só entra na última camada) e **enrage suave** aos 45 s (a cadência desce UM
+degrau — nunca um muro de morte). **Vitória: a corrida CONTINUA** — a barricada
+explode, +150 pts (peso `boss2`) além dos 25 por camada, medalha `boss2_win`.
+Derrota = causa `boss2`, título próprio "CAPTURADO! 🕸️".
+
+**O Guardião do Fim (9.995 m).** O Caçador-Mor na última cerca do mundo. A
+arena saiu **de graça**: os 1.500 px sem spawn da chegada da LENDA já eram
+exatamente isso. **5 camadas em palíndromo** `ground → mid → high → mid →
+ground`, arsenal remixando os dois bosses anteriores. **Vencer dispara a
+LENDA** (`legend = true; endGame(true)`) — a cutscene que já existia vira a
+festa do chefe, com a medalha `legend_world` (o bônus de 400 pts da LENDA já
+era o prêmio). O valor é aspiracional: ninguém chegou perto (recorde 5.185 m),
+mas a marca máxima do jogo deixou de ser uma chegada e virou uma **vitória**.
+
+**Decisões de recompensa (do dono):** medalhas + pontos, **sem** skins novas e
+sem card no Diário. Telemetria: letras `e` (camadas do Cerco) · `h` (segundos
+do Cerco) · `l` (camadas do Guardião) em `runs[]`; `q` segue **exclusivo do
+portão** para preservar a baseline de 48 lutas que calibrou a v1.8. Restam 3
+letras livres (`i u y`).
+
+**A decisão estrutural — parametrizar, nunca copiar:** antes dos bosses novos,
+o `BossFight` passou pelos refactors R1–R7 (ideia D): âncora, camadas, tabela
+de tiro, texturas, contadores e callbacks de vitória viraram um objeto de
+definição, e os três chefes são **3 instâncias da mesma classe** — com o
+`e2e-boss` 16/16 preservado após cada passo e a arte do portão byte a byte
+idêntica. Sem isso, B e C seriam cópia-e-cola do portão — o caminho mais
+rápido para um soft-lock. A zona sem spawn foi unificada no mesmo passo
+(`noSpawnZones()` como dados; a arena nova entrou com UMA entrada).
+
 ## 📊 Progressão
 
 - **Distância + façanha (v1.8.4)**: 1 metro ainda vale 1 ponto, mas agora **não é só isso** — ver "Pontuação composta" abaixo. Recorde local (em metros E em pontos) + ranking mundial (Firestore).
 - **Portão dos 1000m** = a fuga, agora uma **batalha de chefe** (acima). Vencer
   conta a vitória **sem parar a corrida** — o modo infinito começa na mesma
   passada: o portão **explode** (estilhaços, flash, tremor de câmera), sobem
-  fogos e confete, e o cenário vira a **cidade**. O fim físico do mundo é
-  10.000m ("LENDA").
+  fogos e confete, e o cenário vira a **cidade**. Aos **2.000m** espera o
+  Cerco e aos **9.995m** o Guardião do Fim (v1.8.5, acima). O fim físico do
+  mundo é 10.000m ("LENDA") — hoje, atrás do chefe final.
 - **6 tiers de dificuldade**, um a cada 200m. Cada tier tem sua roleta de spawn
   (parede / espinho / torre / rampa; a sobra é animal), vão mínimo, velocidade
   dos animais, cadência e velocidade dos dardos.
@@ -417,20 +461,23 @@ Leitura de 48 jogadores, 981 tentativas, 512 corridas e 945 mortes da v1.5:
 
 | A habilidade não valia nada: o ranking media só distância, enquanto os contadores de parede/torre/animal/camada dormiam em `runs[]` há meses. Simulação sobre as **895 corridas reais**: bônus com p95 de 13,7% do total e Spearman metros × total de **0,993** — dá para premiar façanha sem virar outro jogo. | **Pontuação composta** (v1.8.4): `score` vira metros + bônus, `scoreM` guarda os metros, teto `bônus ≤ metros`. Nada foi recalculado — doc antigo é total de bônus zero, e a ausência de `scoreM` é a marca de versão. |
 | A abertura roteirizada nasceu de um dado real (83 de 512 corridas morriam aos 34 m antes da v1.6), mas era aplicada a todo mundo: **os primeiros 190 m não geravam um único animal**, em toda tentativa, para todo jogador — inclusive quem já tinha 500 corridas. | A lição passou a valer só abaixo de 3 tentativas (a régua que já desligava as dicas). Veterano recebe a roleta aos 60 m, com par e escolta. Efeito medido em teste: 1º obstáculo aos 55 m e **29 animais dentro dos 200 m**, contra zero. |
+| **O deserto de 2.000–10.000 m**: dificuldade plana pós-portão e nenhum marco até a LENDA — só 10 corridas da janela passaram de 2.000 m, e o funil mostrou a massa de mortes parando antes (§2.2 das IDEIAS-FUTURAS). O portão, único chefe, tinha virado pedágio (41 de 48 lutas vencidas, mediana de 4 s). | **Dois bosses novos (v1.8.5)**: O Cerco aos 2.000 m (âncora colada na medalha "Inalcançável") e o Guardião do Fim aos 9.995 m (a LENDA vira vitória, não chegada). Variações deliberadas sobre a espinha do portão — ordem não monótona, leque, rasante, enrage suave — para exigir leitura, não memória. |
 
 ## 🧪 Testes
 
-Dez suítes (detalhe por suíte em `docs/04-referencia-tecnica.md` §11); números
+Doze suítes (detalhe por suíte em `docs/04-referencia-tecnica.md` §11); números
 de 21/08/2026 — os que dependem do registry de skins variam com ele:
 
 | Comando | Asserts | Foco |
 |---|---|---|
-| `npm run test-stats` | 87 | Telemetria/agregação, `holdDays` nas duas semânticas, consistência contra as rules, digest — sem navegador |
-| `npm run test-score` | 71 | A fórmula da pontuação composta: pesos, blitz na borda, teto do bônus, formatadores — e o contrato de recomputação (ao vivo == recomputado de `runs[]`) |
+| `npm run test-stats` | 99 | Telemetria/agregação, `holdDays` nas duas semânticas, consistência contra as rules (inclusive as letras `e/h/l` e as causas `boss2`/`boss3`), digest — sem navegador |
+| `npm run test-score` | 83 | A fórmula da pontuação composta: pesos, blitz na borda, teto do bônus, formatadores — e o contrato de recomputação (ao vivo == recomputado de `runs[]`), agora cobrindo camadas e vitória dos bosses novos |
 | `npm run test-skins` | ~93 | Portão do /?setup (roda a cada gravação, com rollback): lógica de acesso com skins sintéticas + estrutura do registry real |
 | `npm run test-integrate` | 49 | A integração do estúdio como funções puras (round-trip, upsert/remove, patch do sw) |
-| `npm run test-ramp` | 37 | Rampa/trampolim, abertura guiada, teclado, pausa + desistir, par/escolta, knockback, a home nova e o contrato do toque |
+| `npm run test-ramp` | 39 | Rampa/trampolim, abertura guiada, teclado, pausa + desistir, par/escolta, knockback, a home nova e o contrato do toque |
 | `npm run test-boss` | 16 | A luta do portão: quique, ordem das camadas, fúria negada na arena, causa `boss` |
+| `npm run test-boss2` | 13 | O Cerco: ordem não monótona, leque/rasante/enrage — e **a 4ª camada NÃO encerra a corrida** |
+| `npm run test-boss3` | 10 | O Guardião: palíndromo de 5 camadas — e **a 5ª camada dispara a LENDA** |
 | `npm run test-special` | 25 | Bioma dos animais, ciclo completo da FÚRIA TOTAL, desabamento |
 | `npm run test-e2e-skins` | 15 | Comportamento das skins no navegador contra registry canônico injetado (arte do núcleo — imune a remoções do dono) |
 | `npm run test-e2e-setup` | 15–17 | O estúdio /?setup (nº varia com o servidor do gerador no ar ou não) |
@@ -438,5 +485,5 @@ de 21/08/2026 — os que dependem do registry de skins variam com ele:
 | `npm run digest` | — | Monta o resumo diário contra produção **sem enviar** |
 
 Os e2e exigem o jogo servido em `localhost:3000` (`python -m http.server 3000`).
-Regra aprendida a ferro: **a regressão de release roda as 9 — sempre** (um
+Regra aprendida a ferro: **a regressão de release roda todas — sempre** (um
 subconjunto deixou passar um teste quebrado na v1.8.2).

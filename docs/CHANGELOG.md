@@ -5,7 +5,17 @@
 
 ---
 
-## v1.8.4 — 21/08/2026 (versão atual)
+## v1.8.5 — 21/08/2026 (versão atual)
+
+**Tema: o deserto depois do portão ganhou dois chefes — a fuga agora tem três batalhas.**
+
+- **Boss novo aos 2000 m: "O Cerco".** A cidade barricou a avenida: uma barricada de contenção blindada em **4 camadas**, com o **Capturador** (um agente com canhão de redes) no topo. A ordem das frestas **não é mais de baixo para cima** (meio → chão → alto → meio) — é preciso ler o brilho dourado em vez de decorar a sequência do portão. O canhão atira em **leque** (3 dardos abertos) e tem o **rasante**, um tiro rente ao chão que pune quem fica parado esperando; o morteiro só entra na última camada. Se a luta passar de 45 segundos, a cadência sobe um degrau (nunca vira "muro de morte"). **Vencer não para a corrida**: a barricada explode, rende **+150 pontos** (além de +25 por camada) e a medalha 🕸️ **Fura-Bloqueio** — e a pista segue livre. Ser atingido pela rede dá o fim de jogo próprio "**CAPTURADO! 🕸️**".
+- **Boss final aos 9995 m: o "Caçador-Mor"** (o Guardião do Fim). Na última cerca do mundo, um caçador imponente defende **5 camadas em vaivém** (chão → meio → alto → meio → chão) com o arsenal dos dois chefes anteriores misturado. **Vencê-lo é o novo jeito de virar LENDA**: a cutscene do fim do mundo é a festa da vitória, com a medalha 👑 **Lenda do Mundo** (e o bônus de 400 pontos da LENDA, que já existia). Antes, bastava chegar aos 10.000 m — agora o fim do mundo tem um guardião.
+- **Por que ali:** os dados mostraram um **deserto entre 2000 m e 10.000 m** — depois do portão a dificuldade ficava plana e não havia nenhum marco até a LENDA (só 10 corridas na janela medida passaram de 2000 m). O Cerco fica a ~3 m da medalha "Inalcançável" (2000 m), que vira o prêmio natural da luta.
+- **Por dentro** (invisível para o jogador): a luta de chefe virou um sistema **paramétrico** — os três chefes são o mesmo mecanismo com tabelas diferentes, o que evita a cópia de código que costuma criar travamentos. O funil de estatísticas ganhou as causas de morte "Capturador" e "Caçador-Mor", e a telemetria registra as camadas e a duração das lutas novas.
+- Duas suítes de teste novas (`test-boss2`, 13 verificações; `test-boss3`, 10) garantem, entre outras coisas, que **vencer o Cerco não encerra a corrida** e que **vencer o Guardião dispara a LENDA**.
+
+## v1.8.4 — 21/08/2026
 
 **Tema: o ranking deixa de ser só distância — agora vale o que você derruba pelo caminho.**
 

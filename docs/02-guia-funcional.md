@@ -1,6 +1,6 @@
 # Furious Rhino — Guia funcional
 
-> Documentação da versão **1.8.4** · atualizada em 21/08/2026
+> Documentação da versão **1.8.5** · atualizada em 21/08/2026
 > Cada funcionalidade do jogo: o que faz, como o usuário interage e exemplos práticos. Termos técnicos vêm explicados entre parênteses na primeira vez.
 
 ## 1. Controles
@@ -29,7 +29,9 @@ Os botões de pausa e som ficam **logo abaixo** dos ícones de fúria e investid
 | **Torre tranquilizante** | **Invista na base** para derrubar — e a investida **volta na hora**, sem recarga. Ou desvie dos dardos | Dardo = "TRANQUILIZADO! 💤" |
 | **Dardo** | Pule, ou **estoure no chifre** durante uma investida | Morte (dormindo) |
 | **Morro / trampolim** | Suba e desça por cima, ou **invista rasante na base** para destruí-lo inteiro | **Nunca mata** — é o obstáculo que ensina |
-| **O caçador do portão** (1000 m) | A batalha final — ver item **4** | Tiro do rifle = morte (dormindo) |
+| **O caçador do portão** (1000 m) | A primeira batalha de chefe — ver item **4** | Tiro do rifle = morte (dormindo) |
+| **O Cerco** (2000 m) | Barricada de 4 camadas com canhão de redes — item **4** | Rede = "CAPTURADO! 🕸️" |
+| **O Caçador-Mor** (9995 m) | O chefe final, na última cerca do mundo — item **4** | Tiro = morte (dormindo) |
 
 O morro tem uma variante especial, o **trampolim**: um penhasco cuja crista lança o rinoceronte longe — a sensação de voo é proposital, é a parte mais divertida do jogo, e por isso é a variante mais sorteada.
 
@@ -37,7 +39,7 @@ O morro tem uma variante especial, o **trampolim**: um penhasco cuja crista lan�
 
 ## 3. Progressão da corrida
 
-- **1 metro = 1 ponto — e, desde a v1.8.4, o que você destrói também pontua.** Cada parede quebrada vale +5, morro +5, torre +15, animal atropelado +3, camada do portão +25; escapar pelo portão dá +100, derrubar as 3 camadas em menos de 20 segundos dá +50 e chegar ao fim do mundo, +400. O ponto aparece subindo do próprio obstáculo no instante em que você o destrói. O bônus nunca passa do total de metros da corrida, então **correr longe continua sendo o que mais importa**.
+- **1 metro = 1 ponto — e, desde a v1.8.4, o que você destrói também pontua.** Cada parede quebrada vale +5, morro +5, torre +15, animal atropelado +3, camada de **qualquer chefe** +25; escapar pelo portão dá +100, derrubar as 3 camadas dele em menos de 20 segundos dá +50, **derrubar a barricada do Cerco dá +150** e chegar ao fim do mundo, +400. O ponto aparece subindo do próprio obstáculo no instante em que você o destrói. O bônus nunca passa do total de metros da corrida, então **correr longe continua sendo o que mais importa**.
 - No alto da tela, a **Pontuação** fica em destaque e os **metros** logo abaixo, menores. A tela de fim de corrida mostra a conta completa: quanto veio da distância e de onde saiu cada ponto de bônus.
 - **Marcas antigas não foram recalculadas**: quem já tinha recorde continua com ele (valendo como pontuação sem bônus), e vai sendo ultrapassado conforme as pessoas jogam a versão nova.
 - A barra no topo mostra o progresso até o portão.
@@ -45,9 +47,14 @@ O morro tem uma variante especial, o **trampolim**: um penhasco cuja crista lan�
 - **Dificuldade em 6 níveis**, um a cada 200 m: obstáculos mais frequentes, animais mais rápidos, dardos mais velozes, combinações de obstáculos ("combos") a partir dos 400 m.
 - **O zoológico persegue de verdade**: animais podem vir **em dupla**, e paredes, espinhos e torres costumam aparecer **escoltados por um animal** logo atrás — a chance de ambos cresce nível a nível (de ~50% até ~80%). O total de perseguidores praticamente **dobrou** em relação às versões anteriores, sem trocar nenhum obstáculo letal por animal (a proporção de paredes/espinhos é a mesma — só o zoológico ficou mais cheio).
 - **Abertura guiada:** nas 3 primeiras corridas da vida do jogador, os 3 primeiros obstáculos são fixos e didáticos — um morro aos 90 m (não mata), um espinho aos 125 m (ensina o pulo), uma parede aos 160 m (ensina a investida) — com dicas na tela.
-- **O portão dos 1000 m:** virou uma **batalha de chefe** (item 4). Vencida a luta, o portão **explode** com fogos e confete, e a corrida **não para** — começa o **modo infinito** na cidade, à noite. O fim físico do mundo é 10.000 m, onde quem chega vira "**LENDA**".
+- **O portão dos 1000 m:** virou uma **batalha de chefe** (item 4). Vencida a luta, o portão **explode** com fogos e confete, e a corrida **não para** — começa o **modo infinito** na cidade, à noite.
+- **O modo infinito tem dois marcos próprios (v1.8.5):** aos **2000 m** a cidade barrica a avenida (**O Cerco**, o segundo chefe) e aos **9995 m**, na última cerca do mundo, espera o **Caçador-Mor** — vencê-lo é o que faz o jogador virar "**LENDA**" no fim físico do mundo (10.000 m). Os dois estão no item 4.
 
-## 4. A luta do portão (o chefe)
+## 4. As batalhas de chefe
+
+A fuga tem **três** batalhas, todas com a mesma gramática: um alvo blindado em camadas, um atirador no topo, a fresta que brilha como mira, o ricochete que nunca mata (o perigo mora nos tiros) e a **FÚRIA TOTAL bloqueada dentro da arena** (cadeado 🔒 no medidor; a carga continua enchendo e libera na vitória). O que muda de uma para outra é o número e a **ordem** das camadas, o arsenal do atirador e o prêmio.
+
+### 4a. A luta do portão (1000 m)
 
 Perto dos 1000 m a câmera **trava na arena**, soa uma buzina grave e o portão aparece **blindado do chão ao teto**, com um **caçador de rifle tranquilizante** de pé na plataforma do topo. Três escudos (🛡️) acima do portão mostram quantas camadas faltam.
 
@@ -61,6 +68,22 @@ Encostar no portão do jeito errado (sem investir, ou investindo fora da fresta)
 
 Dicas na tela ensinam a mecânica só nos **2 primeiros encontros** da vida do jogador. **A FÚRIA TOTAL não resolve mais a luta**: dentro da arena a ativação fica **bloqueada** (o medidor mostra um cadeado 🔒 e o toque avisa "a fúria não pega no portão"), e mesmo quem entra em chamas — ativou pouco antes da arena — precisa acertar as 3 frestas na ordem: o fogo dispensa a investida, mas **não dispensa mais o alinhamento** (os dados mostravam a luta anulada: 120 camadas quebradas com só 8 mortes). A carga continua enchendo normalmente e **libera assim que o portão cai** — vira o fôlego de largada do modo infinito. Derrubada a terceira camada, o caçador despenca do portão e a festa da fuga acontece. O chefe aparece em **toda** corrida que chega aos 1000 m.
 
+### 4b. O Cerco (2000 m) — a cidade contra-ataca
+
+Mil metros depois da fuga, a cidade **barrica a avenida**: uma estrutura de contenção urbana (concreto e tarjas amarelas de perigo) em **4 camadas**, com o **Capturador** — um agente de intervenção com **canhão de redes** — no topo. As diferenças em relação ao portão:
+
+- A ordem das frestas **não é de baixo para cima**: é **meio → chão → alto → meio**. Decorar a sequência do portão não ajuda — é preciso **ler o brilho dourado**. (A camada do meio é dupla: a primeira quebra a amassa, a segunda a abre de vez.)
+- O canhão atira em **leque** (3 dardos abertos ao mesmo tempo) e tem o **rasante** — um tiro reto rente ao chão que atinge quem fica **parado esperando** o padrão passar; pular é a resposta. O morteiro em arco só entra na última camada, como estocada final.
+- **Se a luta passar de 45 segundos**, a cadência de tiro sobe um degrau — pressão a mais, nunca um "muro de morte".
+
+**Vencer NÃO para a corrida**: a barricada explode, o Capturador despenca, sobem **+150 pontos** (além dos +25 de cada camada), a medalha 🕸️ **Fura-Bloqueio** fica garantida para o fim da corrida — e a pista segue livre ("🏆 2000m LIVRES!"). A face da barricada fica a ~3 m da marca dos 2000 m, então a medalha "Inalcançável" costuma cair junto. Ser atingido pela rede dá o fim de jogo próprio: "**CAPTURADO! 🕸️**" (o rinoceronte também adormece — ninguém morre neste jogo).
+
+### 4c. O Caçador-Mor (9995 m) — o Guardião do Fim
+
+Na **última cerca do mundo**, a poucos metros da linha da LENDA, espera o chefe final: um caçador imponente de casacão escuro e rifle ornamentado, defendendo **5 camadas em vaivém** — **chão → meio → alto → meio → chão** — com o arsenal dos dois chefes anteriores misturado (retos, morteiros, leques e, na última camada, o rasante). A arena são os próprios 1500 pixels livres da chegada: nenhum obstáculo nasce ali.
+
+**Vencer é virar LENDA**: derrubada a quinta camada, dispara a cutscene do fim do mundo — o banner "🏆 LENDA!", os fogos, o confete — com a medalha 👑 **Lenda do Mundo** e o bônus de +400 pontos da LENDA. Antes da v1.8.5, bastava alcançar os 10.000 m; agora o fim do mundo tem um guardião, e a marca máxima do jogo é uma **vitória**, não uma chegada.
+
 ## 5. FÚRIA TOTAL (o especial)
 
 Com o medidor de fogo **cheio** (ele pulsa e a tela avisa), toque nele — ou **↓**/**Shift** no teclado — para transformar o rinoceronte:
@@ -70,7 +93,7 @@ Com o medidor de fogo **cheio** (ele pulsa e a tela avisa), toque nele — ou **
 - Corre **25% mais rápido** por cima da velocidade de fúria cheia;
 - O medidor **drena** com o tempo; na reta final o rinoceronte pisca avisando que o fogo vai apagar.
 
-Depois de gasto, o medidor volta a encher com a distância (~900 m por carga). A invencibilidade cobre colisões — cair num buraco continua valendo o de sempre. **Na arena do chefe a ativação é bloqueada** (ver item 4); o aviso de "fúria cheia" que ficou devendo dispara na saída do portão. Skins criadas no estúdio podem ter uma **transformação de fúria própria** (uma arte em chamas exclusiva) em vez do fogo padrão.
+Depois de gasto, o medidor volta a encher com a distância (~900 m por carga). A invencibilidade cobre colisões — cair num buraco continua valendo o de sempre. **Nas arenas dos três chefes a ativação é bloqueada** (ver item 4); o aviso de "fúria cheia" que ficou devendo dispara na saída da luta. Skins criadas no estúdio podem ter uma **transformação de fúria própria** (uma arte em chamas exclusiva) em vez do fogo padrão.
 
 ## 6. Cenário vivo
 
@@ -100,7 +123,7 @@ Os registros e o ranking:
 
 ## 8. Medalhas
 
-17 conquistas salvas no aparelho (não dependem de internet). Desde a v1.8.1 elas são vistas dentro de **"📊 Minhas estatísticas"** (a faixa de ícones saiu da tela inicial para dar lugar ao pódio). Exemplos:
+19 conquistas salvas no aparelho (não dependem de internet). Desde a v1.8.1 elas são vistas dentro de **"📊 Minhas estatísticas"** (a faixa de ícones saiu da tela inicial para dar lugar ao pódio). Exemplos:
 
 | Medalha | Como ganhar |
 |---|---|
@@ -112,6 +135,8 @@ Os registros e o ranking:
 | 🦁 Rolo Compressor | Atropelar 10 animais (total da vida) |
 | 🎖️ Superação | Dobrar o próprio recorde |
 | 🏆 Inalcançável | Chegar a 2000 m |
+| 🕸️ Fura-Bloqueio | Derrubar a barricada do Cerco (2000 m) |
+| 👑 Lenda do Mundo | Vencer o Caçador-Mor no fim do mundo |
 
 ## 9. Skins (a aparência do rinoceronte)
 
@@ -196,4 +221,4 @@ Controles úteis (parâmetros na seção D do `HANDOFF.md` e em [`04-referencia-
 
 ## 14. Modo debug (para desenvolvimento)
 
-Abrir o jogo com `/?debug=1` liga um painel de ajustes ao vivo (física do rinoceronte, dificuldade por nível — incluindo **os pesos do sorteio de obstáculos e a densidade de animais** (dupla e escolta, ver o guia de calibração no [`04-referencia-tecnica.md`](04-referencia-tecnica.md)) —, velocidade e **força do voo do atropelo** dos animais, duração/boost da Fúria Total, quique e rifle do chefe — inclusive ligar/desligar o **bloqueio da fúria na arena**), além de: ver as caixas de colisão, invencibilidade, avançar quadro a quadro, teleportar para os 600 m, para o portão ou **direto para a arena do chefe**, **encher a fúria na hora**, **vestir qualquer skin sem desbloqueio** e **ajustar a escala visual do rinoceronte ao vivo** (pasta "Skins" — só naquela sessão, nada fica salvo) e **exportar os ajustes** num arquivo pronto para colar no código.
+Abrir o jogo com `/?debug=1` liga um painel de ajustes ao vivo (física do rinoceronte, dificuldade por nível — incluindo **os pesos do sorteio de obstáculos e a densidade de animais** (dupla e escolta, ver o guia de calibração no [`04-referencia-tecnica.md`](04-referencia-tecnica.md)) —, velocidade e **força do voo do atropelo** dos animais, duração/boost da Fúria Total, quique e rifle do chefe — inclusive ligar/desligar o **bloqueio da fúria na arena** — e, desde a v1.8.5, **as cadências do canhão do Cerco e do rifle do Caçador-Mor**, camada a camada, mais o tempo do enrage), além de: ver as caixas de colisão, invencibilidade, avançar quadro a quadro, teleportar para os 600 m, para o portão ou **direto para a arena de qualquer um dos três chefes**, **encher a fúria na hora**, **vestir qualquer skin sem desbloqueio** e **ajustar a escala visual do rinoceronte ao vivo** (pasta "Skins" — só naquela sessão, nada fica salvo) e **exportar os ajustes** num arquivo pronto para colar no código.

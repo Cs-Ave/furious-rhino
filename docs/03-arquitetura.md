@@ -1,6 +1,6 @@
 # Furious Rhino — Arquitetura
 
-> Documentação da versão **1.8.4** · atualizada em 21/08/2026
+> Documentação da versão **1.8.5** · atualizada em 21/08/2026
 > Visão técnica intermediária: como o projeto é organizado, os principais componentes e como eles conversam. Pressupõe noções de programação, mas explica os termos específicos do projeto.
 
 ## 1. Filosofia
@@ -21,20 +21,22 @@ index.html ─── HUD, telas e modais em DOM + CSS (~1300 linhas), carrega Ph
          │    ├── scenes/GameScene.js ──── A CENA ÚNICA: loop, colisões, terreno, biomas,
          │    │                            clima, portão, morte, telas, pausa (~2000 linhas)
          │    ├── entities/ ────────────── Rhino, Animal, CrackedWall, Spike, TranqTower,
-         │    │                            TranqDart, Ramp, HunterSniper (o caçador do boss)
+         │    │                            TranqDart, Ramp, HunterSniper (o atirador dos
+         │    │                            bosses — paramétrico desde a v1.8.5)
          │    ├── systems/
          │    │    ├── TextureFactory ──── toda a arte procedural (24 geradores)
          │    │    ├── SpawnManager ────── sorteio e reciclagem de obstáculos (pools)
          │    │    ├── FurySystem ───────── fúria = CARGA por distância → velocidade, tint,
          │    │    │                        fumaça; e o modo FÚRIA TOTAL (rampage)
-         │    │    ├── BossFight ────────── a luta do portão: estados, camadas, quique,
-         │    │    │                        câmera travada, glow/escudos, caçador
+         │    │    ├── BossFight ────────── luta de chefe PARAMÉTRICA (v1.8.5): uma `def`
+         │    │    │                        por boss — portão (1000m), Cerco (2000m) e
+         │    │    │                        Guardião do Fim (9995m) são 3 instâncias
          │    │    ├── AudioSystem ──────── SFX + música generativa (Web Audio)
          │    │    ├── SkinSystem ───────── skins (v1.8): lógica de acesso (4 tipos com
          │    │    │                        condições declarativas), resolução da equipada
          │    │    ├── SkinRegistry ─────── DADOS das skins (JSON estrito, machine-owned:
          │    │    │                        reescrito pelo estúdio /?setup)
-         │    │    ├── MedalSystem ──────── 17 medalhas locais
+         │    │    ├── MedalSystem ──────── 19 medalhas locais
          │    │    ├── ScoreSystem ───────── pontuação composta (v1.8.4): pesos por façanha,
          │    │    │                        teto do bônus, recomputação de runs[] e formatação
          │    │    │                        (módulo PURO — sem Phaser, testado no node)
@@ -72,13 +74,16 @@ flowchart TD
     F --> G[updateTerrain<br/>encaixa rino/animais na rampa]
     G --> H[rhino.update<br/>pulo / investida]
     H --> I[FurySystem<br/>carga + FÚRIA TOTAL + velocidade]
-    I --> BF[BossFight<br/>arena aos ~972m: clamp, camadas, quique]
+    I --> BF[bossFights ×3<br/>portão 1000m · Cerco 2000m · Guardião 9995m<br/>clamp, camadas, quique]
     BF --> J[SpawnManager<br/>sorteia e recicla obstáculos]
     J --> K{colisão letal?}
-    K -->|não| L{3 camadas quebradas?<br/>o chefe do portão}
+    K -->|não| L{todas as camadas<br/>do chefe atual?}
     L -->|não| F
-    L -->|sim, 1x| M[crossGate: explosão,<br/>cidade, modo infinito]
+    L -->|"portão"| M[crossGate: explosão,<br/>cidade, modo infinito]
+    L -->|"Cerco"| M2[defeatBoss2: +150 pts,<br/>a corrida CONTINUA]
+    L -->|"Guardião"| M3[legend = true<br/>endGame com a cutscene de LENDA]
     M --> F
+    M2 --> F
 
     K -->|sim| N[endGame<br/>medalhas + recorde local<br/>em metros E em pontos]
     N --> O[StatsSystem.send<br/>Firestore stats/]
@@ -94,8 +99,9 @@ Pontos que merecem destaque:
 - **Uma cena só.** Não há cena de menu/game-over separada: as "telas" são divs de DOM sobre o canvas, e `GameScene` pausa/retoma a física. Reiniciar é recarregar a página.
 - **`updateTerrain()` roda antes de `rhino.update()`** — ordem obrigatória, ver §5.
 - **A vitória mudou de dono na v1.7**: quem chama `crossGate()` é o `BossFight` ao cair a 3ª camada (não mais a linha de x = 40000). O gatilho antigo por posição continua como *fallback* do modo invencível de debug — e por isso **teleportar para além do portão nos testes exige `invincible = true`**, senão o clamp da arena devolve o rinoceronte para a face do portão.
+- **O BossFight é paramétrico (v1.8.5)**: a classe recebe um objeto de definição (`def`) com âncora, camadas (na ordem de quebra — pode repetir altura), tabela de tiro, texturas, contadores e os callbacks `isBypassed`/`onDefeat`. Os três chefes são três instâncias em `scene.bossFights[]` (o alias `scene.bossFight` continua sendo o do portão, para telemetria e testes). Cada vitória tem dono: o portão chama `crossGate()`; o **Cerco** chama `defeatBoss2()` — explosão, +150 pts e a corrida **continua**; o **Guardião** seta `legend` e chama `endGame(true)` — a cutscene de LENDA vira a festa do chefe. O `HunterSniper` lê a tabela da `def` e ganhou três capacidades ativáveis por tabela: `fan` (leque de 3 dardos), `rasante` (tiro rente ao chão, anti-camping) e o *enrage* suave (passado `enrageMs` de luta, a cadência desce UM degrau — nunca um muro de morte). A causa de morte viaja no dardo: `fromBoss` virou a **string** da causa (`boss`/`boss2`/`boss3`).
 - **O portão não interrompe o loop**: `crossGate()` roda uma vez, dispara os efeitos e a corrida segue na mesma passada. Durante a luta a câmera fica **travada** (`stopFollow`) — de brinde, o lookahead do spawn não alcança o pós-portão e **nada nasce na arena** sem precisar de código extra.
-- **A fúria respeita a arena (v1.8)**: com `BOSS_BLOCKS_FURY` ligado, `FurySystem.activate()` recusa a ativação enquanto `BossFight.state === 'fight'` (guarda canônica — cobre toque, teclado e debug de uma vez; o feedback de UI mora no `doSpecial` da `GameScene`). Um rampage ativado antes da arena sobrevive, mas o `BossFight` deixou de aceitar quebra desalinhada por fúria — a checagem de alinhamento voltou a ser obrigatória para todo mundo. O aviso de "medidor cheio" que acontecer durante o bloqueio fica **pendente** e dispara na liberação.
+- **A fúria respeita a arena (v1.8)**: com `BOSS_BLOCKS_FURY` ligado, `FurySystem.activate()` recusa a ativação enquanto **qualquer** luta de `scene.bossFights[]` estiver em `state === 'fight'` (guarda canônica — cobre toque, teclado e debug de uma vez; o feedback de UI mora no `doSpecial` da `GameScene`). Um rampage ativado antes da arena sobrevive, mas o `BossFight` deixou de aceitar quebra desalinhada por fúria — a checagem de alinhamento voltou a ser obrigatória para todo mundo. O aviso de "medidor cheio" que acontecer durante o bloqueio fica **pendente** e dispara na liberação.
 
 ## 4. Ciclo de vida dos obstáculos (SpawnManager)
 
@@ -106,7 +112,7 @@ Pontos que merecem destaque:
 - **A espécie do animal sai do elenco do bioma local** (`BIOME_ANIMALS` + `pickBiomeAnimal(x, modo)`, v1.7): 27 espécies, cada trecho com as suas — e os combos pedem o modo certo (`ground` para o par parede+animal, `fly` para espinho+rasante).
 - **Abertura roteirizada** (`OPENING_SCRIPT`): os 3 primeiros obstáculos são fixos (rampa → espinho → parede, em ordem de lição); a roleta só assume aos 190 m.
 - A partir do tier 3 entram **combos** (pares de obstáculos com offset fixo, ex.: parede + animal logo atrás, que força pular em vez de investir duas vezes).
-- **A arena do boss é uma zona livre**: nada nasce entre WIN−1300 e WIN+1000 (cobre o alcance do quique). Depois do portão (x ≥ 40000), todo obstáculo nasce com **skin `-city`** (mesmas hitboxes, outro grafismo).
+- **As arenas de boss são zonas livres unificadas (v1.8.5)**: `noSpawnZones()` descreve as zonas como DADOS (`{from, to, resumeX, anchor}`) — arena do portão (WIN−1300 a WIN+1000), arena do Cerco (mesma geometria em 80000) e a chegada da LENDA (últimos 1500 px, onde o Guardião mora de graça). `inNoSpawnZone(x)` substitui as 4 cópias antigas da checagem (laço principal, par de animais, escolta e `rampFits`), e `nearBossArena(x)` impede o combo de partir um par na aproximação de qualquer âncora. Depois do portão (x ≥ 40000), todo obstáculo nasce com **skin `-city`** (mesmas hitboxes, outro grafismo).
 
 ## 5. A decisão arquitetural mais importante: rampa é terreno, não colisão
 
@@ -118,7 +124,7 @@ A solução: a rampa **não tem corpo físico**. Ela expõe uma função pura `s
 - Não há tunelamento em fps baixo — é um encaixe posicional por X, não colisão varrida.
 - Precisa rodar **depois do step de física e antes de `rhino.update()`** (senão a física apaga os flags).
 
-**O portão do boss (v1.7) segue o mesmo princípio.** Ele também **não tem corpo físico**: o contato é uma banda de x em altura total + um *clamp* posicional (a posição é limitada, nunca a velocidade), e o recuo é o `Rhino.beginKnockback()` — que abre uma janela em que o `FurySystem` **não reescreve** `velocityX` (a reescrita por frame contra um corpo sólido é exatamente a receita do soft-lock das rampas). O recuo decai sozinho e, quando a janela fecha, a reescrita normal reacelera o rinoceronte para a frente — e a investida volta do cooldown **junto com o controle**.
+**Os alvos dos bosses (v1.7; três desde a v1.8.5) seguem o mesmo princípio.** Nenhum deles tem corpo físico: o contato é uma banda de x em altura total + um *clamp* posicional (a posição é limitada, nunca a velocidade), e o recuo é o `Rhino.beginKnockback()` — que abre uma janela em que o `FurySystem` **não reescreve** `velocityX` (a reescrita por frame contra um corpo sólido é exatamente a receita do soft-lock das rampas). O recuo decai sozinho e, quando a janela fecha, a reescrita normal reacelera o rinoceronte para a frente — e a investida volta do cooldown **junto com o controle**.
 
 ## 6. Dados: o que vai para onde
 
@@ -170,10 +176,12 @@ O **resumo diário** é outro caminho: `tools/daily-digest.mjs` roda num cron do
 
 | Comando | O que é |
 |---|---|
-| `npm run test-stats` | 76 asserts de telemetria/agregação, puro Node (sem navegador), inclusive checagem de consistência contra `firestore.rules` |
+| `npm run test-stats` | 99 asserts de telemetria/agregação, puro Node (sem navegador), inclusive checagem de consistência contra `firestore.rules` e as letras `e/h/l` + causas `boss2`/`boss3` dos bosses novos |
 | `npm run test-skins` | ~95 asserts puro Node (v1.8, nº varia com o registry): lógica de acesso com skins sintéticas (rank exato/conquista/totais/hidden), resolução da equipada sem regravar a escolha, retro-scan, consistência registry ↔ `art/` ↔ `sw.js` |
 | `npm run test-ramp` | 30 asserts e2e (teste de ponta a ponta, com navegador de verdade via Playwright): grava a trajetória frame a frame na travessia da rampa, portão, cidade, teclado, pausa |
 | `npm run test-boss` | 16 asserts e2e da luta do portão: o quique nunca trava nem mata (anti-soft-lock), a investida volta na janela pós-quique, as 3 quebras em ordem, morte pelo rifle com causa própria — e, na v1.8, a fúria negada na arena (carga preservada, cadeado, paridade de teclado, liberação pós-derrota) |
+| `npm run test-boss2` | 13 asserts e2e do Cerco (v1.8.5): ordem não-monotônica mid→ground→high→mid, leque/rasante, enrage, fúria negada — e o assert-chave: **a 4ª camada NÃO chama `crossGate`** (a corrida continua, com +250 pts ao vivo) |
+| `npm run test-boss3` | 10 asserts e2e do Guardião (v1.8.5): palíndromo de 5 camadas, arena dentro da zona da LENDA, morte com causa `boss3` — e o assert-chave: **a 5ª camada dispara a LENDA** (`legend`/`won`, overlay com o breakdown do chefe) |
 | `npm run test-special` | 25 asserts e2e: sorteio por bioma, o ciclo completo da FÚRIA TOTAL (carga, ativação, destruição, drenagem) e o desabamento do topo da parede (crop, tombo, limpeza do pool) |
 | `npm run test-e2e-skins` | 15 asserts e2e (v1.8): preview e sprite vestem a skin, pódio dinâmico (destronado → default sem regravar), hub não inicia corrida, persistência após reload, fúria com `firePrefix` próprio (registry canônico injetado com arte do núcleo) |
 | `npm run test-e2e-stats` | e2e da telemetria real contra o Firestore (com id de sonda `claude-*`), painel, resiliência, e prova de que a suíte **não sujou a produção** |

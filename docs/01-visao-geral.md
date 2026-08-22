@@ -1,6 +1,6 @@
 # Furious Rhino — Visão geral
 
-> Documentação da versão **1.8.4** · atualizada em 21/08/2026
+> Documentação da versão **1.8.5** · atualizada em 21/08/2026
 > Este documento é para quem **não é programador**. Sem jargão — e quando um termo técnico for inevitável, ele vem explicado entre parênteses.
 
 ## O que é
@@ -30,7 +30,7 @@ A regra de ouro: cada obstáculo tem um jeito certo de passar. Parede rachada se
 
 Correr **1000 metros** até o portão do zoológico e escapar. No caminho, o cenário muda (jaulas, aviário, savana, floresta, pântano) — e **cada ambiente tem seus próprios perseguidores**: tratadores com rede nas jaulas, hienas e búfalos na savana, jacarés no pântano. E eles vêm em peso: animais aparecem em dupla e escoltando os obstáculos — o zoológico inteiro está na sua cola. O dia vira entardecer, e a **fúria** do rinoceronte cresce — ele fica mais rápido, mais vermelho, e a música mais intensa.
 
-Só que o portão não está mais escancarado: ele amanhece **blindado**, com um **caçador de rifle tranquilizante** no topo. É a batalha final do jogo — é preciso quebrar as três camadas da blindagem com investidas certeiras, desviando dos tiros, até o portão vir abaixo. Aí sim ele **explode em pedaços** com fogos e confete... e a corrida continua: começa o **modo infinito**, agora pela cidade (com carros, pedestres em pânico e até um teco-teco), à noite, para ver até onde você aguenta. O recorde de cada corrida fica salvo, e existe um **ranking mundial** — você escolhe um apelido e compete com todo mundo que joga.
+Só que o portão não está mais escancarado: ele amanhece **blindado**, com um **caçador de rifle tranquilizante** no topo. É a batalha final do jogo — é preciso quebrar as três camadas da blindagem com investidas certeiras, desviando dos tiros, até o portão vir abaixo. Aí sim ele **explode em pedaços** com fogos e confete... e a corrida continua: começa o **modo infinito**, agora pela cidade (com carros, pedestres em pânico e até um teco-teco), à noite, para ver até onde você aguenta. E a cidade não desiste: aos **2000 metros** uma barricada de contenção com um **canhão de redes** bloqueia a avenida (**O Cerco**, o segundo chefe), e lá no **fim do mundo** (10.000 m) espera o **Caçador-Mor** — vencê-lo é o que transforma o rinoceronte em **LENDA**. O recorde de cada corrida fica salvo, e existe um **ranking mundial** — você escolhe um apelido e compete com todo mundo que joga.
 
 ## Uma analogia
 
@@ -43,7 +43,7 @@ Este projeto não é só o jogo — é também a "sala de controle" dele:
 - **Ranking mundial** — placar público com o recorde de cada jogador, por apelido — e há quantos dias cada marca está de pé. Desde a v1.8.4 o placar é de **pontos**: a distância continua valendo 1 ponto por metro, mas cada obstáculo destruído pelo caminho soma um extra (e a distância aparece do lado, como "1.234 pts · 987 m"). A tela inicial mostra um **pódio ao vivo** com os 3 primeiros do mundo (cada um com a aparência de rinoceronte que usava ao cravar a marca) e o seu lugar logo ao lado, a um degrau do bronze.
 - **Diário da Fuga** — a área de notícias da tela inicial: avisos do criador (novidades de cada versão) e acontecimentos do jogador (skin nova, entrou ou caiu do pódio, recorde batido).
 - **Estatísticas do jogador** — um botão "📊 Minhas estatísticas" mostra seu histórico: onde você costuma morrer, quantas vezes fugiu, suas medalhas.
-- **Medalhas** — 17 conquistas, de "Primeira Fuga" a "Inalcançável" (2000 m).
+- **Medalhas** — 19 conquistas, de "Primeira Fuga" a "Lenda do Mundo" (vencer o chefe do fim do mundo).
 - **Skins** — um guarda-roupa de aparências para o rinoceronte (botão 🎨): gratuitas, por conquista difícil e **exclusivas do pódio do ranking** — só quem está naquele degrau do topo do mundo veste a skin do degrau, e a perde se perder o posto. O elenco muda com o tempo (o criador cria e troca skins pelo estúdio).
 - **Estúdio de skins** — uma página especial (`/?setup`, protegida por chave) onde o criador transforma folhas de desenhos geradas por IA em skins prontas e decide **como cada uma é conquistada** (grátis, pódio do ranking, façanha numa corrida ou totais de vida) — tudo sem programar; a skin entra no jogo na publicação seguinte.
 - **Painel do criador** — uma página especial (`/?stats`) com gráficos sobre todos os jogadores: quantos jogam por dia, onde o jogo está difícil demais, quem volta a jogar. É com esses dados que o jogo é ajustado a cada versão — várias decisões de design vieram de olhar para eles.
