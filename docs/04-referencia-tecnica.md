@@ -1,6 +1,6 @@
 # Furious Rhino — Referência técnica
 
-> Documentação da versão **1.8.3** · atualizada em 16/08/2026
+> Documentação da versão **1.8.4** · atualizada em 21/08/2026
 > Para quem vai dar manutenção. Complementa (não substitui) `GAME_DESIGN.md` (o design e suas razões) e `HANDOFF.md` (estado da última sessão de trabalho e tabelas completas de parâmetros).
 
 ## 1. Estrutura de pastas
@@ -72,6 +72,7 @@ Para os testes e ferramentas (Node 18+):
 ```bash
 npm install                     # só devDependencies
 npm run test-stats              # 76 asserts, sem navegador
+npm run test-score              # 71 asserts da pontuação composta, sem navegador
 npm run test-skins              # ~94 asserts das skins, sem navegador (nº varia com o registry)
 npm run test-integrate          # 42 asserts da integração do /?setup, sem navegador
 npm run test-ramp               # 30 asserts em Chromium — exige o servidor acima no ar
@@ -92,10 +93,10 @@ URLs especiais: `/?debug=1` (painel de tuning + `window.game` para os e2e), `/?s
 
 | Arquivo | Campo |
 |---|---|
-| `js/utils/Constants.js:4` | `VERSION: '1.8.3'` |
-| `index.html` | `<span id="game-version">v1.8.3</span>` |
-| `package.json` | `"version": "1.8.3"` |
-| `sw.js:3` | `const CACHE = 'furious-rhino-v183'` |
+| `js/utils/Constants.js:4` | `VERSION: '1.8.4'` |
+| `index.html` | `<span id="game-version">v1.8.4</span>` |
+| `package.json` | `"version": "1.8.4"` |
+| `sw.js:3` | `const CACHE = 'furious-rhino-v184'` |
 
 ## 5. Ritual de release (ordem não negociável)
 
@@ -113,7 +114,7 @@ Projeto `furious-rhino`. Credenciais em `js/firebase-config.js` são **públicas
 
 | Coleção | Leitura | Escrita |
 |---|---|---|
-| `scores/{playerId}` | pública | só campos `{name, nameLower, score, scoreAt, skin, updatedAt}`; name 3–12 chars; score int 1–10000 e **só cresce**; `scoreAt` (v1.8) opcional, timestamp `<= request.time` — o "quando a marca foi atingida"; `skin` (v1.8.1) opcional, string 1–24 — a skin usada ao cravar a marca (vitrine do pódio). Ambos regravados com o valor ANTIGO na troca de apelido (cópias locais `furious_rhino_best_sent_at`/`_skin`; sem elas os campos saem e a leitura cai nos fallbacks); delete proibido |
+| `scores/{playerId}` | pública | só campos `{name, nameLower, score, scoreAt, skin, updatedAt, scoreM}`; name 3–12 chars; **`score` int 1–20000 e só cresce — desde a v1.8.4 é o TOTAL (metros + bônus), não os metros**; `scoreM` (v1.8.4) opcional, int 1–10000, os metros da marca, com `score >= scoreM` e `score <= scoreM * 2` (o teto do bônus vira trava anti-abuso); sem `scoreM` o teto do `score` continua 10000 (é o cliente velho, cujo score AINDA são os metros); `scoreAt` (v1.8) opcional, timestamp `<= request.time` — o "quando a marca foi atingida"; `skin` (v1.8.1) opcional, string 1–24 — a skin usada ao cravar a marca (vitrine do pódio). Ambos regravados com o valor ANTIGO na troca de apelido (cópias locais `furious_rhino_best_sent_at`/`_skin`; sem elas os campos saem e a leitura cai nos fallbacks); delete proibido |
 | `stats/{playerId}` | pública (é o que faz o painel funcionar) | 12 campos de topo no máximo; núcleos monotônicos (`attempts/playTimeS/wins/bestM` só crescem); `runs` ≤ 50; `deaths` ≤ 14 chaves; `client` ≤ 10; `geo` ≤ 4; delete proibido |
 | `config/notify` e `config/news` | pública | **proibida** — só o console (o wildcard `config/{doc}` cobre os dois). `config/news` (v1.8.1) = o Diário da Fuga: campo `items`, array de strings — cada string é um card na home, a 1ª sempre aparece; o jogo relê a cada 1h |
 
@@ -133,6 +134,7 @@ Projeto `furious-rhino`. Credenciais em `js/firebase-config.js` são **públicas
 - `history` (localStorage e espelhado): `{clients, geos, versions}` podados pelo **menos usado**; `days` (60 dias) podado por **idade** — série temporal não pode ganhar buracos.
 - Geo por IP no cliente (geojs.io → ipwho.is, timeout 4 s), TTL 12 h ok / 6 h falha; **falha preserva** a última cidade (`stale: true`) — um `setDoc` sem merge com campo ausente **apaga** o valor no servidor (bug real corrigido na v1.6.1).
 - A fúria deixou de ser posicional na v1.7 (virou carga gastável): o contador `f` mede a **decisão de usar** o especial, que não está em nenhum outro campo.
+- **O bônus da pontuação composta (v1.8.4) NÃO tem letra em `runs[]`** — e isso é decisão, não esquecimento: ele é recomputável de `w r o a b` + `c` + `m` + `z` por `ScoreSystem.runBonus(run)`, e o `v` já versiona a fórmula. Gravá-lo seria byte pago por informação derivada, e as letras livres (só sobram 6) estão reservadas para os bosses futuros. `tools/test-score.mjs` tranca a igualdade "recomputado == somado ao vivo" com um assert dedicado — se ela quebrar, o painel passa a mentir.
 - Tudo passa por `safeTelemetry` no `GameScene` — erro nunca derruba o jogo.
 
 Chaves completas de `localStorage`/`sessionStorage`: ver `js/utils/StorageManager.js` (todas prefixadas `furious_rhino_`).
@@ -154,7 +156,11 @@ Tudo em `js/utils/Constants.js` (deploy sempre necessário). Principais:
 | `MIN_SAFE_GAP` | 540 | piso absoluto de vão = ciclo do dash × velocidade máxima |
 | `ANIMAL_PACK_OFFSET_PX` | 300 | distância do 2º animal do par (v1.8) |
 | `ANIMAL_KB_VX/VY_MIN/MAX` | 350..650 / −800..−500 | voo do animal atropelado: diagonal superior direita (v1.8) |
-| `OPENING_SCRIPT` | 3 passos | abertura guiada (rampa 90 m → espinho 125 m → parede 160 m) |
+| `OPENING_SCRIPT` | 3 passos | abertura guiada (rampa 90 m → espinho 125 m → parede 160 m) — **só para estreante desde a v1.8.4** |
+| `VETERAN_MIN_ATTEMPTS` | 3 | v1.8.4: a partir daqui o jogador pula a abertura-lição (mesma régua do `OPENING_HINT_MAX_ATTEMPTS`, então dica e roteiro somem juntos) |
+| `VETERAN_OPENING_START_X` | 2400 | v1.8.4: onde a roleta começa para o veterano (60 m — cedo, mas não os 34 m pré-v1.6 que matavam 83 de 512 corridas) |
+| `SCORE_WEIGHTS` | 8 pesos | v1.8.4: pontos por façanha — `wall` 5, `ramp` 5, `tower` 15, `animal` 3, `bossLayer` 25, `escape` 100, `blitz` 50, `legend` 400 |
+| `SCORE_BLITZ_MAX_S / SCORE_BONUS_CAP / SCORE_MAX_TOTAL` | 20 / 1 / 20000 | v1.8.4: janela do blitz, teto do bônus (× metros) e teto do total (igual ao das rules) |
 | `SPECIAL_DURATION_MS / SPEED_MULT / WARN_MS` | 6000 / 1,25 / 1500 | FÚRIA TOTAL: duração, boost e aviso de fim |
 | `BOSS_ARENA_PX` | 1100 | a luta começa em WIN−1100 (~972 m); câmera trava |
 | `BOSS_BLOCKS_FURY` | true | v1.8: dentro da arena a ATIVAÇÃO da fúria é negada (a carga segue enchendo); ligável/desligável no TuningPanel |
@@ -165,6 +171,8 @@ Tudo em `js/utils/Constants.js` (deploy sempre necessário). Principais:
 | `CAUSE_LABELS` | 8 rótulos | fonte única dos nomes de desfecho (painel, resumo, pushes) |
 
 Calibrar com dados, não no escuro: aba **Dificuldade** do painel (heatmap causa × distância). O `TuningPanel` (`?debug=1`) permite testar valores ao vivo e exportar um `.txt` com só o que mudou, no formato do `Constants.js`.
+
+**Pesos da pontuação (v1.8.4)**: pasta **🏆 Pontuação** do `?debug=1`, um slider por peso. Como o peso é lido **no momento do evento**, mover o slider vale na mesma corrida — o próximo "+N" já sai com o valor novo. O exportador passou a incluir `SCORE_WEIGHTS` **e** `BOSS_RIFLE` (este tinha slider desde a v1.7 e nunca saía no `.txt` — a calibração se perdia ao recarregar). Régua para saber se um peso está sadio: na simulação sobre as 895 corridas reais o bônus ficou em **p95 ≈ 13,7% do total** e o Spearman metros × total em **0,993**; se o bônus passar de ~25% do total, a distância deixou de mandar no ranking.
 
 ### 8b. Como calibrar a densidade de inimigos (guia do dono)
 
@@ -183,7 +191,8 @@ Referências de densidade (Monte Carlo com a roleta real): **v1.7 = 1,5 animais/
 
 Coisas que **não** são slider:
 - `POOL_SIZES.animals` (16): máximo de animais vivos ao mesmo tempo — lido só no boot; subir densidade muito além do padrão pede aumentá-lo no `Constants.js` (senão spawns somem em silêncio quando o pool enche).
-- Os **primeiros 190 m são a abertura roteirizada** (rampa → espinho → parede, zero animais, de propósito) — nenhuma calibração muda isso; quem morre cedo vê pouco bicho por design.
+- Os **primeiros 190 m são a abertura roteirizada** (rampa → espinho → parede, zero animais, de propósito) — **mas só para quem tem menos de 3 tentativas** (v1.8.4). Nenhuma calibração muda isso; o slider não alcança o roteiro.
+  ⚠️ **Pegadinha de medição:** desde a v1.8.4 a densidade dos primeiros 200 m **depende de quem está jogando**. Estreante = trecho vazio por design; veterano = roleta cheia desde os 60 m (`VETERAN_OPENING_START_X`). Medir densidade sem separar os dois grupos compara laranja com maçã — e os números históricos de densidade (1,5 → 3,2 animais/100 m) foram levantados quando a abertura era universal.
 - A **arena do boss** (WIN−1300 a WIN+1000) é zona livre — par e escolta respeitam.
 
 Fluxo de trabalho: ajustar os sliders em campo → jogar → gostou? botão **exportar** do painel (gera `furious-rhino-tuning.txt` só com o que mudou, no formato do `Constants.js`) → colar os valores no `Constants.js` (ou mandar o arquivo para o assistente aplicar) → rodar `npm run test-ramp` + `test-boss` → release normal.
@@ -209,6 +218,7 @@ Parâmetros completos e receitas: `HANDOFF.md` §4A/§4B. Resumo de operação:
 | Suíte | Prova |
 |---|---|
 | `test-stats` (Node puro) | Agregação, contadores (inclusive `f/b/q/z` e a causa `boss`), consistência das camadas **contra as rules** (um teste falha se alguém criar campo de topo em `stats`; outros se `scoreAt`/`skin` sumirem da whitelist de `scores`), `LeaderboardSystem.holdDays` nas DUAS semânticas (por marca = lista; cascata = pódio), `buildDigest` |
+| `test-score` (Node puro, v1.8.4) | A fórmula da pontuação composta: peso de cada evento, evento desconhecido valendo 0, blitz na BORDA dos 20 s, LENDA, o teto `bônus <= metros` agindo, o clamp em `SCORE_MAX_TOTAL`, `metersOf` nas três formas (`scoreM`/`m`/`score` cru) e os formatadores. O assert-chave é o **contrato de recomputação**: a soma feita ao vivo durante a corrida tem de bater exatamente com `runBonus(run)` |
 | `test-skins` (Node puro, v1.8) | É o **portão do /?setup** (roda a cada gravação da página, com rollback se reprovar). Lógica de acesso testada com **skins sintéticas** — rank exato, condições declarativas (`conditionMet`), totais, `hidden`, retro-scan, `requirementText`, `resolveEquipped` sem regravar — e o registry REAL só passa por checagens estruturais: ids/prefixos no padrão, JSON estrito, SVGs em `art/`, `ASSETS` e marcadores do `sw.js`. **Regra: nenhum assert pode "pinar" valores do registry** (o dono edita skins à vontade) |
 | `test-integrate` (Node puro, v1.8) | A integração do estúdio como funções puras: round-trip byte-idêntico do `SkinRegistry.js`, upsert/remove (só o `default` intocável; originais também removem, com `stripSwArtLines` limpando as linhas manuscritas do `sw.js`), flag `hidden`, validação de entradas/condições, e o patch idempotente do bloco `@setup:skins` no `sw.js` (CACHE jamais tocado) |
 | `e2e-ramp` (Chromium) | Trajetória frame a frame da travessia da rampa (o assert "nunca trava" protege contra regressão do soft-lock), trampolim, destruição, abertura guiada, portão/cidade, teclado, pausa (inclusive **desistir da corrida** sem contabilizar), par/escolta de animais, knockback para a direita, e (v1.8.1) a **home nova**: pódio do cache com cascata e fallback de skin, Diário com evento local, box Campanha, e o **contrato do toque em (640,650)** iniciando a corrida — zero erro de JS |
@@ -262,9 +272,14 @@ Regras de higiene dos testes (v1.7.2): rodando em `localhost`, o jogo **não esc
 | `skin`/`scoreAt` × rename | `setDoc` sem merge: a troca de apelido regrava os dois campos das cópias locais (`furious_rhino_best_sent_at`/`_skin`) — esquecê-los apagaria a vitrine/contador do jogador |
 | SDK firestore-LITE ≠ completo | O lite exporta `getCount`, NÃO `getCountFromServer` — a chamada errada falhou EM SILÊNCIO (catch por design) por meses: rank nunca chegava e skins de pódio nunca desbloqueavam em produção. Agregações passam por `LeaderboardSystem.countQuery` (fallback duplo). Função nova do SDK? Testar no navegador contra o build do CDN, não confiar na doc do SDK completo |
 | Animação CSS × transform | Keyframe que anima `transform` atropela um `scaleX(-1)` estático no mesmo elemento — flip com a propriedade `scale`, que compõe separada |
+| `hasOnly` das rules × campo novo | A whitelist de `scores` é fechada: **campo novo não previsto = write NEGADO EM SILÊNCIO** (o `submit` engole o erro por design). Pior, até a v1.8.4 nenhum teste conferia a whitelist COMPLETA — só a presença de duas strings soltas. Hoje o `test-stats` extrai o `hasOnly` por regex e compara a lista inteira; **campo novo no doc = rule publicada ANTES do deploy, sempre** |
+| `score` ≠ metros (v1.8.4) | `scores/{id}.score` virou o TOTAL; os metros moram em `scoreM` (ausente = doc antigo, em que score AINDA são os metros). Toda leitura passa por `ScoreSystem.metersOf(entry)` — usar `score` como distância replanta a estaca do rival no lugar errado da pista e quebra a comparação do recorde mundial no `NotifySystem` |
 
 ## 14. Manutenção da documentação
 
 Esta pasta `docs/` é mantida pelo comando **`/atualizar-docs`** (definido em `.claude/commands/atualizar-docs.md`): a cada release, ele compara o código com a última versão documentada via git, atualiza os arquivos e registra a mudança no [`CHANGELOG.md`](CHANGELOG.md).
 
-Além dos quatro guias versionados por release, a pasta tem o [`QA-Registro.md`](QA-Registro.md) — o **Q&A vivo** de dúvidas pontuais do dono (append-only, entradas datadas, fora do ciclo de versões): dúvida respondida numa sessão vira entrada lá ("responda e registre no Q&A").
+Além dos quatro guias versionados por release, a pasta tem dois documentos **fora do ciclo de versões**, ambos append-only e com entradas datadas:
+
+- [`QA-Registro.md`](QA-Registro.md) — o **Q&A vivo** de dúvidas pontuais do dono: dúvida respondida numa sessão vira entrada lá ("responda e registre no Q&A").
+- [`IDEIAS-FUTURAS.md`](IDEIAS-FUTURAS.md) — o **banco de ideias e dados**: a radiografia datada da telemetria real (com a especificação de como reproduzi-la) e as ideias já desenhadas mas não implementadas, cada uma puxável sozinha para uma versão futura. Ideia entregue sai de lá e a explicação migra para o `GAME_DESIGN.md`.

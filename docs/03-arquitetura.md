@@ -1,6 +1,6 @@
 # Furious Rhino — Arquitetura
 
-> Documentação da versão **1.8.3** · atualizada em 16/08/2026
+> Documentação da versão **1.8.4** · atualizada em 21/08/2026
 > Visão técnica intermediária: como o projeto é organizado, os principais componentes e como eles conversam. Pressupõe noções de programação, mas explica os termos específicos do projeto.
 
 ## 1. Filosofia
@@ -35,7 +35,11 @@ index.html ─── HUD, telas e modais em DOM + CSS (~1300 linhas), carrega Ph
          │    │    ├── SkinRegistry ─────── DADOS das skins (JSON estrito, machine-owned:
          │    │    │                        reescrito pelo estúdio /?setup)
          │    │    ├── MedalSystem ──────── 17 medalhas locais
-         │    │    ├── LeaderboardSystem ── ranking (Firestore: scores/) + pódio da home (cache 6h)
+         │    │    ├── ScoreSystem ───────── pontuação composta (v1.8.4): pesos por façanha,
+         │    │    │                        teto do bônus, recomputação de runs[] e formatação
+         │    │    │                        (módulo PURO — sem Phaser, testado no node)
+         │    │    ├── LeaderboardSystem ── ranking (Firestore: scores/, score=total + scoreM=metros)
+         │    │    │                        + pódio da home (cache 6h)
          │    │    ├── NewsSystem ───────── Diário da Fuga (config/news do console + eventos locais)
          │    │    ├── StatsSystem ──────── telemetria (Firestore: stats/)
          │    │    ├── NotifySystem ─────── pushes ntfy do administrador
@@ -76,9 +80,9 @@ flowchart TD
     L -->|sim, 1x| M[crossGate: explosão,<br/>cidade, modo infinito]
     M --> F
 
-    K -->|sim| N[endGame<br/>medalhas + recorde local]
+    K -->|sim| N[endGame<br/>medalhas + recorde local<br/>em metros E em pontos]
     N --> O[StatsSystem.send<br/>Firestore stats/]
-    N --> P[LeaderboardSystem.submit<br/>Firestore scores/]
+    N --> P[LeaderboardSystem.submit<br/>score=metros+bônus, scoreM=metros]
     P --> Q[NotifySystem<br/>push ntfy se recorde mundial]
 
     B -->|"?stats"| R[StatsDashboard<br/>baixa stats+scores, agrega, 6 abas]

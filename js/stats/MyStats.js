@@ -1,9 +1,16 @@
 import { Constants } from '../utils/Constants.js';
 import { StorageManager } from '../utils/StorageManager.js';
 import { MEDALS } from '../systems/MedalSystem.js';
+import { ScoreSystem } from '../systems/ScoreSystem.js';
 import { sparkline } from './Charts.js';
 
 // "📊 Minhas estatísticas" — o espelho do jogador (v1.6.1).
+//
+// v1.8.4 — as DUAS unidades, cada uma no seu lugar: este painel é o espelho
+// da FAÇANHA FÍSICA do jogador e continua em METROS (cartão do recorde,
+// evolução das corridas, mecânicas). Os PONTOS entram onde a leitura é de
+// COMPETIÇÃO: o cartão do recorde em pontos e os comparativos "🌍 No mundo",
+// que saem da coleção `scores` e por isso falam a língua do ranking.
 //
 // TUDO sai do localStorage: abre instantâneo, funciona offline e nunca
 // segura a tela inicial esperando rede. A comparação mundial usa o rank e os
@@ -65,6 +72,14 @@ export function mySummary() {
   const medals = StorageManager.getMedals();
   return {
     record: StorageManager.getRecord(),
+    // v1.8.4: recorde de PONTOS ao lado do de metros — grandezas diferentes,
+    // nunca uma derivada da outra (ver StorageManager)
+    recordPts: StorageManager.getRecordPts(),
+    // O total com que ME comparo ao ranking. `bestSent` é o melhor TOTAL já
+    // aceito pelo servidor (e num aparelho pré-v1.8.4 ele vale os metros, que
+    // eram o total de então) — é o que faz a comparação continuar honesta
+    // antes da primeira corrida da v1.8.4, quando recordPts ainda é 0.
+    myTotal: Math.max(StorageManager.getRecordPts(), StorageManager.getBestSent()),
     attempts,
     wins: StorageManager.getWins(),
     playTimeS,
@@ -96,6 +111,9 @@ export function renderMyStats(root) {
   const cards = el('div', 'stat-cards');
   cards.append(
     card(`${s.record}m`, '🏆 recorde'),
+    // Só aparece depois da primeira corrida da v1.8.4 (aparelho antigo tem 0
+    // pontos gravados, e um cartão zerado ao lado do recorde confundiria)
+    ...(s.recordPts > 0 ? [card(ScoreSystem.fmtPts(s.recordPts), '🥇 recorde em pontos')] : []),
     card(s.attempts, '🎮 execuções'),
     card(s.wins, '🗽 fugas'),
     card(formatTime(s.playTimeS), '⏱️ tempo jogado'),
@@ -172,15 +190,19 @@ export function renderMyStats(root) {
   // ---- comparação mundial (só com cache; nunca espera rede)
   const world = [];
   if (s.rank > 0) world.push(`🌍 você é o #${s.rank} do mundo`);
+  // v1.8.4: aqui é RANKING — os números vêm da coleção `scores` e são
+  // TOTAIS. Por isso a comparação usa s.myTotal (e não s.record, que é a
+  // façanha em metros) e o texto sai por fmtScore, que mostra as duas
+  // grandezas: '1.234 pts · 987 m'.
   const leader = s.rivals && s.rivals.leader;
   const rival = s.rivals && s.rivals.rival;
   if (leader && leader.score > 0) {
-    world.push(leader.score > s.record
-      ? `👑 líder: ${leader.name} com ${leader.score}m — faltam ${leader.score - s.record}m`
+    world.push(leader.score > s.myTotal
+      ? `👑 líder: ${leader.name} com ${ScoreSystem.fmtScore(leader)} — faltam ${ScoreSystem.fmtPts(leader.score - s.myTotal)}`
       : `👑 você é o líder mundial!`);
   }
-  if (rival && rival.score > s.record) {
-    world.push(`🎯 logo à frente: ${rival.name} com ${rival.score}m`);
+  if (rival && rival.score > s.myTotal) {
+    world.push(`🎯 logo à frente: ${rival.name} com ${ScoreSystem.fmtScore(rival)}`);
   }
   if (world.length) {
     root.append(el('h3', null, '🌍 No mundo'));
@@ -211,15 +233,19 @@ export function shareText(run = null) {
     lines.push(`🦏 *FURIOUS RHINO* — minhas marcas${s.name ? ` (${s.name})` : ''}`, '');
   }
 
+  // A linha de METROS é a assinatura do jogo e está travada por teste
+  // (e2e-stats confere o *NNNm*) — os pontos entram numa linha PRÓPRIA,
+  // logo abaixo, sem tocar nela.
   lines.push(`🏆 Recorde: *${s.record}m*`);
+  if (s.recordPts > 0) lines.push(`🥇 Pontuação: *${ScoreSystem.fmtPts(s.recordPts)}*`);
   lines.push(`🎮 ${s.attempts} execuç${s.attempts === 1 ? 'ão' : 'ões'} · ⏱️ ${formatTime(s.playTimeS)}`);
   if (s.wins > 0) lines.push(`🗽 Escapei do portão dos ${GATE_M}m ${s.wins}×`);
   if (s.medals > 0) lines.push(`🏅 ${s.medals}/${s.medalsTotal} medalhas`);
   if (s.rank > 0) lines.push(`🌍 #${s.rank} do mundo`);
 
   const leader = s.rivals && s.rivals.leader;
-  if (leader && leader.score > s.record) {
-    lines.push('', `Duvido você passar disso 😏 (o líder tem ${leader.score}m)`);
+  if (leader && leader.score > s.myTotal) {
+    lines.push('', `Duvido você passar disso 😏 (o líder tem ${ScoreSystem.fmtScore(leader)})`);
   } else {
     lines.push('', 'Duvido você passar disso 😏');
   }

@@ -1,7 +1,7 @@
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
-  VERSION: '1.8.3',
+  VERSION: '1.8.4',
 
   // Rótulo humano de cada desfecho de corrida. Fonte única para o painel, o
   // resumo do jogador e os pushes — os três diziam a mesma coisa com palavras
@@ -99,6 +99,33 @@ export const Constants = {
   // Toasts de ensino só nos 2 primeiros encontros da vida (o glow pulsante
   // na fresta é permanente — é a mira, não uma dica)
   BOSS_HINT_MAX_ENCOUNTERS: 2,
+
+  // v1.8.4: PONTUAÇÃO COMPOSTA — `score` do ranking deixa de ser metros e
+  // passa a ser metros + bônus por façanha (o campo novo `scoreM` guarda os
+  // metros). Tabela MUTÁVEL de propósito: os sliders do ?debug=1 e o
+  // calibrador podem reescrever os pesos sem tocar no ScoreSystem.
+  //
+  // De onde vieram os números: simulação sobre as 895 corridas REAIS da
+  // janela de runs[] (16/08), registrada em docs/IDEIAS-FUTURAS.md §5-A.
+  // O alvo era um bônus que premie habilidade sem inverter o ranking:
+  // bônus/total com mediana 0% e **p95 ≈ 13,7%** (alvo p95 <= 25%) e
+  // **Spearman metros × total = 0,993** (alvo >= 0,9) — ou seja, a ordem
+  // geral continua sendo distância, o bônus só desempata quem luta.
+  // Ficam de fora, de propósito, `j/p/x/n` (pulo/dash/dano: spam e
+  // frustração não pontuam) e `f` (o especial já aparece no que ele quebra).
+  SCORE_WEIGHTS: { wall: 5, ramp: 5, tower: 15, animal: 3, bossLayer: 25, escape: 100, blitz: 50, legend: 400 },
+  SCORE_BLITZ_MAX_S: 20,         // 3 camadas do portão em <= 20s = blitz
+  SCORE_BONUS_CAP: 1,            // bônus <= metros × isto (na simulação nunca precisou agir)
+  SCORE_MAX_TOTAL: 20000,        // mesmo teto das firestore.rules (score is int, 1..20000)
+
+  // v1.8.4: a abertura-lição (OPENING_SCRIPT) existe porque, antes da v1.6,
+  // o primeiro obstáculo nascia aos 34m e 83 das 512 corridas medidas
+  // morriam exatamente ali. Quem já passou dessa fase não precisa mais da
+  // aula: com >= 3 tentativas o jogo pula o roteiro e solta a roleta já em
+  // x=2400 (60m). A régua é a MESMA de OPENING_HINT_MAX_ATTEMPTS de
+  // propósito — dica na tela e pista guiada somem juntas, no mesmo boot.
+  VETERAN_MIN_ATTEMPTS: 3,
+  VETERAN_OPENING_START_X: 2400,
 
   SPAWN_LOOKAHEAD_PX: 600,
   RECYCLE_MARGIN_PX: 200,

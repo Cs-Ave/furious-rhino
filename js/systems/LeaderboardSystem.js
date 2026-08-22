@@ -1,13 +1,21 @@
 import { firebaseConfig } from '../firebase-config.js';
 import { StorageManager } from '../utils/StorageManager.js';
 import { SkinSystem } from './SkinSystem.js';
+import { ScoreSystem } from './ScoreSystem.js';
 
 // Placar online global (Firebase Firestore). Todo o Firebase vive aqui,
 // carregado por import dinâmico SÓ quando o jogador abre o ranking ou
 // envia um score — zero custo no load do jogo e zero quebra offline.
 // Nenhum método propaga erro de rede: falhou, o jogo segue normal.
 const SDK = 'https://www.gstatic.com/firebasejs/12.16.0';
-const MAX_SCORE = 10000; // WORLD_END_PX 400000 / PIXELS_PER_METER 40 (modo infinito)
+// v1.8.4: `score` deixou de ser metros e passou a ser o TOTAL (metros +
+// bônus), então o teto subiu de 10000 para 20000 — mesmo número das
+// firestore.rules (`score is int && score >= 1 && score <= 20000`) e do
+// Constants.SCORE_MAX_TOTAL. Os METROS continuam limitados a 10000: são o
+// fim FÍSICO do mundo (WORLD_END_PX 400000 / PIXELS_PER_METER 40), e nenhum
+// bônus pode empurrar essa grandeza. Dois campos, dois tetos.
+const MAX_SCORE = 20000; // teto do TOTAL (score) — igual às rules
+const MAX_M = 10000;     // teto dos METROS (scoreM) — fim físico do mundo
 
 let dbPromise = null;
 
@@ -33,8 +41,12 @@ export class LeaderboardSystem {
     return Boolean(firebaseConfig.projectId);
   }
 
-  static shouldSubmit(meters) {
-    return this.isConfigured() && meters >= 1 && meters > StorageManager.getBestSent();
+  // v1.8.4: recebe o TOTAL em pontos, não os metros. getBestSent() também é
+  // o total (ver StorageManager) — total × total, mesma unidade dos dois
+  // lados. Enviar só quando MELHORA o total é o que casa com a regra do
+  // servidor, que compara o campo `score` do doc.
+  static shouldSubmit(total) {
+    return this.isConfigured() && total >= 1 && total > StorageManager.getBestSent();
   }
 
   // Chave de comparação de apelidos: sem acento, sem caixa, sem espaço
@@ -99,7 +111,13 @@ export class LeaderboardSystem {
 
   // Envia o melhor score do jogador (1 doc por aparelho; o servidor só
   // aceita update se o score for maior ou igual). Retorna true em sucesso.
-  static async submit(meters) {
+  //
+  // v1.8.4: dois números viajam. `score` = TOTAL (o que ordena o ranking) e
+  // `scoreM` = METROS da mesma corrida (o que planta a estaca na pista e
+  // alimenta os textos "· 987 m"). Doc antigo não tem `scoreM` e continua
+  // válido: para ele total == metros, e a leitura universal
+  // (ScoreSystem.metersOf) resolve com `scoreM ?? score`. Nada é migrado.
+  static async submit(total, meters) {
     const name = StorageManager.getPlayerName();
     if (!name) return false;
     if (!StorageManager.allowsRemoteWrite()) return false;
@@ -111,7 +129,10 @@ export class LeaderboardSystem {
       await fs.setDoc(fs.doc(db, 'scores', playerId), {
         name,
         nameLower: this.nameSlug(name),
-        score: Math.min(Math.floor(meters), MAX_SCORE),
+        score: Math.min(Math.floor(total), MAX_SCORE),
+        // v1.8.4: metros da marca, teto próprio. Cópia local em bestSentM
+        // pelo mesmo motivo do scoreAt/skin abaixo (o rename regrava o doc).
+        scoreM: Math.min(Math.floor(meters), MAX_M),
         // v1.8: quando ESTA marca foi atingida — o "há X dias" do top 10.
         // Cópia local em bestSentAt para o rename preservar o valor (setDoc
         // sem merge apagaria o campo); mesma dança para a skin.
@@ -119,7 +140,8 @@ export class LeaderboardSystem {
         skin: skinId,
         updatedAt: fs.serverTimestamp(),
       });
-      StorageManager.setBestSent(meters);
+      StorageManager.setBestSent(total);
+      StorageManager.setBestSentM(meters);
       StorageManager.setBestSentAt(Date.now());
       StorageManager.setBestSentSkin(skinId);
       this.fetchPodium(true); // fire-and-forget: o pódio pode ter mudado
@@ -146,10 +168,17 @@ export class LeaderboardSystem {
       // fallbacks — consistente com docs velhos.
       const bestAt = StorageManager.getBestSentAt();
       const bestSkin = StorageManager.getBestSentSkin();
+      // v1.8.4: os METROS entram na mesma dança. `best` acima é o TOTAL
+      // (getBestSent), e sem reinjetar o scoreM a troca de apelido apagaria
+      // os metros da marca — o doc viraria "total sem metros" e a leitura
+      // cairia no fallback `scoreM ?? score`, plantando a estaca do rival na
+      // posição do TOTAL (adiante do metro onde ele realmente morreu).
+      const bestM = StorageManager.getBestSentM();
       await fs.setDoc(fs.doc(db, 'scores', playerId), {
         name,
         nameLower: this.nameSlug(name),
         score: Math.min(Math.floor(best), MAX_SCORE),
+        ...(bestM ? { scoreM: Math.min(Math.floor(bestM), MAX_M) } : {}),
         ...(bestAt ? { scoreAt: fs.Timestamp.fromMillis(bestAt) } : {}),
         ...(bestSkin ? { skin: bestSkin } : {}),
         updatedAt: fs.serverTimestamp(),
@@ -199,6 +228,11 @@ export class LeaderboardSystem {
       const { fs, db } = await getDb();
       const scores = fs.collection(db, 'scores');
       const myId = StorageManager.getOrCreatePlayerId();
+      // ⚠️ v1.8.4: getBestSent() é o TOTAL, e o campo `score` do servidor
+      // também — a comparação abaixo continua homogênea SEM mudar de linha.
+      // Trocar por metros aqui devolveria "rivais" que na verdade estão
+      // atrás no ranking (foi essa classe de erro silencioso que derrubou o
+      // last_rank e as skins de pódio na v1.8.3).
       const best = StorageManager.getBestSent();
 
       const [topSnap, rivalSnap] = await Promise.all([
@@ -209,10 +243,19 @@ export class LeaderboardSystem {
       ]);
 
       // limit(2) nas duas: o primeiro resultado pode ser o próprio jogador
+      // v1.8.4: `score` (total) E `m` (metros) viajam juntos. Quem provoca
+      // é o total — é o número que aparece na placa e o que o jogador
+      // precisa bater; ONDE a estaca é fincada é o metro. Confundir os dois
+      // plantaria a marca do rival adiante do ponto em que ele morreu.
       const pick = (snap) => {
         for (const d of snap.docs) {
           if (d.id === myId) continue;
-          return { name: String(d.data().name || '???'), score: Number(d.data().score) || 0 };
+          const data = d.data();
+          return {
+            name: String(data.name || '???'),
+            score: Number(data.score) || 0,
+            m: Number(ScoreSystem.metersOf(data)) || 0,
+          };
         }
         return null;
       };
@@ -229,6 +272,12 @@ export class LeaderboardSystem {
 
   // Posição = quantos scores maiores + 1 (1 leitura agregada). Cacheia em
   // localStorage para a tela de início mostrar sem custo de rede.
+  //
+  // ⚠️ v1.8.4: a comparação é TOTAL contra TOTAL — `score` no servidor,
+  // getBestSent() aqui. Não trocar por metros: o rank alimenta o
+  // last_rank, e o SkinSystem.resolveEquipped lê o last_rank para liberar
+  // as skins de pódio (ouro/prata/bronze). Um rank errado não dá erro
+  // nenhum — só some com a skin do jogador, exatamente o bug da v1.8.3.
   static async fetchMyRank() {
     try {
       const { fs, db } = await getDb();
@@ -251,13 +300,17 @@ export class LeaderboardSystem {
       id: d.id,
       name: String(data.name || '???'),
       score: Number(data.score) || 0,
+      // v1.8.4: `score` continua sendo o TOTAL (é ele que ordena a lista);
+      // `m` são os metros da marca, resolvidos por scoreM ?? score — docs
+      // pré-v1.8.4 não têm scoreM e para eles total == metros.
+      m: Number(ScoreSystem.metersOf(data)) || 0,
       sinceMs: ts && typeof ts.toMillis === 'function' ? ts.toMillis() : null,
       // v1.8.1: skin usada na marca (docs antigos: sem campo → rino original)
       skin: typeof data.skin === 'string' ? data.skin : null,
     };
   }
 
-  // Retorna { entries: [{id, name, score, sinceMs, skin}], myRank, myBest }
+  // Retorna { entries: [{id, name, score, m, sinceMs, skin}], myRank, myBest }
   // ou null em falha. sinceMs = quando a marca foi atingida (scoreAt; docs
   // pré-v1.8 caem no updatedAt) — matéria-prima do holdDays.
   static async fetchTop10() {
@@ -271,6 +324,8 @@ export class LeaderboardSystem {
       // Os 3 primeiros saem de graça daqui — realimenta o cache do pódio
       if (entries.length) StorageManager.setPodium(entries.slice(0, 3));
 
+      // v1.8.4: myBest é o TOTAL enviado — mesma unidade do `score` das
+      // entries, que é o que a lista do 🏆 compara e destaca
       const myBest = StorageManager.getBestSent();
       const myRank = myBest > 0 ? await this.fetchMyRank() : null;
       return { entries, myRank, myBest };

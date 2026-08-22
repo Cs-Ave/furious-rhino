@@ -77,6 +77,7 @@ StorageManager.addBossEncounter();
 eq('boss: encontros contados (dicas só nos primeiros)',
   StorageManager.getBossEncounters(), 2);
 
+
 // Últimas execuções: janela deslizante de 50 (v1.5.0; era 10)
 localStorage.removeItem(StorageManager.RUNS_KEY);
 for (let i = 1; i <= 52; i++) StorageManager.addRun(i * 10);
@@ -122,6 +123,7 @@ StorageManager.addRun(500, 40, 'wall', { bossLayersBroken: 0, bossBounces: 0, bo
 const semLuta = StorageManager.getRuns().at(-1);
 eq('mecânicas: corrida que nem chegou ao boss não ganha chaves',
   ['b', 'q', 'z'].some((k) => k in semLuta), false);
+
 
 // ---------- 2b. Histórico acumulado do jogador (v1.5.0) ----------
 localStorage.removeItem(StorageManager.HISTORY_KEY);
@@ -241,6 +243,27 @@ eq('cascata: sem timestamp → null, sem contaminar os de baixo',
 eq('rules de scores aceitam o skin', rules.includes("'skin'"), true);
 eq('rules validam skin como string curta',
   /skin is string\s*&&[\s\S]{0,80}skin\.size\(\) >= 1/.test(rules), true);
+
+// ---------- 3c. Pontuação composta: whitelist e coerência (v1.8.4) ----------
+// A whitelist de `scores` nunca teve assert nenhum — foi ESSE furo que deixou
+// invisível o risco de o cliente gravar um campo fora dela e o write ser
+// negado EM SILÊNCIO. Agora ela é conferida INTEIRA (os 7 campos, em qualquer
+// ordem), e não mais campo a campo.
+const scoresHasOnly = (rules.match(/scores\/\{playerId\}[\s\S]*?hasOnly\(\[([^\]]*)\]\)/) || [])[1] || '';
+eq('whitelist COMPLETA de scores (7 campos)',
+  scoresHasOnly.split(',').map((f) => f.trim().replace(/'/g, '')).filter(Boolean).sort(),
+  ['name', 'nameLower', 'score', 'scoreAt', 'scoreM', 'skin', 'updatedAt']);
+// v1.8.4: score virou o TOTAL (metros + bônus) e scoreM guarda os metros
+eq('rules de scores aceitam o scoreM', rules.includes("'scoreM'"), true);
+eq('rules abrem o teto do TOTAL em 20000', /score <= 20000/.test(rules), true);
+eq('teto das rules bate com Constants.SCORE_MAX_TOTAL', Constants.SCORE_MAX_TOTAL, 20000);
+// Cliente velho (1.3-1.5, ainda em cache) grava só o score: segue no teto de metros
+eq('rules mantêm o teto de 10000 para quem não manda scoreM',
+  /\('scoreM' in request\.resource\.data\)\s*\|\|\s*request\.resource\.data\.score <= 10000/.test(rules), true);
+eq('rules exigem bônus >= 0 (score >= scoreM)',
+  /score >= request\.resource\.data\.scoreM/.test(rules), true);
+eq('rules exigem bônus <= 100% dos metros (score <= scoreM * 2)',
+  /score <= request\.resource\.data\.scoreM \* 2/.test(rules), true);
 
 // ---------- 4. Agregação da página ----------
 const docs = [

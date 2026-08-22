@@ -1,6 +1,6 @@
 # Furious Rhino — Guia funcional
 
-> Documentação da versão **1.8.3** · atualizada em 16/08/2026
+> Documentação da versão **1.8.4** · atualizada em 21/08/2026
 > Cada funcionalidade do jogo: o que faz, como o usuário interage e exemplos práticos. Termos técnicos vêm explicados entre parênteses na primeira vez.
 
 ## 1. Controles
@@ -37,7 +37,10 @@ O morro tem uma variante especial, o **trampolim**: um penhasco cuja crista lan�
 
 ## 3. Progressão da corrida
 
-- **1 metro = 1 ponto.** A barra no topo mostra o progresso até o portão.
+- **1 metro = 1 ponto — e, desde a v1.8.4, o que você destrói também pontua.** Cada parede quebrada vale +5, morro +5, torre +15, animal atropelado +3, camada do portão +25; escapar pelo portão dá +100, derrubar as 3 camadas em menos de 20 segundos dá +50 e chegar ao fim do mundo, +400. O ponto aparece subindo do próprio obstáculo no instante em que você o destrói. O bônus nunca passa do total de metros da corrida, então **correr longe continua sendo o que mais importa**.
+- No alto da tela, a **Pontuação** fica em destaque e os **metros** logo abaixo, menores. A tela de fim de corrida mostra a conta completa: quanto veio da distância e de onde saiu cada ponto de bônus.
+- **Marcas antigas não foram recalculadas**: quem já tinha recorde continua com ele (valendo como pontuação sem bônus), e vai sendo ultrapassado conforme as pessoas jogam a versão nova.
+- A barra no topo mostra o progresso até o portão.
 - **Fúria** (ícone de fogo que vai enchendo): é uma **carga** que cresce com a distância percorrida — a primeira enche aos 900 m. Enquanto enche, o rinoceronte acelera (de 300 até 450 pixels/segundo), fica avermelhado, solta fumaça pelas narinas — e a música ganha camadas de instrumentos. Cheia, ela pode ser **gasta** na FÚRIA TOTAL (item 5) e volta a encher correndo.
 - **Dificuldade em 6 níveis**, um a cada 200 m: obstáculos mais frequentes, animais mais rápidos, dardos mais velozes, combinações de obstáculos ("combos") a partir dos 400 m.
 - **O zoológico persegue de verdade**: animais podem vir **em dupla**, e paredes, espinhos e torres costumam aparecer **escoltados por um animal** logo atrás — a chance de ambos cresce nível a nível (de ~50% até ~80%). O total de perseguidores praticamente **dobrou** em relação às versões anteriores, sem trocar nenhum obstáculo letal por animal (a proporção de paredes/espinhos é a mesma — só o zoológico ficou mais cheio).
@@ -90,7 +93,7 @@ Depois de gasto, o medidor volta a encher com a distância (~900 m por carga). A
 Os registros e o ranking:
 
 - **Recorde local**: fica salvo no aparelho e aparece no box Campanha.
-- **Ranking mundial**: a lista completa abre no botão **"ver top 10 ›"** ao lado do pódio. Para entrar, o jogador escolhe um **apelido único** (3–12 caracteres — o jogo confere se já existe; acentos e maiúsculas não diferenciam: "Thómas" e "thomas" são o mesmo apelido). Ao lado da distância de cada um aparece **há quantos dias aquela marca está de pé** ("há 12d", ou "hoje" para marca do dia) — trocar de apelido não zera a contagem nem troca a skin da vitrine.
+- **Ranking mundial** (em pontos desde a v1.8.4, com a distância ao lado): a lista completa abre no botão **"ver top 10 ›"** ao lado do pódio. Para entrar, o jogador escolhe um **apelido único** (3–12 caracteres — o jogo confere se já existe; acentos e maiúsculas não diferenciam: "Thómas" e "thomas" são o mesmo apelido). Ao lado da distância de cada um aparece **há quantos dias aquela marca está de pé** ("há 12d", ou "hoje" para marca do dia) — trocar de apelido não zera a contagem nem troca a skin da vitrine.
 - Quem prefere **"Ficar anônimo"** recebe um nome automático (`Anonimo_7`). O jogo volta a convidar para escolher um nome de verdade **no momento de orgulho** — logo depois de o score subir no ranking ("🏆 Você é o #7 do mundo!") — no máximo 1 vez a cada 3 corridas, e nunca de forma bloqueante.
 - **Marcas na pista**: durante a corrida, estacas mostram onde fica **o seu recorde** (🏅), o **rival logo acima de você** no ranking (⚔️) e o **líder mundial** (👑). Ultrapassar cada uma provoca o jogador na tela.
 - **Convite por WhatsApp**: botão para chamar amigos, com link direto do jogo.

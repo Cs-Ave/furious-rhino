@@ -1,4 +1,66 @@
-# Handoff — FURIOUS RHINO v1.8.3
+# Handoff — FURIOUS RHINO v1.8.4
+
+**Data:** 21/08/2026 · **Status:** v1.8.4 **PRONTA e testada localmente — NÃO publicada**
+
+## 0. v1.8.4 — pontuação composta (o que fazer para publicar)
+
+> ⛔ **BLOQUEIO DE RELEASE:** publicar `firestore.rules` no console do Firebase
+> **ANTES** do push. A whitelist de `scores` ganhou `scoreM` e o teto do `score`
+> subiu para 20000 — com as rules velhas no ar, **todo envio de recorde da v1.8.4
+> é negado em silêncio** (o `submit` engole o erro por design).
+
+- **O ranking deixa de ser só distância**: `score` virou o TOTAL (metros + bônus por
+  façanha) e nasceu o campo opcional **`scoreM`** com os metros. Doc antigo (sem
+  `scoreM`) já é um total válido de bônus zero — **nada foi migrado, ninguém saiu do
+  ranking**, e clientes 1.5.0 seguem gravando como sempre.
+- Pesos em `Constants.SCORE_WEIGHTS` (parede 5 · morro 5 · torre 15 · animal 3 ·
+  camada 25 · fuga 100 · blitz 50 · LENDA 400), teto `bônus ≤ metros`, tudo com
+  slider na pasta **🏆 Pontuação** do `?debug=1` — e o exportador agora inclui
+  `SCORE_WEIGHTS` **e** `BOSS_RIFLE` (este nunca era exportado desde a v1.7).
+- Módulo novo `js/systems/ScoreSystem.js` (puro, testável no node) — **no `ASSETS`
+  do `sw.js`**, `CACHE` em `furious-rhino-v184`.
+- **Nenhuma letra nova em `runs[]`**: o bônus é recomputável de `w r o a b` + `c` +
+  `z`, e o `test-score` tranca a igualdade "ao vivo == recomputado". As 6 letras
+  livres seguem reservadas para os bosses futuros.
+- **HUD**: Pontuação em destaque (22px) com os metros discretos abaixo; `+N` dourado
+  sobe do próprio obstáculo (ancorado no mundo, não na tela) e some em 700ms.
+  Tela de fim mostra a conta inteira; distância continua em metros ali.
+- **Degrau VOCÊ** do pódio ganhou nome, marca (`2.500 pts · 987 m`) e "sua marca há
+  Nd", reusando as classes dos outros três degraus (zero CSS novo).
+- **Abertura por veterania**: os 3 obstáculos-lição e os 190 m sem bicho passaram a
+  valer só para `attempts < 3` (mesma régua das dicas). Veterano pega a roleta aos
+  60 m — medido no teste: 1º obstáculo aos 55 m e **29 animais dentro dos 200 m**.
+- **Fallback que salva a base inteira no dia do deploy**: `getRecordPts()` cai para
+  `getRecord()` quando a chave nova não existe (o total da era antiga ERA os metros).
+  Sem ele, a home pedia "faltam 3001 pts" a quem faltava 501 — pego pelo e2e.
+- Suítes (todas verdes em 21/08): `test-stats` **94** · `test-score` **71** (nova) ·
+  `test-skins` 93 · `test-integrate` 49 · `e2e-ramp` **39** · `e2e-boss` 16 ·
+  `e2e-special` 25 · `e2e-skins` 15 · `e2e-setup` 15 · `e2e-stats` 69.
+- ⚠️ `e2e-stats` **não** exercita o write de `scores/` (só `stats/`), então ele passar
+  NÃO prova que as rules novas estão publicadas. A prova é o smoke em produção.
+
+> ⚠️ **Estado da árvore em 21/08, 20:45 — DUAS frentes convivendo sem commit.**
+> Além da v1.8.4 descrita acima (minhas suítes verdes: `test-score` 72,
+> `e2e-ramp` 39/39, `e2e-boss` 16, `e2e-special` 25, `e2e-skins` 15,
+> `e2e-setup` 15, `e2e-stats` 69, `test-skins` 93, `test-integrate` 49), a
+> árvore recebeu de uma **sessão paralela** a base da v1.8.5 (bosses "O Cerco"
+> e "Guardião do Fim"): `BOSS2_*`/`BOSS3_*` no Constants, causas `boss2`/`boss3`
+> e as letras `e`/`h`/`l` em `runs[]`, medalha `boss2_win`, `ScoreSystem`
+> pontuando as camadas dos três bosses, `FurySystem`/`HunterSniper`/`BossFight`
+> mexidos, e `deaths.size() <= 15` na rule publicada.
+> **`test-stats` está 92 PASS / 2 FAIL por causa dessa frente**, não da v1.8.4:
+> (1) o mapa `deaths` passou a emitir `boss2`/`boss3` e o assert espera as 7
+> causas antigas; (2) `CAUSE_LABELS` já tem os dois rótulos e a lista de causas
+> do storage ainda não. Fechar essas duas pontas é o que devolve a suíte ao verde.
+
+**Ordem para publicar:** rules no console → `git commit` + push → tag `v1.8.4` →
+GitHub Release → smoke (pódio e top 10 em `pts · m`, marca antiga convivendo com
+marca nova, `+N` aparecendo na corrida, rank/skin de pódio ainda funcionando) →
+apagar sonda se alguma tiver escrito.
+
+---
+
+# Handoff anterior — FURIOUS RHINO v1.8.3
 
 **Data:** 16/08/2026 (docs fechados em 21/08) · **Status:** v1.8.3 **RELEASED em produção** (commit `3e49000`, tag `v1.8.3`, smoke 5/5) — dia com TRÊS releases (v1.8.1 manhã, v1.8.2 e v1.8.3 tarde)
 
@@ -51,6 +113,7 @@ Ritual completo: rules publicadas pelo dono → `config/news` criado (2 avisos n
 - Os 3 do pódio ainda aparecem com o rino original na vitrine — ganham a skin quando cravarem marca NOVA (por design; o doc antigo não tem o campo).
 - Desc da Catisquick's Rhino (grátis com texto de façanha) e MecaSilver sem desc — ajustar pelo /?setup quando o dono quiser.
 - Leitores de `runs[].g`/`runs[].n` no painel; calibração fina da densidade em campo (docs/04 §8b).
+- **Frentes maiores agora moram em [`docs/IDEIAS-FUTURAS.md`](docs/IDEIAS-FUTURAS.md)** (criado em 21/08): a radiografia dos dados de 16/08 + as ideias desenhadas (pontuação composta, bosses "O Cerco" e "Guardião do Fim", campanha/capítulos, streaks, desafio por link, faixas novas no funil), cada uma puxável sozinha. **Nenhuma tem versão prometida** — a "v2.0" foi arquivada de propósito pelo dono.
 - ~~`GAME_DESIGN.md` parado na v1.6.0~~ — **fechado em 21/08**: sincronizado com a v1.8.3 (ver a linha *Docs* da tabela de estado).
 
 ## 4. Como retomar

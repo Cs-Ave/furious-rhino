@@ -3,6 +3,7 @@ import { StorageManager } from '../utils/StorageManager.js';
 import { notifyConfig } from '../notify-config.js';
 import { StatsSystem } from './StatsSystem.js';
 import { getDb } from './LeaderboardSystem.js';
+import { ScoreSystem } from './ScoreSystem.js';
 
 // Push para o ADMINISTRADOR via ntfy (v1.6.1). Mesmo contrato de silêncio do
 // resto da telemetria: nada aqui pode derrubar o jogo, nenhum erro propaga.
@@ -24,7 +25,11 @@ const CFG_KEY = 'furious_rhino_notify_cfg';
 const CFG_TTL_MS = 60 * 60 * 1000; // config do Firestore revalidada de hora em hora
 const SESSION_KEY = 'furious_rhino_notify_session';
 const BUDGET_KEY = 'furious_rhino_notify_sent';
-const WR_KEY = 'furious_rhino_notify_wr'; // último recorde mundial já anunciado
+// Último recorde mundial já anunciado. v1.8.4: guarda o TOTAL em pontos —
+// a mesma grandeza do campo `score` do servidor com que ele é comparado.
+// O valor antigo gravado aqui era metros = total antigo, então a guarda de
+// "não repetir" continua correta sem migração nenhuma.
+const WR_KEY = 'furious_rhino_notify_wr';
 
 export class NotifySystem {
   static _cfg = null;
@@ -224,7 +229,11 @@ export class NotifySystem {
     });
   }
 
-  // Uma chamada por corrida encerrada — só acumula, não envia
+  // Uma chamada por corrida encerrada — só acumula, não envia.
+  // v1.8.4: continua em METROS de propósito. Este é o resumo de SESSÃO do
+  // administrador ("Melhor: 940m"), leitura de façanha física — não é
+  // ranking, e misturar pontos aqui tornaria as sessões incomparáveis com
+  // todo o histórico de pushes anterior. `s.best` idem.
   static noteRun({ meters = 0, cause = null, escaped = false } = {}) {
     try {
       const s = this.readSession();
@@ -287,7 +296,16 @@ export class NotifySystem {
   // Chamada depois de o score ser aceito pelo servidor. Confirma o recorde
   // com uma consulta ao topo real — o cache de rivais pode estar velho e um
   // falso "RECORDE MUNDIAL" seria pior que nenhum.
-  static async maybeWorldRecord(meters) {
+  //
+  // ⚠️ v1.8.4: a confirmação é uma igualdade ESTRITA contra o campo `score`
+  // do doc que acabou de ser gravado — e esse campo agora é o TOTAL. Por isso
+  // a assinatura passou a receber (total, meters) e a comparação usa o total:
+  // continuar comparando metros faria a igualdade falhar sempre que houvesse
+  // qualquer bônus, e o push de recorde mundial nunca mais sairia (falha
+  // silenciosa — a função devolve false por design). Os metros seguem
+  // viajando junto porque entram no TEXTO: a distância é a façanha que o dono
+  // quer ler de relance.
+  static async maybeWorldRecord(total, meters) {
     try {
       const cfg = await this.config();
       if (!cfg.enabled || !cfg.topic || cfg.onWorldRecord === false) return false;
@@ -299,17 +317,23 @@ export class NotifySystem {
       const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       const top = rows[0];
       const myId = StorageManager.getOrCreatePlayerId();
-      if (!top || top.id !== myId || Number(top.score) !== Math.floor(meters)) return false;
+      const pts = Math.floor(Number(total) || 0);
+      if (!top || top.id !== myId || Number(top.score) !== pts) return false;
 
       // Não repetir o mesmo recorde (o send roda mais de uma vez por sessão)
       const already = parseInt(localStorage.getItem(WR_KEY), 10) || 0;
-      if (already >= Math.floor(meters)) return false;
-      localStorage.setItem(WR_KEY, String(Math.floor(meters)));
+      if (already >= pts) return false;
+      localStorage.setItem(WR_KEY, String(pts));
 
       const { name, place } = await this.who(cfg);
       const prev = rows[1];
-      const lines = [`${name} — ${Math.floor(meters)}m`];
-      if (prev) lines.push(`anterior: ${Number(prev.score) || 0}m (${String(prev.name || '???')})`);
+      // Os metros são OPCIONAIS: se quem chamou não os passar, o push sai só
+      // com os pontos em vez de anunciar um falso "(0 m)"
+      const m = Math.floor(Number(meters) || 0);
+      const lines = [`${name} — ${ScoreSystem.fmtPts(pts)}${m > 0 ? ` (${m} m)` : ''}`];
+      // O anterior sai do próprio doc: fmtScore resolve scoreM ?? score, então
+      // um doc pré-v1.8.4 (sem scoreM) mostra pontos e metros coerentes
+      if (prev) lines.push(`anterior: ${ScoreSystem.fmtScore(prev)} (${String(prev.name || '???')})`);
       if (place) lines.push(place);
 
       return this.post('onWorldRecord', {
@@ -363,7 +387,7 @@ export class NotifySystem {
     });
     await this.post('onWorldRecord', {
       title: '🏆 [teste] NOVO RECORDE MUNDIAL',
-      message: 'Fulano — 1720m\nanterior: 1654m (Thomas)\nSão Paulo (SP) · BR',
+      message: 'Fulano — 1.845 pts (1720 m)\nanterior: 1.654 pts · 1654 m (Thomas)\nSão Paulo (SP) · BR',
       tags: ['trophy'],
       priority: 4,
     });

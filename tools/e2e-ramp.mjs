@@ -319,6 +319,72 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
     `paredes=${r.paredes} animais=${r.animais} pares=${r.pares}`);
 }
 
+// ---------- 14b. Abertura por VETERANIA (v1.8.4) ----------
+// O bloco 12-14 prova a abertura-lição do estreante (attempts=0). Aqui a
+// mesma corrida com attempts=10: o roteiro fixo NÃO acontece, a roleta assume
+// em VETERAN_OPENING_START_X e o veterano encontra bicho dentro dos 200m — o
+// que era impossível antes (os 190m iniciais não geravam um único animal).
+{
+  const pv = await context.newPage();
+  const errV = [];
+  pv.on('pageerror', (e) => errV.push(String(e)));
+  pv.on('console', (m) => { if (m.type() === 'error') errV.push(m.text()); });
+  await pv.addInitScript(() => {
+    localStorage.setItem('furious_rhino_attempts', '10');
+    localStorage.setItem('furious_rhino_player_id', 'claude-e2e-ramp-veterano');
+  });
+  await pv.goto(`${BASE}/?debug=1`, { waitUntil: 'networkidle' });
+  await pv.waitForTimeout(1500);
+  const pwaV = pv.locator('#pwa-modal');
+  if (await pwaV.isVisible().catch(() => false)) { await pv.click('#pwa-skip'); await pv.waitForTimeout(200); }
+  await pv.locator('#start-screen').click({ position: { x: 640, y: 650 } });
+  await pv.waitForTimeout(400);
+
+  // Teleporte progressivo em vez de corrida em tempo real: o sorteio da roleta
+  // é aleatório e uma amostragem por relógio deixava o assert instável (uma
+  // rodada viu 29 animais, a seguinte viu 0 porque a corrida mal saiu do lugar).
+  const vet = await pv.evaluate(async () => {
+    const scene = window.game.scene.getScene('GameScene');
+    const sprite = scene.rhino.getSprite();
+    // Chave = o próprio objeto, não a posição: animal ANDA, e indexar por x
+    // contava o mesmo bicho várias vezes (uma amostra chegou a "52 animais"
+    // num trecho onde cabem ~6).
+    const seen = new Map();
+    const colher = () => {
+      for (const grupo of ['crackedWalls', 'spikes', 'towers', 'ramps', 'animals']) {
+        const g = scene.spawnManager && scene.spawnManager[`${grupo}Group`];
+        if (!g) continue;
+        for (const o of g.children.entries) {
+          if (o.active && o.x <= 8000 && !seen.has(o)) seen.set(o, { grupo, x: Math.round(o.x) });
+        }
+      }
+    };
+    scene.invincible = true;   // a flag mora na CENA (não no rino) — sem ela o
+                               // veterano morre na primeira parede do trecho novo
+                               // e o spawn para, zerando a amostra
+    for (let x = 200; x <= 8000; x += 300) {
+      sprite.x = x;
+      await new Promise((r) => setTimeout(r, 60));
+      colher();
+    }
+    const lista = [...seen.values()].sort((a, b) => a.x - b.x);
+    return {
+      primeiro: lista[0] ? lista[0].x : null,
+      total: lista.length,
+      animaisAte200m: lista.filter((o) => o.grupo === 'animals').length,
+      roteiroFixo: lista.some((o) => o.grupo === 'ramps' && o.x === 3600),
+    };
+  });
+
+  ok('14b. veterano pula a abertura-lição e enfrenta o trecho cheio antes dos 200m',
+    vet.primeiro !== null && vet.primeiro <= 2600 && !vet.roteiroFixo &&
+    vet.total >= 4 && vet.animaisAte200m > 0,
+    `1º obstáculo em ${vet.primeiro}px · ${vet.total} obstáculos · ${vet.animaisAte200m} animais · roteiroFixo=${vet.roteiroFixo}`);
+
+  errors.push(...errV);
+  await pv.close();
+}
+
 // ---------- 12-14. Abertura guiada, numa corrida de verdade ----------
 {
   const p2 = await context.newPage();
@@ -711,6 +777,14 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
     localStorage.setItem('furious_rhino_attempts', '7');
     localStorage.setItem('furious_rhino_wins', '3');
     localStorage.setItem('furious_rhino_record', '2500');
+    localStorage.setItem('furious_rhino_player_name', 'Cris');
+    // v1.8.4: aparelho de VETERANO recém-atualizado — tem recorde em metros e
+    // ainda não tem recorde em pontos. É o estado real de toda a base no dia
+    // do deploy, e é o que exercita o fallback getRecordPts() -> getRecord()
+    // (sem ele a home pediria a marca inteira do bronze: "faltam 3001 pts").
+    // O removeItem é necessário porque os blocos anteriores compartilham o
+    // mesmo contexto (e já jogaram corridas de verdade).
+    localStorage.removeItem('furious_rhino_record_pts');
     localStorage.setItem('furious_rhino_deaths', JSON.stringify({ t1: 3, wall: 5, spike: 1 }));
     localStorage.setItem('furious_rhino_last_rank', '4');
     // pódio semeado SEM depender do registry real: skin desconhecida cai no
@@ -747,15 +821,30 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
       causa: document.getElementById('start-cause').textContent,
       // o preview do jogador segue sendo SÓ o .rhino-anim (contrato do e2e-skins)
       playerImgs: document.querySelectorAll('.rhino-anim img').length,
+      // v1.8.4: o degrau VOCÊ passou a ter nome e marca no MESMO formato dos
+      // outros três (antes só tinha seta, rino e botão de skin)
+      youName: document.getElementById('you-name').textContent,
+      youScore: document.getElementById('you-score').textContent,
+      youClasses: ['you-name', 'you-score', 'you-days']
+        .map((id) => document.getElementById(id).className).join('|'),
+      // as marcas do pódio agora falam em pontos
+      pscores: [...document.querySelectorAll('#podium-steps .step .pscore')].map((e) => e.textContent),
     };
   });
   ok('26. home: pódio do cache (2·1·3), cascata, VOCÊ #4 e provocação',
     home.nomes.join(',') === 'Beta,Alfa,Gama' &&
     home.dias[1] === 'no trono há 3d' && home.dias[0] === 'no posto há 3d' && home.dias[2] === 'no posto há 1d' &&
     /rhino-run-0/.test(home.firstSkinSrc) &&
-    home.voceRankVisivel && home.voceRank === '4' && /faltam 501m/.test(home.gap) &&
+    home.voceRankVisivel && home.voceRank === '4' && /faltam 501 pts/.test(home.gap) &&
     home.playerImgs === 3,
     `nomes=${home.nomes} dias=${home.dias} gap="${home.gap}" skin=${home.firstSkinSrc}`);
+  // v1.8.4: sem apelido semeado, o nome vira convite; a marca sai do recorde
+  // local (2500m) SEM record_pts — prova o fallback "total antigo == metros"
+  ok('26c. home: o degrau VOCÊ mostra nome e marca no padrão dos outros três',
+    home.youName === 'Cris' && /2\.500 pts/.test(home.youScore) &&
+    home.youClasses === 'pname|pscore|pdays' &&
+    home.pscores.every((t) => /pts/.test(t)),
+    `nome="${home.youName}" marca="${home.youScore}" podio=${JSON.stringify(home.pscores)}`);
   ok('26b. home: diário com a notícia local + box campanha preenchido',
     home.noticias.some((n) => n.includes('notícia local de teste')) &&
     home.wins === '3' && home.causa.includes('Parede'),

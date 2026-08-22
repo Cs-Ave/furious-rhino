@@ -1,4 +1,19 @@
 export class StorageManager {
+  // ------------------------------------------------- as DUAS naturezas de recorde
+  // v1.8.4: a pontuação virou COMPOSTA (metros + bônus por façanha), e desde
+  // então o jogo guarda duas marcas que NÃO se substituem:
+  //
+  //   `record`     = METROS. É a façanha FÍSICA — "até onde eu cheguei". É ela
+  //                  que decide medalha, desbloqueio de skin, o degrau do
+  //                  portão dos 1000m e a posição das estacas na pista (uma
+  //                  estaca só faz sentido plantada no metro onde o rival
+  //                  morreu). Nunca pode ser trocada por pontos.
+  //   `record_pts` = PONTOS (metros + bônus). É a COMPETIÇÃO — o número que o
+  //                  ranking ordena e que o jogador compara com os outros.
+  //
+  // As duas convivem: um jogador pode cravar recorde de pontos sem bater o de
+  // metros (lutou melhor no mesmo trecho) e vice-versa. Chave nova, zero
+  // migração — quem só tem `record` continua com os metros intactos.
   static RECORD_KEY = 'furious_rhino_record';
 
   static getRecord() {
@@ -15,6 +30,36 @@ export class StorageManager {
 
   static isNewRecord(meters) {
     return meters > this.getRecord();
+  }
+
+  // v1.8.4: recorde em PONTOS (total = metros + bônus). Espelha exatamente a
+  // API do recorde de metros acima — quem já lia getRecord()/isNewRecord()
+  // não muda de forma, só de unidade. Aparelho antigo: chave ausente = 0, e a
+  // primeira corrida da v1.8.4 já a cria com o total daquela corrida (nada é
+  // convertido nem inferido a partir de `record`, que é outra grandeza).
+  static RECORD_PTS_KEY = 'furious_rhino_record_pts';
+
+  // Fallback para o recorde em METROS quando a chave nova ainda não existe:
+  // quem já jogava antes da v1.8.4 tem `record` e nenhum `record_pts`, e
+  // naquela era o total ERA os metros — devolver 0 faria o jogo tratar um
+  // veterano como estreante no primeiro boot (a provocação do pódio pedia a
+  // marca inteira do bronze em vez da diferença). Mesma ideia do
+  // getBestSentM(), na direção contrária.
+  static getRecordPts() {
+    const stored = localStorage.getItem(this.RECORD_PTS_KEY);
+    if (stored) return parseInt(stored, 10);
+    return this.getRecord();
+  }
+
+  static saveRecordPts(total) {
+    const current = this.getRecordPts();
+    const newRecord = Math.max(current, Math.floor(total) || 0);
+    localStorage.setItem(this.RECORD_PTS_KEY, newRecord.toString());
+    return newRecord;
+  }
+
+  static isNewRecordPts(total) {
+    return total > this.getRecordPts();
   }
 
   static MUTE_KEY = 'furious_rhino_muted';
@@ -70,14 +115,45 @@ export class StorageManager {
     localStorage.setItem(this.PLAYER_NAME_KEY, name);
   }
 
-  // Último score aceito pelo servidor — evita reenviar scores menores
+  // Último score aceito pelo servidor — evita reenviar scores menores.
+  //
+  // v1.8.4: passou a significar "melhor TOTAL enviado" (pontos), porque é
+  // isso que o campo `score` do doc guarda agora. E migra SOZINHO: até a
+  // v1.8.3 o total ERA os metros (bônus zero), então o número já gravado aqui
+  // continua sendo o total correto daquele doc. Nenhuma conversão, nenhuma
+  // chave apagada — só a unidade do que já estava lá passou a ter nome novo.
+  //
+  // ⚠️ É esta a marca comparada em shouldSubmit/fetchRivals/fetchMyRank, que
+  // conversam com o campo `score` do servidor. Comparar metros com um doc que
+  // guarda total quebraria rank, rivais e as skins de pódio em silêncio.
   static getBestSent() {
     const stored = localStorage.getItem(this.BEST_SENT_KEY);
     return stored ? parseInt(stored, 10) : 0;
   }
 
-  static setBestSent(meters) {
-    localStorage.setItem(this.BEST_SENT_KEY, meters.toString());
+  static setBestSent(total) {
+    localStorage.setItem(this.BEST_SENT_KEY, total.toString());
+  }
+
+  // v1.8.4: os METROS da marca acima — cópia local do campo `scoreM` do doc.
+  // Mesmo papel do best_sent_at e do best_sent_skin: o rename faz setDoc SEM
+  // merge, e sem reinjetar este valor a troca de apelido apagaria os metros
+  // da marca (a estaca do rival voltaria a ser plantada na posição errada).
+  //
+  // O fallback para a chave VELHA é o que dispensa migração: num aparelho
+  // pré-v1.8.4 o total gravado era os metros, então best_sent responde a
+  // pergunta "quantos metros tinha aquela marca?" com exatidão. Doc antigo
+  // sem `scoreM` segue a mesma regra do lado do servidor (score = total = m).
+  static BEST_SENT_M_KEY = 'furious_rhino_best_sent_m';
+
+  static getBestSentM() {
+    const stored = localStorage.getItem(this.BEST_SENT_M_KEY);
+    if (stored !== null) return parseInt(stored, 10) || 0;
+    return this.getBestSent();
+  }
+
+  static setBestSentM(meters) {
+    localStorage.setItem(this.BEST_SENT_M_KEY, Math.floor(meters).toString());
   }
 
   // v1.8: QUANDO a marca acima foi enviada (ms epoch) — o rename regrava o

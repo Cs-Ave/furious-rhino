@@ -7,6 +7,7 @@ import { BossFight } from '../systems/BossFight.js';
 import { AudioSystem } from '../systems/AudioSystem.js';
 import { initTuningPanel } from '../systems/TuningPanel.js';
 import { LeaderboardSystem } from '../systems/LeaderboardSystem.js';
+import { ScoreSystem } from '../systems/ScoreSystem.js';
 import { MedalSystem } from '../systems/MedalSystem.js';
 import { SkinSystem, SKINS } from '../systems/SkinSystem.js';
 import { StatsSystem } from '../systems/StatsSystem.js';
@@ -42,7 +43,11 @@ export class GameScene extends Phaser.Scene {
     }
     this.skin = SkinSystem.resolveEquipped();
     this.rhino = new Rhino(this, 100, Constants.GROUND_TOP, this.skin);
-    this.spawnManager = new SpawnManager(this);
+    // v1.8.4: a abertura roteirizada é uma LIÇÃO — quem já correu algumas
+    // vezes não precisa mais dela (e ficava com 190m de pista vazia, sem
+    // nada para fazer nem pontuar). Mesma régua das dicas da abertura.
+    const skipOpening = StorageManager.getAttempts() >= Constants.VETERAN_MIN_ATTEMPTS;
+    this.spawnManager = new SpawnManager(this, { skipOpening });
     this.furySystem = new FurySystem(this);
 
     this.createGround();
@@ -75,6 +80,13 @@ export class GameScene extends Phaser.Scene {
     // paredes" mudaria de significado sem aviso
     this.runRampsSmashed = 0;
     this.runTowersDowned = 0;
+    // v1.8.4: bônus acumulado da corrida (pontos das façanhas). Os metros
+    // NÃO entram aqui — o total só é composto no HUD e no fim de jogo.
+    this.runBonus = 0;
+    // Empilhamento dos "+N": dois ganhos quase juntos (parede + animal na
+    // mesma investida) não podem nascer no mesmo pixel
+    this.lastGainAt = 0;
+    this.gainStack = 0;
     // Contadores de INPUT (telemetria v1.6.1): dizem se o jogador achou a
     // investida, e o `runDashWasted` mede a frustração com o cooldown
     this.runJumps = 0;
@@ -472,6 +484,9 @@ export class GameScene extends Phaser.Scene {
     const box = document.getElementById('podium-steps');
     const cached = StorageManager.getPodium();
     const entries = cached ? cached.entries : null;
+    // v1.8.4: o degrau VOCÊ também tem nome, marca e posse (antes do return
+    // do pódio vazio — a sua marca não depende do cache mundial)
+    this.renderYouStep();
     box.textContent = '';
     if (!entries || !entries.length) {
       const p = document.createElement('div');
@@ -514,7 +529,7 @@ export class GameScene extends Phaser.Scene {
       name.textContent = e.name; // textContent: nome vem de terceiros
       const score = document.createElement('div');
       score.className = 'pscore';
-      score.textContent = `${e.score}m`;
+      score.textContent = ScoreSystem.fmtScore(e); // pontos · metros (v1.8.4)
       const hold = document.createElement('div');
       hold.className = 'pdays';
       const d = days[i];
@@ -529,16 +544,39 @@ export class GameScene extends Phaser.Scene {
     this.updatePodiumGap(StorageManager.getLastRank());
   }
 
-  // A provocação sob o degrau VOCÊ: quanto falta para o pódio (ou a defesa)
+  // v1.8.4: o degrau VOCÊ ganhou as mesmas três linhas dos degraus 1·2·3 —
+  // nome, marca (pontos · metros) e há quanto tempo ela está no ar.
+  renderYouStep() {
+    const nameEl = document.getElementById('you-name');
+    const scoreEl = document.getElementById('you-score');
+    const daysEl = document.getElementById('you-days');
+    if (!nameEl || !scoreEl || !daysEl) return;
+
+    const name = StorageManager.getPlayerName();
+    nameEl.textContent = name || 'escolha seu apelido'; // textContent: nome livre
+    nameEl.style.opacity = name ? '' : '0.55';
+
+    const meters = StorageManager.getRecord();
+    scoreEl.textContent = meters > 0
+      ? ScoreSystem.fmtScore({ score: StorageManager.getRecordPts(), m: meters })
+      : 'sem marca';
+
+    const sinceMs = StorageManager.getBestSentAt();
+    const d = sinceMs ? LeaderboardSystem.holdDays([{ sinceMs }])[0] : null;
+    daysEl.textContent = d === null ? '' : d === 0 ? 'desde hoje' : `sua marca há ${d}d`;
+  }
+
+  // A provocação sob o degrau VOCÊ: quanto falta para o pódio (ou a defesa).
+  // v1.8.4: a comparação é em PONTOS — o ranking mundial passou a ser deles.
   updatePodiumGap(rank) {
     const el = document.getElementById('podium-gap');
     const cached = StorageManager.getPodium();
     const third = cached && cached.entries[2] ? cached.entries[2].score : 0;
-    const record = StorageManager.getRecord();
+    const recordPts = StorageManager.getRecordPts();
     if (rank > 0 && rank <= 3) {
       el.textContent = '🛡️ defenda o seu posto!';
-    } else if (third > record) {
-      el.textContent = `faltam ${third - record + 1}m p/ 🥉`;
+    } else if (third > recordPts) {
+      el.textContent = `faltam ${third - recordPts + 1} pts p/ 🥉`;
     } else {
       el.textContent = '';
     }
@@ -749,7 +787,7 @@ export class GameScene extends Phaser.Scene {
       const right = document.createElement('span');
       right.className = 'rank-right';
       const score = document.createElement('span');
-      score.textContent = `${entry.score}m`;
+      score.textContent = ScoreSystem.fmtScore(entry); // pontos · metros (v1.8.4)
       right.append(score);
       if (days[i] !== null) {
         const hold = document.createElement('span');
@@ -763,27 +801,31 @@ export class GameScene extends Phaser.Scene {
     });
 
     if (data.myBest > 0) {
+      // v1.8.4: myBest já vem como TOTAL de pontos do LeaderboardSystem
       me.textContent = data.myRank !== null
-        ? `Sua posição: #${data.myRank} — ${data.myBest}m`
-        : `Seu melhor: ${data.myBest}m`;
+        ? `Sua posição: #${data.myRank} — ${ScoreSystem.fmtPts(data.myBest)}`
+        : `Seu melhor: ${ScoreSystem.fmtPts(data.myBest)}`;
     } else {
       me.textContent = 'Jogue para entrar no ranking!';
     }
   }
 
-  async submitScore(distance) {
-    this.pendingScore = distance;
+  // v1.8.4: `total` é a pontuação composta (o que ranqueia) e `meters` a
+  // façanha física (viaja junto para as estacas da pista dos rivais).
+  async submitScore(total, meters) {
+    this.pendingScore = { total, meters };
     if (!StorageManager.getPlayerName()) {
       this.openNicknameModal();
       return;
     }
-    const ok = await LeaderboardSystem.submit(distance);
+    const ok = await LeaderboardSystem.submit(total, meters);
     if (ok) this.showOnlineStatus('🌍 Enviado ao ranking mundial!');
     // v1.8.1: recorde novo vira notícia da home (dedupe pela própria marca)
-    if (ok) NewsSystem.push(`rec:${Math.floor(distance)}`, `🏅 Novo recorde pessoal: ${Math.floor(distance)}m!`, 'gold');
+    if (ok) NewsSystem.push(`rec:${Math.floor(total)}`,
+      `🏅 Novo recorde pessoal: ${ScoreSystem.fmtPts(Math.floor(total))} (${Math.floor(meters)}m)!`, 'gold');
     // Só depois de o servidor aceitar: a confirmação do topo é uma consulta
     // nova, para nunca anunciar um "recorde mundial" a partir de cache velho
-    if (ok) this.safeTelemetry(() => NotifySystem.maybeWorldRecord(distance));
+    if (ok) this.safeTelemetry(() => NotifySystem.maybeWorldRecord(total, meters));
 
     // Momento do orgulho: o score acabou de SUBIR no ranking mundial. Se o
     // apelido é automático, é agora que o convite tem chance de pegar.
@@ -987,8 +1029,9 @@ export class GameScene extends Phaser.Scene {
   closeNicknameModal(submit) {
     this.closeModal(document.getElementById('nickname-modal'));
     this.input.keyboard.enableGlobalCapture();
+    // v1.8.4: pendingScore é { total, meters } (o ranking é por pontos)
     if (submit && this.pendingScore) {
-      LeaderboardSystem.submit(this.pendingScore).then((ok) => {
+      LeaderboardSystem.submit(this.pendingScore.total, this.pendingScore.meters).then((ok) => {
         if (ok) this.showOnlineStatus('🌍 Enviado ao ranking mundial!');
       });
     }
@@ -1019,7 +1062,7 @@ export class GameScene extends Phaser.Scene {
     StorageManager.setNameAskedAt(StorageManager.getAttempts());
     this.updateIdentityLine();
     if (this.pendingScore) {
-      const ok = await LeaderboardSystem.submit(this.pendingScore);
+      const ok = await LeaderboardSystem.submit(this.pendingScore.total, this.pendingScore.meters);
       if (ok) this.showOnlineStatus(`🌍 No ranking como ${name}!`);
     }
   }
@@ -1184,9 +1227,11 @@ export class GameScene extends Phaser.Scene {
     const record = StorageManager.getRecord();
     const bar = document.getElementById('progress-marks');
 
-    const add = (score, label, color, msg, fanfare = false) => {
-      if (!score || score < 5) return; // marca colada na largada não provoca
-      const x = score * Constants.PIXELS_PER_METER;
+    // ARMADILHA v1.8.4: a estaca é POSIÇÃO FÍSICA na pista, então ela é
+    // plantada em METROS — nunca no `score`, que virou pontuação composta.
+    const add = (meters, label, color, msg, fanfare = false) => {
+      if (!meters || meters < 5) return; // marca colada na largada não provoca
+      const x = meters * Constants.PIXELS_PER_METER;
       if (x >= Constants.WORLD_END_PX) return;
       // Duas marcas na mesma distância viram uma só (a primeira registrada)
       if (this.trackMarks.some((m) => Math.abs(m.x - x) < 90)) return;
@@ -1216,12 +1261,16 @@ export class GameScene extends Phaser.Scene {
 
     add(record, `🏅 SEU RECORDE\n${record}m`, 0xffd95e,
       '🏅 SEU RECORDE FICOU PRA TRÁS!');
+    // Rival e líder: os metros vêm do campo `m` das entradas (cache velho,
+    // sem `m`, cai no `score` pelo metersOf — era metro antes da v1.8.4)
     if (rivals.rival) {
-      add(rivals.rival.score, `⚔️ ${rivals.rival.name}\n${rivals.rival.score}m`, 0xff9a6c,
+      const rm = ScoreSystem.metersOf(rivals.rival);
+      add(rm, `⚔️ ${rivals.rival.name}\n${rm}m`, 0xff9a6c,
         `⚔️ VOCÊ PASSOU ${rivals.rival.name.toUpperCase()}!`);
     }
     if (rivals.leader) {
-      add(rivals.leader.score, `👑 ${rivals.leader.name}\n${rivals.leader.score}m`, 0xb79cff,
+      const lm = ScoreSystem.metersOf(rivals.leader);
+      add(lm, `👑 ${rivals.leader.name}\n${lm}m`, 0xb79cff,
         '👑 VOCÊ É O NOVO LÍDER DO MUNDO!', true);
     }
   }
@@ -1725,6 +1774,7 @@ export class GameScene extends Phaser.Scene {
       this.createExplosion(tower.x, tower.y + 60);
       tower.deactivate();
       this.runTowersDowned++;
+      this.addScore('tower', tower.x, tower.y + 60);
       this.rhino.resetDash();
       this.showToast('⚡ TORRE DERRUBADA!', { y: 250, size: 34, duration: 1200 });
     } else {
@@ -1750,8 +1800,6 @@ export class GameScene extends Phaser.Scene {
       dart.deactivate();
     } else {
       if (this.invincible) { dart.deactivate(); return; } // debug
-      // Tiro do caçador do portão conta como causa própria ('boss'): é o que
-      // separa "morreu na luta" de "morreu de torre" no painel
       this.endGame(false, dart.fromBoss ? 'boss' : 'dart');
     }
   }
@@ -1777,6 +1825,7 @@ export class GameScene extends Phaser.Scene {
       this.collapseWallTop(wall);
       this.runWallsBroken++;
       const crackCenterY = (bounds.top + bounds.bottom) / 2;
+      this.addScore('wall', wall.x, crackCenterY);
       this.audio.playBreak();
       this.createExplosion(wall.x, crackCenterY);
       this.createBreakParticles(wall.x, crackCenterY);
@@ -1808,6 +1857,7 @@ export class GameScene extends Phaser.Scene {
     if (isDashing || this.furySystem.rampage) {
       animal.knockback();
       this.runAnimalsHit++;
+      this.addScore('animal', animal.x, animal.y);
       this.audio.playSqueal();
       this.createExplosion(animal.x, animal.y);
     } else {
@@ -1901,6 +1951,7 @@ export class GameScene extends Phaser.Scene {
     ramp.smash();
     this.runRampsSmashed++;
     const cx = ramp.x + Math.min(120, ramp.spanW / 2);
+    this.addScore('ramp', cx, Constants.GROUND_TOP - 40);
     this.audio.playBreak();
     this.createExplosion(cx, Constants.GROUND_TOP - 40);
     this.createBreakParticles(cx, Constants.GROUND_TOP - 40);
@@ -2259,10 +2310,61 @@ export class GameScene extends Phaser.Scene {
     return toast;
   }
 
+  // v1.8.4: uma façanha vale pontos. Chamado ao lado do contador que já
+  // existia para cada evento — a física não sabe de pontuação.
+  addScore(evt, x, y) {
+    const pts = ScoreSystem.pointsFor(evt);
+    if (!pts) return;
+    this.runBonus += pts;
+    this.showScoreGain(x, y, pts);
+  }
+
+  // O "+N" dourado sobe do LUGAR da façanha (ancorado no mundo, ao contrário
+  // do showToast, que é fixo na tela com scrollFactor 0).
+  showScoreGain(x, y, pts) {
+    // Ganhos em rajada empilham para cima; o degrau decai sozinho em 600ms
+    const now = this.time.now;
+    this.gainStack = now - this.lastGainAt < 600 ? this.gainStack + 1 : 0;
+    this.lastGainAt = now;
+    const gy = y - this.gainStack * 34;
+
+    const label = this.add.text(x, gy, `+${pts}`, {
+      fontFamily: '"Arial Black", Arial, sans-serif',
+      fontSize: '28px',
+      color: '#ffd700',
+      stroke: '#5e3618',
+      strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(60);
+    // Sobe com desaceleração, mas o APAGAR é adiado de propósito: com o alpha
+    // no mesmo Cubic.easeOut o "+N" já estava quase invisível aos 200ms — o
+    // prêmio precisa ser LIDO antes de sumir. 250ms de leitura + fade curto.
+    this.tweens.add({
+      targets: label,
+      y: gy - 40,
+      duration: 700,
+      ease: 'Cubic.easeOut',
+      onComplete: () => label.destroy(),
+    });
+    this.tweens.add({
+      targets: label,
+      alpha: 0,
+      delay: 250,
+      duration: 450,
+      ease: 'Quad.easeIn',
+    });
+    return label;
+  }
+
   updateScoreDisplay() {
-    document.getElementById('score').textContent = this.rhino.getDistance();
-    const record = StorageManager.getRecord();
-    document.getElementById('record').textContent = record;
+    // v1.8.4: a linha em destaque é a PONTUAÇÃO (metros + bônus da corrida);
+    // os metros seguem logo abaixo, discretos. Barra e ∞ não mudam — são
+    // físicos (x / WIN_DISTANCE_PX).
+    const meters = this.rhino.getDistance();
+    document.getElementById('score').textContent =
+      ScoreSystem.fmtPts(ScoreSystem.total(meters, this.runBonus));
+    document.getElementById('score-m').textContent = meters;
+    document.getElementById('record').textContent =
+      ScoreSystem.fmtPts(StorageManager.getRecordPts());
 
     // Barra de progresso da fuga (0–1000m; as marcas são as trocas de bioma).
     // Pós-portão ela já ficou dourada com ∞ (ver crossGate) — não mexe mais.
@@ -2285,12 +2387,45 @@ export class GameScene extends Phaser.Scene {
     else this.audio.playDeathSting();
 
     const distance = this.rhino.getDistance();
+    // v1.8.4: pontuação composta = metros + bônus das façanhas. Os METROS
+    // seguem sendo a marca física (medalhas, skins, estacas da pista).
+    const bossFightS = Math.round((this.bossFight ? this.bossFight.fightMs : 0) / 1000);
+    const escaped = won || distance >= (Constants.WIN_DISTANCE_PX / Constants.PIXELS_PER_METER);
+    const bonus = this.runBonus + ScoreSystem.endBonus({
+      escaped, bossLayers: this.runBossLayers, bossFightS, legend: !!this.legend,
+    });
+    const total = ScoreSystem.total(distance, bonus);
     const isNewRecord = StorageManager.isNewRecord(distance);
     // Antes do saveRecord, senão "tinha recorde anterior" seria sempre true
     const hadPreviousRecord = StorageManager.getRecord() > 0;
     StorageManager.saveRecord(distance);
-    this.finalDistance = distance; // usado pelo botão Compartilhar
+    StorageManager.saveRecordPts(total); // recorde de PONTOS, em paralelo
+    this.finalDistance = distance; // usado pelo botão Compartilhar (metros)
+    this.finalTotal = total;
     this.finalIsRecord = isNewRecord; // idem — depois do saveRecord seria tarde
+
+    // Detalhamento mostrado sob a distância nos dois overlays. O `blitz`
+    // chega resolvido ao breakdown, com a MESMA regra que o endBonus aplica
+    // por dentro (todas as camadas do portão em até SCORE_BLITZ_MAX_S) —
+    // senão a lista contaria um bônus que o total não tem.
+    const blitz = this.runBossLayers >= Constants.BOSS_LAYERS.length &&
+      bossFightS > 0 && bossFightS <= Constants.SCORE_BLITZ_MAX_S;
+    const detail = ScoreSystem.breakdown({
+      meters: distance, walls: this.runWallsBroken, ramps: this.runRampsSmashed,
+      towers: this.runTowersDowned, animals: this.runAnimalsHit,
+      bossLayers: this.runBossLayers, escaped, blitz, legend: !!this.legend,
+    });
+    const ptsId = won ? 'win-final-points' : 'final-points';
+    const brkId = won ? 'win-final-breakdown' : 'final-breakdown';
+    // O número em destaque é o `total` que foi SALVO e enviado, nunca o
+    // detail.total: as duas contas batem por construção (cada contador tem
+    // um addScore ao lado), mas quem manda é o que foi para o ranking. O
+    // bônus exibido é o que sobreviveu ao teto (total − metros), para a
+    // linha fechar a conta na tela mesmo quando o SCORE_BONUS_CAP corta.
+    document.getElementById(ptsId).textContent =
+      `🏆 ${ScoreSystem.fmtPts(total)} — ${distance} m + ${Math.max(0, total - distance)} de bônus`;
+    document.getElementById(brkId).textContent =
+      detail.lines.map((l) => `${l.label} +${l.pts}`).join('\n');
 
     // Overlays são só PREENCHIDOS aqui; a exibição fica no showEndOverlay
     // (o fim por dardo espera o rino adormecer; a vitória, a cutscene)
@@ -2345,8 +2480,10 @@ export class GameScene extends Phaser.Scene {
       el.textContent = el.textContent ? `${el.textContent} · ${line}` : line;
     }
 
-    if (LeaderboardSystem.shouldSubmit(distance)) {
-      this.submitScore(distance); // fire-and-forget: rede nunca trava o fim de jogo
+    // v1.8.4: o ranking mundial passa a ser por PONTOS (os metros viajam
+    // junto, para as estacas da pista de quem te tem como rival)
+    if (LeaderboardSystem.shouldSubmit(total)) {
+      this.submitScore(total, distance); // fire-and-forget: rede nunca trava o fim de jogo
     }
 
     // Telemetria: acumula os totais locais e espelha no Firestore

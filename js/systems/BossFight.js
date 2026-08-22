@@ -201,6 +201,8 @@ export class BossFight {
     scene.runBossLayers++;
     const bounds = this.layerBounds();
     const gx = Constants.WIN_DISTANCE_PX;
+    // v1.8.4: cada camada do portão vale pontos (o "+N" nasce na camada)
+    scene.addScore('bossLayer', gx - 80, bounds.center);
     scene.audio.playBreak();
     scene.createExplosion(gx - 80, bounds.center);
     scene.createBreakParticles(gx - 80, bounds.center);

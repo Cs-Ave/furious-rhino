@@ -10,6 +10,7 @@ Auto-runner de ação para web mobile (paisagem): um rinoceronte foge do zoológ
 | Estado da última release + tabelas completas de parâmetros operacionais | `HANDOFF.md` |
 | Documentação completa (leigo → técnico) e histórico de versões | `docs/` |
 | Dúvidas pontuais do dono já respondidas (documento vivo — registrar novas ali) | `docs/QA-Registro.md` |
+| Ideias ainda não implementadas + a radiografia dos dados dos jogadores (banco vivo, sem versão prometida) | `docs/IDEIAS-FUTURAS.md` |
 | Todo o tuning numérico | `js/utils/Constants.js` |
 
 ## Regras que não se negociam

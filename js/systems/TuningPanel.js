@@ -21,11 +21,18 @@ export async function initTuningPanel(scene) {
   Object.assign(gui.domElement.style, { top: '140px', left: '10px', right: 'auto', zIndex: 600 });
   gui.domElement.addEventListener('pointerdown', (ev) => ev.stopPropagation());
 
-  // Foto dos valores iniciais — base do exportador de ajustes
+  // Foto dos valores iniciais — base do exportador de ajustes.
+  // ⚠️ Toda coleção com slider TEM de estar aqui E no exportTuning: o
+  // BOSS_RIFLE ganhou sliders na v1.7 e ficou de fora das duas listas, então
+  // calibrar a cadência do rifle no ?debug=1 e clicar em "Exportar ajustes"
+  // devolvia um arquivo sem ela — o ajuste se perdia no reload, em silêncio.
+  // v1.8.4 fecha o furo e já entra com SCORE_WEIGHTS incluído.
   const baseline = JSON.parse(JSON.stringify({
     root: Object.fromEntries(ROOT_KEYS.map((k) => [k, Constants[k]])),
     tiers: Constants.DIFFICULTY_TIERS,
     behavior: Constants.ANIMAL_BEHAVIOR,
+    weights: Constants.SCORE_WEIGHTS,
+    rifle: Constants.BOSS_RIFLE,
   }));
 
   const fisica = gui.addFolder('Física do Rino');
@@ -126,6 +133,20 @@ export async function initTuningPanel(scene) {
   }
   boss.close();
 
+  // v1.8.4: pesos da PONTUAÇÃO COMPOSTA. Cada peso é lido NO MOMENTO do
+  // evento (ScoreSystem soma o bônus enquanto a corrida acontece), então
+  // mover um slider vale na hora — inclusive no meio da corrida em curso:
+  // as paredes quebradas ANTES valeram o peso antigo, as de depois valem o
+  // novo. Para calibrar de verdade, mexa e comece uma corrida limpa.
+  const pontos = gui.addFolder('🏆 Pontuação');
+  for (const k of Object.keys(Constants.SCORE_WEIGHTS)) {
+    // `legend` é o prêmio de chegar ao fim do mundo (10.000m) e vive numa
+    // ordem de grandeza própria; o resto é evento de corrida
+    const max = k === 'legend' ? 1000 : 100;
+    pontos.add(Constants.SCORE_WEIGHTS, k, 0, max, 1).name(WEIGHT_LABELS[k] || k);
+  }
+  pontos.close();
+
   const debug = gui.addFolder('Debug');
   const state = { hitboxes: false, pausado: false, invencivel: false };
   debug.add(state, 'hitboxes').name('Hitboxes').onChange((on) => setHitboxes(scene, on));
@@ -192,6 +213,19 @@ export async function initTuningPanel(scene) {
   debug.add({ reiniciar: () => location.reload() }, 'reiniciar').name('Reiniciar (?debug=1)');
 }
 
+// Rótulos PT-BR dos pesos de pontuação. Chave desconhecida cai no próprio
+// nome — um peso novo em Constants.SCORE_WEIGHTS ganha slider sozinho.
+const WEIGHT_LABELS = {
+  wall: '🧱 parede quebrada',
+  ramp: '🏔️ rampa destruída',
+  tower: '🏰 torre derrubada',
+  animal: '🦁 animal atropelado',
+  bossLayer: '🎯 camada do portão',
+  escape: '🗽 fuga pelo portão',
+  blitz: '⚡ blitz (portão rápido)',
+  legend: '👑 lenda (fim do mundo)',
+};
+
 // Constantes de raiz expostas nos sliders (o exportador compara só estas)
 const ROOT_KEYS = [
   'RUN_SPEED', 'JUMP_MIN_V', 'JUMP_MAX_V', 'JUMP_CHARGE_MS',
@@ -222,6 +256,21 @@ function exportTuning(baseline) {
     for (const [k, v] of Object.entries(behavior)) {
       if (typeof v === 'number' && v !== baseline.behavior[species][k]) {
         lines.push(`${pad(`ANIMAL_BEHAVIOR.${species}.${k}: ${v},`)}// era ${baseline.behavior[species][k]} — objeto ANIMAL_BEHAVIOR`);
+      }
+    }
+  }
+  // v1.8.4: pesos da pontuação composta
+  for (const [k, v] of Object.entries(Constants.SCORE_WEIGHTS)) {
+    if (typeof v === 'number' && v !== baseline.weights[k]) {
+      lines.push(`${pad(`SCORE_WEIGHTS.${k}: ${v},`)}// era ${baseline.weights[k]} — objeto SCORE_WEIGHTS`);
+    }
+  }
+  // Conserto do furo antigo: o rifle do boss tem slider desde a v1.7 e nunca
+  // era exportado
+  for (const [layers, pattern] of Object.entries(Constants.BOSS_RIFLE)) {
+    for (const [k, v] of Object.entries(pattern)) {
+      if (typeof v === 'number' && v !== baseline.rifle[layers][k]) {
+        lines.push(`${pad(`BOSS_RIFLE[${layers}].${k}: ${v},`)}// era ${baseline.rifle[layers][k]} — objeto BOSS_RIFLE, chave ${layers}`);
       }
     }
   }

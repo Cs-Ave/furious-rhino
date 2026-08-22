@@ -1,6 +1,6 @@
 # FURIOUS RHINO — Documento de Design
 
-> Estado atual do jogo (v1.8.3). Este documento descreve o que **é**, não o que
+> Estado atual do jogo (v1.8.4). Este documento descreve o que **é**, não o que
 > se imaginou no começo — as decisões de v1.1 em diante estão registradas aqui
 > com o motivo, e várias delas foram tomadas a partir dos dados reais de
 > telemetria (ver "Decisões orientadas por dados" no fim).
@@ -135,7 +135,7 @@ o fogo, mas **precisa alinhar as 3 frestas como todo mundo**. O contador
 
 ## 📊 Progressão
 
-- **1 metro = 1 ponto**. Recorde local + ranking mundial (Firestore).
+- **Distância + façanha (v1.8.4)**: 1 metro ainda vale 1 ponto, mas agora **não é só isso** — ver "Pontuação composta" abaixo. Recorde local (em metros E em pontos) + ranking mundial (Firestore).
 - **Portão dos 1000m** = a fuga, agora uma **batalha de chefe** (acima). Vencer
   conta a vitória **sem parar a corrida** — o modo infinito começa na mesma
   passada: o portão **explode** (estilhaços, flash, tremor de câmera), sobem
@@ -238,6 +238,57 @@ linha de código):
   de rodapé e viraram um painel de identidade.
 - O contrato técnico da tela não mudou: o overlay inteiro inicia a corrida ao
   toque, e todo botão isola o toque (`stopPropagation`) — trancado por teste.
+
+## 🏆 Pontuação composta (v1.8.4) — o ranking deixa de ser só distância
+
+Até a v1.8.3, `score` **era** a distância: quem corria 1.000 m tinha 1.000 no
+ranking, e derrubar torre, atropelar animal ou vencer o chefe não valia nada.
+A telemetria mostrou que a matéria-prima estava gravada há meses sem uso (os
+contadores `w r o a b` de `runs[]`), e que o efeito seria maior justamente onde
+há combate: nas corridas de 1.000–2.000 m o bônus simulado dá **mediana de
+17,6%** do total.
+
+- **O que pontua**: parede +5 · morro +5 · torre +15 · animal +3 · camada do
+  portão +25 · fuga +100 · blitz (as 3 camadas em ≤20 s) +50 · LENDA +400 —
+  tudo em `Constants.SCORE_WEIGHTS`, com slider ao vivo no `?debug=1`. Ficam
+  de fora pulo, pausa e investida negada (medem spam e frustração, não
+  façanha) e a Fúria Total (seria contagem dupla com o que ela destrói).
+- **Teto `bônus ≤ metros`**: uma corrida curta cheia de combate nunca passa por
+  cima de uma corrida longa. É o que mantém a correlação entre metros e total
+  em 0,993 — o ranking muda de régua sem virar outro jogo. Na simulação sobre
+  895 corridas reais o teto nunca precisou agir: ele é rede, não regra ativa.
+- **Duas grandezas, dois lugares**: façanha FÍSICA fala em metros (tela de fim,
+  medalhas, requisitos de skin, estacas da pista, funil do painel);
+  COMPETIÇÃO fala em pontos (pódio, top 10, provocação, push de recorde).
+  O ranking mostra os dois: `1.234 pts · 987 m`.
+- **Ninguém foi recalculado.** No Firestore, `score` virou o total e nasceu o
+  campo opcional `scoreM` com os metros. Como o bônus é sempre ≥ 0, **todo
+  documento antigo já é um total válido de bônus zero** — e a ausência de
+  `scoreM` é a própria marca de versão, sem campo de versão nenhum. Clientes
+  velhos (ainda há gente na 1.5.0) seguem gravando como sempre. A marca antiga
+  vai sendo superada naturalmente: reset suave, meritocrático, decidido assim
+  de propósito.
+- **O bônus não ganhou letra em `runs[]`**: é recomputável dos contadores que
+  já existem, e o orçamento de letras livres (6) está reservado para os bosses
+  do futuro. Um teste tranca a igualdade "recomputado == somado ao vivo".
+- **O jogador vê o ponto acontecer**: cada façanha solta um `+N` dourado que
+  sobe do próprio obstáculo e some, o HUD mostra a Pontuação em destaque com
+  os metros discretos embaixo, e a tela de fim abre a conta inteira (de onde
+  veio cada ponto).
+
+## 🚪 A abertura agora depende de quem está jogando (v1.8.4)
+
+Os 3 obstáculos-lição (rampa aos 90 m → espinho aos 125 m → parede aos 160 m,
+sem nenhum animal até os 190 m) existiam por um dado duro: antes da v1.6, 83
+de 512 corridas morriam exatamente aos 34 m. Mas eles eram aplicados a TODO
+mundo, em TODA corrida — o veterano atravessava 190 m vazios por tentativa, e
+com a pontuação nova seriam 190 m sem nada para pontuar.
+
+Agora a abertura-lição vale só para **quem tem menos de 3 tentativas** — a
+mesma régua que já desligava as dicas na tela, então lição e dica acendem e
+apagam juntas. Para o veterano, a roleta normal assume aos 60 m, com par e
+escolta de animais desde o começo. É a primeira vez que o jogo trata estreante
+e veterano de formas diferentes.
 
 ## 🏁 Engajamento
 
@@ -353,7 +404,7 @@ Leitura de 48 jogadores, 981 tentativas, 512 corridas e 945 mortes da v1.5:
 | Os 5 biomas eram variações da mesma cena e o cenário congelava após a fuga. | 6 biomas com tema forte, portão movido para 1000m (5 trechos de 200m cabem inteiros) e a cidade no modo infinito. |
 | A análise só foi possível pelas 50 últimas corridas de cada jogador — mas sem duração nem causa. | `runs[]` passou a gravar `{t, m, s, c}` (segundos e desfecho), sem tocar nas rules. |
 
-## 📈 Decisões orientadas por dados (v1.7 → v1.8.3)
+## 📈 Decisões orientadas por dados (v1.7 → v1.8.4)
 
 | O que os dados (ou o campo) mostraram | O que mudou |
 |---|---|
@@ -364,14 +415,18 @@ Leitura de 48 jogadores, 981 tentativas, 512 corridas e 945 mortes da v1.5:
 | Os primeiros **190m são a abertura roteirizada, sem animal nenhum** — quem morre cedo "não vê bicho", e qualquer medição curta de densidade sai distorcida. | Mantido de propósito (onboarding vale mais); registrado como pegadinha de medição no guia de calibração. |
 | A marca nova do dono (4606m) subiu sozinha com `skin=robot` na vitrine — **pipeline da vitrine validado em campo** no primeiro recorde pós-v1.8.1. | Confirmou o desenho "a vitrine registra a skin da MARCA" (e a troca de apelido preserva, via cópia local). |
 
+| A habilidade não valia nada: o ranking media só distância, enquanto os contadores de parede/torre/animal/camada dormiam em `runs[]` há meses. Simulação sobre as **895 corridas reais**: bônus com p95 de 13,7% do total e Spearman metros × total de **0,993** — dá para premiar façanha sem virar outro jogo. | **Pontuação composta** (v1.8.4): `score` vira metros + bônus, `scoreM` guarda os metros, teto `bônus ≤ metros`. Nada foi recalculado — doc antigo é total de bônus zero, e a ausência de `scoreM` é a marca de versão. |
+| A abertura roteirizada nasceu de um dado real (83 de 512 corridas morriam aos 34 m antes da v1.6), mas era aplicada a todo mundo: **os primeiros 190 m não geravam um único animal**, em toda tentativa, para todo jogador — inclusive quem já tinha 500 corridas. | A lição passou a valer só abaixo de 3 tentativas (a régua que já desligava as dicas). Veterano recebe a roleta aos 60 m, com par e escolta. Efeito medido em teste: 1º obstáculo aos 55 m e **29 animais dentro dos 200 m**, contra zero. |
+
 ## 🧪 Testes
 
-Nove suítes (detalhe por suíte em `docs/04-referencia-tecnica.md` §11); números
-de 16/08/2026 — os que dependem do registry de skins variam com ele:
+Dez suítes (detalhe por suíte em `docs/04-referencia-tecnica.md` §11); números
+de 21/08/2026 — os que dependem do registry de skins variam com ele:
 
 | Comando | Asserts | Foco |
 |---|---|---|
 | `npm run test-stats` | 87 | Telemetria/agregação, `holdDays` nas duas semânticas, consistência contra as rules, digest — sem navegador |
+| `npm run test-score` | 71 | A fórmula da pontuação composta: pesos, blitz na borda, teto do bônus, formatadores — e o contrato de recomputação (ao vivo == recomputado de `runs[]`) |
 | `npm run test-skins` | ~93 | Portão do /?setup (roda a cada gravação, com rollback): lógica de acesso com skins sintéticas + estrutura do registry real |
 | `npm run test-integrate` | 49 | A integração do estúdio como funções puras (round-trip, upsert/remove, patch do sw) |
 | `npm run test-ramp` | 37 | Rampa/trampolim, abertura guiada, teclado, pausa + desistir, par/escolta, knockback, a home nova e o contrato do toque |

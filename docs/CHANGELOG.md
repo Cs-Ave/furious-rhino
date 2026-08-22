@@ -5,7 +5,19 @@
 
 ---
 
-## v1.8.3 — 16/08/2026 (versão atual)
+## v1.8.4 — 21/08/2026 (versão atual)
+
+**Tema: o ranking deixa de ser só distância — agora vale o que você derruba pelo caminho.**
+
+- **Pontuação composta.** A corrida passa a valer **metros + pontos por façanha**: cada parede quebrada, morro destruído, torre derrubada, animal atropelado e camada do portão soma pontos, e escapar pelo portão, derrubar as 3 camadas em menos de 20 segundos ("blitz") e chegar ao fim do mundo valem bônus de fim de corrida. **O ranking mundial passa a ordenar pelo total**, e é ele que aparece no pódio e no top 10, com a distância ao lado ("1.234 pts · 987 m").
+- **Ninguém foi recalculado.** As marcas antigas continuam exatamente como estavam — valem como total sem bônus. Quem jogar a versão nova vai passando por cima delas naturalmente, e quem ainda usa uma versão antiga do jogo continua enviando marca válida, sem sumir da lista.
+- **Os pontos aparecem na hora**: um "+5" dourado sobe do obstáculo que você acabou de destruir e some. No alto da tela, a **Pontuação** ficou em destaque, com os metros logo abaixo em letra menor — a distância continua sendo a façanha física, e é ela que aparece na tela de fim de corrida, nas medalhas e nas estacas da pista.
+- **A tela de fim mostra a conta**: quanto veio de distância, quanto veio de bônus, e de onde saiu cada ponto.
+- **O degrau VOCÊ do pódio ganhou nome e marca**, no mesmo formato dos três primeiros — antes só tinha a seta, o rinoceronte e o botão de trocar de skin.
+- **Quem já joga não atravessa mais 190 metros vazios.** A abertura guiada (morro → espinho → parede, sem nenhum bicho) era aplicada a todo mundo em toda corrida. Agora ela vale só para quem está aprendendo (menos de 3 tentativas): a partir daí a corrida começa povoada, com animais desde o começo — mais coisa para enfrentar e para pontuar.
+- Mudança nas regras do banco de dados: um campo novo e opcional em `scores` (os metros da marca), publicado antes desta versão ir ao ar.
+
+## v1.8.3 — 16/08/2026
 
 **Tema: o ranking liga de verdade — e o dardo ficou impossível de não ver.**
 

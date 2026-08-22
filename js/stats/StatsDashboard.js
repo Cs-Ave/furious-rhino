@@ -1,9 +1,19 @@
 import { getDb } from '../systems/LeaderboardSystem.js';
+import { ScoreSystem } from '../systems/ScoreSystem.js';
 import { Constants } from '../utils/Constants.js';
 import {
   comboChart, histogram, heatmap, donut, stepArea, lineChart, treemap, chartBox,
 } from './Charts.js';
 
+// v1.8.4 — de onde vem o número decide a UNIDADE:
+//   coleção `scores` (ranking)  -> PONTOS, via ScoreSystem.fmtScore/fmtPts;
+//   coleção `stats` (telemetria: bestM, runs[].m, histogramas, funil)
+//                               -> METROS, intocados. São medidas físicas de
+//                                  progressão, e o funil dos 200m/1000m só
+//                                  faz sentido em distância.
+// As duas convivem lado a lado na tabela e na ficha de propósito: um jogador
+// com muitos pontos e poucos metros é exatamente a informação nova da v1.8.4.
+//
 // Portão da fuga em metros, derivado da fonte única (v1.6: 1000m). O painel
 // destaca esse degrau no funil e marca as corridas que passaram dele.
 const GATE_M = Constants.WIN_DISTANCE_PX / Constants.PIXELS_PER_METER;
@@ -33,7 +43,7 @@ async function hasDetailAccess() {
 // DOM + SVG desenhado à mão (Charts.js), no mesmo espírito zero-build do
 // jogo. Conteúdo de terceiros (nomes, cidades, modelos) entra sempre via
 // textContent. Trocar de aba ou de período NÃO refaz rede (cache).
-let cache = null; // { docs, names, topScore }
+let cache = null; // { docs, names, scores, topScore }
 let detail = false; // acesso ao modo detalhado (decidido 1x por carga)
 let periodDays = 0; // 0 = tudo; 7 e 30 filtram o que vem de runs[]/history.days
 
@@ -74,20 +84,26 @@ export async function render() {
       // estatísticas públicas — têm contadores sintéticos gigantes
       const isProbe = (id) => /^claude-/.test(id);
 
+      // v1.8.4: guardamos a ENTRADA de ranking inteira por jogador, não só o
+      // nome — `score` (total) e `m` (metros da marca, scoreM ?? score). É
+      // o que permite a tabela e a ficha mostrarem os pontos ao lado do
+      // bestM da telemetria, que é outra grandeza e continua em metros.
       const names = new Map();
+      const scores = new Map();
       let topScore = null;
       for (const d of scoresSnap.docs) {
         if (isProbe(d.id)) continue;
         const data = d.data();
         names.set(d.id, String(data.name || ''));
         const score = Number(data.score) || 0;
-        if (!topScore || score > topScore.score) {
-          topScore = { name: String(data.name || '???'), score };
-        }
+        const entry = { name: String(data.name || '???'), score, m: Number(ScoreSystem.metersOf(data)) || 0 };
+        scores.set(d.id, entry);
+        if (!topScore || score > topScore.score) topScore = entry;
       }
       cache = {
         docs: statsSnap.docs.filter((d) => !isProbe(d.id)).map((d) => ({ id: d.id, ...d.data() })),
         names,
+        scores,
         topScore,
       };
     } catch (e) {
@@ -279,8 +295,11 @@ function tabOverview(root) {
   root.append(el('h2', null, '🦏 Visão geral'));
   const cards = el('div', 'stat-cards');
   const winRate = agg.attempts > 0 ? (agg.wins / agg.attempts) * 100 : 0;
+  // Vem da coleção `scores`: é o RANKING, logo PONTOS. Os metros da mesma
+  // marca vão no rótulo — o cartão tem 140px e o fmtScore inteiro
+  // ('1.234 pts · 987 m') quebraria em três linhas nos 24px do valor.
   if (record && record.score > 0) {
-    cards.append(card(`${record.score}m`, `🏆 recorde — ${record.name}`));
+    cards.append(card(ScoreSystem.fmtPts(record.score), `🏆 recorde — ${record.name} · ${record.m}m`));
   }
   cards.append(
     card(agg.players, 'jogadores'),
@@ -641,10 +660,19 @@ function playerRow(doc) {
   const device = topKey(hist.clients) ||
     [str(client.device), str(client.os), str(client.browser)].filter(Boolean).join(' · ') ||
     'desconhecido';
+  // ⚠️ v1.8.4: `best` é `stats.bestM` — METROS de telemetria, NÃO o ranking.
+  // Os pontos são outra coleção (`scores`) e entram como campo próprio:
+  // sobrescrever um pelo outro apagaria a distância real do jogador, que é o
+  // que alimenta funil, histograma e a evolução das corridas.
+  const rank = cache.scores.get(doc.id) || null;
   return {
     id: doc.id,
     name: cache.names.get(doc.id) || `Anônimo (${doc.id.slice(0, 8)})`,
     best: num(doc.bestM),
+    // Ranking: total em pontos e os metros DA MARCA (podem divergir do bestM
+    // — a marca enviada é uma corrida específica). 0 = nunca pontuou.
+    pts: rank ? rank.score : 0,
+    rankM: rank ? rank.m : 0,
     attempts: num(doc.attempts),
     wins: num(doc.wins),
     playTimeS: num(doc.playTimeS),
@@ -703,7 +731,11 @@ function fmtDate(epochS, withTime = false) {
 
 const COLUMNS = [
   { key: 'name', label: 'Jogador', text: (r) => r.name, num: false },
+  // 'Recorde' segue em METROS (stats.bestM, façanha física); 'Pontos' é a
+  // coluna de RANKING (scores.score) — as duas ordenam de forma diferente e
+  // é justamente essa diferença que a v1.8.4 quis expor.
   { key: 'best', label: 'Recorde', text: (r) => `${r.best}m` },
+  { key: 'pts', label: 'Pontos', text: (r) => (r.pts ? ScoreSystem.fmtPts(r.pts) : '—') },
   { key: 'attempts', label: 'Execuções', text: (r) => `${r.attempts}` },
   { key: 'wins', label: 'Fugas', text: (r) => `${r.wins}` },
   { key: 'playTimeS', label: 'Tempo', text: (r) => formatTime(r.playTimeS) },
@@ -793,6 +825,10 @@ function drawPlayerCard(root, doc) {
     : new Set(runs.map((x) => fmtDate(num(x && x.t)))).size;
   cards.append(
     card(`${r.best}m`, '🏆 recorde'),
+    // Ranking (coleção `scores`) ao lado do recorde de telemetria (bestM):
+    // grandezas diferentes, e a marca enviada é uma corrida específica, então
+    // os metros dela podem ser menores que o bestM da janela local
+    ...(r.pts ? [card(ScoreSystem.fmtPts(r.pts), `🥇 pontos no ranking · ${r.rankM}m`)] : []),
     card(r.attempts, 'execuções'),
     card(r.wins, 'fugas'),
     card(`${r.attempts ? ((r.wins / r.attempts) * 100).toFixed(1) : '0.0'}%`, 'fugas por execução'),
@@ -811,14 +847,33 @@ function drawPlayerCard(root, doc) {
     root.append(el('p', 'stats-status', 'Sem histórico ainda — registrado a partir da v1.4.0.'));
   } else {
     root.append(runsChart(runs));
+
+    // v1.8.4: o bônus de cada corrida RECOMPUTADO aqui, a partir dos
+    // contadores que já viajavam em runs[] (w/r/o/a/b/c/z). Sai de graça e
+    // vale para o histórico INTEIRO — inclusive corridas anteriores à
+    // v1.8.4, que nunca tiveram pontuação calculada. Como os pesos são
+    // mutáveis (Constants.SCORE_WEIGHTS), este número é sempre o que a
+    // tabela de pesos ATUAL diria — é leitura de calibração, não o total
+    // histórico que foi de fato enviado ao ranking.
+    const bonusOf = (run) => Math.max(0, Math.floor(Number(ScoreSystem.runBonus(run)) || 0));
+    const bonusTotal = runs.reduce((a, run) => a + bonusOf(run), 0);
+    if (bonusTotal > 0) {
+      root.append(el('p', 'stats-note',
+        `🥇 Bônus recomputado destas ${runs.length} corridas: ${ScoreSystem.fmtPts(bonusTotal)}` +
+        ` · média ${Math.round(bonusTotal / runs.length)} por corrida` +
+        ' (pesos atuais do Constants.SCORE_WEIGHTS — não é o que já foi enviado ao ranking)'));
+    }
+
     const list = el('ul', 'runs-list', '');
     for (const run of runs.slice().reverse()) {
+      const bonus = bonusOf(run);
       const extra = [
         num(run && run.s) ? `${num(run.s)}s` : '',
         str(run && run.c) ? (Constants.CAUSE_LABELS[run.c] || run.c) : '',
         num(run && run.d) ? `💨${num(run.d)}` : '',
         num(run && run.w) ? `🧱${num(run.w)}` : '',
         num(run && run.r) ? `🏔️${num(run.r)}` : '',
+        bonus ? `🥇+${bonus}` : '',
       ].filter(Boolean).join(' · ');
       list.append(el('li', null,
         `${fmtDate(num(run && run.t), true)} — ${num(run && run.m)}m${extra ? ` · ${extra}` : ''}`));

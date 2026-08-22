@@ -69,8 +69,19 @@
             z-index: 100;
         }
 
+        /* v1.8.4: a pontuação ganhou destaque (era 18px e mostrava metros com
+           rótulo mentiroso). O #ui cresce ~18px no total — ainda termina bem
+           acima do painel ?debug=1 (top:140px). */
         .score {
-            margin-bottom: 10px;
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 1px;
+        }
+
+        .score-m {
+            font-size: 13px;
+            opacity: 0.75;
+            margin-bottom: 8px;
         }
 
         .record {
@@ -947,6 +958,12 @@
         @media (max-height: 430px) {
             #start-screen { gap: 3px; padding-top: 4px; padding-bottom: 24px; }
 
+            /* HUD: a linha de pontos maior + a dos metros custam ~18px de
+               altura, que num celular deitado (~360px) fazem falta */
+            #ui { top: 12px; left: 12px; font-size: 16px; }
+            .score { font-size: 19px; }
+            .score-m { font-size: 11px; margin-bottom: 6px; }
+
             .home-title { font-size: clamp(24px, 8.5vh, 40px); letter-spacing: 3px; }
             .home-sub { display: none; }
 
@@ -1266,6 +1283,25 @@
             font-size: 15px;
             min-height: 18px;
             margin: 4px 0;
+        }
+
+        /* v1.8.4: pontuação composta no fim da corrida (a distância acima
+           continua sendo a façanha física) */
+        #game-over .final-points,
+        #game-win .final-points {
+            color: #ffd700;
+            font-size: 20px;
+            font-weight: bold;
+            margin: 6px 0 2px;
+        }
+
+        #game-over .final-breakdown,
+        #game-win .final-breakdown {
+            font-size: 13px;
+            line-height: 1.5;
+            opacity: 0.75;
+            margin: 0 0 8px;
+            white-space: pre-line;
         }
 
         #game-over .btn-share,
@@ -1878,7 +1914,11 @@
     <div id="setup-page" hidden></div>
 
     <div id="ui">
+        <!-- v1.8.4: a linha em destaque é a PONTUAÇÃO de verdade (metros +
+             bônus). Os metros continuam à vista, discretos logo abaixo —
+             eles são a façanha física (medalhas, estacas, barra). -->
         <div class="score">Pontuação: <span id="score">0</span></div>
+        <div class="score-m"><span id="score-m">0</span> m</div>
         <div class="record">Recorde: <span id="record">0</span></div>
         <div id="progress-track">
             <div id="progress-fill"></div>
@@ -1890,6 +1930,10 @@
     <div id="game-over">
         <h1 id="game-over-title">GAME OVER</h1>
         <p>Distância: <span class="final-score" id="final-score">0</span>m</p>
+        <!-- v1.8.4: a distância acima continua sendo a façanha física; a
+             pontuação composta entra ABAIXO, com o detalhamento -->
+        <p id="final-points" class="final-points"></p>
+        <p id="final-breakdown" class="final-breakdown"></p>
         <p id="attempt-message" class="attempt-line"></p>
         <p id="gate-escape-message"></p>
         <p id="record-message"></p>
@@ -1905,6 +1949,8 @@
     <div id="game-win">
         <h1>VOCÊ ESCAPOU!</h1>
         <p>Distância: <span class="final-score" id="win-final-score">0</span>m</p>
+        <p id="win-final-points" class="final-points"></p>
+        <p id="win-final-breakdown" class="final-breakdown"></p>
         <p id="win-attempt-message" class="attempt-line"></p>
         <p id="win-record-message"></p>
         <p id="win-online-status"></p>
@@ -1962,6 +2008,12 @@
                                 <img src="art/rhino-run-2.svg" alt="" class="f2">
                             </div>
                         </div>
+                        <!-- v1.8.4: o degrau VOCÊ ganha nome/marca/posse
+                             reusando as classes dos degraus 1·2·3 (zero CSS
+                             novo, e o colapso do mobile já esconde .pdays) -->
+                        <div class="pname" id="you-name"></div>
+                        <div class="pscore" id="you-score"></div>
+                        <div class="pdays" id="you-days"></div>
                         <button id="skins-btn" aria-label="Skins do rinoceronte">🎨 Trocar skin</button>
                         <p id="podium-gap"></p>
                         <div class="you-base">
@@ -2016,7 +2068,7 @@
 
         <span class="start-footer footer-left">Designed by Thomas Avelino</span>
         <span class="start-footer footer-center">Estatísticas anônimas são coletadas · <a href="./?stats">/?stats</a></span>
-        <span class="start-footer footer-right" id="game-version">v1.8.3</span>
+        <span class="start-footer footer-right" id="game-version">v1.8.4</span>
     </div>
 
     <div id="ranking-modal" class="modal">

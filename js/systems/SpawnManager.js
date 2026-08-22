@@ -7,15 +7,21 @@ import { TranqDart } from '../entities/TranqDart.js';
 import { Ramp } from '../entities/Ramp.js';
 
 export class SpawnManager {
-  constructor(scene) {
+  constructor(scene, { skipOpening = false } = {}) {
     this.scene = scene;
     // A abertura é roteirizada (Constants.OPENING_SCRIPT): o primeiro
     // obstáculo é uma rampa aos 90m, não uma parede aos 34m. Nos dados da
     // v1.5, 83 de 512 corridas terminaram exatamente em 34m.
-    this.openingIndex = 0;
-    this.nextSpawnX = Constants.OPENING_SCRIPT.length
-      ? Constants.OPENING_SCRIPT[0].x
-      : Constants.GAME_WIDTH + 200;
+    // v1.8.4: isso é uma LIÇÃO, e veterano não precisa de aula. Com
+    // skipOpening o roteiro é dado por vencido e a roleta por tier assume já
+    // em VETERAN_OPENING_START_X — antes, a abertura eram 190m com três
+    // obstáculos fixos, animal nenhum e nada para pontuar.
+    this.openingIndex = skipOpening ? Constants.OPENING_SCRIPT.length : 0;
+    this.nextSpawnX = skipOpening
+      ? Constants.VETERAN_OPENING_START_X
+      : (Constants.OPENING_SCRIPT.length
+        ? Constants.OPENING_SCRIPT[0].x
+        : Constants.GAME_WIDTH + 200);
     this.rampMaxSpan = Math.max(
       ...Object.values(Constants.RAMP_VARIANTS).map((s) => s.asc + s.top + s.desc)
     );

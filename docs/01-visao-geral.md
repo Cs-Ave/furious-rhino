@@ -1,6 +1,6 @@
 # Furious Rhino — Visão geral
 
-> Documentação da versão **1.8.3** · atualizada em 16/08/2026
+> Documentação da versão **1.8.4** · atualizada em 21/08/2026
 > Este documento é para quem **não é programador**. Sem jargão — e quando um termo técnico for inevitável, ele vem explicado entre parênteses.
 
 ## O que é
@@ -40,7 +40,7 @@ Pense num daqueles jogos de "corrida sem fim" (como Subway Surfers ou o dinossau
 
 Este projeto não é só o jogo — é também a "sala de controle" dele:
 
-- **Ranking mundial** — placar público com o recorde de cada jogador, por apelido — e há quantos dias cada marca está de pé. A tela inicial mostra um **pódio ao vivo** com os 3 primeiros do mundo (cada um com a aparência de rinoceronte que usava ao cravar a marca) e o seu lugar logo ao lado, a um degrau do bronze.
+- **Ranking mundial** — placar público com o recorde de cada jogador, por apelido — e há quantos dias cada marca está de pé. Desde a v1.8.4 o placar é de **pontos**: a distância continua valendo 1 ponto por metro, mas cada obstáculo destruído pelo caminho soma um extra (e a distância aparece do lado, como "1.234 pts · 987 m"). A tela inicial mostra um **pódio ao vivo** com os 3 primeiros do mundo (cada um com a aparência de rinoceronte que usava ao cravar a marca) e o seu lugar logo ao lado, a um degrau do bronze.
 - **Diário da Fuga** — a área de notícias da tela inicial: avisos do criador (novidades de cada versão) e acontecimentos do jogador (skin nova, entrou ou caiu do pódio, recorde batido).
 - **Estatísticas do jogador** — um botão "📊 Minhas estatísticas" mostra seu histórico: onde você costuma morrer, quantas vezes fugiu, suas medalhas.
 - **Medalhas** — 17 conquistas, de "Primeira Fuga" a "Inalcançável" (2000 m).
