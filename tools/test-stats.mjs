@@ -68,8 +68,8 @@ localStorage.removeItem(StorageManager.DEATHS_KEY);
 StorageManager.addDeath(4, 'boss'); // rifle do caçador na reta do portão
 const db = StorageManager.getDeaths();
 eq('boss: morte pelo rifle conta em deaths.boss e no tier', [db.boss, db.t5], [1, 1]);
-eq('boss: mapa de mortes segue no teto das rules (13 <= 14)',
-  Object.keys(db).length <= 14, true);
+eq('boss: mapa de mortes segue no teto das rules (15 <= 15)',
+  Object.keys(db).length <= 15, true);
 
 localStorage.removeItem(StorageManager.BOSS_SEEN_KEY);
 StorageManager.addBossEncounter();
@@ -77,6 +77,15 @@ StorageManager.addBossEncounter();
 eq('boss: encontros contados (dicas só nos primeiros)',
   StorageManager.getBossEncounters(), 2);
 
+// ---------- 2a-ter. Os bosses do deserto (v1.8.5) ----------
+// Cada boss assina a própria causa: 'boss2' (a rede do Capturador, 2000m) e
+// 'boss3' (o Caçador-Mor, 9995m) — o funil separa "morreu em qual luta"
+StorageManager.addDeath(5, 'boss2');
+StorageManager.addDeath(5, 'boss3');
+const db2 = StorageManager.getDeaths();
+eq('bosses novos: boss2/boss3 contam nas chaves próprias', [db2.boss2, db2.boss3], [1, 1]);
+eq('bosses novos: mapa de mortes segue no teto das rules (<= 15)',
+  Object.keys(db2).length <= 15, true);
 
 // Últimas execuções: janela deslizante de 50 (v1.5.0; era 10)
 localStorage.removeItem(StorageManager.RUNS_KEY);
@@ -124,6 +133,19 @@ const semLuta = StorageManager.getRuns().at(-1);
 eq('mecânicas: corrida que nem chegou ao boss não ganha chaves',
   ['b', 'q', 'z'].some((k) => k in semLuta), false);
 
+// v1.8.5: os bosses do deserto entram como e/h (camadas e segundos do Cerco)
+// e l (camadas do Guardião) — `q` segue EXCLUSIVO do portão (baseline v1.8)
+StorageManager.addRun(2100, 130, 'boss2', {
+  boss2LayersBroken: 4, boss2FightS: 38, boss3LayersBroken: 5,
+});
+const deserto = StorageManager.getRuns().at(-1);
+eq('mecânicas: lutas dos bosses novos gravadas (e/h/l)',
+  [deserto.e, deserto.h, deserto.l], [4, 38, 5]);
+StorageManager.addRun(600, 50, 'wall', {
+  boss2LayersBroken: 0, boss2FightS: 0, boss3LayersBroken: 0,
+});
+eq('mecânicas: corrida que nem viu os bosses novos não ganha e/h/l',
+  ['e', 'h', 'l'].some((k) => k in StorageManager.getRuns().at(-1)), false);
 
 // ---------- 2b. Histórico acumulado do jogador (v1.5.0) ----------
 localStorage.removeItem(StorageManager.HISTORY_KEY);
@@ -193,8 +215,8 @@ const rules = readFileSync(
 // Esquema aninhado: as rules validam o MAPA deaths (não cada causa) com um
 // teto de chaves — o storage precisa caber nesse teto
 eq('rules aceitam o mapa deaths', rules.includes("'deaths'"), true);
-eq('mapa de mortes cabe no teto das rules (size <= 14)',
-  Object.keys(StorageManager.getDeaths()).length <= 14, true);
+eq('mapa de mortes cabe no teto das rules (size <= 15)',
+  Object.keys(StorageManager.getDeaths()).length <= 15, true);
 
 // v1.5.0: history é UM mapa (orçamento de avaliação) e runs vai até 50
 eq('rules aceitam o mapa history', rules.includes("'history'"), true);
@@ -291,7 +313,7 @@ eq('fugas somadas', agg.wins, 2);
 eq('tempo total somado', agg.playTimeS, 210);
 eq('mortes por etapa [t1..t6]', agg.deathsTier, [2, 2, 1, 0, 1, 0]);
 eq('mortes por causa (objeto)', agg.causes,
-  { wall: 1, spike: 0, animal: 1, dart: 1, tower: 1, boss: 0, fall: 1 });
+  { wall: 1, spike: 0, animal: 1, dart: 1, tower: 1, boss: 0, boss2: 0, boss3: 0, fall: 1 });
 // Funil dinâmico: degraus de 200m até o máximo percorrido (1150 → 1200)
 eq('funil: nº de degraus (200..1200)', agg.funnelSteps.length, 6);
 eq('funil: contagens por degrau', agg.funnelSteps.map(([, v]) => v), [2, 2, 1, 1, 1, 0]);
@@ -315,6 +337,10 @@ eq('fuso ausente não vira chave', aggTz.tz.size, 1);
 // o que o StorageManager grava (o painel e o resumo do jogador leem daqui)
 const rotulos = Object.keys(Constants.CAUSE_LABELS).filter((k) => k !== 'win').sort();
 eq('rótulos de causa cobrem exatamente as causas do storage', rotulos, causas);
+// v1.8.5: os bosses novos têm rótulo próprio (o assert genérico acima já
+// exige a paridade de CHAVES; este fixa que o texto existe e não é vazio)
+eq('rótulos: boss2 e boss3 têm rótulo em CAUSE_LABELS',
+  [Boolean(Constants.CAUSE_LABELS.boss2), Boolean(Constants.CAUSE_LABELS.boss3)], [true, true]);
 
 // ---------- 6. Resumo diário (tools/daily-digest.mjs) ----------
 const { buildDigest } = await import('../tools/daily-digest.mjs');

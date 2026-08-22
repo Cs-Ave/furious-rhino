@@ -379,7 +379,7 @@ function tabDifficulty(root) {
   // O cruzamento que hoje não existe: as duas dimensões vivem separadas
   root.append(el('h2', null, '🎯 Causa × faixa de distância'));
   const bands = ['0–200', '200–400', '400–600', '600–800', '800–1000', '1000m+'];
-  const causeKeys = ['wall', 'spike', 'animal', 'dart', 'tower', 'boss', 'fall'];
+  const causeKeys = ['wall', 'spike', 'animal', 'dart', 'tower', 'boss', 'boss2', 'boss3', 'fall'];
   const rows = causeKeys.map((k) => Constants.CAUSE_LABELS[k] || k);
   const matrix = causeKeys.map(() => bands.map(() => 0));
   for (const r of deaths) {
@@ -956,7 +956,7 @@ export function aggregate(docs) {
     playTimeS: 0,
     standalone: 0,
     deathsTier: [0, 0, 0, 0, 0, 0],
-    causes: { wall: 0, spike: 0, animal: 0, dart: 0, tower: 0, boss: 0, fall: 0 },
+    causes: { wall: 0, spike: 0, animal: 0, dart: 0, tower: 0, boss: 0, boss2: 0, boss3: 0, fall: 0 },
     funnelSteps: [],
     escaped: 0,
     device: new Map(),
@@ -1001,6 +1001,8 @@ export function aggregate(docs) {
     agg.causes.dart += num(deaths.dart);
     agg.causes.tower += num(deaths.tower);
     agg.causes.boss += num(deaths.boss);
+    agg.causes.boss2 += num(deaths.boss2); // v1.8.5 — Capturador do Cerco
+    agg.causes.boss3 += num(deaths.boss3); // v1.8.5 — Caçador-Mor
     agg.causes.fall += num(deaths.fall);
 
     bests.push(num(d.bestM));

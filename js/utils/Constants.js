@@ -1,7 +1,7 @@
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
-  VERSION: '1.8.4',
+  VERSION: '1.8.5',
 
   // Rótulo humano de cada desfecho de corrida. Fonte única para o painel, o
   // resumo do jogador e os pushes — os três diziam a mesma coisa com palavras
@@ -13,6 +13,8 @@ export const Constants = {
     dart: '💉 Dardo',
     tower: '🏰 Torre',
     boss: '🎯 Caçador',
+    boss2: '🕸️ Capturador',   // v1.8.5 — o canhão de redes do Cerco (2000m)
+    boss3: '🏹 Caçador-Mor',  // v1.8.5 — o Guardião do Fim (9995m)
     fall: '🕳️ Anomalia de física',
     win: '🗽 Fuga',
   },
@@ -100,6 +102,39 @@ export const Constants = {
   // na fresta é permanente — é a mira, não uma dica)
   BOSS_HINT_MAX_ENCOUNTERS: 2,
 
+  // ------------------------------------------- BOSS 2: o Cerco (declarado)
+  // O BossFight virou paramétrico (uma `def` por luta), então os bosses
+  // seguintes são só tabela. Estes números ficam DECLARADOS aqui à espera do
+  // wiring da fase 2 — nada os consome ainda. Filosofia da casa, sem
+  // exceção: justo, telegrafado, nunca um muro de morte.
+  BOSS2_ANCHOR_PX: 80000,        // ~2000m: o segundo portal da fuga
+  // 4 camadas fora da ordem "de baixo para cima": obriga a ler o glow em vez
+  // de decorar a sequência do portão
+  BOSS2_LAYERS: ['mid', 'ground', 'high', 'mid'],
+  BOSS2_ENRAGE_MS: 45000,        // luta arrastada desce UM degrau de cadência
+  // Canhão de redes do Cerco: leque e rasante (anti-camping) são o tema; o
+  // morteiro entra SÓ na última camada, como estocada final.
+  BOSS2_NET: {
+    4: { intervalMs: 1500, telegraphMs: 450, burst: 1, mortar: false, rasante: true },
+    3: { intervalMs: 1250, telegraphMs: 420, burst: 2, mortar: false, rasante: true, fan: true },
+    2: { intervalMs: 1050, telegraphMs: 380, burst: 2, mortar: false, rasante: true, fan: true },
+    1: { intervalMs: 900, telegraphMs: 350, burst: 3, mortar: true, fan: true },
+  },
+
+  // ---------------------------------- BOSS 3: o Caçador-Mor (declarado)
+  // Quase no fim do mundo (WORLD_END_PX): 5 camadas em vaivém e o remix dos
+  // dois arsenais. O rasante só na última — quem chegou aqui já aprendeu a
+  // pular o padrão, e é aí que a lição é cobrada.
+  BOSS3_ANCHOR_PX: 399800,
+  BOSS3_LAYERS: ['ground', 'mid', 'high', 'mid', 'ground'],
+  BOSS3_RIFLE: {
+    5: { intervalMs: 1400, telegraphMs: 420, burst: 1, mortar: false },
+    4: { intervalMs: 1200, telegraphMs: 400, burst: 2, mortar: true },
+    3: { intervalMs: 1050, telegraphMs: 380, burst: 2, mortar: true, fan: true },
+    2: { intervalMs: 950, telegraphMs: 350, burst: 3, mortar: true, fan: true },
+    1: { intervalMs: 850, telegraphMs: 320, burst: 3, mortar: true, fan: true, rasante: true },
+  },
+
   // v1.8.4: PONTUAÇÃO COMPOSTA — `score` do ranking deixa de ser metros e
   // passa a ser metros + bônus por façanha (o campo novo `scoreM` guarda os
   // metros). Tabela MUTÁVEL de propósito: os sliders do ?debug=1 e o
@@ -113,7 +148,11 @@ export const Constants = {
   // geral continua sendo distância, o bônus só desempata quem luta.
   // Ficam de fora, de propósito, `j/p/x/n` (pulo/dash/dano: spam e
   // frustração não pontuam) e `f` (o especial já aparece no que ele quebra).
-  SCORE_WEIGHTS: { wall: 5, ramp: 5, tower: 15, animal: 3, bossLayer: 25, escape: 100, blitz: 50, legend: 400 },
+  SCORE_WEIGHTS: { wall: 5, ramp: 5, tower: 15, animal: 3, bossLayer: 25, escape: 100, blitz: 50, legend: 400,
+    // v1.8.5: vitória do Cerco (2000m) — camada de boss segue valendo
+    // bossLayer nos três bosses; o Guardião não tem bônus próprio porque a
+    // vitória dele JÁ paga o legend (+400).
+    boss2: 150 },
   SCORE_BLITZ_MAX_S: 20,         // 3 camadas do portão em <= 20s = blitz
   SCORE_BONUS_CAP: 1,            // bônus <= metros × isto (na simulação nunca precisou agir)
   SCORE_MAX_TOTAL: 20000,        // mesmo teto das firestore.rules (score is int, 1..20000)

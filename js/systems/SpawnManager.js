@@ -80,6 +80,69 @@ export class SpawnManager {
     this.spawnObstacles(camera);
   }
 
+  // Zonas onde NADA nasce, descritas como DADOS. Derivadas de Constants a cada
+  // chamada de propósito: o painel de tuning (/?debug=1) mexe em
+  // WIN_DISTANCE_PX em tempo de execução e a zona tem de acompanhar.
+  //   from/to  — o intervalo proibido [from, to)
+  //   resumeX  — para onde o cursor de spawn salta ao cair dentro da zona
+  //              (arena de boss: a pós-arena); null = fim de pista, o laço só
+  //              para (break puro, sem re-armar o cursor)
+  //   anchor   — x do boss dono da arena; alimenta nearBossArena().
+  noSpawnZones() {
+    const win = Constants.WIN_DISTANCE_PX;
+    return [
+      // Arena do boss do portão (v1.7): cobre o alcance do quique
+      // (BOSS_ARENA_PX + folga), não só o respiro da chegada. Pós-portão o
+      // spawn retoma em WIN+1000 com o tier do modo infinito — é a janela que
+      // impede o corte de re-armar para sempre.
+      {
+        from: win - (Constants.BOSS_ARENA_PX + 200),
+        to: win + 1000,
+        resumeX: win + 1000,
+        anchor: win,
+      },
+      // v1.8.5 — arena do CERCO (2000m): mesma geometria da arena do portão
+      {
+        from: Constants.BOSS2_ANCHOR_PX - (Constants.BOSS_ARENA_PX + 200),
+        to: Constants.BOSS2_ANCHOR_PX + 1000,
+        resumeX: Constants.BOSS2_ANCHOR_PX + 1000,
+        anchor: Constants.BOSS2_ANCHOR_PX,
+      },
+      // Fim do mundo (LENDA): últimos 1500px livres para a chegada. v1.8.5:
+      // o GUARDIÃO mora nela (âncora 399800) — o anchor faz nearBossArena
+      // valer na aproximação, senão o combo poderia partir um par a caminho
+      // da última luta.
+      {
+        from: Constants.WORLD_END_PX - 1500,
+        to: Infinity,
+        resumeX: null,
+        anchor: Constants.BOSS3_ANCHOR_PX,
+      },
+    ];
+  }
+
+  // A zona sem spawn que contém x, ou null. São 3 — varredura linear é mais
+  // barata que qualquer índice.
+  inNoSpawnZone(x) {
+    const zones = this.noSpawnZones();
+    for (let i = 0; i < zones.length; i++) {
+      if (x >= zones[i].from && x < zones[i].to) return zones[i];
+    }
+    return null;
+  }
+
+  // x está na aproximação de alguma arena de boss? Os 1500px antes da âncora
+  // valem como área da luta para o COMBO: um par nascido aqui teria a segunda
+  // metade engolida pela zona sem spawn logo à frente.
+  nearBossArena(x) {
+    const zones = this.noSpawnZones();
+    for (let i = 0; i < zones.length; i++) {
+      const z = zones[i];
+      if (z.anchor !== undefined && x >= z.anchor - 1500 && x < z.to) return true;
+    }
+    return false;
+  }
+
   recycleOffscreen(camera) {
     const limit = camera.scrollX - Constants.RECYCLE_MARGIN_PX;
 
@@ -132,26 +195,20 @@ export class SpawnManager {
         continue;
       }
 
-      // Zona livre do portão — v1.7: a ARENA DO BOSS. Cobre o alcance do
-      // quique (BOSS_ARENA_PX + folga), não só o respiro da chegada. O corte
-      // só vale DENTRO da janela — pós-portão o spawn retoma em WIN+1000 com
-      // o tier do modo infinito. (Sem a janela, o corte re-armaria p/ sempre.)
-      if (this.nextSpawnX >= Constants.WIN_DISTANCE_PX - (Constants.BOSS_ARENA_PX + 200) &&
-          this.nextSpawnX < Constants.WIN_DISTANCE_PX + 1000) {
-        this.nextSpawnX = Constants.WIN_DISTANCE_PX + 1000;
+      // Caiu numa zona sem spawn (arena de boss, chegada da LENDA)? Arena
+      // re-arma o cursor na pós-arena e para; fim de pista só para.
+      const zone = this.inNoSpawnZone(this.nextSpawnX);
+      if (zone) {
+        if (zone.resumeX !== null) this.nextSpawnX = zone.resumeX;
         break;
       }
-      // Fim do mundo (LENDA): últimos 1500px livres para a chegada
-      if (this.nextSpawnX >= Constants.WORLD_END_PX - 1500) break;
 
       // O obstáculo nasce com a dificuldade do LUGAR onde vai ficar
       const tier = Constants.getTierFor(this.nextSpawnX);
 
       // Combo: 2 obstáculos em sequência com offsets FIXOS (justiça).
-      // Perto do portão não — a zona livre não pode partir um par.
-      const nearGate = this.nextSpawnX >= Constants.WIN_DISTANCE_PX - 1500 &&
-                       this.nextSpawnX < Constants.WIN_DISTANCE_PX + 1000;
-      if (Math.random() < tier.comboChance && !nearGate) {
+      // Perto de uma arena de boss não — a zona livre não pode partir um par.
+      if (Math.random() < tier.comboChance && !this.nearBossArena(this.nextSpawnX)) {
         this.nextSpawnX += this.spawnCombo(Constants.getTierIndex(this.nextSpawnX));
         this.nextSpawnX += Math.max(
           Constants.MIN_SAFE_GAP,
@@ -186,15 +243,11 @@ export class SpawnManager {
         // encontro — nasce mais à frente para compensar
         this.nextSpawnX += tier.animalLeadPx;
         this.spawnAnimal(this.nextSpawnX);
-        // v1.8: par de animais — um segundo logo à frente, por tier. As
-        // guardas repetem as do laço: nunca dentro da janela da arena do
-        // boss nem na chegada da LENDA (o offset pode cruzar a fronteira
-        // que o primeiro animal respeitou).
+        // v1.8: par de animais — um segundo logo à frente, por tier. A guarda
+        // repete a do laço porque o offset pode cruzar a fronteira que o
+        // primeiro animal respeitou.
         const packX = this.nextSpawnX + Constants.ANIMAL_PACK_OFFSET_PX;
-        const inArena = packX >= Constants.WIN_DISTANCE_PX - (Constants.BOSS_ARENA_PX + 200) &&
-                        packX < Constants.WIN_DISTANCE_PX + 1000;
-        if (Math.random() < (tier.animalPackChance || 0) &&
-            !inArena && packX < Constants.WORLD_END_PX - 1500) {
+        if (Math.random() < (tier.animalPackChance || 0) && !this.inNoSpawnZone(packX)) {
           this.spawnAnimal(packX);
         }
       }
@@ -210,15 +263,13 @@ export class SpawnManager {
   // obstáculo sorteado, na coreografia dos combos (parede→terrestre a +280,
   // espinho→voador a +220, torre→qualquer a +300), sem substituir nada.
   // Devolve o span ocupado (soma no nextSpawnX, como os combos fazem) para o
-  // gap seguinte contar a partir do animal. Guardas idênticas às do par:
-  // nunca dentro da janela da arena do boss nem na chegada da LENDA.
+  // gap seguinte contar a partir do animal. Guarda idêntica à do par: o
+  // acompanhante não pode cair numa zona sem spawn.
   maybeEscort(x, kind, tier) {
     if (Math.random() >= (tier.animalEscortChance || 0)) return 0;
     const offset = kind === 'wall' ? 280 : kind === 'spike' ? 220 : 300;
     const ex = x + offset;
-    const inArena = ex >= Constants.WIN_DISTANCE_PX - (Constants.BOSS_ARENA_PX + 200) &&
-                    ex < Constants.WIN_DISTANCE_PX + 1000;
-    if (inArena || ex >= Constants.WORLD_END_PX - 1500) return 0;
+    if (this.inNoSpawnZone(ex)) return 0;
     if (kind === 'spike') {
       this.spawnAnimal(ex, this.pickBiomeAnimal(ex, 'fly'), 470);
     } else {
@@ -241,16 +292,25 @@ export class SpawnManager {
     wall.reset(x);
   }
 
-  // A rampa cabe aqui? O corredor livre do portão não pode receber uma
-  // estrutura de até 540px transbordando por baixo do zoo-gate. Falhando o
-  // teste, o peso vai a zero e a fatia é absorvida pelo animal (o catch-all).
+  // A rampa cabe aqui? Ela é a única estrutura que OCUPA largura (até 540px):
+  // não basta o x estar fora das zonas, o intervalo [x, x+rampMaxSpan] inteiro
+  // não pode INTERSECTAR nenhuma — senão a rampa transborda por baixo do
+  // zoo-gate. Falhando o teste, o peso vai a zero e a fatia é absorvida pelo
+  // animal (o catch-all).
   //
   // O teste é uma JANELA, não um teto: a versão anterior (`x + span < WIN-500`)
   // era sempre falsa depois do portão, e o rampW dos tiers 5/6 ia inteiro para
-  // o animal — rampas nunca nasciam no modo infinito.
+  // o animal — rampas nunca nasciam no modo infinito. Com a zona genérica isso
+  // se mantém (antes da arena com folga do span, ou depois da retomada) e de
+  // quebra a chegada da LENDA passa a ser respeitada: antes uma rampa iniciada
+  // pouco antes de WORLD_END-1500 invadia os 1500px livres do final.
   rampFits(x) {
-    return x + this.rampMaxSpan < Constants.WIN_DISTANCE_PX - (Constants.BOSS_ARENA_PX + 200) ||
-           x >= Constants.WIN_DISTANCE_PX + 1000;
+    const zones = this.noSpawnZones();
+    for (let i = 0; i < zones.length; i++) {
+      const z = zones[i];
+      if (x + this.rampMaxSpan >= z.from && x < z.to) return false;
+    }
+    return true;
   }
 
   // Devolve o comprimento ocupado (o chamador soma o gap depois), no mesmo
@@ -399,14 +459,17 @@ export class SpawnManager {
   }
 
   // Chamado pela TranqTower no momento do disparo (mira em 360° / morteiro)
-  // e, com boss=true, pelo rifle do caçador do portão (v1.7): dardo dourado
-  // + flag fromBoss (vira a causa de morte 'boss' no onDartHit)
+  // e pelos rifles dos bosses. v1.8.5: `boss` é a CAUSA de morte ('boss' |
+  // 'boss2' | 'boss3') ou falsy — vira dart.fromBoss (string) e chega ao
+  // onDartHit como está. O legado `true` (chamadas antigas/testes) cai em
+  // 'boss'. O tint dourado é o MESMO para os três: "dardo de boss" é uma
+  // linguagem visual só.
   fireDart(x, y, vx, vy = 0, gravity = false, boss = false) {
     const dart = this.dartsGroup.getFirst(false);
     if (!dart) return;
     dart.fire(x, y, vx, vy, gravity);
     if (boss) {
-      dart.fromBoss = true;
+      dart.fromBoss = boss === true ? 'boss' : boss;
       dart.setTint(0xffc84a);
     }
   }

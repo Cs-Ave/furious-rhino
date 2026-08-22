@@ -33,6 +33,9 @@ export async function initTuningPanel(scene) {
     behavior: Constants.ANIMAL_BEHAVIOR,
     weights: Constants.SCORE_WEIGHTS,
     rifle: Constants.BOSS_RIFLE,
+    // v1.8.5: os arsenais dos bosses novos também exportam
+    net2: Constants.BOSS2_NET,
+    rifle3: Constants.BOSS3_RIFLE,
   }));
 
   const fisica = gui.addFolder('Física do Rino');
@@ -133,6 +136,27 @@ export async function initTuningPanel(scene) {
   }
   boss.close();
 
+  // v1.8.5: os bosses novos. As tabelas (BOSS2_NET/BOSS3_RIFLE) são as
+  // MESMAS referências lidas a cada tiro — sliders ao vivo, como no portão.
+  const boss2 = gui.addFolder('Boss 2 (Cerco)');
+  for (const layers of [4, 3, 2, 1]) {
+    boss2.add(Constants.BOSS2_NET[layers], 'intervalMs', 400, 4000, 50)
+      .name(`rede: cadência ${layers} camada${layers > 1 ? 's' : ''}`);
+  }
+  // O enrage foi COPIADO para a def no create (número, não referência):
+  // o onChange espelha na luta viva para o slider valer na hora
+  boss2.add(Constants, 'BOSS2_ENRAGE_MS', 0, 120000, 1000)
+    .name('enrage: ms de luta')
+    .onChange((v) => { if (scene.boss2Fight) scene.boss2Fight.def.enrageMs = v; });
+  boss2.close();
+
+  const boss3 = gui.addFolder('Boss 3 (Guardião)');
+  for (const layers of [5, 4, 3, 2, 1]) {
+    boss3.add(Constants.BOSS3_RIFLE[layers], 'intervalMs', 400, 4000, 50)
+      .name(`rifle: cadência ${layers} camada${layers > 1 ? 's' : ''}`);
+  }
+  boss3.close();
+
   // v1.8.4: pesos da PONTUAÇÃO COMPOSTA. Cada peso é lido NO MOMENTO do
   // evento (ScoreSystem soma o bônus enquanto a corrida acontece), então
   // mover um slider vale na hora — inclusive no meio da corrida em curso:
@@ -206,6 +230,28 @@ export async function initTuningPanel(scene) {
     },
   }, 'pularArena').name('⚔️ Pular p/ arena do boss');
 
+  // v1.8.5: cai ANTES do gatilho de cada luta nova (âncora - arena - 300),
+  // no mesmo padrão do pularArena
+  debug.add({
+    pularCerco: () => {
+      const sprite = scene.rhino.getSprite();
+      sprite.body.reset(
+        Constants.BOSS2_ANCHOR_PX - Constants.BOSS_ARENA_PX - 300,
+        Constants.GAME_HEIGHT - 200
+      );
+    },
+  }, 'pularCerco').name('⚔️ Pular p/ Cerco');
+
+  debug.add({
+    pularGuardiao: () => {
+      const sprite = scene.rhino.getSprite();
+      sprite.body.reset(
+        Constants.BOSS3_ANCHOR_PX - Constants.BOSS_ARENA_PX - 300,
+        Constants.GAME_HEIGHT - 200
+      );
+    },
+  }, 'pularGuardiao').name('⚔️ Pular p/ Guardião');
+
   // Baixa um .txt SÓ com o que mudou, no formato do Constants.js e com
   // instruções de onde aplicar — colar direto no VS Code
   debug.add({ exportar: () => exportTuning(baseline) }, 'exportar').name('💾 Exportar ajustes');
@@ -233,6 +279,7 @@ const ROOT_KEYS = [
   'MIN_SAFE_GAP', 'SPAWN_LOOKAHEAD_PX', 'FURY_FULL_DISTANCE_PX',
   'SPECIAL_DURATION_MS', 'SPECIAL_SPEED_MULT',
   'BOSS_KNOCKBACK_VX', 'BOSS_KNOCKBACK_VY', 'BOSS_KNOCKBACK_MS', 'BOSS_SHOT_SPEED',
+  'BOSS2_ENRAGE_MS',
   'ANIMAL_KB_VX_MIN', 'ANIMAL_KB_VX_MAX', 'ANIMAL_KB_VY_MIN', 'ANIMAL_KB_VY_MAX',
 ];
 
@@ -271,6 +318,21 @@ function exportTuning(baseline) {
     for (const [k, v] of Object.entries(pattern)) {
       if (typeof v === 'number' && v !== baseline.rifle[layers][k]) {
         lines.push(`${pad(`BOSS_RIFLE[${layers}].${k}: ${v},`)}// era ${baseline.rifle[layers][k]} — objeto BOSS_RIFLE, chave ${layers}`);
+      }
+    }
+  }
+  // v1.8.5: os arsenais dos bosses novos, no mesmo padrão do BOSS_RIFLE
+  for (const [layers, pattern] of Object.entries(Constants.BOSS2_NET)) {
+    for (const [k, v] of Object.entries(pattern)) {
+      if (typeof v === 'number' && v !== baseline.net2[layers][k]) {
+        lines.push(`${pad(`BOSS2_NET[${layers}].${k}: ${v},`)}// era ${baseline.net2[layers][k]} — objeto BOSS2_NET, chave ${layers}`);
+      }
+    }
+  }
+  for (const [layers, pattern] of Object.entries(Constants.BOSS3_RIFLE)) {
+    for (const [k, v] of Object.entries(pattern)) {
+      if (typeof v === 'number' && v !== baseline.rifle3[layers][k]) {
+        lines.push(`${pad(`BOSS3_RIFLE[${layers}].${k}: ${v},`)}// era ${baseline.rifle3[layers][k]} — objeto BOSS3_RIFLE, chave ${layers}`);
       }
     }
   }

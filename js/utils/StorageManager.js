@@ -357,9 +357,11 @@ export class StorageManager {
 
   // Mortes por tier (t1..t6; t5/t6 = modo infinito) e por causa
   // (wall/spike/animal/dart/tower/boss/fall). 'boss' (v1.7) = rifle do
-  // caçador do portão — 13ª chave do mapa; as rules aceitam até 14.
+  // caçador do portão; 'boss2'/'boss3' (v1.8.5) = Capturador do Cerco e
+  // Caçador-Mor do fim do mundo — 15 chaves; as rules aceitam até 15
+  // (bump publicado JUNTO desta release, antes do deploy).
   static getDeaths() {
-    const empty = { t1: 0, t2: 0, t3: 0, t4: 0, t5: 0, t6: 0, wall: 0, spike: 0, animal: 0, dart: 0, tower: 0, boss: 0, fall: 0 };
+    const empty = { t1: 0, t2: 0, t3: 0, t4: 0, t5: 0, t6: 0, wall: 0, spike: 0, animal: 0, dart: 0, tower: 0, boss: 0, boss2: 0, boss3: 0, fall: 0 };
     try {
       return { ...empty, ...(JSON.parse(localStorage.getItem(this.DEATHS_KEY)) || {}) };
     } catch (e) {
@@ -438,6 +440,12 @@ export class StorageManager {
     b: 'bossLayersBroken', // camadas do portão blindado quebradas (0-3, v1.7)
     q: 'bossBounces',   // quiques no portão (atrito com o loop da luta)
     z: 'bossFightS',    // segundos de luta contra o boss (0 = nem chegou lá)
+    // v1.8.5 — os bosses do deserto (orçamento de letras: sobram i u y).
+    // `q` segue EXCLUSIVO do portão: misturar quiques dos três poluiria a
+    // baseline de 48 lutas que calibrou a v1.8.
+    e: 'boss2LayersBroken', // camadas do Cerco (2000m) quebradas (0-4)
+    h: 'boss2FightS',   // segundos de luta contra o Cerco
+    l: 'boss3LayersBroken', // camadas do Guardião do Fim (9995m) quebradas (0-5)
   };
 
   // Até a v1.6.1 a fúria não entrava aqui por ser posicional (contida no

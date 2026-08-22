@@ -9,6 +9,7 @@ export class TextureFactory {
     this.generateSpikeTower(scene);
     this.generateGate(scene);
     this.generateGateArmored(scene);
+    this.generateBossGates(scene);
     this.generateTranqTower(scene);
     this.generateTranqDart(scene);
     this.generateGround(scene);
@@ -601,117 +602,269 @@ export class TextureFactory {
 
   // v1.7: o portão dos 1000m amanhece BLINDADO — o boss da fuga. Full-height
   // (canvas 240x620, do chão ao teto do mundo: não existe "por cima") com a
-  // plataforma do caçador de rifle no topo. 3 estados pelo número de camadas
+  // plataforma do caçador de rifle no topo. Os estados são o número de camadas
   // RESTANTES (zoo-gate-armored-3/2/1); cada quebra abre a banda da camada
   // expondo o tijolo âmbar — a linguagem que o jogador já aprendeu nas
   // paredes: âmbar = passagem. O estado final é o zoo-gate-broken de sempre
   // (o crossGate troca a textura na explosão).
   static generateGateArmored(scene) {
-    for (const layersLeft of [3, 2, 1]) {
-      this.generateGateArmoredVariant(scene, layersLeft);
+    this.generateArmoredSet(scene, 'zoo-gate-armored', Constants.BOSS_LAYERS);
+  }
+
+  // v1.8.5: as barricadas dos bosses 2 e 3. Mesma moldura do portão do zoo
+  // (canvas, pilares, bandas, plataforma) com pele e ordem de quebra próprias:
+  // o boss 2 pede o MEIO duas vezes (4 camadas), o boss 3 repete meio E chão
+  // (5 camadas) — a repetição é o que faz a luta durar mais sem aumentar a
+  // altura da cerca. Cada set ganha também o seu estado destruído.
+  static generateBossGates(scene) {
+    this.generateArmoredSet(scene, 'boss2-gate', ['mid', 'ground', 'high', 'mid'], { palette: 'urban' });
+    this.generateArmoredBroken(scene, 'boss2-gate', ['mid', 'ground', 'high', 'mid'], { palette: 'urban' });
+    this.generateArmoredSet(scene, 'boss3-gate', ['ground', 'mid', 'high', 'mid', 'ground'], { palette: 'dark' });
+    this.generateArmoredBroken(scene, 'boss3-gate', ['ground', 'mid', 'high', 'mid', 'ground'], { palette: 'dark' });
+  }
+
+  // v1.8.5: o portão virou PARAMÉTRICO — os bosses seguintes reusam a mesma
+  // estrutura (pilares, bandas, plataforma, canvas 240x620) trocando só a
+  // pele e a ordem de quebra, então a física de BossFight casa sem gambiarra.
+  //
+  // Gera `${prefix}-${N}` para N = layers.length .. 1 (N = camadas RESTANTES):
+  // com N restantes, as (layers.length - N) PRIMEIRAS da ordem já caíram.
+  // `layers` é a ORDEM de quebra e pode REPETIR altura (ex.: ['mid','ground',
+  // 'high','mid']) — desenhamos UMA banda por altura única e ela só abre no
+  // visual quando TODAS as ocorrências daquela altura já quebraram: é a
+  // dupla-blindagem, sem inventar geometria nova.
+  //
+  // opts.palette: 'steel' (aço azulado do zoo, default e pixel-a-pixel igual
+  // ao portão da v1.7) | 'urban' (concreto cinza + faixa de perigo
+  // amarelo/preto, a barricada de contenção urbana) | 'dark' (aço quase preto
+  // com detalhe vermelho, a última cerca do mundo).
+  static generateArmoredSet(scene, prefix, layers, opts = {}) {
+    const total = layers.length;
+    for (let left = total; left >= 1; left--) {
+      this.generateArmoredVariant(scene, `${prefix}-${left}`, layers, total - left, opts);
     }
   }
 
-  static generateGateArmoredVariant(scene, layersLeft) {
+  // Estado FINAL do portão paramétrico (`${prefix}-broken`): mesmo canvas e
+  // mesmos pilares/plataforma, mas com o vão inteiro rasgado — a linguagem do
+  // zoo-gate-broken (buraco + entulho + fumaça) aplicada à moldura blindada.
+  static generateArmoredBroken(scene, prefix, layers, opts = {}) {
+    this.generateArmoredVariant(scene, `${prefix}-broken`, layers, layers.length,
+      { ...opts, wrecked: true });
+  }
+
+  // Paletas do portão blindado. Os nomes são PAPÉIS no desenho (não cores),
+  // então trocar de pele nunca mexe na estrutura. Os valores de 'steel' são
+  // exatamente os da v1.7 — o zoo-gate-armored não pode mudar 1 pixel.
+  static armoredPalette(name) {
+    const C = Constants.COLORS;
+    if (name === 'urban') {
+      // Barricada de contenção: concreto cru e faixa de perigo amarelo/preto
+      const concrete = 0x8f8f88, concreteDark = 0x5f5f5a, concreteLight = 0xb0b0a8;
+      return {
+        plate: concreteDark, seam: 0x4a4a46, truss: concrete,
+        beam: 0x6c6c66, face: concreteLight, frame: concreteDark,
+        lock: 0x3b3b3e, lockShine: concreteLight, bolt: 0x6c6c66,
+        pillar: concrete, pillarEdge: concreteLight, rivet: concreteDark,
+        deck: concreteLight, deckLip: concreteDark, rail: 0x3b3b3e,
+        hazardA: 0xf2c033, hazardB: 0x1f1f22, hazardPlate: true,
+      };
+    }
+    if (name === 'dark') {
+      // A última cerca do mundo: aço quase preto com solda vermelha
+      return {
+        plate: 0x24262b, seam: 0x14151a, truss: 0x3c4048,
+        beam: 0x2f3238, face: 0x373b43, frame: 0x1a1c21,
+        lock: 0x8f2f26, lockShine: 0xe0574a, bolt: 0xb03a2e,
+        pillar: 0x2b2e35, pillarEdge: 0x4d525c, rivet: 0xb03a2e,
+        deck: 0x3b3f47, deckLip: 0x22242a, rail: 0x14151a,
+        hazardA: 0x1c1d21, hazardB: 0xc0392b, hazardPlate: false,
+      };
+    }
+    return {
+      plate: C.steelBase, seam: 0x3f4247, truss: C.steelDark,
+      beam: C.steelDark, face: C.steelLight, frame: C.steelBase,
+      lock: C.steelDark, lockShine: C.steelLight, bolt: C.steelBase,
+      pillar: C.steelDark, pillarEdge: C.steelLight, rivet: C.steelBase,
+      deck: C.steelLight, deckLip: C.steelBase, rail: C.steelDark,
+      hazardA: 0xffffff, hazardB: 0xd6453c, hazardPlate: false,
+    };
+  }
+
+  static generateArmoredVariant(scene, key, layers, brokenCount, opts = {}) {
     const C = Constants.COLORS;
     const H = Constants.CRACK_HEIGHTS;
+    const P = this.armoredPalette(opts.palette);
     const g = scene.make.graphics({ x: 0, y: 0, add: false });
 
-    // Ordem de quebra FIXA (chão → meio → alto): com N camadas restantes, as
-    // (3-N) primeiras da ordem já estão abertas. As bandas usam as MESMAS
-    // frações do CrackedWall sobre 720 — a física (BossFight.layerBounds) e
-    // o desenho saem da mesma conta.
-    const brokenCount = 3 - layersLeft;
+    // Uma banda por ALTURA única, na ordem em que a altura aparece na ordem de
+    // quebra. As bandas usam as MESMAS frações do CrackedWall sobre 720 — a
+    // física (BossFight.layerBounds) e o desenho saem da mesma conta.
     const bandH = Constants.CRACK_BAND_HALF * 2;
-    const bands = [
-      { center: H.GROUND * 720, open: brokenCount > 0 },
-      { center: H.MID * 720, open: brokenCount > 1 },
-      { center: H.HIGH * 720, open: false }, // a 3ª quebra derruba o portão
-    ];
+    const heights = [];
+    for (const name of layers) if (!heights.includes(name)) heights.push(name);
+    const bands = heights.map((name) => {
+      const hits = layers.filter((l, i) => l === name && i < brokenCount).length;
+      return {
+        center: H[name.toUpperCase()] * 720,
+        // aberta só quando TODA ocorrência dessa altura já caiu...
+        open: hits === layers.filter((l) => l === name).length,
+        // ...mas uma altura repetida já MEIO quebrada mostra o estrago: sem
+        // isso a primeira investida na dupla-blindagem não dá retorno nenhum
+        damaged: hits > 0,
+      };
+    });
 
-    // Fundo do vão: chapa de aço escura com costuras verticais
-    g.fillStyle(C.steelBase, 1);
+    // Fundo do vão: chapa escura com costuras verticais
+    g.fillStyle(P.plate, 1);
     g.fillRect(40, 96, 160, 524);
-    g.lineStyle(2, 0x3f4247, 0.8);
+    g.lineStyle(2, P.seam, 0.8);
     for (let x = 80; x < 200; x += 40) g.lineBetween(x, 96, x, 620);
 
     // Treliça diagonal (textura de estrutura, não gameplay)
-    g.lineStyle(2, C.steelDark, 0.3);
+    g.lineStyle(2, P.truss, 0.3);
     for (let y = 140; y < 640; y += 90) {
       g.lineBetween(40, y, 200, y - 70);
       g.lineBetween(40, y - 70, 200, y);
     }
 
     // Vigas horizontais entre as bandas
-    g.fillStyle(C.steelDark, 1);
+    g.fillStyle(P.beam, 1);
     for (const y of [268, 476]) g.fillRect(40, y, 160, 12);
 
-    // Faixa de perigo no alto do vão (listra vermelha/branca da cancela)
-    g.fillStyle(0xffffff, 1);
+    // Faixa de perigo no alto do vão (listra da cancela)
+    g.fillStyle(P.hazardA, 1);
     g.fillRect(40, 98, 160, 12);
-    g.fillStyle(0xd6453c, 1);
+    g.fillStyle(P.hazardB, 1);
     for (let x = 44; x < 196; x += 28) g.fillRect(x, 98, 14, 12);
 
-    // As 3 bandas nas alturas das frestas
-    for (const band of bands) {
-      const top = Math.max(112, band.center - bandH / 2);
-      const h = Math.min(bandH, 616 - top);
-      if (band.open) {
-        // Camada quebrada: tijolo âmbar exposto + buraco escuro + rachaduras
-        this.drawBricks(g, 44, top, 152, h, true);
-        g.fillStyle(0x2a1c10, 1);
-        g.fillEllipse(120, top + h / 2, 104, h * 0.62);
-        g.lineStyle(3, C.wallCrackLine, 1);
-        g.lineBetween(66, top + h / 2, 92, top + 12);
-        g.lineBetween(66, top + h / 2, 96, top + h - 10);
-        g.lineBetween(174, top + h / 2, 150, top + 10);
-        g.lineBetween(174, top + h / 2, 146, top + h - 12);
-        // Entulho na borda inferior do buraco
-        g.fillStyle(C.wallCrack, 1);
-        [[86, top + h - 14, 9], [126, top + h - 10, 7], [156, top + h - 16, 8]]
-          .forEach(([x, y, s]) => g.fillRect(x, y, s, s));
-      } else {
-        // Camada selada: placa aparafusada com travamento em X
-        g.fillStyle(C.steelLight, 1);
-        g.fillRect(44, top, 152, h);
-        g.lineStyle(4, C.steelBase, 1);
-        g.strokeRect(44, top, 152, h);
-        g.lineStyle(8, C.steelDark, 1);
-        g.lineBetween(48, top + 6, 192, top + h - 6);
-        g.lineBetween(48, top + h - 6, 192, top + 6);
-        g.lineStyle(2, C.steelLight, 0.7);
-        g.lineBetween(48, top + 6, 192, top + h - 6);
-        g.fillStyle(C.steelBase, 1);
-        for (const [bx, by] of [[54, top + 10], [186, top + 10], [54, top + h - 10], [186, top + h - 10], [120, top + 10], [120, top + h - 10]]) {
-          g.fillCircle(bx, by, 5);
+    if (opts.wrecked) {
+      // Vão inteiro rasgado: buraco escuro do chão ao topo com franja de
+      // tijolo âmbar nas bordas (o mesmo "âmbar = passagem" das paredes)
+      g.fillStyle(0x2a1c10, 1);
+      g.fillRect(44, 112, 152, 504);
+      this.drawBricks(g, 44, 112, 24, 504, true);
+      this.drawBricks(g, 172, 112, 24, 504, true);
+      g.fillStyle(0x1a1109, 1);
+      g.fillEllipse(120, 380, 128, 460);
+      // Chapas retorcidas penduradas nas bordas do rasgo
+      g.fillStyle(P.face, 1);
+      g.save(); g.translateCanvas(58, 150); g.rotateCanvas(0.42);
+      g.fillRect(0, 0, 54, 18); g.restore();
+      g.save(); g.translateCanvas(190, 322); g.rotateCanvas(-2.75);
+      g.fillRect(0, 0, 46, 16); g.restore();
+      g.fillStyle(P.frame, 1);
+      g.save(); g.translateCanvas(70, 486); g.rotateCanvas(0.22);
+      g.fillRect(0, 0, 40, 12); g.restore();
+      // Rachaduras subindo pelas bordas
+      g.lineStyle(3, C.wallCrackLine, 1);
+      g.lineBetween(68, 200, 92, 262);
+      g.lineBetween(172, 300, 148, 356);
+      g.lineBetween(70, 430, 96, 486);
+    } else {
+      // As bandas nas alturas das frestas
+      for (const band of bands) {
+        const top = Math.max(112, band.center - bandH / 2);
+        const h = Math.min(bandH, 616 - top);
+        if (band.open) {
+          // Camada quebrada: tijolo âmbar exposto + buraco escuro + rachaduras
+          this.drawBricks(g, 44, top, 152, h, true);
+          g.fillStyle(0x2a1c10, 1);
+          g.fillEllipse(120, top + h / 2, 104, h * 0.62);
+          g.lineStyle(3, C.wallCrackLine, 1);
+          g.lineBetween(66, top + h / 2, 92, top + 12);
+          g.lineBetween(66, top + h / 2, 96, top + h - 10);
+          g.lineBetween(174, top + h / 2, 150, top + 10);
+          g.lineBetween(174, top + h / 2, 146, top + h - 12);
+          // Entulho na borda inferior do buraco
+          g.fillStyle(C.wallCrack, 1);
+          [[86, top + h - 14, 9], [126, top + h - 10, 7], [156, top + h - 16, 8]]
+            .forEach(([x, y, s]) => g.fillRect(x, y, s, s));
+        } else {
+          // Camada selada: placa aparafusada com travamento em X
+          g.fillStyle(P.face, 1);
+          g.fillRect(44, top, 152, h);
+          g.lineStyle(4, P.frame, 1);
+          g.strokeRect(44, top, 152, h);
+          if (P.hazardPlate) {
+            // Pele urbana: tarja de perigo atravessando a placa
+            g.fillStyle(P.hazardA, 1);
+            g.fillRect(44, top + h / 2 - 9, 152, 18);
+            g.fillStyle(P.hazardB, 1);
+            for (let x = 48; x < 192; x += 26) g.fillRect(x, top + h / 2 - 9, 13, 18);
+          }
+          g.lineStyle(8, P.lock, 1);
+          g.lineBetween(48, top + 6, 192, top + h - 6);
+          g.lineBetween(48, top + h - 6, 192, top + 6);
+          g.lineStyle(2, P.lockShine, 0.7);
+          g.lineBetween(48, top + 6, 192, top + h - 6);
+          g.fillStyle(P.bolt, 1);
+          for (const [bx, by] of [[54, top + 10], [186, top + 10], [54, top + h - 10], [186, top + h - 10], [120, top + 10], [120, top + h - 10]]) {
+            g.fillCircle(bx, by, 5);
+          }
+          if (band.damaged) {
+            // Meio quebrada: placa amassada, rachada e com o tijolo espiando
+            g.fillStyle(0x000000, 0.22);
+            g.fillEllipse(120, top + h / 2, 96, h * 0.46);
+            g.lineStyle(3, C.wallCrackLine, 0.9);
+            g.lineBetween(60, top + h / 2, 96, top + 14);
+            g.lineBetween(96, top + 14, 128, top + h / 2);
+            g.lineBetween(128, top + h / 2, 168, top + h - 14);
+            g.lineBetween(84, top + h - 12, 112, top + h / 2);
+            // furos abertos na chapa: aro de tijolo + miolo escuro
+            [[92, top + h / 2 - 8, 13], [136, top + h / 2 + 2, 10]].forEach(([x, y, r]) => {
+              g.fillStyle(C.wallCrack, 1); g.fillCircle(x, y, r);
+              g.fillStyle(0x2a1c10, 1); g.fillCircle(x, y, r - 4);
+            });
+          }
         }
       }
     }
 
-    // Pilares de aço por cima das bordas das bandas
+    // Pilares por cima das bordas das bandas
     for (const x0 of [0, 200]) {
-      g.fillStyle(C.steelDark, 1);
+      g.fillStyle(P.pillar, 1);
       g.fillRect(x0, 56, 40, 564);
-      g.fillStyle(C.steelLight, 0.5);
+      g.fillStyle(P.pillarEdge, 0.5);
       g.fillRect(x0 === 0 ? 0 : 232, 56, 8, 564);
-      g.fillStyle(C.steelBase, 1);
+      g.fillStyle(P.rivet, 1);
       for (let y = 84; y < 620; y += 48) g.fillCircle(x0 + 20, y, 4);
     }
 
     // Plataforma do caçador: laje no topo + guarda-corpo
-    g.fillStyle(C.steelLight, 1);
+    g.fillStyle(P.deck, 1);
     g.fillRect(8, 82, 224, 14);
-    g.fillStyle(C.steelBase, 1);
+    g.fillStyle(P.deckLip, 1);
     g.fillRect(8, 92, 224, 4);
-    g.lineStyle(4, C.steelDark, 1);
+    g.lineStyle(4, P.rail, 1);
     g.lineBetween(8, 58, 232, 58);
     for (let x = 16; x <= 224; x += 52) g.lineBetween(x, 58, x, 82);
+
+    if (opts.wrecked) {
+      // Entulho amontoado na boca do vão + fumaça subindo (marco visual de
+      // que o portão CAIU — mesma leitura do zoo-gate-broken)
+      g.fillStyle(C.wallOrangeDark, 1);
+      g.fillTriangle(40, 616, 108, 616, 74, 566);
+      g.fillTriangle(126, 616, 200, 616, 164, 578);
+      g.fillStyle(C.wallCrack, 1);
+      g.fillTriangle(84, 616, 140, 616, 112, 580);
+      [[62, 604, 11], [104, 600, 9], [142, 606, 8], [180, 602, 10]]
+        .forEach(([x, y, s]) => g.fillRect(x, y, s, s));
+      g.fillStyle(P.frame, 1);
+      [[92, 592, 14, 6], [150, 596, 18, 5]].forEach(([x, y, w, h]) => g.fillRect(x, y, w, h));
+      g.fillStyle(0xc6cbd2, 0.15);
+      [[92, 556, 26], [118, 524, 22], [98, 488, 19], [126, 452, 16], [106, 416, 13]]
+        .forEach(([x, y, r]) => g.fillCircle(x, y, r));
+      g.fillStyle(0xe8e9ec, 0.11);
+      [[104, 544, 17], [110, 500, 14], [116, 462, 11], [112, 424, 9]]
+        .forEach(([x, y, r]) => g.fillCircle(x, y, r));
+    }
 
     // Sombra na base (assenta o portão no chão)
     g.fillStyle(0x000000, 0.18);
     g.fillRect(40, 612, 160, 8);
 
-    g.generateTexture(`zoo-gate-armored-${layersLeft}`, 240, 620);
+    g.generateTexture(key, 240, 620);
     g.destroy();
   }
 

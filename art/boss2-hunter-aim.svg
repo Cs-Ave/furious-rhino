@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 72" width="64" height="72">
+  <!-- FURIOUS RHINO - v1.8.5, boss 2: o CAPTURADOR em pose de MIRA
+       (telegraph do tiro). Mesmo personagem do boss2-hunter.svg — pernas,
+       tronco, colete, cinto e capacete identicos. Mudam: CANHAO DE REDES
+       erguido ao ombro apontando para baixo-esquerda (boca do cano no
+       canvas (5,30) — contrato com HunterSniper.muzzle(), de onde saem a
+       mira e o projetil), a rede espremida na boca prestes a abrir, e a
+       cabeca inclinada sobre a arma com um olho fechado. -->
+  <defs>
+    <linearGradient id="b2j2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6d8098"/>
+      <stop offset="1" stop-color="#455363"/>
+    </linearGradient>
+    <linearGradient id="b2k2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a6a7c"/>
+      <stop offset="1" stop-color="#333d49"/>
+    </linearGradient>
+    <radialGradient id="b2f2" cx="0.42" cy="0.38" r="0.75">
+      <stop offset="0" stop-color="#f8cfa4"/>
+      <stop offset="1" stop-color="#eaa96f"/>
+    </radialGradient>
+  </defs>
+  <!-- pernas (identicas ao frame de vigia) -->
+  <rect x="24.5" y="52" width="7.5" height="13" rx="3" fill="#3b4653" stroke="#17171b" stroke-width="2"/>
+  <rect x="34" y="52" width="7.5" height="13" rx="3" fill="#485665" stroke="#17171b" stroke-width="2"/>
+  <rect x="22.6" y="63.6" width="10" height="6" rx="2.4" fill="#23292f" stroke="#141a1f" stroke-width="1.8"/>
+  <rect x="33.4" y="63.6" width="10" height="6" rx="2.4" fill="#2d343c" stroke="#141a1f" stroke-width="1.8"/>
+  <rect x="24.2" y="56.4" width="8" height="4.6" rx="2" fill="#5a6a7c" stroke="#17171b" stroke-width="1.2"/>
+  <rect x="33.7" y="56.4" width="8" height="4.6" rx="2" fill="#5a6a7c" stroke="#17171b" stroke-width="1.2"/>
+  <!-- tronco -->
+  <ellipse cx="33" cy="44" rx="13.5" ry="12" fill="url(#b2j2)" stroke="#17171b" stroke-width="2.5"/>
+  <ellipse cx="32" cy="50" rx="9.5" ry="4.6" fill="#2f3a46" opacity="0.45"/>
+  <!-- colete tatico -->
+  <path d="M24 36.5 Q33 33.4 42 36.5 L42.6 51.5 Q33 54.4 23.4 51.5 Z" fill="#56657a" stroke="#17171b" stroke-width="2" stroke-linejoin="round"/>
+  <rect x="25.6" y="41" width="7" height="6.4" rx="1.4" fill="#3b4653" stroke="#17171b" stroke-width="1.2"/>
+  <rect x="34.4" y="41" width="7" height="6.4" rx="1.4" fill="#3b4653" stroke="#17171b" stroke-width="1.2"/>
+  <path d="M33.4 36 L33.4 52.4" fill="none" stroke="#2f3a46" stroke-width="1.4" opacity="0.8"/>
+  <g stroke="#17171b" stroke-width="1">
+    <rect x="26.2" y="37.2" width="5" height="3" rx="1.2" fill="#cfe0ee"/>
+    <rect x="34.8" y="37.2" width="5" height="3" rx="1.2" fill="#cfe0ee"/>
+  </g>
+  <rect x="39.4" y="34.4" width="4.4" height="5.6" rx="1.4" fill="#2f3a46" stroke="#17171b" stroke-width="1.3"/>
+  <path d="M43 34.6 L44.6 30.5" fill="none" stroke="#17171b" stroke-width="1.4" stroke-linecap="round"/>
+  <!-- cinto -->
+  <rect x="22.5" y="52" width="21" height="4.2" rx="1.6" fill="#23292f" stroke="#141a1f" stroke-width="1.8"/>
+  <rect x="30.8" y="52.4" width="4.6" height="3.4" rx="0.8" fill="#9fb0c2" stroke="#17171b" stroke-width="1.2"/>
+  <!-- CANHAO DE REDES erguido: boca larga em (5,30) -->
+  <g>
+    <path d="M7 30.6 L39.5 38.6" fill="none" stroke="#17171b" stroke-width="9.4" stroke-linecap="round"/>
+    <path d="M7 30.6 L39.5 38.6" fill="none" stroke="#5b6672" stroke-width="6.4" stroke-linecap="round"/>
+    <path d="M9.4 29 L21 31.8" fill="none" stroke="#8b98a6" stroke-width="1.8" stroke-linecap="round" opacity="0.8"/>
+    <!-- tambor da carga girando para a proxima rede -->
+    <circle cx="27" cy="35.6" r="3.8" fill="#3f4954" stroke="#17171b" stroke-width="1.6"/>
+    <circle cx="27" cy="35.6" r="1.4" fill="#8fd0e8"/>
+    <!-- coronha encaixada no ombro -->
+    <path d="M39.5 38.6 L46.4 41.4 L45 45.2 L38.1 41.6 Z" fill="#39424c" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+    <!-- gatilho -->
+    <path d="M35.5 41.6 Q35.2 44 37.2 44.6" fill="none" stroke="#17171b" stroke-width="1.8" stroke-linecap="round"/>
+    <!-- mira aberta em cima do cano -->
+    <path d="M18.4 31.4 L18.4 27.8 M16.8 28.2 L20 28.2" fill="none" stroke="#17171b" stroke-width="1.5" stroke-linecap="round"/>
+    <!-- BOCA larga com o rolo de rede espremido, prestes a abrir -->
+    <ellipse cx="5.6" cy="30" rx="4.6" ry="5.6" fill="#22272d" stroke="#17171b" stroke-width="1.8" transform="rotate(12 5.6 30)"/>
+    <circle cx="5.6" cy="30" r="3.4" fill="#e6eef5" stroke="#17171b" stroke-width="1"/>
+    <g fill="none" stroke="#7d8b99" stroke-width="0.85">
+      <path d="M3.2 28 L8 32 M3.2 32 L8 28 M5.6 27 L5.6 33 M2.6 30 L8.6 30"/>
+    </g>
+    <circle cx="3.4" cy="27.8" r="0.9" fill="#2c3138"/>
+    <circle cx="8" cy="32.2" r="0.9" fill="#2c3138"/>
+    <circle cx="8" cy="27.8" r="0.9" fill="#2c3138"/>
+  </g>
+  <!-- bracos na pegada de tiro -->
+  <path d="M26 40.4 Q21.5 39 18 36.2" fill="none" stroke="#17171b" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M26 40.4 Q21.5 39 18 36.2" fill="none" stroke="#4f5f70" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="16.8" cy="35.1" r="3" fill="#7d8fa2" stroke="#17171b" stroke-width="1.7"/>
+  <path d="M41 41.6 Q39.5 40.8 37.8 40.4" fill="none" stroke="#17171b" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M41 41.6 Q39.5 40.8 37.8 40.4" fill="none" stroke="#6d8098" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="36.6" cy="40.2" r="3" fill="#7d8fa2" stroke="#17171b" stroke-width="1.7"/>
+  <!-- fone/protetor auricular -->
+  <circle cx="36" cy="22.2" r="3.4" fill="#39424c" stroke="#17171b" stroke-width="1.8"/>
+  <!-- cabeca INCLINADA sobre a arma -->
+  <circle cx="24.5" cy="21.5" r="11.5" fill="url(#b2f2)" stroke="#17171b" stroke-width="2.5"/>
+  <path d="M14.4 24.4 Q17.2 30 24 30.2" fill="none" stroke="#2f3a46" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M34 25.2 Q30.2 29 26.8 29.2" fill="none" stroke="#2f3a46" stroke-width="1.4" stroke-linecap="round"/>
+  <circle cx="26" cy="29.3" r="1.4" fill="#2f3a46"/>
+  <!-- olho da mira APERTADO + olho de apoio FECHADO -->
+  <path d="M14 17.8 L20 19" fill="none" stroke="#17171b" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="17.6" cy="22" r="2.6" fill="#17171b"/>
+  <circle cx="18.4" cy="21.2" r="0.9" fill="#ffffff"/>
+  <path d="M24.2 22.2 Q26.4 23.4 28.6 22.2" fill="none" stroke="#17171b" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M28.6 18.6 L24.4 19.6" fill="none" stroke="#17171b" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="20" cy="25.6" r="1.7" fill="#e09b63" stroke="#b5713c" stroke-width="1"/>
+  <path d="M15.8 29 Q20 28 24 29" fill="none" stroke="#17171b" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M15.1 26.6 Q20.1 32 25.9 27 Q24.9 32.4 20.1 32.8 Q15.9 31.8 15.1 26.6 Z" fill="#3f4954" opacity="0.22"/>
+  <!-- CAPACETE (identico, acompanhando a cabeca) -->
+  <path d="M12.8 19.5 Q12.8 6.9 24.5 6.9 Q36.2 6.9 36.2 19.5 Q24.5 15.5 12.8 19.5 Z" fill="url(#b2k2)" stroke="#17171b" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M14.9 11.9 Q24.5 8.1 34.1 11.9" fill="none" stroke="#7d8d9e" stroke-width="1.4" stroke-linecap="round" opacity="0.8"/>
+  <ellipse cx="24.1" cy="17.1" rx="13.2" ry="3.4" fill="#39424c" stroke="#17171b" stroke-width="2"/>
+  <path d="M11.7 16.9 Q24.1 19.9 36.5 16.9" fill="none" stroke="#22282f" stroke-width="1.2" stroke-linecap="round" opacity="0.85"/>
+  <path d="M24.1 9.1 L27.5 11.1 L26.7 14.7 L21.5 14.7 L20.7 11.1 Z" fill="#cfe0ee" stroke="#17171b" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M24.1 10.9 L24.1 13.5 M22.4 12.2 L25.8 12.2" fill="none" stroke="#39424c" stroke-width="1.1" stroke-linecap="round"/>
+</svg>

@@ -26,6 +26,10 @@ export const MEDALS = [
   { id: 'towers_2', emoji: '⚡', name: 'Torre Abaixo', desc: 'Derrube 2 torres em uma corrida', test: (s) => s.towersDowned >= 2 },
   { id: 'animals_10', emoji: '🦁', name: 'Rolo Compressor', desc: 'Atropele 10 animais (no total)', test: (s) => s.animalsTotal >= 10 },
   { id: 'record_2x', emoji: '🎖️', name: 'Superação', desc: 'Bata seu próprio recorde', test: (s) => s.isNewRecord && s.hadPreviousRecord },
+  // v1.8.5 — os bosses do deserto. boss2Layers/legend chegam do GameScene;
+  // docs velhos de stats não têm os campos, e undefined >= 4 é false: seguro.
+  { id: 'boss2_win', emoji: '🕸️', name: 'Fura-Bloqueio', desc: 'Derrube a barricada do Cerco (2000m)', test: (s) => (s.boss2Layers || 0) >= 4 },
+  { id: 'legend_world', emoji: '👑', name: 'Lenda do Mundo', desc: 'Vença o Caçador-Mor no fim do mundo', test: (s) => Boolean(s.legend) },
 ];
 
 export class MedalSystem {

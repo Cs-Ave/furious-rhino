@@ -219,5 +219,57 @@ eq('SCORE_BONUS_CAP = 1 é o que sustenta score <= scoreM * 2 nas rules',
 eq('todo peso é inteiro positivo',
   Object.values(W).every((v) => Number.isInteger(v) && v > 0), true);
 
+// ---------- 11. v1.8.5: os bosses do deserto (Cerco e Guardião) ----------
+// Camada de boss vale o MESMO bossLayer nos três (b portão, e Cerco,
+// l Guardião — a habilidade premiada é uma só); a vitória do Cerco
+// (e >= BOSS2_LAYERS.length) paga o peso boss2 por cima. O Guardião não tem
+// bônus próprio: a vitória dele JÁ paga o legend.
+eq('Cerco vencido: e=4 paga as camadas + a vitória (4×25 + 150)',
+  ScoreSystem.runBonus({ m: 400, c: 'dart', e: 4 }), 4 * W.bossLayer + W.boss2);
+eq('Cerco perdido: e=3 paga só as camadas (75, sem vitória)',
+  ScoreSystem.runBonus({ m: 400, c: 'dart', e: 3 }), 3 * W.bossLayer);
+eq('Guardião: l=5 soma as 5 camadas (125)',
+  ScoreSystem.runBonus({ m: 400, c: 'wall', l: 5 }), 5 * W.bossLayer);
+eq('b+e+l somam juntos no mesmo peso (e a vitória do Cerco por cima)',
+  ScoreSystem.runBonus({ m: 2500, c: 'dart', b: 3, e: 4, l: 2, z: 30 }),
+  (3 + 4 + 2) * W.bossLayer + W.boss2 + W.escape);
+
+// breakdown: as linhas novas da tela de fim de corrida
+const bd2 = ScoreSystem.breakdown({ meters: 2100, boss2Layers: 4 });
+eq('breakdown: Cerco vencido rende as DUAS linhas (camadas + vitória)',
+  bd2.lines.map((l) => [l.label, l.pts]),
+  [['🕸️ Camadas do Cerco ×4', 4 * W.bossLayer], ['🕸️ Cerco vencido', W.boss2]]);
+eq('breakdown: Cerco a meio caminho NÃO ganha a linha de vitória',
+  ScoreSystem.breakdown({ meters: 2050, boss2Layers: 3 }).lines.map((l) => l.label),
+  ['🕸️ Camadas do Cerco ×3']);
+eq('breakdown: as 5 camadas do Guardião viram linha própria',
+  ScoreSystem.breakdown({ meters: 9995, boss3Layers: 5 }).lines.map((l) => [l.label, l.pts]),
+  [['🏹 Camadas do Guardião ×5', 5 * W.bossLayer]]);
+
+// ASSERT-GUARDA do contrato, versão v1.8.5: runBonus(run) TEM de bater com a
+// soma feita ao vivo na corrida — as camadas de Cerco/Guardião nascem no
+// MESMO addScore('bossLayer') do BossFight genérico e a vitória do Cerco no
+// defeatBoss2; aqui a soma manual refaz exatamente esses eventos.
+function somaAoVivoDeserto(run) {
+  let pts = somaAoVivo(run); // w/r/o/a/b por pointsFor + endBonus
+  for (const n of [run.e, run.l]) {
+    for (let i = 0; i < (n || 0); i++) pts += ScoreSystem.pointsFor('bossLayer');
+  }
+  if ((run.e || 0) >= Constants.BOSS2_LAYERS.length) pts += ScoreSystem.pointsFor('boss2');
+  return pts;
+}
+const runDeserto = { m: 2400, c: 'dart', w: 6, r: 2, o: 1, a: 5, b: 3, z: 12, e: 4, l: 1 };
+eq('runBonus == soma ao vivo (deserto: w/r/o/a/b/e/l, m >= 2000)',
+  ScoreSystem.runBonus(runDeserto), somaAoVivoDeserto(runDeserto));
+eq('...e o número é o esperado à mão (30+10+15+15+200 +150 +100 +50)',
+  ScoreSystem.runBonus(runDeserto), 570);
+
+const runLendaCheia = { m: 10200, c: 'win', w: 10, r: 4, o: 2, a: 12, b: 3, e: 4, l: 5, z: 40 };
+eq('runBonus == soma ao vivo (LENDA com os três bosses vencidos)',
+  ScoreSystem.runBonus(runLendaCheia), somaAoVivoDeserto(runLendaCheia));
+eq('...LENDA + Cerco pagam, blitz não (z=40 > 20)',
+  ScoreSystem.runBonus(runLendaCheia),
+  50 + 20 + 30 + 36 + 12 * W.bossLayer + W.boss2 + W.escape + W.legend);
+
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

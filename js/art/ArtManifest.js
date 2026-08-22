@@ -83,4 +83,9 @@ export const ART_MANIFEST = {
   // v1.7.0 — o caçador do portão-fortaleza (boss; vigia ↔ pose de mira)
   'boss-hunter': { w: 64, h: 72 },
   'boss-hunter-aim': { w: 64, h: 72 },
+  // v1.8.5 — bosses novos (mesmo rig 64x72 do caçador do zoo)
+  'boss2-hunter': { w: 64, h: 72 },
+  'boss2-hunter-aim': { w: 64, h: 72 },
+  'boss3-hunter': { w: 64, h: 72 },
+  'boss3-hunter-aim': { w: 64, h: 72 },
 };

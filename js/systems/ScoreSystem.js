@@ -65,7 +65,8 @@ export class ScoreSystem {
 
   // Recomputa o bônus de um item de runs[] (contadores de 1 letra:
   // m metros · c causa · w paredes · r rampas · o torres · a animais ·
-  // b camadas do portão · z segundos de luta).
+  // b camadas do portão · z segundos de luta · e camadas do Cerco ·
+  // l camadas do Guardião — v1.8.5).
   //
   // ⚠️ CONTRATO: esta função tem de devolver EXATAMENTE o mesmo número que a
   // soma feita ao vivo durante a corrida (pointsFor por evento + endBonus).
@@ -89,7 +90,12 @@ export class ScoreSystem {
       + (Number(r.r) || 0) * this.pointsFor('ramp')
       + (Number(r.o) || 0) * this.pointsFor('tower')
       + (Number(r.a) || 0) * this.pointsFor('animal')
-      + (Number(r.b) || 0) * this.pointsFor('bossLayer');
+      // v1.8.5: camada de boss vale o MESMO peso nos três bosses (b portão,
+      // e Cerco, l Guardião) — a habilidade premiada é uma só
+      + ((Number(r.b) || 0) + (Number(r.e) || 0) + (Number(r.l) || 0)) * this.pointsFor('bossLayer')
+      // Vitória do Cerco: todas as camadas dele caíram. O prêmio nasce na
+      // barricada (addScore ao vivo) e recomputa daqui — MESMA regra.
+      + ((Number(r.e) || 0) >= Constants.BOSS2_LAYERS.length ? this.pointsFor('boss2') : 0);
     return combat + this.endBonus({
       escaped: won || m >= gateM,
       bossLayers: Number(r.b) || 0,
@@ -109,7 +115,8 @@ export class ScoreSystem {
   // segundos brutos.
   static breakdown({
     meters = 0, walls = 0, ramps = 0, towers = 0, animals = 0,
-    bossLayers = 0, escaped = false, blitz = false, legend = false,
+    bossLayers = 0, boss2Layers = 0, boss3Layers = 0,
+    escaped = false, blitz = false, legend = false,
   } = {}) {
     const lines = [];
     const add = (label, count, evt) => {
@@ -121,7 +128,12 @@ export class ScoreSystem {
     add('🏰 Torres', towers, 'tower');
     add('🦁 Animais', animals, 'animal');
     add('🎯 Camadas do portão', bossLayers, 'bossLayer');
+    add('🕸️ Camadas do Cerco', boss2Layers, 'bossLayer');
+    add('🏹 Camadas do Guardião', boss3Layers, 'bossLayer');
     const W = Constants.SCORE_WEIGHTS;
+    if ((Number(boss2Layers) || 0) >= Constants.BOSS2_LAYERS.length) {
+      lines.push({ label: '🕸️ Cerco vencido', pts: this.pointsFor('boss2') });
+    }
     if (escaped) lines.push({ label: '🗽 Fuga', pts: Math.floor(W.escape) });
     if (blitz) lines.push({ label: '⚡ Blitz', pts: Math.floor(W.blitz) });
     if (legend) lines.push({ label: '👑 LENDA', pts: Math.floor(W.legend) });

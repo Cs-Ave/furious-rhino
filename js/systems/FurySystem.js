@@ -116,10 +116,12 @@ export class FurySystem {
   // v1.8: dentro da arena do boss a ativação é negada — a carga segue
   // enchendo, mas o medidor tranca. `=== 'fight'` de propósito: no bypass de
   // debug e na derrota o estado vira 'defeated' e a fúria libera sozinha.
+  // Lê a LISTA de lutas (scene.bossFights): qualquer boss em combate tranca
+  // o medidor — não só o do portão.
   isBlocked() {
-    const bf = this.scene.bossFight;
+    const fighting = (this.scene.bossFights || []).some((f) => f.state === 'fight');
     return Boolean(
-      Constants.BOSS_BLOCKS_FURY && bf && bf.state === 'fight' && !this.rampage
+      Constants.BOSS_BLOCKS_FURY && fighting && !this.rampage
     );
   }
 

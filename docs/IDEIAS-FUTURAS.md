@@ -11,7 +11,7 @@
 > descrevem o que **é**; este descreve o que **poderia ser**.
 
 **Origem:** sessão de planejamento de 16/08/2026 (ver §7, Procedência).
-**Última atualização:** 21/08/2026 — criação a partir do levantamento de 16/08; a **ideia A saiu na v1.8.4** no mesmo dia.
+**Última atualização:** 21/08/2026 — criação a partir do levantamento de 16/08; a **ideia A saiu na v1.8.4** no mesmo dia, e as **ideias B, C e D saíram juntas na v1.8.5**, também no mesmo dia.
 
 ---
 
@@ -327,7 +327,16 @@ meritocrático); HUD com total ao vivo (**sim**); fração-alvo do bônus ~12%;
 mostrar metros junto no top 10 (**sim**); Fúria não pontua; convite e Diário
 passam a falar em total (**sim**).
 
-### B. Boss "O Cerco" (~2.000 m) 📐
+### B. Boss "O Cerco" (~2.000 m) ✅ **v1.8.5**
+
+> ✅ **ENTREGUE em 21/08/2026 (v1.8.5)**, junto com C e D. Âncora cravada em
+> **2.000 m fixo** (80.000 px) por decisão do dono, sem esperar a ideia H.
+> Desvios do desenho original, também decisão do dono: a recompensa é
+> **medalha (`boss2_win`) + pontos** (4 camadas × 25 + vitória 150 pts,
+> letra `e` de camadas e `h` de segundos no `runs[]`) — a skin de façanha
+> `{boss2Layers:4}` e o card no Diário **ficaram de fora**. A explicação do
+> que o jogo faz hoje mora no `GAME_DESIGN.md`; o texto abaixo fica como
+> registro do desenho original.
 
 Barricada de contenção urbana com um **Capturador** (canhão de redes) no topo.
 Ancorado em 80.000 px, a face do clamp cai a ~3 m da medalha "Inalcançável" —
@@ -351,7 +360,14 @@ título próprio.
 2.000 m; mediana pós-fuga < 1.600 m puxa para 1.800 m; folga > 2.200 m empurra
 para 2.400 m).
 
-### C. Boss "Guardião do Fim" (~9.995 m) 📐
+### C. Boss "Guardião do Fim" (~9.995 m) ✅ **v1.8.5**
+
+> ✅ **ENTREGUE em 21/08/2026 (v1.8.5)**. Como desenhado: 5 camadas em
+> palíndromo, arena de graça nos 1.500 px da LENDA, vencer dispara a LENDA.
+> Desvio (decisão do dono): recompensa = **medalha (`legend_world`) +
+> pontos** (5 × 25 + o `legend` de 400 que já existia; letra `l` no
+> `runs[]`) — a skin exclusiva `{legend:true}` **ficou de fora**, e com ela
+> o anúncio aspiracional no guarda-roupa. O texto abaixo fica como registro.
 
 O Caçador-Mor na última cerca do mundo. **A arena sai de graça**: os 1.500 px sem
 spawn da LENDA já são exatamente isso. 5 camadas em palíndromo
@@ -366,7 +382,14 @@ inclusive para quem nunca vai vê-lo.
 **Custo** M (menor que B — a arena e a cutscene já existem) · **Impacto** médio
 (alcance pequeno, valor simbólico grande) · **Depende de** D.
 
-### D. Refactors R1–R7 do `BossFight.js` 📐 — pré-requisito de B e C
+### D. Refactors R1–R7 do `BossFight.js` ✅ **v1.8.5** — pré-requisito de B e C
+
+> ✅ **ENTREGUE em 21/08/2026 (v1.8.5)**, todos os 7 passos, com `e2e-boss`
+> 16/16 preservado (e os `zoo-gate-armored-*` byte a byte idênticos na
+> prova do R7). O `BossFight`/`HunterSniper` viraram paramétricos por
+> objeto de definição; a zona sem spawn é unificada (`inNoSpawnZone`);
+> nasceram as suítes `e2e-boss2`/`e2e-boss3`. O texto abaixo fica como
+> registro.
 
 Comportamento **idêntico**, `e2e-boss` 16/16 após **cada** passo:
 
@@ -463,7 +486,10 @@ visibilidade permanente ao deserto do §4.3.
 
 ## 6. Restrições que qualquer ideia daqui respeita
 
-1. **Orçamento de letras livres em `runs[]`.** Livres: **6** (`e h i l u y`). As
+1. **Orçamento de letras livres em `runs[]`.** Livres na v1.8.4: 6 (`e h i l u y`);
+   a **v1.8.5 gastou 3** (`e` camadas do Cerco · `h` segundos do Cerco ·
+   `l` camadas do Guardião) — **restam 3** (`i u y`), exatamente as que E, F e
+   G pediriam, sem reserva nenhuma. O texto original: As
    ideias acima pedem **7** e colidiam em `e` e `u`. Reconciliação sugerida:
    `e` camadas do Cerco · `h` segundos do Cerco · `l` camadas do Guardião ·
    `y` missões concluídas · `u` corrida vinda de desafio · `i` acertos em
@@ -498,14 +524,14 @@ levantamento recomendou (barato e destravante primeiro):
 
 | Ordem | Ideia | Custo | Impacto |
 |---|---|---|---|
-| 1 | **H** — faixas do funil no `/?stats` | XS | destrava a âncora do Cerco |
+| 1 | **H** — faixas do funil no `/?stats` | XS | ainda vale: agora mede o Cerco em campo |
 | 2 | **F** — streaks | XS | retenção |
-| 3 | **D** — refactors do BossFight | M | infraestrutura |
-| 4 | **B** — boss "O Cerco" | G | conteúdo + o deserto |
+| ~~3~~ | ~~**D** — refactors do BossFight~~ | — | ✅ **entregue na v1.8.5** |
+| ~~4~~ | ~~**B** — boss "O Cerco"~~ | — | ✅ **entregue na v1.8.5** |
 | 5 | **E** — capítulos e campanha | M | retenção |
 | 6 | **G** — desafio por link | M | **aquisição** |
 | ~~7~~ | ~~**A** — pontuação composta~~ | — | ✅ **entregue na v1.8.4** |
-| 8 | **C** — boss "Guardião do Fim" | M | simbólico |
+| ~~8~~ | ~~**C** — boss "Guardião do Fim"~~ | — | ✅ **entregue na v1.8.5** |
 
 Nada obriga a essa ordem — A e G são independentes de tudo e podem furar a fila
 a qualquer momento.

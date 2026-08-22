@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 72" width="64" height="72">
+  <!-- FURIOUS RHINO - v1.8.5, boss 3: o CACADOR-MOR em pose de MIRA
+       (telegraph do rifle). Mesmo personagem do boss3-hunter.svg — pernas,
+       abas do casacao, tronco, dragonas, bandoleira e chapeu identicos.
+       Mudam: rifle ORNAMENTADO erguido ao ombro apontando para
+       baixo-esquerda (boca do cano no canvas (5,30) — contrato com
+       HunterSniper.muzzle()), lente da luneta acesa em VERMELHO, cabeca
+       inclinada sobre a coronha com o olho de apoio fechado. -->
+  <defs>
+    <linearGradient id="b3j2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b4050"/>
+      <stop offset="1" stop-color="#1c1f28"/>
+    </linearGradient>
+    <linearGradient id="b3h2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#33363f"/>
+      <stop offset="1" stop-color="#181a20"/>
+    </linearGradient>
+    <radialGradient id="b3f2" cx="0.42" cy="0.38" r="0.75">
+      <stop offset="0" stop-color="#f0c096"/>
+      <stop offset="1" stop-color="#d9945c"/>
+    </radialGradient>
+  </defs>
+  <!-- pernas e botas (identicas ao frame de vigia) -->
+  <rect x="24.5" y="52" width="7.5" height="13" rx="3" fill="#20232c" stroke="#0f1015" stroke-width="2"/>
+  <rect x="34" y="52" width="7.5" height="13" rx="3" fill="#2a2e38" stroke="#0f1015" stroke-width="2"/>
+  <rect x="22.6" y="63.6" width="10" height="6" rx="2.4" fill="#15161c" stroke="#0a0b0e" stroke-width="1.8"/>
+  <rect x="33.4" y="63.6" width="10" height="6" rx="2.4" fill="#1c1e25" stroke="#0a0b0e" stroke-width="1.8"/>
+  <!-- abas do casacao -->
+  <path d="M24.2 43 L19.8 66.4 L27.4 66.4 L28.6 43 Z" fill="url(#b3j2)" stroke="#0f1015" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M41.8 43 L46.6 66.4 L38.4 66.4 L37.4 43 Z" fill="url(#b3j2)" stroke="#0f1015" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M21.4 58 L26.6 58 M39.4 58 L45 58" fill="none" stroke="#4a5164" stroke-width="1.1" opacity="0.6"/>
+  <!-- tronco -->
+  <ellipse cx="33" cy="44" rx="14" ry="12.4" fill="url(#b3j2)" stroke="#0f1015" stroke-width="2.5"/>
+  <ellipse cx="32" cy="50.4" rx="9.8" ry="4.6" fill="#0f1118" opacity="0.55"/>
+  <path d="M22.4 39 Q33 32.4 43.6 38.5" fill="none" stroke="#525a70" stroke-width="3" stroke-linecap="round" opacity="0.75"/>
+  <path d="M27 34.6 L33 39.4 L39 34.4 L36.4 32.9 L33 36.4 L29.6 33 Z" fill="#4a5164" stroke="#0f1015" stroke-width="1.4" stroke-linejoin="round"/>
+  <path d="M33 39.4 L33 53" fill="none" stroke="#0f1118" stroke-width="1.6" opacity="0.85"/>
+  <!-- dragonas de posto -->
+  <path d="M22.6 36.4 L28 34.6 L28.6 37.2 L23.4 38.8 Z" fill="#8c1f1a" stroke="#0f1015" stroke-width="1.3" stroke-linejoin="round"/>
+  <path d="M43.4 36.4 L38 34.6 L37.4 37.2 L42.6 38.8 Z" fill="#8c1f1a" stroke="#0f1015" stroke-width="1.3" stroke-linejoin="round"/>
+  <circle cx="25.6" cy="36.6" r="1" fill="#e0b24a"/>
+  <circle cx="40.4" cy="36.6" r="1" fill="#e0b24a"/>
+  <!-- bandoleira -->
+  <path d="M23.4 38.6 L43.4 52" fill="none" stroke="#0f1015" stroke-width="5" stroke-linecap="round"/>
+  <path d="M23.4 38.6 L43.4 52" fill="none" stroke="#3a2f22" stroke-width="3" stroke-linecap="round"/>
+  <g stroke="#0f1015" stroke-width="1">
+    <rect x="26.4" y="39.2" width="3" height="6" rx="1.2" fill="#ffc84a" transform="rotate(35 27.9 42.2)"/>
+    <rect x="31.4" y="42.6" width="3" height="6" rx="1.2" fill="#ffc84a" transform="rotate(35 32.9 45.6)"/>
+    <rect x="36.4" y="46" width="3" height="6" rx="1.2" fill="#e0574a" transform="rotate(35 37.9 49)"/>
+  </g>
+  <!-- cinto -->
+  <rect x="22.5" y="52" width="21" height="4.4" rx="1.6" fill="#15161c" stroke="#0a0b0e" stroke-width="1.8"/>
+  <rect x="30.8" y="52.4" width="4.6" height="3.6" rx="0.8" fill="#e0b24a" stroke="#0f1015" stroke-width="1.2"/>
+  <!-- rifle ORNAMENTADO erguido: boca do cano em (5,30) -->
+  <g>
+    <path d="M5 30 L41 36.8" fill="none" stroke="#0f1015" stroke-width="5.2" stroke-linecap="round"/>
+    <path d="M5 30 L24 33.5" fill="none" stroke="#a8b3c2" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M24 33.5 L41 36.8" fill="none" stroke="#8a5622" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M25.6 34.4 L39.6 37" fill="none" stroke="#e0b24a" stroke-width="0.9" stroke-linecap="round" opacity="0.9"/>
+    <!-- coronha encaixada no ombro -->
+    <path d="M41 36.8 L48 39.8 L46.4 44 L39.6 40 Z" fill="#5b3a1a" stroke="#0f1015" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M42.4 38.6 L45.6 40.4" fill="none" stroke="#e0b24a" stroke-width="0.9" stroke-linecap="round"/>
+    <!-- luneta longa com a lente acesa em vermelho -->
+    <rect x="26" y="30" width="11" height="4" rx="2" fill="#2b3039" stroke="#0f1015" stroke-width="1.4" transform="rotate(10 31.5 32)"/>
+    <path d="M29.6 29.6 L29.4 33.4" fill="none" stroke="#c0392b" stroke-width="1.4" stroke-linecap="round"/>
+    <circle cx="26.8" cy="31.2" r="1.6" fill="#e0574a" stroke="#0f1015" stroke-width="1"/>
+    <!-- boca do cano + freio de boca ornamentado -->
+    <circle cx="6.2" cy="30.2" r="1.9" fill="#1c1f26"/>
+    <path d="M8.6 28.6 L8.2 32" fill="none" stroke="#e0b24a" stroke-width="1.1" stroke-linecap="round"/>
+    <!-- gatilho -->
+    <path d="M37 38.8 Q36.7 41.3 38.7 41.9" fill="none" stroke="#0f1015" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+  <!-- bracos na pegada de tiro -->
+  <path d="M26 39 Q21.5 37.5 18 34.8" fill="none" stroke="#0f1015" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M26 39 Q21.5 37.5 18 34.8" fill="none" stroke="#2a2e38" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="16.8" cy="33.6" r="2.9" fill="#15161c" stroke="#0f1015" stroke-width="1.7"/>
+  <path d="M41 40.8 Q39.5 39.8 37.8 39.3" fill="none" stroke="#0f1015" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M41 40.8 Q39.5 39.8 37.8 39.3" fill="none" stroke="#3b4050" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="36.6" cy="39.1" r="2.9" fill="#15161c" stroke="#0f1015" stroke-width="1.7"/>
+  <!-- orelha -->
+  <circle cx="36.2" cy="22.5" r="2.7" fill="#d9945c" stroke="#0f1015" stroke-width="1.8"/>
+  <!-- cabeca INCLINADA sobre a coronha -->
+  <circle cx="24.5" cy="21.5" r="11.5" fill="url(#b3f2)" stroke="#0f1015" stroke-width="2.5"/>
+  <path d="M35.1 16.3 Q36.5 21.1 34.7 25.9 Q31.9 22.5 32.9 16.7 Z" fill="#9aa0aa" stroke="#0f1015" stroke-width="1.3" stroke-linejoin="round"/>
+  <!-- olho da mira APERTADO + olho de apoio FECHADO -->
+  <path d="M13.8 16 L20 18.4" fill="none" stroke="#0f1015" stroke-width="2.2" stroke-linecap="round"/>
+  <circle cx="17.6" cy="20.8" r="2.6" fill="#0f1015"/>
+  <circle cx="18.4" cy="20" r="0.9" fill="#ffffff"/>
+  <path d="M24.2 21.2 Q26.4 22.4 28.6 21.2" fill="none" stroke="#0f1015" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M29.7 17.4 L24.4 18.9" fill="none" stroke="#0f1015" stroke-width="2.2" stroke-linecap="round"/>
+  <!-- cicatriz -->
+  <path d="M29.5 23.9 L32.5 27.7 M30.1 26.7 L31.9 24.5" fill="none" stroke="#b0503a" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- nariz e barba cerrada comprimida na concentracao -->
+  <circle cx="20.3" cy="24.9" r="1.8" fill="#d18a54" stroke="#a6663a" stroke-width="1"/>
+  <path d="M12.3 27.7 Q15.5 24.9 20.4 26.7 Q25.3 24.9 28.7 27.9 Q29.1 32.7 23.9 34.1 Q18.5 34.9 14.1 31.7 Q12.2 30.2 12.3 27.7 Z" fill="#9aa0aa" stroke="#0f1015" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M14.9 27.9 Q17.5 26.7 20.3 27.5 M22.5 27.5 Q25.1 26.8 26.5 28.1" fill="none" stroke="#71767f" stroke-width="1" stroke-linecap="round"/>
+  <path d="M17.1 31.3 Q20.7 32.6 24.5 31.1" fill="none" stroke="#71767f" stroke-width="1.1" stroke-linecap="round"/>
+  <!-- chapeu (identico, acompanhando a cabeca) -->
+  <path d="M13.9 12.1 Q14.9 3.9 24.5 3.9 Q34.1 3.9 35.1 12.1 Z" fill="url(#b3h2)" stroke="#0f1015" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M15.2 11.3 Q24.5 8.7 33.8 11.3 L33.4 9 Q24.5 6.7 15.6 9 Z" fill="#8c1f1a" stroke="#0f1015" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M24.5 7.7 L26 8.9 L25.4 10.7 L23.6 10.7 L23 8.9 Z" fill="#e0b24a" stroke="#0f1015" stroke-width="0.9" stroke-linejoin="round"/>
+  <ellipse cx="24.5" cy="12.7" rx="15" ry="4.4" fill="url(#b3h2)" stroke="#0f1015" stroke-width="2.2"/>
+  <path d="M11 12.5 Q24.5 15.9 38 12.5" fill="none" stroke="#0a0b0e" stroke-width="1.2" stroke-linecap="round" opacity="0.85"/>
+  <path d="M11.9 11.3 Q24.5 8.1 37.1 11.3" fill="none" stroke="#4a5164" stroke-width="1" stroke-linecap="round" opacity="0.5"/>
+</svg>

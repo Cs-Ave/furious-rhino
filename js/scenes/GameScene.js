@@ -58,7 +58,98 @@ export class GameScene extends Phaser.Scene {
     // crossGate o explode.
     this.gateSprite = this.add.image(Constants.WIN_DISTANCE_PX, Constants.GROUND_TOP, 'zoo-gate-armored-3')
       .setOrigin(0.5, 1).setDepth(-1);
-    this.bossFight = new BossFight(this, this.gateSprite);
+    // A luta do portão é a primeira entrada da LISTA de lutas: o BossFight
+    // é paramétrico e tudo que é do portão vive nesta `def` (âncora, camadas,
+    // arte, contadores, festa da vitória). Bosses novos entram em bossFights
+    // sem tocar no sistema. `this.bossFight` continua sendo o do portão —
+    // telemetria (fightMs) e os e2e leem por esse nome.
+    this.bossFight = new BossFight(this, this.gateSprite, {
+      id: 'gate',
+      anchorX: Constants.WIN_DISTANCE_PX,
+      layers: Constants.BOSS_LAYERS,
+      rifle: Constants.BOSS_RIFLE, // MESMA referência: sliders do ?debug=1 vivos
+      arenaPx: Constants.BOSS_ARENA_PX,
+      gateFaceHalf: Constants.BOSS_GATE_FACE_HALF,
+      texturePrefix: 'zoo-gate-armored',
+      hunterTexture: 'boss-hunter',
+      hunterAimTexture: 'boss-hunter-aim',
+      camLockOffsetPx: 1040,
+      layersProp: 'runBossLayers',
+      bouncesProp: 'runBossBounces',
+      enrageMs: 0, // o portão nunca enfureceu — e continua assim
+      hints: { intro: '⚔️ O PORTÃO ESTÁ BLINDADO!', how: '💥 INVISTA na fresta que brilha!' },
+      hintStorageKey: null, // o portão usa o contador legado abaixo
+      encounters: {
+        get: () => StorageManager.getBossEncounters(),
+        add: () => StorageManager.addBossEncounter(),
+      },
+      // v1.8.5: além do gatilho legado, o "já estou depois da âncora" — um
+      // teleporte de debug direto para o Cerco/Guardião cruza o portão DENTRO
+      // do mesmo frame, ANTES do check do crossGate no update; sem esta
+      // guarda o portão dormente acordava e clampava o rino de volta
+      isBypassed: (scene) => scene.gateReached ||
+        scene.rhino.getSprite().x >= Constants.WIN_DISTANCE_PX,
+      onDefeat: (fight) => fight.scene.crossGate(),
+    });
+    // v1.8.5 — BOSS 2, o CERCO (2000m): a cidade barricou a avenida. Mesma
+    // anatomia do portão (canvas 240x620, contato por banda + clamp), mas a
+    // vitória NÃO encerra nada — a barricada cai e a corrida segue.
+    this.boss2Sprite = this.add.image(Constants.BOSS2_ANCHOR_PX, Constants.GROUND_TOP, 'boss2-gate-4')
+      .setOrigin(0.5, 1).setDepth(-1);
+    this.boss2Fight = new BossFight(this, this.boss2Sprite, {
+      id: 'cerco',
+      anchorX: Constants.BOSS2_ANCHOR_PX,
+      layers: Constants.BOSS2_LAYERS,
+      rifle: Constants.BOSS2_NET, // MESMA referência: sliders do ?debug=1 vivos
+      arenaPx: Constants.BOSS_ARENA_PX,
+      gateFaceHalf: Constants.BOSS_GATE_FACE_HALF,
+      texturePrefix: 'boss2-gate',
+      hunterTexture: 'boss2-hunter',
+      hunterAimTexture: 'boss2-hunter-aim',
+      camLockOffsetPx: 1040,
+      layersProp: 'runBoss2Layers',
+      bouncesProp: 'runBoss2Bounces',
+      enrageMs: Constants.BOSS2_ENRAGE_MS, // luta arrastada sobe 1 degrau de cadência
+      hints: { intro: '🕸️ O CERCO! A CIDADE BLOQUEOU A AVENIDA!', how: '💥 INVISTA na fresta que brilha!' },
+      hintStorageKey: 'furious_rhino_boss2_seen',
+      deathCause: 'boss2', // a rede do Capturador — causa própria no funil
+      // Rino já além da âncora sem a luta ter acontecido: só possível em
+      // invencível de debug ou teleporte — o boss recolhe sem festa
+      isBypassed: (scene) => scene.rhino.getSprite().x >= Constants.BOSS2_ANCHOR_PX,
+      onDefeat: (fight) => fight.scene.defeatBoss2(),
+    });
+
+    // v1.8.5 — BOSS 3, o CAÇADOR-MOR (fim do mundo): a última cerca. Vencer
+    // É virar LENDA — o onDefeat entrega a cutscene que já existia; o gatilho
+    // legado x >= WORLD_END_PX segue como rede de segurança para bypass.
+    this.boss3Sprite = this.add.image(Constants.BOSS3_ANCHOR_PX, Constants.GROUND_TOP, 'boss3-gate-5')
+      .setOrigin(0.5, 1).setDepth(-1);
+    this.boss3Fight = new BossFight(this, this.boss3Sprite, {
+      id: 'guardiao',
+      anchorX: Constants.BOSS3_ANCHOR_PX,
+      layers: Constants.BOSS3_LAYERS,
+      rifle: Constants.BOSS3_RIFLE, // MESMA referência: sliders do ?debug=1 vivos
+      arenaPx: Constants.BOSS_ARENA_PX,
+      gateFaceHalf: Constants.BOSS_GATE_FACE_HALF,
+      texturePrefix: 'boss3-gate',
+      hunterTexture: 'boss3-hunter',
+      hunterAimTexture: 'boss3-hunter-aim',
+      camLockOffsetPx: 1040,
+      layersProp: 'runBoss3Layers',
+      bouncesProp: 'runBoss3Bounces',
+      enrageMs: 0, // 5 camadas já são a prova — sem relógio por cima
+      hints: { intro: '🏹 A ÚLTIMA CERCA DO MUNDO!', how: '💥 INVISTA na fresta que brilha!' },
+      hintStorageKey: 'furious_rhino_boss3_seen',
+      deathCause: 'boss3', // o Caçador-Mor também usa tranquilizante
+      isBypassed: (scene) => scene.rhino.getSprite().x >= Constants.BOSS3_ANCHOR_PX,
+      onDefeat: (fight) => {
+        // A festa é a cutscene de LENDA que sempre existiu
+        fight.scene.legend = true;
+        fight.scene.endGame(true);
+      },
+    });
+
+    this.bossFights = [this.bossFight, this.boss2Fight, this.boss3Fight];
     this.createSectorArches();
     this.createTrackMarks();
 
@@ -101,6 +192,13 @@ export class GameScene extends Phaser.Scene {
     // v1.7: a luta do portão — camadas quebradas (b) e quiques (q)
     this.runBossLayers = 0;
     this.runBossBounces = 0;
+    // v1.8.5: os bosses novos — camadas do Cerco (letra `e` do runs[], com a
+    // duração em `h`) e do Guardião (`l`). Os quiques deles são contados mas
+    // NÃO persistidos: `q` segue exclusivo do portão (baseline da v1.8).
+    this.runBoss2Layers = 0;
+    this.runBoss2Bounces = 0;
+    this.runBoss3Layers = 0;
+    this.runBoss3Bounces = 0;
     // v1.8: skin concedida NESTA corrida (para a mensagem do fim de jogo)
     this.runSkinUnlocked = null;
     this.usedKeyboard = false;
@@ -1800,7 +1898,10 @@ export class GameScene extends Phaser.Scene {
       dart.deactivate();
     } else {
       if (this.invincible) { dart.deactivate(); return; } // debug
-      this.endGame(false, dart.fromBoss ? 'boss' : 'dart');
+      // Tiro de boss conta como causa própria: fromBoss é a STRING da causa
+      // ('boss'|'boss2'|'boss3', v1.8.5) — é o que separa "morreu em qual
+      // luta" de "morreu de torre" no painel
+      this.endGame(false, dart.fromBoss || 'dart');
     }
   }
 
@@ -2147,7 +2248,7 @@ export class GameScene extends Phaser.Scene {
     // A luta do portão (v1.7): banda de contato, clamp, quique, caçador.
     // Depois do furySystem (que fixa a velocidade do frame) e antes do
     // spawnManager (a câmera travada da luta é o que suprime spawns).
-    this.bossFight.update(time, delta);
+    for (const bf of this.bossFights) bf.update(time, delta);
     // Animais leem o multiplicador do tier vigente por frame (padrão live)
     Constants.TIER_STATE.animalSpeedMult =
       Constants.getTierFor(this.rhino.getSprite().x).animalSpeedMult;
@@ -2242,6 +2343,32 @@ export class GameScene extends Phaser.Scene {
         this.audio.playFanfare();
       });
     }
+  }
+
+  // v1.8.5 — o CERCO caiu (2000m): a corrida CONTINUA. Nada de crossGate nem
+  // gameOver aqui — a barricada explode com o mesmo vocabulário do portão,
+  // o "+150" nasce nela e o rino segue avenida adentro. A medalha boss2_win
+  // sai no endGame (persistida lá, como todas).
+  defeatBoss2() {
+    const gx = Constants.BOSS2_ANCHOR_PX;
+    if (this.boss2Sprite) this.boss2Sprite.setTexture('boss2-gate-broken');
+    this.createExplosion(gx, Constants.GROUND_TOP - 110);
+    this.createBreakParticles(gx, Constants.GROUND_TOP - 110);
+    this.createBreakParticles(gx - 70, Constants.GROUND_TOP - 40);
+    this.createBreakParticles(gx + 70, Constants.GROUND_TOP - 70);
+    this.cameras.main.shake(320, 0.014);
+    // O prêmio da vitória nasce na barricada (o breakdown recomputa a MESMA
+    // regra a partir de e >= 4 — nada é somado duas vezes)
+    this.addScore('boss2', gx - 80, 300);
+    this.audio.playBreak();
+    this.audio.playFanfare();
+
+    this.showToast('🕸️ O CERCO CAIU!');
+    // O 2º aviso deixa explícito que a pista abriu — padrão do crossGate
+    this.time.delayedCall(1500, () => {
+      if (this.gameOver) return;
+      this.showToast('🏆 2000m LIVRES!', { y: 250, size: 34, color: '#ffe9a8', duration: 2000 });
+    });
   }
 
   // Confete em coordenadas de tela. Usado pela fuga (1000m) e pela cutscene
@@ -2374,12 +2501,18 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  // cause: 'wall' | 'spike' | 'animal' | 'dart' | 'tower' | 'fall' (só derrotas)
+  // cause: 'wall' | 'spike' | 'animal' | 'dart' | 'tower' | 'fall' |
+  //        'boss' | 'boss2' | 'boss3' (só derrotas)
   endGame(won, cause = null) {
     if (this.gameOver) return; // reentrada dobraria mortes/envios
     this.gameOver = true;
     this.won = won;
     this.deathCause = cause;
+    // Todo tiro de boss é tranquilizante (ninguém morre neste jogo): o fim
+    // por qualquer um deles segue o fluxo do sono — a rede do Cerco também
+    // adormece, só o título do overlay muda
+    const tranqCause = cause === 'dart' || cause === 'boss' ||
+      cause === 'boss2' || cause === 'boss3';
     this.physics.pause();
 
     this.audio.stopMusic();
@@ -2390,6 +2523,8 @@ export class GameScene extends Phaser.Scene {
     // v1.8.4: pontuação composta = metros + bônus das façanhas. Os METROS
     // seguem sendo a marca física (medalhas, skins, estacas da pista).
     const bossFightS = Math.round((this.bossFight ? this.bossFight.fightMs : 0) / 1000);
+    // v1.8.5: duração da luta do Cerco (letra `h` do runs[])
+    const boss2FightS = Math.round((this.boss2Fight ? this.boss2Fight.fightMs : 0) / 1000);
     const escaped = won || distance >= (Constants.WIN_DISTANCE_PX / Constants.PIXELS_PER_METER);
     const bonus = this.runBonus + ScoreSystem.endBonus({
       escaped, bossLayers: this.runBossLayers, bossFightS, legend: !!this.legend,
@@ -2413,7 +2548,12 @@ export class GameScene extends Phaser.Scene {
     const detail = ScoreSystem.breakdown({
       meters: distance, walls: this.runWallsBroken, ramps: this.runRampsSmashed,
       towers: this.runTowersDowned, animals: this.runAnimalsHit,
-      bossLayers: this.runBossLayers, escaped, blitz, legend: !!this.legend,
+      bossLayers: this.runBossLayers,
+      // v1.8.5: as camadas dos bosses novos pontuaram AO VIVO (addScore
+      // 'bossLayer' no breakLayer genérico; a vitória do Cerco, no
+      // defeatBoss2) — aqui elas só viram LINHAS do detalhamento
+      boss2Layers: this.runBoss2Layers, boss3Layers: this.runBoss3Layers,
+      escaped, blitz, legend: !!this.legend,
     });
     const ptsId = won ? 'win-final-points' : 'final-points';
     const brkId = won ? 'win-final-breakdown' : 'final-breakdown';
@@ -2441,8 +2581,10 @@ export class GameScene extends Phaser.Scene {
       }
     } else {
       document.getElementById('game-over-title').textContent =
-        // O rifle do caçador também é tranquilizante (ninguém mata o rino)
-        (cause === 'dart' || cause === 'boss') ? 'TRANQUILIZADO! 💤' : 'GAME OVER';
+        // O rifle do caçador também é tranquilizante (ninguém mata o rino);
+        // a rede do Cerco captura — mesmo sono, título próprio
+        cause === 'boss2' ? 'CAPTURADO! 🕸️'
+          : tranqCause ? 'TRANQUILIZADO! 💤' : 'GAME OVER';
       document.getElementById('final-score').textContent = distance;
       if (isNewRecord) {
         document.getElementById('record-message').textContent = '🎉 NOVO RECORDE!';
@@ -2462,6 +2604,8 @@ export class GameScene extends Phaser.Scene {
       escaped: this.escaped,
       wallsBroken: this.runWallsBroken, animalsTotal,
       rampsSmashed: this.runRampsSmashed, towersDowned: this.runTowersDowned,
+      // v1.8.5: Fura-Bloqueio (Cerco vencido) e Lenda do Mundo (Guardião)
+      boss2Layers: this.runBoss2Layers, legend: !!this.legend,
     });
     if (newMedals.length) {
       const id = won ? 'win-medal-message' : 'medal-message';
@@ -2510,6 +2654,10 @@ export class GameScene extends Phaser.Scene {
       bossLayersBroken: this.runBossLayers,
       bossBounces: this.runBossBounces,
       bossFightS: Math.round((this.bossFight ? this.bossFight.fightMs : 0) / 1000),
+      // v1.8.5: os bosses novos (letras e/h/l do RUN_COUNTERS)
+      boss2LayersBroken: this.runBoss2Layers,
+      boss2FightS,
+      boss3LayersBroken: this.runBoss3Layers,
       keyboard: this.usedKeyboard,
       version: Constants.VERSION,
       skin: this.skin ? this.skin.id : 'default',
@@ -2540,7 +2688,7 @@ export class GameScene extends Phaser.Scene {
 
     if (won) {
       this.playVictoryCutscene();
-    } else if (cause === 'dart' || cause === 'boss') {
+    } else if (tranqCause) {
       this.playTranqSleep();
       this.time.delayedCall(600, () => this.showEndOverlay());
     } else {
