@@ -663,6 +663,143 @@
         .news-item.remote { border-left-color: #ff9944; }
         .news-item small { color: rgba(255, 255, 255, 0.45); display: block; font-size: 10.5px; margin-top: 1px; }
 
+        /* --- ⚔️ Arena de Desafios (v1.8.6) --- */
+        /* Botão "Desafiar" da home, ao lado do "Chamar galera" */
+        #challenge-new {
+            font-family: inherit;
+            background: #2b2c33;
+            color: #ff9a6c;
+            font-weight: 800;
+            border: 1px solid rgba(255, 154, 108, 0.45);
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        /* Card(s) do desafio na coluna da Campanha, acima do Diário */
+        #challenge-card {
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            text-align: left;
+        }
+
+        #challenge-card[hidden] { display: none; }
+
+        .chal-card {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 107, 107, 0.45);
+            border-radius: 12px;
+            padding: 7px 11px;
+            font-size: 12.5px;
+            line-height: 1.35;
+        }
+
+        .chal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .chal-head b {
+            color: #ff9a6c;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chal-count { font-size: 10.5px; color: rgba(255, 255, 255, 0.55); white-space: nowrap; }
+
+        .chal-result { font-weight: 800; color: #ffd23f; margin: 2px 0; }
+
+        .chal-row { display: flex; justify-content: space-between; gap: 8px; padding: 1px 0; }
+        .chal-row.me { color: #ffd23f; font-weight: 700; }
+        .chal-row.waiting { color: rgba(255, 255, 255, 0.5); font-style: italic; }
+        .chal-pts { color: #4ecdc4; white-space: nowrap; }
+        .chal-more { font-size: 11px; color: rgba(255, 255, 255, 0.55); text-align: center; }
+
+        /* Modal de criação: chips dos escolhidos + pílulas de duração */
+        #challenge-players {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            margin: 12px 0;
+        }
+
+        .chal-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 999px;
+            padding: 4px 4px 4px 12px;
+            font-size: 14px;
+        }
+
+        .modal .chal-chip button {
+            margin: 0;
+            padding: 0 8px;
+            font-size: 13px;
+            background: transparent;
+            border: none;
+            color: #ff6b6b;
+            cursor: pointer;
+        }
+
+        .chal-none { color: rgba(255, 255, 255, 0.55); font-size: 13px; }
+
+        #challenge-days { display: flex; gap: 8px; justify-content: center; }
+
+        .modal .chal-pill {
+            margin-top: 0;
+            padding: 8px 18px;
+            font-size: 15px;
+            background: #23242b;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 999px;
+            color: #eee;
+        }
+
+        .modal .chal-pill.sel {
+            background: #4ecdc4;
+            border-color: #4ecdc4;
+            color: #06312d;
+            font-weight: 800;
+        }
+
+        #challenge-error { color: #ff6b6b; min-height: 1.2em; font-size: 14px; }
+
+        /* Toast DOM da home (o showToast do Phaser fica ATRÁS do overlay) */
+        .home-toast {
+            position: fixed;
+            top: 14%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.88);
+            border: 1px solid rgba(255, 210, 63, 0.5);
+            color: #ffd23f;
+            font-weight: 800;
+            font-size: 15px;
+            padding: 10px 22px;
+            border-radius: 999px;
+            z-index: 700;
+            pointer-events: none;
+            white-space: nowrap;
+            animation: home-toast 2.6s forwards;
+        }
+
+        @keyframes home-toast {
+            0% { opacity: 0; transform: translate(-50%, -8px); }
+            12%, 78% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, -8px); }
+        }
+
         /* --- rodapé: instruções em texto + CTA pulsante --- */
         .home-bottom {
             flex: 0 0 auto;
@@ -996,6 +1133,11 @@
             .wa-icon { width: 13px; height: 13px; }
             #invite-status { display: none; }
 
+            #challenge-new { font-size: 12px; padding: 4px 12px; }
+            #challenge-card { margin-top: 4px; gap: 4px; }
+            .chal-card { font-size: 10.5px; padding: 4px 8px; }
+            .chal-count { font-size: 9.5px; }
+
             .home-diario h3 { display: none; }
             .news-cols { gap: 6px; }
             .news-item { font-size: 10.5px; padding: 4px 8px; }
@@ -1234,6 +1376,34 @@
 
         #ranking-status {
             color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* ⚔️ v1.8.6: botão de desafio em cada linha do top 10 (discreto) */
+        .challenge-btn {
+            font-family: inherit;
+            font-size: 13px;
+            line-height: 1;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 8px;
+            padding: 3px 7px;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+
+        .challenge-btn.sel {
+            background: rgba(255, 107, 107, 0.3);
+            border-color: #ff6b6b;
+            opacity: 1;
+        }
+
+        /* Barra do rodapé do ranking: aparece com 1+ selecionado */
+        #challenge-bar[hidden] { display: none; }
+
+        .modal #challenge-bar-btn {
+            margin-top: 6px;
+            background: #e5484d;
+            font-weight: 800;
         }
 
         #nickname-input {
@@ -2028,6 +2198,7 @@
             <section class="home-col-camp">
                 <div class="home-headrow">
                     <button id="invite-btn" aria-label="Convidar amigos pelo WhatsApp"><svg class="wa-icon" viewBox="0 0 448 512" aria-hidden="true"><path fill="currentColor" d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7.9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/></svg> Chamar galera</button>
+                    <button id="challenge-new" aria-label="Desafiar jogadores do top 10">⚔️ Desafiar</button>
                     <div id="install-hint"></div>
                 </div>
                 <div class="camp-card">
@@ -2044,6 +2215,8 @@
                     <button id="mystats-btn" aria-label="Minhas estatísticas">📊 Minhas estatísticas completas</button>
                     <p id="invite-status"></p>
                 </div>
+                <!-- v1.8.6: cards da Arena de Desafios (renderChallenges) -->
+                <div id="challenge-card" hidden></div>
             </section>
         </div>
 
@@ -2068,7 +2241,7 @@
 
         <span class="start-footer footer-left">Designed by Thomas Avelino</span>
         <span class="start-footer footer-center">Estatísticas anônimas são coletadas · <a href="./?stats">/?stats</a></span>
-        <span class="start-footer footer-right" id="game-version">v1.8.5</span>
+        <span class="start-footer footer-right" id="game-version">v1.8.6</span>
     </div>
 
     <div id="ranking-modal" class="modal">
@@ -2076,6 +2249,10 @@
         <ol id="ranking-list"></ol>
         <p id="ranking-me"></p>
         <p id="ranking-status"></p>
+        <!-- v1.8.6: rodapé de seleção — aparece com 1+ ⚔️ marcado -->
+        <div id="challenge-bar" hidden>
+            <button id="challenge-bar-btn">⚔️ Desafiar (0)</button>
+        </div>
         <button id="ranking-close">Fechar</button>
     </div>
 
@@ -2087,6 +2264,29 @@
         <div class="btn-row">
             <button id="nickname-save">Salvar</button>
             <button id="nickname-skip" class="btn-secondary">Ficar anônimo</button>
+        </div>
+    </div>
+
+    <!-- v1.8.6 — Arena de Desafios: criação (escolhidos vêm do top 10) -->
+    <div id="challenge-create-modal" class="modal">
+        <h2>⚔️ Novo desafio</h2>
+        <p>Vence quem fizer a melhor corrida em <b>pontos</b> dentro do prazo.</p>
+        <div id="challenge-players"></div>
+        <div id="challenge-days"></div>
+        <p id="challenge-error"></p>
+        <div class="btn-row">
+            <button id="challenge-send">Enviar desafio</button>
+            <button id="challenge-cancel" class="btn-secondary">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- v1.8.6 — convite recebido: 1 popup por boot, depois do PWA -->
+    <div id="challenge-invite-modal" class="modal">
+        <h2>⚔️ Você foi desafiado!</h2>
+        <p id="challenge-invite-text"></p>
+        <div class="btn-row">
+            <button id="challenge-accept">Aceitar desafio</button>
+            <button id="challenge-decline" class="btn-secondary">Agora não</button>
         </div>
     </div>
 

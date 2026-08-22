@@ -797,6 +797,31 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
         { id: 'c', name: 'Gama', score: 3000, sinceMs: Date.now() - 1 * dia, skin: null },
       ],
     }));
+    // v1.8.6 — Arena de Desafios: um desafio ativo (aceito) e um convite novo,
+    // nos formatos EXATOS do ChallengeSystem (cache = fonte; zero rede no teste)
+    const agoraS = Math.floor(Date.now() / 1000);
+    localStorage.setItem('furious_rhino_chal_cache', JSON.stringify({
+      at: Date.now(),
+      list: [
+        { id: 'chal-e2e-ativo-0000', from: { id: 'claude-e2e-ramp-home', name: 'Cris' },
+          participants: ['claude-e2e-ramp-home', 'rival-um-0000000000'],
+          names: { 'claude-e2e-ramp-home': 'Cris', 'rival-um-0000000000': 'Zebrão' },
+          startAt: agoraS - 86400, endAt: agoraS + 2 * 86400 + 14 * 3600,
+          accepted: { 'claude-e2e-ramp-home': agoraS - 86400, 'rival-um-0000000000': agoraS - 80000 } },
+        { id: 'chal-e2e-convite-000', from: { id: 'rival-dois-000000000', name: 'Funkeiro' },
+          participants: ['claude-e2e-ramp-home', 'rival-dois-000000000'],
+          names: { 'claude-e2e-ramp-home': 'Cris', 'rival-dois-000000000': 'Funkeiro' },
+          startAt: agoraS - 3600, endAt: agoraS + 86400,
+          accepted: { 'rival-dois-000000000': agoraS - 3600 } },
+      ],
+    }));
+    localStorage.setItem('furious_rhino_chal_standings', JSON.stringify({
+      'chal-e2e-ativo-0000': { at: Date.now(), rows: [
+        { id: 'rival-um-0000000000', name: 'Zebrão', accepted: agoraS - 80000, best: { pts: 1842, m: 1600, t: agoraS - 40000 } },
+        { id: 'claude-e2e-ramp-home', name: 'Cris', accepted: agoraS - 86400, best: { pts: 950, m: 900, t: agoraS - 30000 } },
+      ] },
+    }));
+    sessionStorage.setItem('furious_rhino_pwa_prompted', '1');
     localStorage.setItem('furious_rhino_news', JSON.stringify([
       { k: 'teste', t: Date.now(), x: '🧪 notícia local de teste', c: 'gold' },
     ]));
@@ -840,6 +865,40 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
     `nomes=${home.nomes} dias=${home.dias} gap="${home.gap}" skin=${home.firstSkinSrc}`);
   // v1.8.4: sem apelido semeado, o nome vira convite; a marca sai do recorde
   // local (2500m) SEM record_pts — prova o fallback "total antigo == metros"
+  // v1.8.6 — Arena de Desafios na home, tudo do cache semeado
+  const chal = await p6.evaluate(() => {
+    const card = document.getElementById('challenge-card');
+    const modal = document.getElementById('challenge-invite-modal');
+    const modalAberto = modal && getComputedStyle(modal).display !== 'none';
+    return {
+      cardTexto: card ? card.textContent : null,
+      modalAberto,
+      conviteTexto: (document.getElementById('challenge-invite-text') || {}).textContent || '',
+      temNovo: !!document.getElementById('challenge-new'),
+    };
+  });
+  ok('26d. home: card do desafio com countdown, líder e minha linha',
+    !!chal.cardTexto && /termina em/.test(chal.cardTexto) && /Zebrão/.test(chal.cardTexto) &&
+    /1\.842 pts/.test(chal.cardTexto) && chal.temNovo,
+    `card="${(chal.cardTexto || '').slice(0, 120)}"`);
+  ok('26e. home: convite não visto abre o popup do desafio',
+    chal.modalAberto && /Funkeiro/.test(chal.conviteTexto),
+    `aberto=${chal.modalAberto} texto="${chal.conviteTexto.slice(0, 80)}"`);
+  // recusar fecha e não volta a abrir (declineLocal)
+  await p6.click('#challenge-decline');
+  await p6.waitForTimeout(300);
+  const aposRecusa = await p6.evaluate(() => {
+    const modal = document.getElementById('challenge-invite-modal');
+    return {
+      fechado: !modal || getComputedStyle(modal).display === 'none',
+      seen: localStorage.getItem('furious_rhino_chal_seen') || '',
+      // o contrato do toque: com o modal fechado, o overlay volta a poder iniciar
+      modalOpen: document.body.classList.contains('modal-open'),
+    };
+  });
+  ok('26f. recusar fecha o popup, marca localmente e libera o overlay',
+    aposRecusa.fechado && /chal-e2e-convite-000/.test(aposRecusa.seen) && !aposRecusa.modalOpen,
+    `fechado=${aposRecusa.fechado} seen=${aposRecusa.seen.slice(0, 60)} modalOpen=${aposRecusa.modalOpen}`);
   ok('26c. home: o degrau VOCÊ mostra nome e marca no padrão dos outros três',
     home.youName === 'Cris' && /2\.500 pts/.test(home.youScore) &&
     home.youClasses === 'pname|pscore|pdays' &&

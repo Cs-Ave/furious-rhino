@@ -5,7 +5,18 @@
 
 ---
 
-## v1.8.5 — 21/08/2026 (versão atual)
+## v1.8.6 — 22/08/2026 (versão atual)
+
+**Tema: a Arena de Desafios — chame um amigo (ou a turma toda) para uma disputa com prazo.**
+
+- **Desafie quem quiser do top 10.** Cada linha do ranking ganhou uma espadinha ⚔️: marque um jogador (ou vários — até 7 de uma vez) e envie um desafio de **1, 3 ou 7 dias**. Vence quem fizer a **melhor corrida em pontos** dentro do prazo — dá para virar no último dia.
+- **O desafiado decide.** Ao abrir o jogo, quem foi desafiado vê o convite ("⚔️ Fulano te desafiou! Topa?") e escolhe aceitar ou recusar. **Só quem aceita entra no placar** — ninguém é exposto numa disputa sem querer. Recusou? O convite some e não volta.
+- **O placar mora na tela inicial**: um card mostra quem está no desafio, a melhor marca de cada um, a coroa 👑 em quem lidera e o tempo restante ("termina em 2d 14h"). Quando o desafio acaba, o resultado vira notícia no Diário da Fuga.
+- **A provocação entra na pista**: os adversários do desafio viram estacas vermelhas na corrida, plantadas na distância da melhor corrida deles — ultrapassar solta o grito ("⚔️ VOCÊ PASSOU FULANO NO DESAFIO!"). Na largada, um aviso diz o número a bater.
+- **Para desafiar é preciso ter apelido próprio** (quem ainda é "Anonimo_N" escolhe um na hora); ser desafiado não exige nada. Cada jogador mantém no máximo 3 desafios criados ao mesmo tempo.
+- Por dentro: o desafio guarda só os metadados (quem, prazo, aceites) numa coleção nova do banco — **o placar é calculado a partir das corridas que o jogo já registrava**, sem nenhum dado novo por corrida. Regras do banco publicadas antes desta versão ir ao ar.
+
+## v1.8.5 — 21/08/2026 
 
 **Tema: o deserto depois do portão ganhou dois chefes — a fuga agora tem três batalhas.**
 

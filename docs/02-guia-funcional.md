@@ -1,6 +1,6 @@
 # Furious Rhino — Guia funcional
 
-> Documentação da versão **1.8.5** · atualizada em 21/08/2026
+> Documentação da versão **1.8.6** · atualizada em 21/08/2026
 > Cada funcionalidade do jogo: o que faz, como o usuário interage e exemplos práticos. Termos técnicos vêm explicados entre parênteses na primeira vez.
 
 ## 1. Controles
@@ -116,6 +116,7 @@ Depois de gasto, o medidor volta a encher com a distância (~900 m por carga). A
 Os registros e o ranking:
 
 - **Recorde local**: fica salvo no aparelho e aparece no box Campanha.
+- **Arena de Desafios (v1.8.6)**: na lista do top 10, cada jogador tem uma espadinha ⚔️ — marque um ou vários (até 7) e envie um desafio de 1, 3 ou 7 dias; vence a melhor corrida em pontos dentro do prazo. O desafiado recebe o convite ao abrir o jogo e só entra no placar se aceitar. O card do desafio fica na tela inicial (participantes, melhor marca de cada um, 👑 no líder e o tempo restante); na corrida, os adversários aparecem como estacas vermelhas na pista. Para desafiar é preciso ter apelido próprio; cada jogador cria no máximo 3 desafios ao mesmo tempo.
 - **Ranking mundial** (em pontos desde a v1.8.4, com a distância ao lado): a lista completa abre no botão **"ver top 10 ›"** ao lado do pódio. Para entrar, o jogador escolhe um **apelido único** (3–12 caracteres — o jogo confere se já existe; acentos e maiúsculas não diferenciam: "Thómas" e "thomas" são o mesmo apelido). Ao lado da distância de cada um aparece **há quantos dias aquela marca está de pé** ("há 12d", ou "hoje" para marca do dia) — trocar de apelido não zera a contagem nem troca a skin da vitrine.
 - Quem prefere **"Ficar anônimo"** recebe um nome automático (`Anonimo_7`). O jogo volta a convidar para escolher um nome de verdade **no momento de orgulho** — logo depois de o score subir no ranking ("🏆 Você é o #7 do mundo!") — no máximo 1 vez a cada 3 corridas, e nunca de forma bloqueante.
 - **Marcas na pista**: durante a corrida, estacas mostram onde fica **o seu recorde** (🏅), o **rival logo acima de você** no ranking (⚔️) e o **líder mundial** (👑). Ultrapassar cada uma provoca o jogador na tela.

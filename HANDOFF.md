@@ -1,6 +1,60 @@
-# Handoff — FURIOUS RHINO v1.8.4
+# Handoff — FURIOUS RHINO v1.8.6
 
-**Data:** 21/08/2026 · **Status:** v1.8.4 **PRONTA e testada localmente — NÃO publicada**
+**Data:** 22/08/2026 · **Status:** v1.8.4 + v1.8.5 **commitadas local** (`8575e97`, `8f43c97` + docs `455bc15`, tags criadas, SEM push) · v1.8.6 **PRONTA no working tree, sem commit** · produção segue na **v1.8.3**
+
+> 🚦 **Fluxo de release com 3 portões (regra do dono, 22/08): commit local → testes
+> locais dele → publicar produção — cada avanço só com confirmação EXPLÍCITA.**
+> Estamos aguardando: portão 1 da v1.8.6 (commit) e portões 2–3 de TUDO (1.8.4→1.8.6).
+
+## 0. v1.8.6 — Arena de Desafios (working tree, sem commit)
+
+Desafios 1v1 e em grupo entre cadastrados. Decisões do dono: melhor corrida em
+**pontos** na janela · duração 1/3/7 dias (escolha do desafiante) · **só aceites
+entram no placar** · criar exige apelido próprio · teto de 3 desafios criados.
+
+- **Arquitetura**: o desafio é METADADO (coleção nova `challenges/` — doc escrito 1×
+  pelo criador; único update possível = mapa `accepted` crescer, trancado por
+  `diff().affectedKeys()` nas rules); o **placar é DERIVADO** lendo o `stats/` público
+  dos aceitos e recomputando a melhor corrida da janela com `ScoreSystem.runBonus`.
+  Zero write cruzado entre jogadores; zero letra nova em `runs[]`. Sem auth o aceite é
+  falsificável — modelo de confiança assumido (igual ao resto do jogo).
+- **Módulo novo** `js/systems/ChallengeSystem.js` (puras testáveis + rede com caches:
+  `chal_cache` TTL 1h via array-contains, `chal_standings` TTL 30min, `chal_seen`
+  local). Constantes `CHALLENGE_*` no Constants.
+- **UI**: ⚔️ por linha do top 10 (seleção múltipla → barra "Desafiar (N)") + botão
+  `#challenge-new` na home · modal de criação (chips + pílulas 1d/3d/7d) · popup de
+  convite `#challenge-invite-modal` (1 por boot, adiado se o PWA abrir; recusa é só
+  local) · card `#challenge-card` na coluna da Campanha (countdown, 👑 no líder,
+  "aguardando fulano"; encerrado <24h vira resultado + `NewsSystem.push('chal:'+id)`).
+- **Na corrida**: estacas VERMELHAS dos adversários na marca da melhor corrida deles
+  (só `standingsCached` — zero rede na corrida) + toast na largada "⚔️ a bater: X pts
+  de Fulano". Nuance no código: estaca marca ONDE (metros), quem decide é PONTOS.
+- **Consertos de integração**: `test-integrate` estava 43/6 desde os commits da
+  v1.8.5 — causa: `sw.js` com CRLF no working tree (checkout do Windows) × comparação
+  de linha exata do `stripSwArtLines`; arquivo normalizado E função blindada contra
+  `\r` (gerador-de-sprites/integrate.mjs, comentado).
+- Versão **1.8.6 nos 4 lugares** · `CACHE furious-rhino-v186` · `ChallengeSystem.js`
+  no ASSETS · script `test-challenge` no package.json.
+- **Suítes (22/08, todas verdes — agora TREZE)**: test-challenge **68** (nova) ·
+  test-stats **100** · test-score 83 · test-skins 93 · test-integrate **49** ·
+  e2e-ramp **42** (asserts novos 26d/26e/26f do card+convite) · e2e-boss 16 ·
+  e2e-boss2 13 · e2e-boss3 10 · e2e-special 25 · e2e-skins 15 · e2e-setup 17 ·
+  e2e-stats 69.
+
+### ⛔ Para publicar a v1.8.6 (portão 3, no futuro)
+1. **Publicar `firestore.rules` no console ANTES do push** — bloco novo `challenges`
+   (as rules da v1.8.4 o dono já publicou em 21/08; o bloco challenges é NOVO e sem
+   ele todo create/aceite falha em silêncio).
+2. Push + tag + GH Release + smoke: criar desafio real entre dois aparelhos, aceite,
+   card com placar, estaca na pista.
+3. `e2e-stats` NÃO prova as rules do challenges (não escreve nessa coleção) — a prova
+   é o smoke.
+
+---
+
+# Handoff anterior — FURIOUS RHINO v1.8.4
+
+**Data:** 21/08/2026 · **Status:** v1.8.4 **PRONTA e testada localmente — NÃO publicada** *(nota de 22/08: v1.8.4 e v1.8.5 foram commitadas local pela sessão dos bosses — `8575e97` e `8f43c97` — com as pendências de teste fechadas: test-stats 99+/0)*
 
 ## 0. v1.8.4 — pontuação composta (o que fazer para publicar)
 

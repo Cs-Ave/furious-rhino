@@ -1,6 +1,6 @@
 // Network-first service worker: always serves fresh files while online
 // (essential during development), falls back to cache for offline play.
-const CACHE = 'furious-rhino-v185';
+const CACHE = 'furious-rhino-v186';
 const ASSETS = [
   './',
   './index.html',
@@ -49,9 +49,6 @@ const ASSETS = [
   './art/rhino-gold-run-0.svg',
   './art/rhino-gold-run-1.svg',
   './art/rhino-gold-run-2.svg',
-  './art/rhino-silver-run-0.svg',
-  './art/rhino-silver-run-1.svg',
-  './art/rhino-silver-run-2.svg',
   './art/rhino-bronze-run-0.svg',
   './art/rhino-bronze-run-1.svg',
   './art/rhino-bronze-run-2.svg',
@@ -71,6 +68,9 @@ const ASSETS = [
   './art/rhino-catisquicksrhino-run-0.svg',
   './art/rhino-catisquicksrhino-run-1.svg',
   './art/rhino-catisquicksrhino-run-2.svg',
+  './art/rhino-mecacolor-run-0.svg',
+  './art/rhino-mecacolor-run-1.svg',
+  './art/rhino-mecacolor-run-2.svg',
   // @setup:skins:fim
   './art/enemy-zookeeper.svg',
   './art/enemy-zookeeper-run-1.svg',
@@ -133,6 +133,7 @@ const ASSETS = [
   './js/systems/TuningPanel.js',
   './js/systems/LeaderboardSystem.js',
   './js/systems/ScoreSystem.js',
+  './js/systems/ChallengeSystem.js',
   './js/systems/MedalSystem.js',
   './js/systems/StatsSystem.js',
   './js/systems/NotifySystem.js',

@@ -366,5 +366,12 @@ eq('digest: avisa quando ainda estima por runs\\[\\]', /pré-1\.6\.1/.test(diges
 const vazio = buildDigest([{ id: 'a', attempts: 1, bestM: 10, history: { days: {} } }], [], agora);
 eq('digest: dia sem jogadores tem mensagem própria', /Ninguém jogou hoje/.test(vazio.message), true);
 
+// ---------- 7. Arena de Desafios (v1.8.6): rules ----------
+// O placar dos desafios é DERIVADO da leitura pública de stats/{id} — este
+// assert trava o esquecimento de publicar as rules novas na release (a suíte
+// dedicada é tools/test-challenge.mjs; aqui só o vínculo com as rules)
+eq('rules têm o bloco challenges com leitura pública',
+  /match \/challenges\/\{challengeId\}[\s\S]*?allow read: if true/.test(rules), true);
+
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

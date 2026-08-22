@@ -137,5 +137,46 @@ service cloud.firestore {
         && request.resource.data.bestM >= resource.data.bestM;
       allow delete: if false;
     }
+
+    // v1.8.6: ARENA DE DESAFIOS. O desafio é METADADO puro: o doc é escrito
+    // UMA vez pelo criador e o placar é DERIVADO no cliente (leitura pública
+    // de stats/{id} de cada aceito + recomputação dos pontos) — ZERO write
+    // cruzado entre jogadores, o único modelo seguro sem autenticação:
+    // ninguém consegue corromper o resultado de outro; no máximo, aceitar um
+    // convite. startAt/endAt em epoch SEGUNDOS (ints), mesma resolução do
+    // runs[].t da telemetria. Função própria e cláusulas enxutas — bloco
+    // isolado que não pesa no orçamento de avaliação de stats/scores (o
+    // aviso de orçamento do bloco `stats` vale aqui também).
+    match /challenges/{challengeId} {
+      // ⚠️ Usada SÓ no create: o aceite regrava o doc INTEIRO relido, e
+      // exigir createdAt == request.time no update rejeitaria todo aceite.
+      function validChallenge() {
+        return request.resource.data.keys().hasOnly(['from','participants','names','startAt','endAt','accepted','createdAt'])
+          && request.resource.data.from is map
+          && request.resource.data.participants is list
+          && request.resource.data.participants.size() >= 2
+          && request.resource.data.participants.size() <= 8
+          && request.resource.data.names is map
+          && request.resource.data.names.size() <= 8
+          && request.resource.data.startAt is int
+          && request.resource.data.endAt is int
+          && request.resource.data.endAt > request.resource.data.startAt
+          && request.resource.data.endAt - request.resource.data.startAt <= 604800
+          && request.resource.data.accepted is map
+          && request.resource.data.accepted.size() <= 8
+          && request.resource.data.createdAt == request.time;
+      }
+      allow read: if true;
+      allow create: if validChallenge() && challengeId.size() >= 16 && challengeId.size() <= 40;
+      // aceite: o ÚNICO update possível é o mapa accepted CRESCER (sem auth
+      // não dá para saber QUEM aceita — modelo de confiança do jogo inteiro).
+      // O diff().affectedKeys() obriga todos os OUTROS campos a baterem byte
+      // a byte com o resource.data — regravar o doc relido passa; qualquer
+      // adulteração de janela/participantes é negada.
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['accepted'])
+        && request.resource.data.accepted.keys().hasAll(resource.data.accepted.keys())
+        && request.resource.data.accepted.size() <= 8;
+      allow delete: if false;
+    }
   }
 }

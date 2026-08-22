@@ -184,7 +184,11 @@ export function stripSwArtLines(swSrc, prefixes) {
   for (const prefix of prefixes.filter(Boolean)) {
     for (const f of [0, 1, 2]) doomed.add(`  './art/${prefix}-${f}.svg',`);
   }
-  return swSrc.split('\n').filter((line) => !doomed.has(line)).join('\n');
+  // Comparação tolerante a \r: no Windows, um checkout com autocrlf pode
+  // regravar o sw.js com CRLF e a comparação exata deixaria de casar EM
+  // SILÊNCIO (aconteceu em 22/08 — test-integrate 43/6 até normalizar o
+  // arquivo). O \r é preservado na saída: só o casamento o ignora.
+  return swSrc.split('\n').filter((line) => !doomed.has(line.replace(/\r$/, ''))).join('\n');
 }
 
 const SW_START = '// @setup:skins —';

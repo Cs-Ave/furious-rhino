@@ -1,7 +1,7 @@
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
-  VERSION: '1.8.5',
+  VERSION: '1.8.6',
 
   // Rótulo humano de cada desfecho de corrida. Fonte única para o painel, o
   // resumo do jogador e os pushes — os três diziam a mesma coisa com palavras
@@ -156,6 +156,23 @@ export const Constants = {
   SCORE_BLITZ_MAX_S: 20,         // 3 camadas do portão em <= 20s = blitz
   SCORE_BONUS_CAP: 1,            // bônus <= metros × isto (na simulação nunca precisou agir)
   SCORE_MAX_TOTAL: 20000,        // mesmo teto das firestore.rules (score is int, 1..20000)
+
+  // v1.8.6: ARENA DE DESAFIOS — desafios 1v1 e em grupo por janela de tempo.
+  // O desafio é METADADO puro (doc challenges/{id} escrito 1× pelo criador);
+  // o placar é DERIVADO no cliente das janelas de runs[] que o StatsSystem já
+  // espelha em stats/{id} — zero write cruzado entre jogadores, o único
+  // modelo seguro num jogo SEM autenticação.
+  CHALLENGE_DURATIONS_D: [1, 3, 7],  // durações que o desafiante escolhe (dias)
+  // 8 = mesmo teto das firestore.rules (participants/names/accepted <= 8):
+  // runs[] guarda só 50 corridas, então grupo grande + janela longa já
+  // começa a perder corridas da janela — 8 mantém o placar honesto.
+  CHALLENGE_MAX_PARTICIPANTS: 8,
+  // Teto de desafios ATIVOS criados por jogador, contado no CLIENTE (o cache
+  // da própria query) — sem auth as rules não sabem quem cria; o teto existe
+  // para conter spam de convite e reads do placar no plano gratuito.
+  CHALLENGE_MAX_ACTIVE_CREATED: 3,
+  CHALLENGE_CACHE_TTL_MS: 60 * 60 * 1000,      // 1 query de desafios/h por navegador (free tier)
+  CHALLENGE_STANDINGS_TTL_MS: 30 * 60 * 1000,  // stats dos aceitos: 1 getDoc por participante a cada 30min
 
   // v1.8.4: a abertura-lição (OPENING_SCRIPT) existe porque, antes da v1.6,
   // o primeiro obstáculo nascia aos 34m e 83 das 512 corridas medidas

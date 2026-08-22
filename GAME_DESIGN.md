@@ -1,6 +1,6 @@
 # FURIOUS RHINO — Documento de Design
 
-> Estado atual do jogo (v1.8.5). Este documento descreve o que **é**, não o que
+> Estado atual do jogo (v1.8.6). Este documento descreve o que **é**, não o que
 > se imaginou no começo — as decisões de v1.1 em diante estão registradas aqui
 > com o motivo, e várias delas foram tomadas a partir dos dados reais de
 > telemetria (ver "Decisões orientadas por dados" no fim).
@@ -334,6 +334,40 @@ apagam juntas. Para o veterano, a roleta normal assume aos 60 m, com par e
 escolta de animais desde o começo. É a primeira vez que o jogo trata estreante
 e veterano de formas diferentes.
 
+## ⚔️ Arena de Desafios (v1.8.6) — competição com prazo e com nome
+
+O ranking provoca, mas não convoca: 69% dos jogadores jogavam um único dia
+(radiografia de 16/08) porque nada os chamava de volta AMANHÃ. A Arena é a
+resposta: um desafio direto, com prazo e com gente conhecida.
+
+- **Como funciona**: um jogador marca outros no top 10 (⚔️ em cada linha) e
+  envia um desafio de 1, 3 ou 7 dias. Vence a **melhor corrida em pontos**
+  dentro da janela — a régua da pontuação composta, imune a farm por volume e
+  virável até o último dia. Só quem ACEITA entra no placar (o convite chega
+  num popup ao abrir o jogo); criar exige apelido próprio, ser desafiado não;
+  máximo de 3 desafios criados ativos por jogador.
+- **A decisão de arquitetura que sustenta tudo: o desafio é metadado, o
+  placar é derivado.** O doc em `challenges/` guarda quem/prazo/aceites,
+  escrito uma vez pelo criador (o único update permitido é o mapa de aceites
+  crescer — trancado nas rules pelo `diff().affectedKeys()`). O placar é
+  computado por quem olha: lê-se o `stats/` público de cada aceito e
+  recomputa-se a melhor corrida da janela com o `ScoreSystem` — as corridas
+  já viajavam com timestamp desde a v1.6.1. **Zero write cruzado entre
+  jogadores**, que é exatamente a operação que um jogo sem login não sabe
+  proteger; **zero letra nova** em `runs[]`.
+- **Confiança assumida**: sem autenticação, um aceite é tecnicamente
+  falsificável — mesmo modelo do resto do jogo (qualquer cliente já pode
+  gravar qualquer score que passe na forma). Jogo entre amigos, decidido de
+  olhos abertos.
+- **A provocação vai até a pista**: os adversários viram estacas vermelhas na
+  distância da melhor corrida deles (o sistema de estacas de rival já
+  existia), com grito ao ultrapassar e o alvo em pontos anunciado na largada.
+  Nuance de honestidade: a estaca marca ONDE o rival chegou (metros); quem
+  decide é PONTOS — o toast diz o número que vale.
+- **Custo de rede**: 1 query por hora para descobrir convites, 1 leitura por
+  participante (cache de 30 min) para o placar — cabe no plano gratuito, e a
+  corrida nunca espera a rede (as estacas leem só o cache).
+
 ## 🏁 Engajamento
 
 - **Marcas na pista**: estacas com nome e distância do **seu recorde**, do
@@ -465,13 +499,14 @@ Leitura de 48 jogadores, 981 tentativas, 512 corridas e 945 mortes da v1.5:
 
 ## 🧪 Testes
 
-Doze suítes (detalhe por suíte em `docs/04-referencia-tecnica.md` §11); números
+Treze suítes (detalhe por suíte em `docs/04-referencia-tecnica.md` §11); números
 de 21/08/2026 — os que dependem do registry de skins variam com ele:
 
 | Comando | Asserts | Foco |
 |---|---|---|
 | `npm run test-stats` | 99 | Telemetria/agregação, `holdDays` nas duas semânticas, consistência contra as rules (inclusive as letras `e/h/l` e as causas `boss2`/`boss3`), digest — sem navegador |
 | `npm run test-score` | 83 | A fórmula da pontuação composta: pesos, blitz na borda, teto do bônus, formatadores — e o contrato de recomputação (ao vivo == recomputado de `runs[]`), agora cobrindo camadas e vitória dos bosses novos |
+| `npm run test-challenge` | 68 | A Arena: melhor corrida na janela (bordas, empates, pontos ≠ metros), countdown, status, guardas de criação e o texto das rules do `challenges` |
 | `npm run test-skins` | ~93 | Portão do /?setup (roda a cada gravação, com rollback): lógica de acesso com skins sintéticas + estrutura do registry real |
 | `npm run test-integrate` | 49 | A integração do estúdio como funções puras (round-trip, upsert/remove, patch do sw) |
 | `npm run test-ramp` | 39 | Rampa/trampolim, abertura guiada, teclado, pausa + desistir, par/escolta, knockback, a home nova e o contrato do toque |

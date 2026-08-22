@@ -95,19 +95,22 @@ eq('upsert é update quando o id já existe (não duplica)',
   ['Lava II']);
 eq('upsert de skin idêntica é byte-idêntico (idempotente)',
   upsertSkin(withLava, good) === withLava, true);
-// v2: originais EDITÁVEIS (menos o default)
-const silver = skins.find((s) => s.id === 'silver');
-const silverEdited = parseRegistry(upsertSkin(registrySrc, { ...silver, desc: 'editada!' }))
-  .find((s) => s.id === 'silver');
-eq('upsert edita uma original (só o default é intocável)', silverEdited.desc, 'editada!');
+// v2: originais EDITÁVEIS (menos o default). Alvo DINÂMICO — a regra
+// aprendida QUATRO vezes: nunca pinar skin real do registry (a 4ª foi a
+// 'silver', fixada aqui e removida de verdade pelo dono em 22/08, durante a
+// integração da v1.8.6). Qualquer skin não-default viva serve de cobaia.
+const cobaia = skins.find((s) => s.id !== 'default');
+const cobaiaEdited = parseRegistry(upsertSkin(registrySrc, { ...cobaia, desc: 'editada!' }))
+  .find((s) => s.id === cobaia.id);
+eq('upsert edita uma skin existente (só o default é intocável)', cobaiaEdited.desc, 'editada!');
 eq('upsert do default lança', throwsWith(
   () => upsertSkin(registrySrc, { ...skins[0], desc: 'hack' }), 'fallback'), true);
-// parte de uma base SEM a flag: o dono pode ter escondido a prata no registry real
-const silverBase = { ...silver };
-delete silverBase.hidden;
+// parte de uma base SEM a flag: o dono pode ter escondido a cobaia no registry real
+const cobaiaBase = { ...cobaia };
+delete cobaiaBase.hidden;
 eq('hidden sobrevive ao round-trip (true grava, false = chave ausente)',
-  [parseRegistry(upsertSkin(registrySrc, { ...silverBase, hidden: true })).find((s) => s.id === 'silver').hidden,
-    'hidden' in parseRegistry(upsertSkin(registrySrc, silverBase)).find((s) => s.id === 'silver')],
+  [parseRegistry(upsertSkin(registrySrc, { ...cobaiaBase, hidden: true })).find((s) => s.id === cobaia.id).hidden,
+    'hidden' in parseRegistry(upsertSkin(registrySrc, cobaiaBase)).find((s) => s.id === cobaia.id)],
   [true, false]);
 eq('remove tira a skin', parseRegistry(removeSkin(withLava, 'lava')).map((s) => s.id),
   skins.map((s) => s.id));

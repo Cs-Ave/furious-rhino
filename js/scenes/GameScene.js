@@ -13,6 +13,7 @@ import { SkinSystem, SKINS } from '../systems/SkinSystem.js';
 import { StatsSystem } from '../systems/StatsSystem.js';
 import { NotifySystem } from '../systems/NotifySystem.js';
 import { NewsSystem } from '../systems/NewsSystem.js';
+import { ChallengeSystem } from '../systems/ChallengeSystem.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -282,6 +283,15 @@ export class GameScene extends Phaser.Scene {
 
     this.setupIdentityUI();
     this.setupPwaPrompt();
+
+    // v1.8.6 — Arena de Desafios: card na home (cache primeiro, rede
+    // fire-and-forget — padrão do pódio) e o popup de convite. O convite vem
+    // DEPOIS do PWA de propósito: se o #pwa-modal abriu neste boot, o
+    // maybeShowChallengeInvite vê o modal-open e adia para o próximo boot
+    // (sem markSeen — o convite não se perde).
+    this.setupChallengeUI();
+    this.renderChallenges();
+    this.maybeShowChallengeInvite();
 
     // Reenvia os totais com a página parada: o envio do fim de corrida
     // morre se o jogador clicar "Jogar Novamente" rápido (reload mata o
@@ -849,12 +859,15 @@ export class GameScene extends Phaser.Scene {
     return news;
   }
 
-  async openRanking() {
+  // v1.8.6: `selectMode` = aberto pelo "⚔️ Desafiar" da home — o top 10 É o
+  // diretório de adversários (sem tela de busca); a dica aponta as espadas.
+  async openRanking(selectMode = false) {
     const modal = document.getElementById('ranking-modal');
     const list = document.getElementById('ranking-list');
     const me = document.getElementById('ranking-me');
     const status = document.getElementById('ranking-status');
     this.openModal(modal);
+    this.updateChallengeBar();
     list.innerHTML = '';
     me.textContent = '';
 
@@ -872,7 +885,9 @@ export class GameScene extends Phaser.Scene {
       status.textContent = 'Ninguém no ranking ainda. Seja o primeiro!';
       return;
     }
-    status.textContent = '';
+    status.textContent = selectMode
+      ? '⚔️ toque na espada para escolher os adversários'
+      : '';
 
     const myId = StorageManager.getOrCreatePlayerId();
     // v1.8: há quantos dias cada um está com a marca exibida
@@ -894,6 +909,24 @@ export class GameScene extends Phaser.Scene {
         hold.title = 'há quanto tempo com esta marca';
         right.append(hold);
       }
+      // v1.8.6: cada OUTRO jogador ganha a espadinha de desafio — o clique
+      // alterna a seleção e acende a barra "⚔️ Desafiar (N)" do rodapé
+      if (entry.id && entry.id !== myId) {
+        const chBtn = document.createElement('button');
+        chBtn.type = 'button';
+        chBtn.className = 'challenge-btn';
+        chBtn.textContent = '⚔️';
+        chBtn.title = `Desafiar ${entry.name}`;
+        const on = this.challengeSel.has(entry.id);
+        chBtn.classList.toggle('sel', on);
+        chBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        chBtn.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+        chBtn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          this.toggleChallengeSel(entry.id, entry.name, chBtn);
+        });
+        right.append(chBtn);
+      }
       li.append(name, right);
       list.appendChild(li);
     });
@@ -906,6 +939,354 @@ export class GameScene extends Phaser.Scene {
     } else {
       me.textContent = 'Jogue para entrar no ranking!';
     }
+  }
+
+  // ------------------------------------------------- ⚔️ Desafios (v1.8.6)
+  // Regras da casa valem dobrado aqui: todo clique tem stopPropagation em
+  // pointerdown E click (o overlay inteiro é "toque para começar"), nome de
+  // terceiro só via textContent, e rede NUNCA bloqueia a UI — pinta do cache
+  // síncrono e redesenha se o refresh trouxer novidade (padrão do pódio).
+
+  setupChallengeUI() {
+    // Seleção viva entre ranking ↔ modal de criação (id → nome)
+    this.challengeSel = new Map();
+    const durations = Constants.CHALLENGE_DURATIONS_D || [1, 3, 7];
+    this.challengeDays = durations.includes(3) ? 3 : durations[0];
+    this.pendingInvite = null;
+    const stop = (ev) => ev.stopPropagation();
+
+    // Botão "⚔️ Desafiar" da home: o top 10 é o diretório de adversários
+    const newBtn = document.getElementById('challenge-new');
+    newBtn.addEventListener('pointerdown', stop);
+    newBtn.addEventListener('click', (ev) => {
+      stop(ev);
+      this.openRanking(true);
+    });
+
+    // O card da home engole toques (regra de ouro 1)
+    const card = document.getElementById('challenge-card');
+    card.addEventListener('pointerdown', stop);
+    card.addEventListener('click', stop);
+
+    // Barra do rodapé do ranking → modal de criação
+    document.getElementById('challenge-bar-btn').addEventListener('click', (ev) => {
+      stop(ev);
+      this.closeModal(document.getElementById('ranking-modal'));
+      this.openChallengeCreate();
+    });
+
+    // Modal de criação
+    const createModal = document.getElementById('challenge-create-modal');
+    createModal.addEventListener('pointerdown', stop);
+    document.getElementById('challenge-send').addEventListener('click', (ev) => {
+      stop(ev);
+      this.sendChallenge();
+    });
+    document.getElementById('challenge-cancel').addEventListener('click', (ev) => {
+      stop(ev);
+      this.closeModal(createModal);
+    });
+
+    // Popup de convite
+    const inviteModal = document.getElementById('challenge-invite-modal');
+    inviteModal.addEventListener('pointerdown', stop);
+    document.getElementById('challenge-accept').addEventListener('click', async (ev) => {
+      stop(ev);
+      const ch = this.pendingInvite;
+      this.pendingInvite = null;
+      this.closeModal(inviteModal);
+      if (!ch) return;
+      let ok = false;
+      try { ok = await ChallengeSystem.accept(ch.id); } catch (e) { /* acessório */ }
+      this.showHomeToast(ok
+        ? '⚔️ Desafio aceito — boa corrida!'
+        : 'Não deu para aceitar — sem conexão? Tente pelo card.');
+      if (ok) this.renderChallenges();
+    });
+    document.getElementById('challenge-decline').addEventListener('click', (ev) => {
+      stop(ev);
+      const ch = this.pendingInvite;
+      this.pendingInvite = null;
+      try { if (ch) ChallengeSystem.declineLocal(ch.id); } catch (e) { /* acessório */ }
+      this.closeModal(inviteModal);
+    });
+  }
+
+  toggleChallengeSel(id, name, btn) {
+    const cap = (Constants.CHALLENGE_MAX_PARTICIPANTS || 8) - 1; // -1: eu
+    if (this.challengeSel.has(id)) {
+      this.challengeSel.delete(id);
+    } else if (this.challengeSel.size >= cap) {
+      const status = document.getElementById('ranking-status');
+      if (status) status.textContent = `⚔️ no máximo ${cap} adversários por desafio.`;
+      return;
+    } else {
+      this.challengeSel.set(id, name);
+    }
+    const on = this.challengeSel.has(id);
+    btn.classList.toggle('sel', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    this.updateChallengeBar();
+  }
+
+  updateChallengeBar() {
+    const bar = document.getElementById('challenge-bar');
+    if (!bar) return;
+    const n = this.challengeSel ? this.challengeSel.size : 0;
+    bar.hidden = n === 0;
+    document.getElementById('challenge-bar-btn').textContent = `⚔️ Desafiar (${n})`;
+  }
+
+  openChallengeCreate() {
+    document.getElementById('challenge-error').textContent = '';
+    this.renderChallengeChips();
+    this.renderChallengeDays();
+    this.openModal(document.getElementById('challenge-create-modal'));
+  }
+
+  renderChallengeChips() {
+    const box = document.getElementById('challenge-players');
+    box.textContent = '';
+    if (!this.challengeSel.size) {
+      const p = document.createElement('span');
+      p.className = 'chal-none';
+      p.textContent = 'Ninguém escolhido — marque ⚔️ no top 10.';
+      box.appendChild(p);
+      return;
+    }
+    for (const [id, name] of this.challengeSel) {
+      const chip = document.createElement('span');
+      chip.className = 'chal-chip';
+      const label = document.createElement('span');
+      label.textContent = name; // textContent: nome vem de terceiros
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.textContent = '✕';
+      x.setAttribute('aria-label', `Remover ${name}`);
+      x.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+      x.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        this.challengeSel.delete(id);
+        this.renderChallengeChips();
+        this.updateChallengeBar(); // o ranking pode reabrir com a barra certa
+      });
+      chip.append(label, x);
+      box.appendChild(chip);
+    }
+  }
+
+  renderChallengeDays() {
+    const box = document.getElementById('challenge-days');
+    box.textContent = '';
+    for (const d of Constants.CHALLENGE_DURATIONS_D || [1, 3, 7]) {
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = 'chal-pill';
+      pill.classList.toggle('sel', d === this.challengeDays);
+      pill.setAttribute('aria-pressed', d === this.challengeDays ? 'true' : 'false');
+      pill.textContent = `${d}d`;
+      pill.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+      pill.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        this.challengeDays = d;
+        this.renderChallengeDays();
+      });
+      box.appendChild(pill);
+    }
+  }
+
+  async sendChallenge() {
+    const err = document.getElementById('challenge-error');
+    const btn = document.getElementById('challenge-send');
+    const modal = document.getElementById('challenge-create-modal');
+    if (!this.challengeSel.size) {
+      err.textContent = 'Escolha pelo menos um adversário no top 10.';
+      return;
+    }
+    const myId = StorageManager.getOrCreatePlayerId();
+    const participants = [myId, ...this.challengeSel.keys()];
+    const names = { [myId]: StorageManager.getPlayerName() || '' };
+    for (const [id, name] of this.challengeSel) names[id] = name;
+
+    err.textContent = 'Enviando…';
+    btn.disabled = true;
+    let res = null;
+    try {
+      res = await ChallengeSystem.create({ participants, names, days: this.challengeDays });
+    } catch (e) { /* o contrato diz que não lança — cinto e suspensório */ }
+    btn.disabled = false;
+
+    if (res && res.ok) {
+      err.textContent = '';
+      this.challengeSel.clear();
+      this.updateChallengeBar();
+      this.closeModal(modal);
+      this.showHomeToast('⚔️ Desafio enviado!');
+      this.renderChallenges();
+      return;
+    }
+    const reason = res && res.reason;
+    if (reason === 'name') {
+      // Criar exige apelido próprio (não Anonimo_N): manda para o modal de
+      // apelido explicando O PORQUÊ — sem isso parece um fecha-abre aleatório
+      this.closeModal(modal);
+      this.showHomeToast('👤 Escolha um apelido para desafiar!');
+      this.openNicknameModal(true);
+      return;
+    }
+    err.textContent = reason === 'cap'
+      ? `Você já tem ${Constants.CHALLENGE_MAX_ACTIVE_CREATED || 3} desafios ativos.`
+      : reason === 'offline'
+        ? 'Sem conexão — tente de novo.'
+        : 'Não deu para criar o desafio — tente de novo.';
+  }
+
+  // 1 popup por boot, sempre DEPOIS do PWA: se qualquer modal já está aberto
+  // (o #pwa-modal deste boot), adia SEM markSeen — o convite volta no próximo.
+  maybeShowChallengeInvite() {
+    try {
+      if (document.body.classList.contains('modal-open')) return;
+      const invites = ChallengeSystem.unseenInvites() || [];
+      if (!invites.length) return;
+      const ch = invites[0];
+      const end = new Date(ch.endAt * 1000);
+      const dd = String(end.getDate()).padStart(2, '0');
+      const mm = String(end.getMonth() + 1).padStart(2, '0');
+      const who = (ch.from && ch.from.name) || 'Alguém';
+      // textContent: nome vem de terceiros
+      document.getElementById('challenge-invite-text').textContent =
+        `⚔️ ${who} te desafiou! Melhor corrida em pontos até ${dd}/${mm}. Topa?`;
+      this.pendingInvite = ch;
+      ChallengeSystem.markSeen(ch.id);
+      this.openModal(document.getElementById('challenge-invite-modal'));
+    } catch (e) { /* desafio é acessório — nunca derruba a home */ }
+  }
+
+  // O card da home: pinta do cache SÍNCRONO na hora e dispara o refresh
+  // fire-and-forget (padrão do pódio) — se vier novidade, repinta.
+  renderChallenges() {
+    const box = document.getElementById('challenge-card');
+    if (!box) return;
+    try { this.paintChallenges(box); } catch (e) { box.hidden = true; }
+    this.safeTelemetry(() => ChallengeSystem.refresh().then(() => {
+      try { this.paintChallenges(box); } catch (e) { /* acessório */ }
+    }));
+  }
+
+  paintChallenges(box) {
+    const myId = StorageManager.getOrCreatePlayerId();
+    const nowS = Math.floor(Date.now() / 1000);
+    const cached = ChallengeSystem.cached();
+    const list = (cached && cached.list) || [];
+    const mine = list.filter((ch) => {
+      const st = ChallengeSystem.statusOf(ch, myId);
+      return st === 'creator' || st === 'accepted';
+    });
+    // Encerrados há <24h viram card de RESULTADO; depois somem sozinhos
+    const ended = mine.filter((ch) => nowS >= ch.endAt && nowS - ch.endAt < 24 * 3600);
+    const active = mine.filter((ch) => ChallengeSystem.isActive(ch, nowS));
+    const show = [...ended, ...active];
+
+    box.textContent = '';
+    box.hidden = show.length === 0;
+    if (!show.length) return;
+    const MAX = 2;
+    for (const ch of show.slice(0, MAX)) {
+      box.appendChild(this.buildChallengeCard(ch, myId, nowS >= ch.endAt));
+    }
+    if (show.length > MAX) {
+      const more = document.createElement('div');
+      more.className = 'chal-more';
+      more.textContent = `+${show.length - MAX} desafios`;
+      box.appendChild(more);
+    }
+  }
+
+  buildChallengeCard(ch, myId, ended) {
+    const card = document.createElement('div');
+    card.className = 'chal-card';
+    const head = document.createElement('div');
+    head.className = 'chal-head';
+    const title = document.createElement('b');
+    title.textContent = ch.from && ch.from.id === myId
+      ? '⚔️ seu desafio'
+      : `⚔️ Desafio de ${(ch.from && ch.from.name) || '?'}`; // textContent
+    const cd = document.createElement('span');
+    cd.className = 'chal-count';
+    cd.textContent = ChallengeSystem.countdownText(ch.endAt, Date.now());
+    head.append(title, cd);
+    const rowsBox = document.createElement('div');
+    rowsBox.className = 'chal-rows';
+    rowsBox.textContent = '…'; // o placar chega quando standings resolver
+    card.append(head, rowsBox);
+
+    // standings tem TTL de 30min e nunca lança — mas o card já está no ar
+    this.safeTelemetry(() => ChallengeSystem.standings(ch).then((rows) => {
+      this.paintChallengeRows(card, rowsBox, ch, rows || [], myId, ended);
+    }));
+    return card;
+  }
+
+  paintChallengeRows(card, rowsBox, ch, rows, myId, ended) {
+    rowsBox.textContent = '';
+    const leader = ChallengeSystem.leaderOf(rows);
+
+    // Encerrado: o card vira resultado — e o veredito vai para o Diário
+    // (NewsSystem.push deduplica pela chave 'chal:'+id sozinho)
+    if (ended && rows.length) {
+      const verdict = document.createElement('div');
+      verdict.className = 'chal-result';
+      const won = leader && leader.id === myId;
+      verdict.textContent = won
+        ? '🏆 Você venceu!'
+        : leader ? `😤 ${leader.name} venceu` : '🤝 Ninguém correu — deu empate';
+      card.insertBefore(verdict, rowsBox);
+      const news = won ? '🏆 Você VENCEU um desafio da arena!'
+        : leader ? `⚔️ Desafio encerrado: ${leader.name} venceu.`
+          : '⚔️ Desafio encerrado sem corridas.';
+      if (NewsSystem.push(`chal:${ch.id}`, news, 'gold')) {
+        NewsSystem.renderInto(document.getElementById('news-list'));
+      }
+    }
+
+    // As rows do standings SÓ têm quem aceitou (contrato do ChallengeSystem)
+    for (const row of rows) {
+      const line = document.createElement('div');
+      line.className = 'chal-row';
+      if (row.id === myId) line.classList.add('me');
+      const left = document.createElement('span');
+      const right = document.createElement('span');
+      right.className = 'chal-pts';
+      const crown = leader && leader.id === row.id && row.best ? '👑 ' : '';
+      left.textContent = crown + row.name; // textContent: nome de terceiros
+      right.textContent = row.best
+        ? ScoreSystem.fmtPts(row.best.pts)
+        : 'ainda não correu';
+      line.append(left, right);
+      rowsBox.appendChild(line);
+    }
+
+    // Convidados que ainda não responderam: participants fora do accepted
+    const accepted = (ch.accepted && typeof ch.accepted === 'object') ? ch.accepted : {};
+    for (const pid of ch.participants || []) {
+      if (pid in accepted) continue;
+      const line = document.createElement('div');
+      line.className = 'chal-row waiting';
+      const left = document.createElement('span');
+      const name = (ch.names && ch.names[pid]) || '???';
+      left.textContent = `aguardando ${name}`; // textContent
+      line.appendChild(left);
+      rowsBox.appendChild(line);
+    }
+  }
+
+  // Toast DOM da home: o showToast do Phaser fica ATRÁS do overlay inicial.
+  showHomeToast(msg) {
+    const t = document.createElement('div');
+    t.className = 'home-toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2700);
   }
 
   // v1.8.4: `total` é a pontuação composta (o que ranqueia) e `meters` a
@@ -1190,6 +1571,28 @@ export class GameScene extends Phaser.Scene {
     // Small grace so a stray click right after the overlay hides can't jump
     this.time.delayedCall(150, () => { this.started = true; });
 
+    // v1.8.6 — a meta do desafio na largada: as estacas na pista marcam ONDE
+    // (metros), mas quem decide é PONTOS — este toast diz o número a bater.
+    // Tudo do cache síncrono (standingsCached); rede nenhuma na corrida.
+    this.safeTelemetry(() => {
+      const myId = StorageManager.getOrCreatePlayerId();
+      const nowS = Math.floor(Date.now() / 1000);
+      const cachedC = ChallengeSystem.cached();
+      for (const ch of (cachedC && cachedC.list) || []) {
+        if (!ChallengeSystem.isActive(ch, nowS)) continue;
+        const st = ChallengeSystem.statusOf(ch, myId);
+        if (st !== 'creator' && st !== 'accepted') continue;
+        const rows = ChallengeSystem.standingsCached(ch.id);
+        const leader = rows && ChallengeSystem.leaderOf(rows);
+        if (leader && leader.id !== myId && leader.best) {
+          this.time.delayedCall(700, () => this.showToast(
+            `⚔️ a bater: ${ScoreSystem.fmtPts(leader.best.pts)} de ${leader.name}`,
+            { y: 205, size: 24, duration: 2600, color: '#ff9a6c' }));
+          break;
+        }
+      }
+    });
+
     // Fullscreen + landscape lock: fire-and-forget, silently ignored on iOS
     (async () => {
       try {
@@ -1371,6 +1774,29 @@ export class GameScene extends Phaser.Scene {
       add(lm, `👑 ${rivals.leader.name}\n${lm}m`, 0xb79cff,
         '👑 VOCÊ É O NOVO LÍDER DO MUNDO!', true);
     }
+
+    // v1.8.6 — adversários dos desafios ativos que aceitei/criei, SÓ do
+    // cache síncrono (standingsCached — a corrida jamais espera rede).
+    // NOTA: a estaca marca ONDE (metros) foi a melhor corrida do adversário;
+    // quem DECIDE o desafio são os PONTOS — o toast da largada diz o número
+    // que vale. O anti-colisão de 90px do add() resolve sobreposições.
+    try {
+      const myId = StorageManager.getOrCreatePlayerId();
+      const nowS = Math.floor(Date.now() / 1000);
+      const cachedC = ChallengeSystem.cached();
+      for (const ch of (cachedC && cachedC.list) || []) {
+        if (!ChallengeSystem.isActive(ch, nowS)) continue;
+        const st = ChallengeSystem.statusOf(ch, myId);
+        if (st !== 'creator' && st !== 'accepted') continue;
+        const rows = ChallengeSystem.standingsCached(ch.id);
+        if (!rows) continue;
+        for (const row of rows) {
+          if (row.id === myId || !row.best) continue;
+          add(row.best.m, `⚔️ ${row.name}\n${row.best.m}m`, 0xff6b6b,
+            `⚔️ VOCÊ PASSOU ${row.name.toUpperCase()} NO DESAFIO!`);
+        }
+      }
+    } catch (e) { /* desafio é acessório — a pista nasce sem as estacas */ }
   }
 
   updateTrackMarks() {

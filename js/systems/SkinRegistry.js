@@ -44,14 +44,6 @@ export const SKINS = [
     "hidden": true
   },
   {
-    "id": "silver",
-    "name": "Rino de Prata",
-    "prefix": "rhino-silver-run",
-    "access": {"type":"rank","rank":2},
-    "desc": "🥈 Exclusiva do nº 2 do mundo.",
-    "hidden": true
-  },
-  {
     "id": "bronze",
     "name": "Rino de Bronze",
     "prefix": "rhino-bronze-run",
@@ -86,5 +78,12 @@ export const SKINS = [
     "prefix": "rhino-catisquicksrhino-run",
     "access": {"type":"achievement","condition":{"towersDowned":5,"bossLayers":3}},
     "desc": "feito pelo GOAT 😎"
+  },
+  {
+    "id": "mecacolor",
+    "name": "Meca Color",
+    "prefix": "rhino-mecacolor-run",
+    "access": {"type":"default"},
+    "desc": "Meca Color"
   }
 ];

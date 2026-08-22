@@ -12,6 +12,7 @@
 
 **Origem:** sessão de planejamento de 16/08/2026 (ver §7, Procedência).
 **Última atualização:** 21/08/2026 — criação a partir do levantamento de 16/08; a **ideia A saiu na v1.8.4** no mesmo dia, e as **ideias B, C e D saíram juntas na v1.8.5**, também no mesmo dia.
+**22/08/2026** — entra a ideia **I. Arena de Desafios** (desafios 1v1 e em grupo), desenhada com o dono — **e entregue na v1.8.6 no mesmo dia**.
 
 ---
 
@@ -461,6 +462,11 @@ nome de 3 a 12 caracteres, sempre via `textContent`.
 nada. O "ghost" (fantasma da corrida do amigo) ficou **fora**: exigiria série
 temporal, coleção nova e mudança de rules.
 
+*Relação com a ideia I (22/08):* G é para o amigo **de fora** (sem cadastro,
+via WhatsApp — aquisição); a **Arena de Desafios** é entre quem **já joga**
+(retenção). Convivem, e G pode virar a porta de entrada da arena: aceitou o
+desafio por link → cadastrou o apelido → é desafiável na arena.
+
 ### H. Faixas novas no funil do `/?stats` 📐 — a mais barata da lista
 
 Hoje o funil do painel termina em "1000m+" (`StatsDashboard.js:362` e `:533`).
@@ -471,6 +477,115 @@ Parametrizar as faixas e acrescentar 1.400 / 2.000 / 3.000 / 5.000 m.
 visibilidade permanente ao deserto do §4.3.
 
 **Custo** XS · **Impacto** indireto, mas destrava B · **Depende de** nada.
+
+### I. Arena de Desafios — 1v1 e em grupo entre cadastrados ✅ **v1.8.6**
+
+> ✅ **ENTREGUE em 22/08/2026 (v1.8.6)** — no mesmo dia em que foi desenhada.
+> A explicação do que o jogo faz mora no `GAME_DESIGN.md` (seção "Arena de
+> Desafios"); o contrato técnico em `docs/04` §6 (coleção `challenges`) e §11
+> (`test-challenge`). Decisões fechadas na implementação: apelido próprio
+> obrigatório para CRIAR, teto de 3 desafios ativos criados. Ficou de fora,
+> ainda como ideia: **revanche a um toque** ao fim do desafio.
+> O texto abaixo fica como registro do desenho original.
+
+**O que é.** Um jogador marca outro (ou um grupo) e envia um desafio com prazo:
+**quem fizer a melhor corrida em PONTOS dentro da janela vence**. O desafiado
+recebe um popup ao abrir o jogo e decide se entra; a home ganha um card com o
+placar ao vivo, countdown e a coroa em quem lidera; dentro da corrida, os
+desafiados viram estacas na pista com provocação ao ultrapassar.
+
+**O dado que motiva.** O diagnóstico nº 1 do levantamento (§4.1): 69% dos
+jogadores jogam **um único dia**. O jogo não dá nenhum motivo social para
+voltar amanhã — um desafio com prazo é exatamente esse motivo, e a pressão vem
+de gente conhecida, não de um ranking anônimo.
+
+**Decisões já tomadas com o dono (22/08):**
+- **Métrica**: melhor corrida única em **pontos** (a régua da v1.8.4) dentro da
+  janela — simples, imune a farm por volume, virável até o último dia.
+- **Duração**: o desafiante escolhe **1, 3 ou 7 dias** (teto 7 — nada fica
+  pendurado na home para sempre).
+- **Aceite**: **só quem aceitar entra no placar**. Quem ignora fica de fora e o
+  desafiante vê o status ("aguardando" / "recusou"); sem nenhum aceite até o
+  fim, o desafio expira sem vencedor. Ninguém é exposto num placar sem querer.
+
+**Como funciona — a decisão central: o desafio é METADADO, o placar é DERIVADO.**
+
+O fato que faz a ideia caber nesta arquitetura (sem backend, sem login,
+Firestore grátis): `StatsSystem.send()` já envia a janela de `runs[]` — com
+`t` (epoch s), `m` e os contadores de façanha — para `stats/{playerId}` a cada
+fim de corrida e boot (`StatsSystem.js:192-237`), com leitura pública. E
+`ScoreSystem.runBonus(run)` recomputa os pontos de qualquer corrida. Logo:
+
+- **Coleção nova `challenges/{id}`** (id aleatório do cliente), com SÓ
+  metadados: `{ from: {id, name}, participants: [ids], names: {id: apelido},
+  startAt, endAt, accepted: {id: epoch}, createdAt }`. Escrita **1× pelo
+  desafiante**; o único update permitido é o mapa `accepted` crescer.
+- **O placar não é gravado em lugar nenhum**: quem abre o painel lê
+  `stats/{id}` de cada participante aceito (1 read cada, cache TTL ~30 min) e
+  computa `max(ScoreSystem.total(run.m, ScoreSystem.runBonus(run)))` das runs
+  com `startAt <= run.t <= endAt`. **Zero write cruzado entre jogadores** — a
+  operação que esta arquitetura sem auth não sabe proteger simplesmente não
+  existe no desenho.
+- **Descoberta de desafio recebido**: query `array-contains`
+  (`participants` contém meu id) no boot da home, cache TTL 1h no molde do
+  `NewsSystem.refresh()`; filtro de `endAt` no cliente (dispensa índice
+  composto). O SDK lite expõe `array-contains` (nunca usado até hoje — o
+  namespace inteiro chega via `getDb()`).
+- **Rules** (uma publicação, coleção própria — não pesa no orçamento de
+  `stats`/`scores`): create validando forma (participants 2..8, `endAt −
+  startAt <= 7d`, `endAt > request.time`, strings com teto, ids 16–40); update
+  só se o diff afeta apenas `accepted` e só adiciona chaves que estão em
+  `participants`; delete false.
+- **Nenhuma letra nova em `runs[]`** — o placar deriva do que já é gravado.
+
+**UX:**
+- **Desafiar**: botão ⚔️ em cada linha do top 10 — o `entry.id` já chega à
+  linha hoje e é descartado (`GameScene.js` monta o `li` com ele) — mais um
+  botão "⚔️ Desafiar" na home. Seleção múltipla = grupo. **O top 10 É o
+  diretório**: sem tela de busca; quem nunca pontuou não tem doc em `scores/`
+  e não é desafiável (consequência aceita).
+- **Receber**: no boot, desafio novo (dedupe permanente por chave, padrão
+  `NewsSystem.push`) abre modal no molde do `#pwa-modal`: "⚔️ Fulano te
+  desafiou — melhor corrida em pontos até domingo. Aceitar / Recusar".
+- **Home**: card do desafio ativo com countdown ("termina em 2d 14h"),
+  participantes com a melhor marca da janela e 👑 em quem lidera; para o
+  desafiante, o status dos convites. Resultado final vira card do Diário
+  ("🏆 Você venceu o desafio contra Fulano!") — reusa `NewsSystem.push`.
+- **Na corrida**: estacas dos desafiados plantadas na marca (em METROS) da
+  melhor corrida deles na janela — reusa `createTrackMarks`
+  (`GameScene.js:1319-1374`, anti-colisão de 90 px), com provocação ao
+  ultrapassar ("⚔️ VOCÊ PASSOU FULANO NO DESAFIO!") e toast na largada com o
+  alvo ("a bater: 1.842 pts de Fulano"). *Nuance de honestidade*: a estaca
+  marca ONDE o rival chegou (metros); quem decide é PONTOS — o toast e o
+  painel dizem o número que vale.
+
+**Custo** M–G (coleção + rules + 3 superfícies de UI + estacas) · **Impacto**
+alto — ataca o §4.1 com pressão social por prazo · **Depende de** a v1.8.4
+estar em produção (a métrica é pontos). Nada mais.
+
+**Armadilhas:**
+- **Sem auth, o aceite é falsificável** (as rules não têm `request.auth` —
+  qualquer cliente escreve qualquer doc que passe na forma). Limitação
+  ASSUMIDA: é o mesmo modelo de confiança do resto do jogo, onde qualquer um
+  já pode gravar qualquer score. Jogo entre amigos.
+- **Janela de 50 runs**: um jogador MUITO ativo pode expulsar a própria melhor
+  corrida da janela durante um desafio longo (raro — média de 4,6
+  corridas/sessão). Mitigação possível (cache local do máximo já visto por
+  espectador) descartada por gerar placares divergentes entre aparelhos;
+  aceitar o caso raro é mais honesto.
+- **Sem transação no lite**: dois aceites simultâneos podem colidir (último
+  vence). Inofensivo — o mapa `accepted` só cresce.
+- **Leituras**: painel = N participantes × 1 read, com TTL; check de desafio
+  novo = 1 query/h. Cabe no free tier na escala atual (51 jogadores).
+- **Limpeza**: sem delete, desafios expirados somem da UI e ficam órfãos no
+  banco — script admin opcional (molde do `cleanup-stats.mjs`), sem urgência.
+- **`Anonimo_N`** é desafiável, mas o nome fica feio no card.
+
+**Decisões em aberto (para a hora de puxar):**
+1. Exigir apelido não-automático para CRIAR desafio (ser desafiado não exige)?
+2. Revanche a um toque ao fim ("desafiar de novo")?
+3. Teto de desafios ativos simultâneos por jogador (sugestão: 3)?
+4. Fuso: `endAt` em epoch UTC resolve; exibição sempre local.
 
 ### Descartadas / adiadas (com o motivo, para não voltarem por engano)
 
@@ -532,6 +647,7 @@ levantamento recomendou (barato e destravante primeiro):
 | 6 | **G** — desafio por link | M | **aquisição** |
 | ~~7~~ | ~~**A** — pontuação composta~~ | — | ✅ **entregue na v1.8.4** |
 | ~~8~~ | ~~**C** — boss "Guardião do Fim"~~ | — | ✅ **entregue na v1.8.5** |
+| ~~9~~ | ~~**I** — Arena de Desafios~~ | — | ✅ **entregue na v1.8.6** |
 
 Nada obriga a essa ordem — A e G são independentes de tudo e podem furar a fila
 a qualquer momento.

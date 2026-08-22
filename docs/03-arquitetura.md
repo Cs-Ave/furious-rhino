@@ -1,6 +1,6 @@
 # Furious Rhino — Arquitetura
 
-> Documentação da versão **1.8.5** · atualizada em 21/08/2026
+> Documentação da versão **1.8.6** · atualizada em 21/08/2026
 > Visão técnica intermediária: como o projeto é organizado, os principais componentes e como eles conversam. Pressupõe noções de programação, mas explica os termos específicos do projeto.
 
 ## 1. Filosofia
@@ -42,6 +42,9 @@ index.html ─── HUD, telas e modais em DOM + CSS (~1300 linhas), carrega Ph
          │    │    │                        (módulo PURO — sem Phaser, testado no node)
          │    │    ├── LeaderboardSystem ── ranking (Firestore: scores/, score=total + scoreM=metros)
          │    │    │                        + pódio da home (cache 6h)
+         │    │    ├── ChallengeSystem ──── Arena de Desafios (v1.8.6): desafio = metadado em
+         │    │    │                        challenges/, placar DERIVADO do stats/ público dos
+         │    │    │                        aceitos (zero write cruzado; caches TTL 1h/30min)
          │    │    ├── NewsSystem ───────── Diário da Fuga (config/news do console + eventos locais)
          │    │    ├── StatsSystem ──────── telemetria (Firestore: stats/)
          │    │    ├── NotifySystem ─────── pushes ntfy do administrador
