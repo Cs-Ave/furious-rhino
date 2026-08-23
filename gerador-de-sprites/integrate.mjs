@@ -342,3 +342,81 @@ export function validateSpriteOverride({ specs, behavior } = {}) {
   if (behavior && behavior.fly && behavior.zig) errors.push('fly e zig não podem coexistir');
   return errors;
 }
+
+// Bloco gerenciado GENÉRICO (extraído do patchSwAssets, que segue como o
+// wrapper das skins): reescreve só o miolo entre os marcadores dados.
+export function patchManagedBlock(src, startMarker, endMarker, lines) {
+  const count = (s, needle) => s.split(needle).length - 1;
+  if (count(src, startMarker) !== 1 || count(src, endMarker) !== 1) {
+    throw new Error(`marcadores ${startMarker.trim()} ausentes ou duplicados`);
+  }
+  const startLineEnd = src.indexOf('\n', src.indexOf(startMarker));
+  const endIdx = src.indexOf(endMarker);
+  const endLineStart = src.lastIndexOf('\n', endIdx) + 1;
+  if (endLineStart <= startLineEnd) throw new Error(`marcadores ${startMarker.trim()} fora de ordem`);
+  const middle = lines.length ? `${lines.join('\n')}\n` : '';
+  return src.slice(0, startLineEnd + 1) + middle + src.slice(endLineStart);
+}
+
+export const SPRITES_SW_START = '// @setup:sprites —';
+export const SPRITES_SW_END = '// @setup:sprites:fim';
+
+// As linhas do bloco derivam SEMPRE de `novas` inteiro (regeneração integral
+// = idempotente, como o patchSwAssets faz do registry)
+export function spriteSwLines(novas) {
+  const lines = [];
+  for (const n of novas) {
+    lines.push(`  './art/enemy-${n.id}.svg',`);
+    if (n.anim) lines.push(`  './art/enemy-${n.id}-${n.anim.sufixo}.svg',`);
+  }
+  return lines;
+}
+export const patchSwSprites = (swSrc, novas) =>
+  patchManagedBlock(swSrc, SPRITES_SW_START, SPRITES_SW_END, spriteSwLines(novas));
+
+// Validação de forma de uma espécie NOVA (coerência profunda = portão)
+export function validateNovaEspecie(n) {
+  const errors = [];
+  if (!/^[a-z0-9][a-z0-9-]{0,23}$/.test(n.id || '')) errors.push('id inválido');
+  const s = n.specs || {};
+  for (const k of ['w', 'h', 'bodyW', 'bodyH', 'offX', 'offY']) {
+    if (typeof s[k] !== 'number' || !isFinite(s[k])) errors.push(`specs.${k} obrigatório`);
+  }
+  if (errors.length) return errors;
+  if (s.offX + s.bodyW > s.w || s.offY + s.bodyH > s.h) errors.push('hitbox não cabe no canvas');
+  if (s.tex !== `enemy-${n.id}`) errors.push('specs.tex deve ser enemy-<id>');
+  if (s.scale !== undefined && !(s.scale >= 0.5 && s.scale <= 2)) errors.push('scale 0.5..2');
+  if (s.pair) errors.push('pair é proibido em espécie criada (invariante do e2e-ramp)');
+  const b = n.behavior || {};
+  if (!(b.speed >= 10 && b.speed <= 600)) errors.push('behavior.speed 10..600');
+  errors.push(...validateSpriteOverride({
+    behavior: Object.fromEntries(Object.entries(b)
+      .filter(([k]) => !['speed', 'anim', 'airTexture'].includes(k))),
+  }));
+  if (b.fly && b.zig) errors.push('fly e zig não podem coexistir');
+  if (n.anim) {
+    if (!['run-1', 'flap', 'alt', 'air'].includes(n.anim.sufixo)) errors.push('anim.sufixo inválido');
+    if (n.anim.sufixo === 'air') {
+      if (b.airTexture !== `enemy-${n.id}-air`) errors.push('sufixo air exige airTexture = enemy-<id>-air');
+      if (!(b.jumpV < 0) || !(b.jumpIntervalMs > 0)) errors.push('sufixo air exige jumpV e jumpIntervalMs (é a pose do pulo)');
+      if (n.anim.fps) errors.push('sufixo air não tem fps (troca por estado)');
+    } else if (n.anim.fps !== undefined && !(n.anim.fps >= 2 && n.anim.fps <= 24)) {
+      errors.push('anim.fps 2..24');
+    }
+    if (n.anim.fps && b.anim !== `${n.id}-run`) errors.push('com fps, behavior.anim deve ser <id>-run');
+  } else if (b.anim || b.airTexture) {
+    errors.push('sem 2º frame não há anim/airTexture');
+  }
+  const c = n.casts || {};
+  const BIOMAS_OK = ['jaulas', 'aviario', 'savana', 'floresta', 'pantano', 'cidade'];
+  const DISTRITOS_OK = ['suburbio', 'vidro', 'contencao'];
+  for (const x of c.biomas || []) if (!BIOMAS_OK.includes(x)) errors.push(`bioma desconhecido: ${x}`);
+  for (const x of c.distritos || []) {
+    if (!DISTRITOS_OK.includes(x)) errors.push(`distrito inválido: ${x} (brecha e rodovia são protegidos por design)`);
+  }
+  if (!((c.biomas || []).length + (c.distritos || []).length)) errors.push('escolha ao menos 1 bioma ou distrito');
+  if ((b.fly || b.zig) && (c.biomas || []).includes('floresta')) {
+    errors.push('voador na floresta quebra o fallback do e2e-special (bioma sem voador por design)');
+  }
+  return errors;
+}

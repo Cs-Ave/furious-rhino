@@ -1032,9 +1032,8 @@ function linhaOrfao(s, recarregar) {
   row.append(meta);
   const acoes = el('div', 'sp-acoes');
   const btnAtrib = el('button', 'su-primary', '🎯 Atribuir');
-  btnAtrib.addEventListener('click', () => {
-    alert('A atribuição (trocar arte de espécie existente ou criar espécie nova) chega na fatia S5.');
-  });
+  btnAtrib.disabled = Boolean(s.atribuido);
+  btnAtrib.addEventListener('click', () => alternarAtribuir(row, s, recarregar));
   const btnDel = el('button', 'su-danger', '🗑');
   btnDel.title = 'excluir do estoque';
   btnDel.addEventListener('click', async () => {
@@ -1055,6 +1054,303 @@ function linhaOrfao(s, recarregar) {
   acoes.append(btnAtrib, btnDel);
   row.append(acoes);
   return row;
+}
+
+// ===================================================== 🎯 atribuição (S5)
+// Painel inline com os dois destinos de um sprite gerado: assumir a arte de
+// uma espécie enemy-* existente, ou nascer como espécie NOVA. Tudo
+// tudo-ou-nada no servidor (portão + rollback) — aqui só a pré-validação
+// amigável e o resumo literal do que será escrito.
+let atribuirAberto = null;
+
+function alternarAtribuir(row, s, recarregar) {
+  const jaEra = atribuirAberto && atribuirAberto.id === s.id;
+  if (atribuirAberto) { atribuirAberto.painel.remove(); atribuirAberto = null; }
+  if (jaEra) return;
+  const painel = construirAtribuir(s, recarregar);
+  row.after(painel);
+  atribuirAberto = { painel, id: s.id };
+}
+
+// Sufixo que uma espécie usa hoje (mesmo contrato do jogo/infoAnim)
+function sufixoDe(t) {
+  const b = Constants.ANIMAL_BEHAVIOR[t];
+  if (ANIMS_MAP[t]) return ANIMS_MAP[t].sufixo;
+  if (b.airTexture) return 'air';
+  if (b.zig) return 'alt';
+  return null;
+}
+
+function construirAtribuir(s, recarregar) {
+  const painel = el('div', 'sp-editor');
+  painel.append(el('b', 'sp-campos-titulo', `🎯 Atribuir "${s.id}" ao jogo`));
+
+  const modos = el('div', 'sp-campos');
+  const radioA = document.createElement('input');
+  radioA.type = 'radio';
+  radioA.name = `sp-atrib-${s.id}`;
+  radioA.checked = true;
+  const lblA = el('label', 'sp-campo', ' substituir a arte de uma espécie existente');
+  lblA.prepend(radioA);
+  const radioB = document.createElement('input');
+  radioB.type = 'radio';
+  radioB.name = `sp-atrib-${s.id}`;
+  const lblB = el('label', 'sp-campo', ' criar espécie NOVA');
+  lblB.prepend(radioB);
+  modos.append(lblA, lblB);
+  painel.append(modos);
+
+  const status = el('span', 'su-muted', '');
+  const out = document.createElement('pre');
+  out.hidden = true;
+
+  // ---------- destino A: substituição
+  const secA = el('div', 'sp-fieldset');
+  const sel = document.createElement('select');
+  const candidatos = Constants.ANIMAL_TYPES.filter((t) => {
+    const spec = Constants.ANIMAL_SPECS[t];
+    return spec.tex && spec.tex.startsWith('enemy-');
+  });
+  const compatDe = (t) => {
+    const spec = Constants.ANIMAL_SPECS[t];
+    const suf = sufixoDe(t);
+    if ((s.sufixo || null) !== suf) return `✗ sufixo ${suf || '1 frame'}`;
+    if (spec.w !== s.alvoW || spec.h !== s.alvoH) return `✗ canvas ${spec.w}×${spec.h}`;
+    return '✓ compatível';
+  };
+  for (const t of candidatos) {
+    const o = document.createElement('option');
+    o.value = t;
+    o.textContent = `${t} — ${compatDe(t)}`;
+    sel.append(o);
+  }
+  const lSel = el('label', 'sp-campo', 'espécie ');
+  lSel.append(sel);
+  const lHit = el('label', 'sp-campo', ' adotar a hitbox sugerida ');
+  const chkHit = document.createElement('input');
+  chkHit.type = 'checkbox';
+  chkHit.checked = true;
+  lHit.prepend(chkHit);
+  const btnRep = el('button', 'su-primary', '🎯 Substituir arte');
+  const nota = el('p', 'su-muted',
+    'Compatível = mesmo sufixo de 2º frame e mesmo canvas — os arquivos do alvo são '
+    + 'trocados NO LUGAR (manifesto e sw intocados). Atenção: camionete compartilha a '
+    + 'arte do pickup; trocar um muda os dois.');
+  secA.append(lSel, lHit, btnRep, nota);
+  painel.append(secA);
+
+  // ---------- destino B: espécie nova
+  const secB = el('div', 'sp-fieldset');
+  secB.hidden = true;
+  const inp = {};
+  const campoN = (chave, rotulo, valor, step = 1) => {
+    const l = el('label', 'sp-campo', `${rotulo} `);
+    const i = document.createElement('input');
+    i.type = 'number';
+    i.step = step;
+    if (valor !== undefined && valor !== null && valor !== '') i.value = valor;
+    l.append(i);
+    inp[chave] = i;
+    return l;
+  };
+  const DEFAULTS = {
+    terrestre: { speed: 150 }, saltador: { speed: 150 }, voador: { speed: 180, bobVy: 50 },
+    'voador-zig': { speed: 180 }, atirador: { speed: 200 }, sentinela: { speed: 140, bobVy: 20 },
+  };
+  const dft = DEFAULTS[s.arquetipo] || DEFAULTS.terrestre;
+  const g1 = el('div', 'sp-campos');
+  g1.append(el('b', 'sp-campos-titulo', 'Comportamento'));
+  g1.append(campoN('speed', 'velocidade', dft.speed, 5));
+  g1.append(campoN('bobVy', 'ondulação (opcional)', dft.bobVy, 5));
+  if (s.sufixo === 'air') {
+    g1.append(campoN('jumpV', 'impulso do pulo', -700, 10));
+    g1.append(campoN('jumpIntervalMs', 'intervalo do pulo (ms)', 450, 50));
+  } else if (s.sufixo) {
+    g1.append(campoN('fps', 'fps da animação', FPS_SUGERIDO[s.sufixo] || 8, 1));
+  }
+  secB.append(g1);
+
+  const chkDe = (rotulo, ativo) => {
+    const l = el('label', 'sp-campo', ` ${rotulo}`);
+    const c = document.createElement('input');
+    c.type = 'checkbox';
+    c.checked = ativo;
+    l.prepend(c);
+    return [l, c];
+  };
+  const g2 = el('div', 'sp-campos');
+  const [lFly, chkFly] = chkDe('🪽 voa', ['voador', 'sentinela'].includes(s.arquetipo));
+  const [lZig, chkZig] = chkDe('⚡ zig-zag', s.arquetipo === 'voador-zig');
+  const [lShoot, chkShoot] = chkDe('🎯 atira', ['atirador', 'sentinela'].includes(s.arquetipo));
+  const [lSent, chkSent] = chkDe('📡 conta como torre', s.arquetipo === 'sentinela');
+  g2.append(lFly, campoN('flyMin', 'y mín', 440, 5), campoN('flyMax', 'y máx', 520, 5));
+  g2.append(lZig, campoN('zigVy', 'vy', 260, 10), campoN('zigMin', 'banda mín', 400, 5), campoN('zigMax', 'banda máx', 545, 5));
+  g2.append(lShoot, campoN('telegraphMs', 'telegraph', 300, 10), campoN('dartSpeed', 'vel. dardo', 620, 10),
+    campoN('intervalMs', 'intervalo', 1400, 100), campoN('cap', 'máx em tela', 1, 1), lSent);
+  secB.append(g2);
+
+  const hs = s.hitboxSugerida || { bodyW: 40, bodyH: 28, offX: 6, offY: 12 };
+  const g3 = el('div', 'sp-campos');
+  g3.append(el('b', 'sp-campos-titulo', `Hitbox (canvas ${s.alvoW}×${s.alvoH} — sugerida pelo gerador)`));
+  g3.append(campoN('bodyW', 'largura', hs.bodyW), campoN('bodyH', 'altura', hs.bodyH),
+    campoN('offX', 'offX (espelhado)', hs.offX), campoN('offY', 'offY', hs.offY),
+    campoN('scale', 'escala (vazio = 1.5)', '', 0.05));
+  secB.append(g3);
+
+  const g4 = el('div', 'sp-campos');
+  g4.append(el('b', 'sp-campos-titulo', 'Onde aparece'));
+  const castChecks = [];
+  for (const [key, rotulo] of Object.entries(Constants.BIOME_LABELS)) {
+    const [l, c] = chkDe(rotulo, false);
+    castChecks.push({ tipo: 'biomas', key, chk: c });
+    g4.append(l);
+  }
+  for (const d of Constants.CITY_DISTRICTS) {
+    if (!['suburbio', 'vidro', 'contencao'].includes(d.key)) continue;
+    const [l, c] = chkDe(d.label || d.key, false);
+    castChecks.push({ tipo: 'distritos', key: d.key, chk: c });
+    g4.append(l);
+  }
+  g4.append(el('p', 'su-muted', 'Brecha e rodovia são protegidos por design. Voador não entra na floresta (fallback do e2e).'));
+  secB.append(g4);
+  const btnNew = el('button', 'su-primary', '🧬 Revisar e criar espécie');
+  secB.append(btnNew);
+  painel.append(secB);
+
+  radioA.addEventListener('change', () => { secA.hidden = false; secB.hidden = true; });
+  radioB.addEventListener('change', () => { secA.hidden = true; secB.hidden = false; });
+
+  painel.append(el('div', 'sp-acoes'));
+  painel.lastChild.append(status);
+  painel.append(out);
+
+  const post = async (payload) => {
+    status.className = 'su-muted';
+    status.textContent = 'gravando + rodando o portão (test-sprites + test-skins)…';
+    out.hidden = true;
+    const r = await fetch(`${API}/api/sprite/assign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pendingId: s.id, ...payload }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      status.className = 'su-err';
+      status.textContent = j.error || `erro ${r.status}`;
+      if (j.testOutput) { out.textContent = j.testOutput; out.hidden = false; }
+      return null;
+    }
+    return j;
+  };
+
+  btnRep.addEventListener('click', async () => {
+    const alvo = sel.value;
+    const spec = Constants.ANIMAL_SPECS[alvo];
+    if (compatDe(alvo) !== '✓ compatível') {
+      status.className = 'su-err';
+      status.textContent = `"${alvo}" não é compatível (${compatDe(alvo)}) — gere no sufixo/canvas certos`;
+      return;
+    }
+    if (!confirm(`Substituir a arte de "${alvo}" pelos SVGs de "${s.id}"?\n`
+      + `Será escrito: art/${spec.tex}.svg${s.sufixo ? ` + art/${spec.tex}-${s.sufixo}.svg` : ''}`
+      + `${chkHit.checked ? ' + hitbox sugerida como ajuste' : ''}.\n`
+      + 'Portão de testes com rollback; o site ao vivo só muda na release.')) return;
+    btnRep.disabled = true;
+    const j = await post({ modo: 'replace', alvo, tex: spec.tex, adoptHitbox: chkHit.checked });
+    btnRep.disabled = false;
+    if (!j) return;
+    if (chkHit.checked && s.hitboxSugerida) {
+      reaplicarLocal(alvo, { specs: s.hitboxSugerida });
+    }
+    status.className = 'su-ok';
+    status.textContent = `✓ arte de "${alvo}" substituída — F5 na aba do jogo (e aqui, para as thumbs)`;
+    recarregar();
+  });
+
+  btnNew.addEventListener('click', async () => {
+    const num2 = (k) => (inp[k] && inp[k].value !== '' ? Number(inp[k].value) : undefined);
+    if (chkFly.checked && chkZig.checked) {
+      status.className = 'su-err';
+      status.textContent = 'fly e zig não podem coexistir';
+      return;
+    }
+    const casts = { biomas: [], distritos: [] };
+    for (const c of castChecks) if (c.chk.checked) casts[c.tipo].push(c.key);
+    if (!casts.biomas.length && !casts.distritos.length) {
+      status.className = 'su-err';
+      status.textContent = 'escolha ao menos 1 bioma ou distrito';
+      return;
+    }
+    if ((chkFly.checked || chkZig.checked) && casts.biomas.includes('floresta')) {
+      status.className = 'su-err';
+      status.textContent = 'voador não entra na floresta (invariante do e2e)';
+      return;
+    }
+    const behavior = { speed: num2('speed') };
+    if (num2('bobVy') !== undefined) behavior.bobVy = num2('bobVy');
+    if (s.sufixo === 'air') {
+      behavior.jumpV = num2('jumpV');
+      behavior.jumpIntervalMs = num2('jumpIntervalMs');
+    }
+    if (chkFly.checked) behavior.fly = [num2('flyMin'), num2('flyMax')];
+    if (chkZig.checked) behavior.zig = { vy: num2('zigVy'), band: [num2('zigMin'), num2('zigMax')] };
+    if (chkShoot.checked) {
+      behavior.shoot = { telegraphMs: num2('telegraphMs'), dartSpeed: num2('dartSpeed') };
+      if (num2('intervalMs') !== undefined) behavior.shoot.intervalMs = num2('intervalMs');
+      if (num2('cap') !== undefined) behavior.shoot.cap = num2('cap');
+      if (chkSent.checked) { behavior.shoot.aimed = true; behavior.sentinel = true; }
+    }
+    const specs = { bodyW: num2('bodyW'), bodyH: num2('bodyH'), offX: num2('offX'), offY: num2('offY') };
+    if (num2('scale') !== undefined) specs.scale = num2('scale');
+    const resumo = [
+      `Criar a espécie "${s.id}" — será escrito:`,
+      `• art/enemy-${s.id}.svg${s.sufixo ? ` + art/enemy-${s.id}-${s.sufixo}.svg` : ''}`,
+      `• SpriteParams.novas (+1) — specs ${s.alvoW}×${s.alvoH}, hitbox ${specs.bodyW}×${specs.bodyH}`,
+      `• sw.js: bloco @setup:sprites (+${s.sufixo ? 2 : 1} linha${s.sufixo ? 's' : ''})`,
+      `• elencos: ${[...casts.biomas, ...casts.distritos].join(', ')}`,
+      '',
+      'Portão de testes com rollback total; F5 no jogo para ver; site ao vivo só na release.',
+    ].join('\n');
+    if (!confirm(resumo)) return;
+    btnNew.disabled = true;
+    const j = await post({
+      modo: 'new', specs, behavior, casts,
+      ...(s.sufixo && s.sufixo !== 'air' ? { anim: { fps: num2('fps') } } : {}),
+    });
+    btnNew.disabled = false;
+    if (!j) return;
+    aplicarNovaLocal(j.nova);
+    status.className = 'su-ok';
+    status.textContent = `✓ espécie "${s.id}" criada e em rotação — F5 na aba do jogo para vê-la correndo`;
+    recarregar();
+  });
+
+  return painel;
+}
+
+// Injeta a espécie recém-criada nas tabelas locais (a página não recarrega
+// módulos) e tenta plantar a linha nova no catálogo aberto
+function aplicarNovaLocal(nova) {
+  if (!nova || Constants.ANIMAL_TYPES.includes(nova.id)) return;
+  Constants.ANIMAL_SPECS[nova.id] = JSON.parse(JSON.stringify(nova.specs));
+  Constants.ANIMAL_BEHAVIOR[nova.id] = JSON.parse(JSON.stringify(nova.behavior));
+  Constants.ANIMAL_TYPES.push(nova.id);
+  Constants.SPRITE_NEW.push(nova);
+  for (const b of (nova.casts && nova.casts.biomas) || []) {
+    if (Constants.BIOME_ANIMALS[b]) Constants.BIOME_ANIMALS[b].push(nova.id);
+  }
+  for (const d of (nova.casts && nova.casts.distritos) || []) {
+    const area = Constants.CITY_DISTRICTS.find((x) => x.key === d);
+    if (area && area.cast) area.cast.push(nova.id);
+  }
+  try {
+    const grupo1 = document.querySelector('#sp-catalogo details');
+    if (grupo1) {
+      const linha = linhaEspecie(nova.id);
+      grupo1.lastElementChild.append(linha);
+      observar(linha);
+    }
+  } catch (e) { /* catálogo fechado — aparece no F5 */ }
 }
 
 // Reaplica localmente o estado salvo (a página não recarrega módulos):

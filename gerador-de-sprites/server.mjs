@@ -22,6 +22,7 @@ import {
   LOCKED_IDS, BUILTIN_IDS, parseRegistry, renderRegistry, validateEntry, validateAccess,
   upsertSkin, removeSkin, patchSwAssets, stripSwArtLines,
   parseSpriteParams, renderSpriteParams, validateSpriteOverride,
+  patchSwSprites, validateNovaEspecie,
 } from './integrate.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -570,6 +571,113 @@ const handler = async (req, res) => {
         ok: true, id, files: nomes, sizesKb, hitboxSugerida, warnings, diagnostics,
         previewUrl: `/output/enemies/${id}/preview.html`,
       });
+    }
+    // Atribuição: o momento em que um sprite gerado ENTRA no jogo. Dois
+    // modos, ambos tudo-ou-nada (writeAndValidateFiles + portão + rollback):
+    //  replace — assume a arte de uma espécie enemy-* existente (filenames
+    //            idênticos: manifesto/sw intocados);
+    //  new     — nasce espécie: art/ + SpriteParams(novas) + bloco do sw.
+    if (path === '/api/sprite/assign' && req.method === 'POST') {
+      const body = JSON.parse((await readBody(req)).toString());
+      const { modo, pendingId } = body;
+      const sprites = lerIndicePendentes();
+      const p = sprites.find((s) => s.id === pendingId);
+      if (!p) return send(res, 404, { error: `não há sprite pendente "${pendingId}"` });
+      if (p.atribuido) return send(res, 409, { error: 'este sprite já foi atribuído' });
+      const dir = join(OUT_ENEMIES, pendingId);
+      const lerFrame = (nome) => (existsSync(join(dir, nome)) ? readFileSync(join(dir, nome), 'utf8') : null);
+      const svgBase = p.frames[0] && lerFrame(p.frames[0]);
+      const svgSuf = p.frames[1] ? lerFrame(p.frames[1]) : null;
+      if (!svgBase || (p.frames[1] && !svgSuf)) {
+        return send(res, 409, { error: 'os SVGs do pendente sumiram do output/ — gere de novo' });
+      }
+      const marcarAtribuido = (alvo) => {
+        p.atribuido = { modo, alvo, em: new Date().toISOString() };
+        gravarIndicePendentes(sprites);
+      };
+
+      if (modo === 'replace') {
+        const alvo = String(body.alvo || '');
+        const tex = String(body.tex || '');
+        if (!/^enemy-[a-z0-9-]+$/.test(tex)) {
+          return send(res, 403, { error: 'só espécies com arte enemy-* aceitam substituição (os 5 legados animal-* e o pássaro ficam de fora)' });
+        }
+        const baseAlvo = join(ROOT, 'art', `${tex}.svg`);
+        if (!existsSync(baseAlvo)) return send(res, 404, { error: `arte do alvo não encontrada: ${tex}.svg` });
+        const sufAlvo = ['run-1', 'flap', 'alt', 'air'].find((sx) => existsSync(join(ROOT, 'art', `${tex}-${sx}.svg`))) || null;
+        if ((p.sufixo || null) !== sufAlvo) {
+          return send(res, 409, { error: `sufixo incompatível: o sprite tem ${p.sufixo || '1 frame'} e ${alvo || tex} usa ${sufAlvo || '1 frame'} — gere no sufixo certo` });
+        }
+        const vb = readFileSync(baseAlvo, 'utf8').match(/viewBox="0 0 (\d+) (\d+)"/) || [];
+        if (Number(vb[1]) !== p.alvoW || Number(vb[2]) !== p.alvoH) {
+          return send(res, 409, { error: `canvas divergente: alvo ${vb[1]}×${vb[2]}, sprite ${p.alvoW}×${p.alvoH} — regenere no alvo certo` });
+        }
+        const writes = [{ path: baseAlvo, content: svgBase }];
+        if (svgSuf) writes.push({ path: join(ROOT, 'art', `${tex}-${sufAlvo}.svg`), content: svgSuf });
+        if (body.adoptHitbox && p.hitboxSugerida && alvo) {
+          const params = parseSpriteParams(readFileSync(SPRITE_PARAMS_PATH, 'utf8'));
+          const o = params.overrides[alvo] || {};
+          o.specs = { ...(o.specs || {}), ...p.hitboxSugerida };
+          params.overrides[alvo] = o;
+          writes.push({ path: SPRITE_PARAMS_PATH, content: renderSpriteParams(params) });
+        }
+        const r = await writeAndValidateFiles(writes, SPRITE_GATE);
+        if (!r.ok) {
+          return send(res, 422, { error: 'o portão reprovou — NADA foi alterado', testOutput: r.test.output });
+        }
+        marcarAtribuido(alvo || tex);
+        return send(res, 200, { ok: true, modo, alvo: alvo || tex, testOutput: r.test.output });
+      }
+
+      if (modo === 'new') {
+        const sIn = body.specs || {};
+        const nova = {
+          id: pendingId,
+          specs: {
+            w: p.alvoW,
+            h: p.alvoH,
+            bodyW: Math.round(Number(sIn.bodyW)),
+            bodyH: Math.round(Number(sIn.bodyH)),
+            offX: Math.round(Number(sIn.offX)),
+            offY: Math.round(Number(sIn.offY)),
+            tex: `enemy-${pendingId}`,
+            ...(sIn.scale !== undefined ? { scale: Number(sIn.scale) } : {}),
+          },
+          behavior: { ...(body.behavior || {}) },
+          anim: p.sufixo
+            ? (p.sufixo === 'air'
+              ? { sufixo: 'air' }
+              : { sufixo: p.sufixo, fps: Number((body.anim && body.anim.fps) || 8) })
+            : null,
+          casts: {
+            biomas: (body.casts && body.casts.biomas) || [],
+            distritos: (body.casts && body.casts.distritos) || [],
+          },
+        };
+        if (nova.anim && nova.anim.fps) nova.behavior.anim = `${pendingId}-run`;
+        if (nova.anim && nova.anim.sufixo === 'air') nova.behavior.airTexture = `enemy-${pendingId}-air`;
+        const errors = validateNovaEspecie(nova);
+        if (errors.length) return send(res, 400, { error: errors.join(' · ') });
+        const params = parseSpriteParams(readFileSync(SPRITE_PARAMS_PATH, 'utf8'));
+        if (params.novas.some((n) => n.id === pendingId)) {
+          return send(res, 409, { error: `"${pendingId}" já existe como espécie criada` });
+        }
+        params.novas.push(nova);
+        const swNovo = patchSwSprites(readFileSync(SW_PATH, 'utf8'), params.novas);
+        const writes = [
+          { path: join(ROOT, 'art', `enemy-${pendingId}.svg`), content: svgBase },
+          ...(svgSuf ? [{ path: join(ROOT, 'art', `enemy-${pendingId}-${p.sufixo}.svg`), content: svgSuf }] : []),
+          { path: SPRITE_PARAMS_PATH, content: renderSpriteParams(params) },
+          { path: SW_PATH, content: swNovo },
+        ];
+        const r = await writeAndValidateFiles(writes, SPRITE_GATE);
+        if (!r.ok) {
+          return send(res, 422, { error: 'o portão reprovou — NADA foi alterado', testOutput: r.test.output });
+        }
+        marcarAtribuido(pendingId);
+        return send(res, 200, { ok: true, modo, nova, testOutput: r.test.output });
+      }
+      return send(res, 400, { error: 'modo deve ser "replace" ou "new"' });
     }
     if (path === '/api/sprite/remove-pending' && req.method === 'POST') {
       const { id, force } = JSON.parse((await readBody(req)).toString());

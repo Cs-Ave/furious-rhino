@@ -198,6 +198,42 @@ ok('3c. ./js/art/SpriteParams.js está no ASSETS do sw',
   eq('6f. toda banda fly/zig é [a<b] dentro de [300,600]', bandasRuins, []);
 }
 
+// ---------- 7. espécies criadas pela aba (SPRITE_NEW) ----------
+{
+  const falhas = [];
+  for (const n of Constants.SPRITE_NEW) {
+    const base = join(ROOT, 'art', `enemy-${n.id}.svg`);
+    if (!existsSync(base)) { falhas.push(`${n.id}: sem enemy-${n.id}.svg`); continue; }
+    const vb = readFileSync(base, 'utf8').match(/viewBox="0 0 (\d+) (\d+)"/);
+    if (!vb || +vb[1] !== n.specs.w || +vb[2] !== n.specs.h) falhas.push(`${n.id}: viewBox ≠ specs.w/h`);
+    if (n.anim && !existsSync(join(ROOT, 'art', `enemy-${n.id}-${n.anim.sufixo}.svg`))) {
+      falhas.push(`${n.id}: falta o frame -${n.anim.sufixo}`);
+    }
+    if (n.specs.tex !== `enemy-${n.id}`) falhas.push(`${n.id}: tex ≠ enemy-${n.id}`);
+    if (n.anim && n.anim.sufixo === 'air' && n.behavior.airTexture !== `enemy-${n.id}-air`) {
+      falhas.push(`${n.id}: airTexture não derivado`);
+    }
+    if (n.anim && n.anim.fps && n.behavior.anim !== `${n.id}-run`) falhas.push(`${n.id}: anim não derivada`);
+    if (n.specs.pair) falhas.push(`${n.id}: pair proibido em criada`);
+  }
+  eq('7. espécies criadas: arquivos, viewBox e derivações coerentes', falhas, []);
+}
+
+// ---------- 8. ART_MANIFEST w/h == viewBox (contrato que não existia) ----------
+{
+  const falhas = [];
+  for (const [k, size] of Object.entries(ART_MANIFEST)) {
+    const arq = join(ROOT, 'art', `${k}.svg`);
+    if (!existsSync(arq)) continue; // já reprovado no 3
+    const vb = readFileSync(arq, 'utf8').match(/viewBox="0 0 ([\d.]+) ([\d.]+)"/);
+    if (!vb) { falhas.push(`${k}: sem viewBox parseável`); continue; }
+    if (Math.round(+vb[1]) !== size.w || Math.round(+vb[2]) !== size.h) {
+      falhas.push(`${k}: manifesto ${size.w}×${size.h} ≠ viewBox ${vb[1]}×${vb[2]}`);
+    }
+  }
+  eq('8. ART_MANIFEST w/h == viewBox de cada SVG', falhas, []);
+}
+
 // ---------- resultado ----------
 console.log(`\n${pass} PASS · ${fail} FAIL`);
 if (fail > 0) process.exit(1);
