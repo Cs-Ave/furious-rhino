@@ -1,6 +1,6 @@
-# Handoff — FURIOUS RHINO v1.8.7
+# Handoff — FURIOUS RHINO v1.8.8
 
-**Data:** 22/08/2026 · **Status:** v1.8.4→v1.8.6 **commitadas local** (sem push) · **v1.8.7 PRONTA no working tree, sem commit** · produção segue na **v1.8.3**
+**Data:** 23/08/2026 · **Status:** v1.8.4 → v1.8.8 **RELEASED em produção** (push `763a9b2`, tags v1.8.4–v1.8.8, 5 GitHub Releases, smoke: v1.8.8 no ar, pódio real em pts, Desafiar com 52 jogadores, zero erro de JS). Rules do console atualizadas pelo dono em 23/08 (cláusula do cancelledAt) ANTES do push. Portões 1-2-3 cumpridos na ordem.
 
 ## 0. v1.8.7 — Estado de Alerta (working tree, sem commit)
 
