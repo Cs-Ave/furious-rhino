@@ -518,11 +518,51 @@ export class ChallengeSystem {
     } catch (e) { /* quota cheia: standings volta a ser recomputado */ }
   }
 
+  // v1.8.10-fix3 (BUG DE PRODUÇÃO): a MINHA linha do placar nunca pode
+  // depender de rede nem de cache — as minhas corridas estão aqui do lado, no
+  // localStorage, sempre frescas. Sem isto o jogador criava o desafio (placar
+  // salvo com "ainda não correu"), jogava 15 corridas em 9 minutos e a home
+  // continuava servindo o cache de 30 min: o próprio placar NUNCA mudava.
+  static withMyFreshBest(rows, ch) {
+    if (!Array.isArray(rows) || !ch) return rows;
+    const myId = StorageManager.getOrCreatePlayerId();
+    if (!rows.some((r) => r && r.id === myId)) return rows;
+    const startS = Math.floor(Number(ch.startAt) || 0);
+    const endS = Math.floor(Number(ch.endAt) || 0);
+    const meu = this.bestInWindow(StorageManager.getRuns(), startS, endS);
+    const out = rows.map((r) => (r && r.id === myId ? { ...r, best: meu || r.best } : r));
+    // a ordem é por pontos: reordena com a marca nova (mesma regra do sort
+    // do standings — sem marca vai para o fim; empate, corrida mais antiga)
+    return out.sort((a, b) => {
+      const pa = a.best ? a.best.pts : -1;
+      const pb = b.best ? b.best.pts : -1;
+      if (pb !== pa) return pb - pa;
+      return (a.best ? a.best.t : 0) - (b.best ? b.best.t : 0);
+    });
+  }
+
+  // Esquece o placar cacheado (de um desafio ou de todos) — chamado no fim de
+  // CADA corrida: sem isso a marca dos ADVERSÁRIOS só apareceria 30 min
+  // depois, e a minha dependeria da sorte do TTL.
+  static invalidateStandings(chId = null) {
+    try {
+      if (!chId) {
+        localStorage.removeItem(STANDINGS_KEY);
+        return;
+      }
+      const map = JSON.parse(localStorage.getItem(STANDINGS_KEY)) || {};
+      delete map[String(chId)];
+      localStorage.setItem(STANDINGS_KEY, JSON.stringify(map));
+    } catch (e) { /* sem cache é o estado seguro: recomputa */ }
+  }
+
   // Placar cacheado, síncrono — é o que a corrida/estacas leem, para NUNCA
   // esperarem rede. Devolve as rows (ordenadas) ou null se nunca computado.
-  static standingsCached(chId) {
+  // Passando o `ch`, a minha linha vem do localStorage (sempre atual).
+  static standingsCached(chId, ch = null) {
     const entry = this.standingsEntry(chId);
-    return entry ? entry.rows : null;
+    if (!entry) return null;
+    return ch ? this.withMyFreshBest(entry.rows, ch) : entry.rows;
   }
 
   // O placar DERIVADO: lê stats/{id} de cada ACEITO (getDoc 1 a 1 — a query
@@ -535,7 +575,8 @@ export class ChallengeSystem {
     const chId = String(c.id || '');
     const entry = this.standingsEntry(chId);
     if (entry && Date.now() - entry.at < Constants.CHALLENGE_STANDINGS_TTL_MS) {
-      return entry.rows;
+      // cache vale para os ADVERSÁRIOS; a minha linha é sempre recalculada
+      return this.withMyFreshBest(entry.rows, c);
     }
     const accepted = c.accepted && typeof c.accepted === 'object' ? c.accepted : {};
     const names = c.names && typeof c.names === 'object' ? c.names : {};
@@ -566,9 +607,10 @@ export class ChallengeSystem {
         return (a.best ? a.best.t : 0) - (b.best ? b.best.t : 0);
       });
       this.saveStandings(chId, rows);
-      return rows;
+      return this.withMyFreshBest(rows, c);
     } catch (e) {
-      return entry ? entry.rows : []; // offline: o placar velho vale
+      // offline: o placar velho vale — mas a MINHA linha ainda é local
+      return entry ? this.withMyFreshBest(entry.rows, c) : [];
     }
   }
 }

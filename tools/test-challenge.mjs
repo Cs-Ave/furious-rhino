@@ -27,6 +27,7 @@ localStorage.setItem('furious_rhino_player_name', 'Teco');
 const { Constants } = await import('../js/utils/Constants.js');
 const { ScoreSystem } = await import('../js/systems/ScoreSystem.js');
 const { ChallengeSystem } = await import('../js/systems/ChallengeSystem.js');
+const { StorageManager } = await import('../js/utils/StorageManager.js');
 
 let pass = 0;
 let fail = 0;
@@ -305,6 +306,53 @@ eq('dismiss não contamina outro id', ChallengeSystem.isDismissed('c2'), false);
     /!\('cancelledAt' in resource\.data\)/.test(rules), true);
   eq('rules: cancelledAt é int positivo',
     /cancelledAt is int\s*&&\s*request\.resource\.data\.cancelledAt > 0/.test(rules), true);
+}
+
+
+// ---------- v1.8.10-fix3: o placar do PRÓPRIO jogador nunca envelhece ----------
+// BUG DE PRODUÇÃO (23/08): o card ficava preso em "ainda não correu" porque o
+// cache de standings (TTL 30min) era servido inteiro — inclusive a MINHA
+// linha, que pode ser recalculada de graça com as runs do localStorage.
+{
+  const eu = StorageManager.getOrCreatePlayerId();
+  const ch = { id: 'cx', startAt: 1000, endAt: 9000,
+    names: { [eu]: 'Eu', outro: 'Outro' },
+    accepted: { [eu]: 1000, outro: 1000 } };
+  const rowsVelhas = [
+    { id: 'outro', name: 'Outro', accepted: 1000, best: { pts: 300, m: 280, t: 2000 } },
+    { id: eu, name: 'Eu', accepted: 1000, best: null },
+  ];
+  // sem corrida minha na janela: nada muda
+  localStorage.setItem('furious_rhino_runs', JSON.stringify([{ t: 50, m: 900 }]));
+  eq('placar: corrida FORA da janela não entra na minha linha',
+    ChallengeSystem.withMyFreshBest(rowsVelhas, ch).find((r) => r.id === eu).best, null);
+
+  // corri DENTRO da janela: a minha linha atualiza mesmo com cache velho
+  localStorage.setItem('furious_rhino_runs', JSON.stringify([
+    { t: 2500, m: 233, c: 'animal', w: 4, a: 1 },
+    { t: 3000, m: 656, c: 'wall', w: 7, a: 2, o: 1 },
+  ]));
+  const fresco = ChallengeSystem.withMyFreshBest(rowsVelhas, ch);
+  const minha = fresco.find((r) => r.id === eu);
+  eq('placar: a MINHA linha vem das runs locais, não do cache',
+    Boolean(minha.best) && minha.best.m === 656, true);
+  eq('placar: com a marca nova eu passo à frente (reordena)', fresco[0].id, eu);
+  eq('placar: a linha do ADVERSÁRIO segue vindo do cache (rede é dele)',
+    fresco.find((r) => r.id === 'outro').best.pts, 300);
+  eq('placar: sem ch, as rows saem intactas (contrato do standingsCached)',
+    ChallengeSystem.withMyFreshBest(rowsVelhas, null), rowsVelhas);
+
+  // invalidação: o fim da corrida esquece o placar cacheado
+  localStorage.setItem('furious_rhino_chal_standings', JSON.stringify({
+    cx: { at: Date.now(), rows: rowsVelhas }, outroId: { at: Date.now(), rows: [] },
+  }));
+  ChallengeSystem.invalidateStandings('cx');
+  eq('invalidate(id): esquece só aquele desafio',
+    [ChallengeSystem.standingsCached('cx'), Array.isArray(ChallengeSystem.standingsCached('outroId'))],
+    [null, true]);
+  ChallengeSystem.invalidateStandings();
+  eq('invalidate(): esquece todos', ChallengeSystem.standingsCached('outroId'), null);
+  localStorage.removeItem('furious_rhino_runs');
 }
 
 console.log(`\n${pass} PASS, ${fail} FAIL`);

@@ -5,7 +5,13 @@
 
 ---
 
-## v1.8.10 — 23/08/2026 (versão atual)
+## v1.8.11 — 23/08/2026 (versão atual)
+
+**Correção: o placar do desafio ficava preso em "ainda não correu".**
+
+- **O seu placar não atualizava depois de você jogar.** O card do desafio guardava o resultado por 30 minutos e não era renovado quando a corrida acabava — quem criava um desafio e ia jogar em seguida via "ainda não correu" o tempo todo, mesmo tendo corrido. Agora **a sua marca é lida direto das suas corridas**, sempre atual, e o placar se reordena na hora; a marca dos adversários também passa a aparecer já na próxima visita à tela inicial, em vez de esperar a meia hora.
+
+## v1.8.10 — 23/08/2026
 
 **Tema: As Areias do Tempo — a estrada acaba, e o deserto engole.**
 

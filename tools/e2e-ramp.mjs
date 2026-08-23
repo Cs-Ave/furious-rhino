@@ -824,10 +824,16 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
           accepted: { 'rival-tres-00000000': agoraS - 7200, 'claude-e2e-ramp-home': agoraS - 7000 } },
       ],
     }));
+    // v1.8.10-fix3: o cache do desafio ativo nasce ENVENENADO (best null p/
+    // mim) e as minhas runs estão no localStorage — é o bug de produção de
+    // 23/08: o card ficava preso em "ainda não correu" depois de eu correr.
+    localStorage.setItem('furious_rhino_runs', JSON.stringify([
+      { t: agoraS - 3000, m: 640, c: 'wall', w: 6, a: 2, o: 1 },
+    ]));
     localStorage.setItem('furious_rhino_chal_standings', JSON.stringify({
       'chal-e2e-ativo-0000': { at: Date.now(), rows: [
         { id: 'rival-um-0000000000', name: 'Zebrão', accepted: agoraS - 80000, best: { pts: 1842, m: 1600, t: agoraS - 40000 } },
-        { id: 'claude-e2e-ramp-home', name: 'Cris', accepted: agoraS - 86400, best: { pts: 950, m: 900, t: agoraS - 30000 } },
+        { id: 'claude-e2e-ramp-home', name: 'Cris', accepted: agoraS - 86400, best: null },
       ] },
     }));
     sessionStorage.setItem('furious_rhino_pwa_prompted', '1');
@@ -899,6 +905,9 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
   ok('26d3. desafio cancelado vira aviso clicável ("toque para dispensar")',
     /Zeca cancelou o desafio/.test(chal.cancelTexto) && /dispensar/.test(chal.cancelTexto),
     `"${chal.cancelTexto.slice(0, 80)}"`);
+  ok('26d4. placar: a MINHA linha vem das runs locais mesmo com cache velho',
+    /Cris\s*6\d\d pts/.test(chal.cardTexto) && !/Cris\s*ainda não correu/.test(chal.cardTexto),
+    `card="${(chal.cardTexto || '').slice(0, 140)}"`);
   ok('26e. home: convite não visto abre o popup do desafio',
     chal.modalAberto && /Funkeiro/.test(chal.conviteTexto),
     `aberto=${chal.modalAberto} texto="${chal.conviteTexto.slice(0, 80)}"`);

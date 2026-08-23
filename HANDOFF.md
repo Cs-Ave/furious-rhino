@@ -1,6 +1,27 @@
-# Handoff — FURIOUS RHINO v1.8.10
+# Handoff — FURIOUS RHINO v1.8.11
 
-**Data:** 23/08/2026 · **Status:** **v1.8.10 RELEASED em produção** (push `b8601e1`, tags v1.8.9/v1.8.10, 2 GitHub Releases). Smoke: versão no ar, pódio real, as 6 áreas do deserto respondendo, **5 lutas** ativas (portão 40000 · Muralha 80000 · Barreira 146000 · Faraó 188000 · Guardião 399800), 27 medalhas, zero textura faltando, zero erro de JS. Rules (`deaths ≤ 17`) publicadas pelo dono ANTES do push; sondas de teste limpas da coleção `challenges`. Fluxo de 3 portões cumprido.
+**Data:** 23/08/2026 · **Status:** **v1.8.11 (hotfix do placar) em publicação**; v1.8.10 released mais cedo.
+
+## 0. v1.8.11 — o placar do desafio preso em "ainda não correu"
+
+Bug relatado pelo dono com dados reais (Fernanda-PC, produção). **A lógica sempre
+esteve certa** — rodando `standings()` contra o doc real dela dá `719 pts · 656 m`,
+com 15 das 19 corridas dentro da janela. O culpado era o **cache de 30 min
+(`CHALLENGE_STANDINGS_TTL_MS`) que NUNCA era invalidado**: o card era montado antes
+de o jogador correr (grava `best: null`), ele jogava, voltava à home e recebia o
+cache velho — e cada corrida reiniciava o ciclo dentro da mesma janela.
+
+Correção em duas camadas (`ChallengeSystem` + `GameScene`):
+1. **`withMyFreshBest(rows, ch)`** — a linha do PRÓPRIO jogador é sempre recalculada
+   de `StorageManager.getRuns()` (localStorage, sempre fresco) e o placar reordena;
+   aplicada nos três caminhos do `standings` (cache quente, rede, offline) e no
+   `standingsCached(chId, ch)` que a corrida usa para as estacas.
+2. **`invalidateStandings()`** no fim de cada corrida — a marca do ADVERSÁRIO deixa
+   de esperar até 30 min.
+
+Trancado por testes: `test-challenge` 84 (+7, incluindo "corrida fora da janela não
+entra" e a invalidação por id/global) e `e2e-ramp` 46 (+1: assert 26d4 com o cache
+ENVENENADO — o cenário exato do bug).
 
 > ⚠️ Portão 3 da v1.8.10 exige REPUBLICAR as rules (`deaths.size() <= 17` — causas
 > `cerco`/`farao`) no console ANTES do push. As áreas/letra u/y/pontos estão nos

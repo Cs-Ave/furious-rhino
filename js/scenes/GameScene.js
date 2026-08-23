@@ -1818,7 +1818,7 @@ export class GameScene extends Phaser.Scene {
         if (!ChallengeSystem.isActive(ch, nowS)) continue;
         const st = ChallengeSystem.statusOf(ch, myId);
         if (st !== 'creator' && st !== 'accepted') continue;
-        const rows = ChallengeSystem.standingsCached(ch.id);
+        const rows = ChallengeSystem.standingsCached(ch.id, ch);
         const leader = rows && ChallengeSystem.leaderOf(rows);
         if (leader && leader.id !== myId && leader.best) {
           this.time.delayedCall(700, () => this.showToast(
@@ -2027,7 +2027,7 @@ export class GameScene extends Phaser.Scene {
         if (!ChallengeSystem.isActive(ch, nowS)) continue;
         const st = ChallengeSystem.statusOf(ch, myId);
         if (st !== 'creator' && st !== 'accepted') continue;
-        const rows = ChallengeSystem.standingsCached(ch.id);
+        const rows = ChallengeSystem.standingsCached(ch.id, ch);
         if (!rows) continue;
         for (const row of rows) {
           if (row.id === myId || !row.best) continue;
@@ -3771,6 +3771,10 @@ export class GameScene extends Phaser.Scene {
     if (!won) StorageManager.addDeath(Constants.getTierIndex(this.rhino.getSprite().x), cause || 'wall');
     // Acumula aparelho/local/versão desta corrida ANTES do envio (o send
     // roda várias vezes por sessão; o recordRun, uma por corrida)
+    // v1.8.10-fix3: o placar dos desafios envelheceu — a corrida que acabou
+    // pode ter mudado o meu lugar (e o do adversário, quando o stats dele
+    // subir). Sem isto o card ficava até 30 min preso em "ainda não correu".
+    this.safeTelemetry(() => ChallengeSystem.invalidateStandings());
     this.safeTelemetry(() => StatsSystem.recordRun(distance).then(() => StatsSystem.send()));
     // Acumula no resumo da sessão (o push sai na saída ou no tempo configurado)
     this.safeTelemetry(() => NotifySystem.noteRun({
