@@ -2467,7 +2467,7 @@
 
         <span class="start-footer footer-left">by Thomas Avelino</span>
         <span class="start-footer footer-center">Estatísticas anônimas são coletadas · <a href="./?stats">/?stats</a></span>
-        <span class="start-footer footer-right" id="game-version">v1.8.13</span>
+        <span class="start-footer footer-right" id="game-version">v1.8.14</span>
     </div>
 
     <div id="ranking-modal" class="modal">
@@ -2487,6 +2487,9 @@
         <p id="nickname-sub">Qual seu apelido para o ranking mundial?</p>
         <input id="nickname-input" maxlength="12" autocomplete="off" placeholder="3 a 12 caracteres">
         <p id="nickname-error"></p>
+        <!-- v1.8.14: só aparece no erro "já está em uso" — recuperação de
+             identidade mediada pelo administrador (o caso do PWA reinstalado) -->
+        <button id="nickname-claim" class="btn-secondary" hidden>🆘 Este apelido era meu (reinstalei o app)</button>
         <div class="btn-row">
             <button id="nickname-save">Salvar</button>
             <button id="nickname-skip" class="btn-secondary">Ficar anônimo</button>

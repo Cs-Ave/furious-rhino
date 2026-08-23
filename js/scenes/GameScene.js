@@ -15,6 +15,7 @@ import { StatsSystem } from '../systems/StatsSystem.js';
 import { NotifySystem } from '../systems/NotifySystem.js';
 import { NewsSystem } from '../systems/NewsSystem.js';
 import { ChallengeSystem } from '../systems/ChallengeSystem.js';
+import { ReassignSystem } from '../systems/ReassignSystem.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -370,6 +371,16 @@ export class GameScene extends Phaser.Scene {
       if (changed) NewsSystem.renderInto(document.getElementById('news-list'));
     }));
 
+    // v1.8.14 — Recuperação de identidade (o caso "Teco"): só age se houver
+    // pedido 🆘 pendente DESTE aparelho (a marca local arma a consulta ao
+    // config/reassign — quem nunca pediu não gasta nenhum read). Encontrou
+    // o par do admin → adota o id antigo e recarrega a página.
+    this.safeTelemetry(() => ReassignSystem.maybeRestore());
+    const restored = ReassignSystem.consumeRestoredNotice();
+    if (restored) {
+      this.showInviteStatus(`👤 Identidade restaurada${restored.name ? ` — bem-vindo de volta, ${restored.name}!` : '!'}`);
+    }
+
     this.setupIdentityUI();
     this.setupPwaPrompt();
     this.alignInstallHint();
@@ -629,6 +640,8 @@ export class GameScene extends Phaser.Scene {
 
     document.getElementById('nickname-save').addEventListener('click', () => this.saveNickname());
     document.getElementById('nickname-skip').addEventListener('click', () => this.nicknameSkip());
+    // v1.8.14: "era meu" — pedido de recuperação mediado pelo administrador
+    document.getElementById('nickname-claim').addEventListener('click', () => this.requestIdentityClaim());
     nickInput.addEventListener('keydown', (ev) => {
       ev.stopPropagation();
       if (ev.key === 'Enter') this.saveNickname();
@@ -1662,6 +1675,7 @@ export class GameScene extends Phaser.Scene {
     this.renamingNickname = rename;
     this.proudAsk = proud;
     document.getElementById('nickname-error').textContent = '';
+    document.getElementById('nickname-claim').hidden = true; // só após 'taken'
 
     let title;
     let sub;
@@ -1720,6 +1734,10 @@ export class GameScene extends Phaser.Scene {
     saveBtn.disabled = false;
     if (verdict === 'taken') {
       error.textContent = 'Esse apelido já está em uso — escolha outro.';
+      // v1.8.14: pode ser o PRÓPRIO doc do jogador (reinstalou o PWA → id
+      // novo → o doc antigo vira "de outro" e bloqueia o dono do nome).
+      // O botão abre o caminho de recuperação mediado pelo administrador.
+      document.getElementById('nickname-claim').hidden = false;
       input.focus();
       input.select();
       return;
@@ -1748,6 +1766,31 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     this.closeNicknameModal(true);
+  }
+
+  // v1.8.14 — "🆘 Este apelido era meu": grava a marca local (que arma a
+  // consulta ao config/reassign nos próximos boots) e envia o dossiê ao
+  // administrador via ntfy. A mediação é humana: o dono confere a
+  // assinatura do aparelho contra o histórico do doc antigo e autoriza no
+  // /?setup. Nada aqui escreve no Firestore.
+  async requestIdentityClaim() {
+    const name = document.getElementById('nickname-input').value.trim();
+    const error = document.getElementById('nickname-error');
+    const btn = document.getElementById('nickname-claim');
+    btn.disabled = true;
+    let result = 'saved';
+    try {
+      result = await ReassignSystem.requestClaim(name);
+    } catch (e) { /* acessório: a marca local provavelmente ficou */ }
+    btn.disabled = false;
+    btn.hidden = true;
+    if (result === 'again') {
+      error.textContent = '📨 Pedido já enviado — o administrador vai analisar.';
+    } else if (result === 'sent') {
+      error.textContent = '📨 Pedido enviado! Quando o administrador autorizar, sua identidade volta sozinha ao abrir o jogo.';
+    } else {
+      error.textContent = '⚠️ Sem rede agora — tente o pedido de novo mais tarde.';
+    }
   }
 
   closeNicknameModal(submit) {

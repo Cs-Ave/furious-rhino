@@ -103,7 +103,9 @@ export async function render() {
   btnSprites.id = 'su-tab-btn-sprites';
   const btnRadio = el('button', null, '📊 Radiografia');
   btnRadio.id = 'su-tab-btn-radiografia';
-  tabs.append(btnSkins, btnSprites, btnRadio);
+  const btnReassign = el('button', null, '🆘 Recuperação');
+  btnReassign.id = 'su-tab-btn-reassign';
+  tabs.append(btnSkins, btnSprites, btnRadio, btnReassign);
   root.append(tabs);
 
   // Aba Skins montada POR PADRÃO: os ids que o e2e-setup exige no load
@@ -133,6 +135,10 @@ export async function render() {
   tabRadio.id = 'su-tab-radiografia';
   tabRadio.hidden = true;
   root.append(tabRadio);
+  const tabReassign = el('div');
+  tabReassign.id = 'su-tab-reassign';
+  tabReassign.hidden = true;
+  root.append(tabReassign);
 
   // v1.8.9: tabela declarativa — aba nova = uma linha aqui (o par de
   // ternários binário não escalava para 3 abas)
@@ -140,6 +146,8 @@ export async function render() {
     skins: { btn: btnSkins, painel: tabSkins },
     sprites: { btn: btnSprites, painel: tabSprites, modulo: './SetupSprites.js' },
     radiografia: { btn: btnRadio, painel: tabRadio, modulo: './SetupAnalytics.js' },
+    // v1.8.14 — recuperação de identidade (o caso Teco): atendimento do 🆘
+    reassign: { btn: btnReassign, painel: tabReassign, modulo: './SetupReassign.js' },
   };
   const selecionar = (qual) => {
     for (const [k, a] of Object.entries(abas)) {

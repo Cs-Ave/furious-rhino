@@ -105,6 +105,108 @@ function integrationSnippets(name) {
   ].join('\n');
 }
 
+// -------------------------------------- recuperação de identidade (v1.8.14)
+// A aba 🆘 do /?setup autoriza o "reassign" (o caso Teco): o par
+// {idNovo: idAntigo} vai para o doc `config/reassign`, que os clientes só
+// LEEM (rules: config/* é write:false) — a escrita privilegiada acontece
+// AQUI, na máquina do dono, com a credencial do login do firebase-tools
+// (npx firebase-tools login, o mesmo do delete-player.mjs). O token OAuth
+// passa pelo IAM, não pelas rules; leituras continuam pelo REST público.
+// ⚠️ Testes: só pares/docs `claude-*` — nunca tocar par real em teste.
+const FBCFG_SRC = readFileSync(join(ROOT, 'js', 'firebase-config.js'), 'utf8');
+const FB_KEY = FBCFG_SRC.match(/apiKey:\s*'([^']+)'/)[1];
+const FB_PROJECT = FBCFG_SRC.match(/projectId:\s*'([^']+)'/)[1];
+const FS_BASE = `https://firestore.googleapis.com/v1/projects/${FB_PROJECT}/databases/(default)/documents`;
+// Onde a CLI oficial guarda o login: o pacote `configstore` usa o padrão
+// XDG mesmo no Windows (~/.config/configstore) — %APPDATA% fica como
+// fallback histórico. As constantes OAuth abaixo são PÚBLICAS — estão no
+// código aberto do firebase-tools, é o "app" que o dono autorizou no `login`.
+function fbConfigstorePath() {
+  const candidates = [
+    process.env.USERPROFILE && join(process.env.USERPROFILE, '.config', 'configstore', 'firebase-tools.json'),
+    process.env.HOME && join(process.env.HOME, '.config', 'configstore', 'firebase-tools.json'),
+    process.env.APPDATA && join(process.env.APPDATA, 'configstore', 'firebase-tools.json'),
+  ].filter(Boolean);
+  return candidates.find((p) => existsSync(p)) || candidates[0] || '';
+}
+const FB_OAUTH_ID = '563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com';
+const FB_OAUTH_SECRET = 'j9iVZfS8kkCEFUPaAeJV0sAi';
+let adminToken = null; // {token, expMs} — renovado sob demanda
+
+async function getAdminToken() {
+  if (adminToken && Date.now() < adminToken.expMs - 60000) return adminToken.token;
+  const storePath = fbConfigstorePath();
+  if (!storePath || !existsSync(storePath)) {
+    throw new Error('login do firebase-tools não encontrado — rode: npx firebase-tools login');
+  }
+  const store = JSON.parse(readFileSync(storePath, 'utf8'));
+  const refresh = store && store.tokens && store.tokens.refresh_token;
+  if (!refresh) throw new Error('configstore sem refresh_token — rode: npx firebase-tools login');
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token', refresh_token: refresh,
+      client_id: FB_OAUTH_ID, client_secret: FB_OAUTH_SECRET,
+    }),
+  });
+  if (!res.ok) throw new Error(`troca de token do firebase-tools falhou: HTTP ${res.status}`);
+  const data = await res.json();
+  adminToken = { token: data.access_token, expMs: Date.now() + (Number(data.expires_in) || 3600) * 1000 };
+  return adminToken.token;
+}
+
+// Lê o mapa {idNovo: idAntigo} — REST público (config/* tem read liberado)
+async function readReassignPairs() {
+  const res = await fetch(`${FS_BASE}/config/reassign?key=${FB_KEY}`);
+  if (res.status === 404) return {}; // doc ainda não existe
+  if (!res.ok) throw new Error(`config/reassign: HTTP ${res.status}`);
+  const data = await res.json();
+  const fields = (((data.fields || {}).pairs || {}).mapValue || {}).fields || {};
+  const pairs = {};
+  for (const [k, v] of Object.entries(fields)) {
+    if (v && v.stringValue) pairs[k] = v.stringValue;
+  }
+  return pairs;
+}
+
+// Regrava o campo `pairs` inteiro (read-modify-write de quem chamou). O
+// PATCH com updateMask cria o doc se não existir e não toca outros campos.
+async function writeReassignPairs(pairs) {
+  const token = await getAdminToken();
+  const fields = {};
+  for (const [k, v] of Object.entries(pairs)) fields[k] = { stringValue: String(v) };
+  const res = await fetch(`${FS_BASE}/config/reassign?updateMask.fieldPaths=pairs`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { pairs: { mapValue: { fields } } } }),
+  });
+  if (!res.ok) {
+    throw new Error(`escrita do config/reassign negada: HTTP ${res.status} — ${(await res.text()).slice(0, 200)}`);
+  }
+}
+
+// Delete privilegiado (rules têm delete:false para clientes — o token passa
+// pelo IAM). 404 não é erro: órfão pode nunca ter existido (ex.: scores de
+// quem não pontuou). Devolve true se apagou de verdade.
+async function adminDeleteDoc(collection, id) {
+  const token = await getAdminToken();
+  const res = await fetch(`${FS_BASE}/${collection}/${encodeURIComponent(id)}`, {
+    method: 'DELETE', headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok && res.status !== 404) throw new Error(`delete ${collection}/${id}: HTTP ${res.status}`);
+  return res.ok;
+}
+
+async function publicDocExists(collection, id) {
+  const res = await fetch(`${FS_BASE}/${collection}/${encodeURIComponent(id)}?key=${FB_KEY}`);
+  return res.ok;
+}
+
+// Forma de id aceita nos pares: UUID/sonda (16-40 chars, mesmo piso das
+// rules de scores) — nada de espaço, nada de barra
+const ID_OK = /^[0-9a-zA-Z-]{16,40}$/;
+
 // ------------------------------------------------- integração no jogo
 // (usada pela página /?setup; a página antiga do gerador segue nos snippets)
 const REGISTRY_PATH = join(ROOT, 'js', 'systems', 'SkinRegistry.js');
@@ -690,6 +792,44 @@ const handler = async (req, res) => {
       rmSync(join(OUT_ENEMIES, id), { recursive: true, force: true });
       gravarIndicePendentes(sprites.filter((s) => s.id !== id));
       return send(res, 200, { ok: true, removed: id });
+    }
+
+    // --------------------------------- recuperação de identidade (v1.8.14)
+    if (path === '/api/reassign/state' && req.method === 'GET') {
+      const pairs = await readReassignPairs();
+      const sp = fbConfigstorePath();
+      return send(res, 200, { ok: true, pairs, adminReady: Boolean(sp && existsSync(sp)) });
+    }
+    if (path === '/api/reassign/authorize' && req.method === 'POST') {
+      const { idNovo, idAntigo } = JSON.parse((await readBody(req)).toString());
+      if (!ID_OK.test(String(idNovo || '')) || !ID_OK.test(String(idAntigo || ''))) {
+        return send(res, 400, { error: 'ids inválidos (16-40 chars, letras/números/traço)' });
+      }
+      if (idNovo === idAntigo) return send(res, 400, { error: 'os dois ids são iguais — nada a migrar' });
+      // O id antigo precisa EXISTIR em alguma coleção (é ele que será adotado)
+      const [temScores, temStats] = await Promise.all([
+        publicDocExists('scores', idAntigo), publicDocExists('stats', idAntigo),
+      ]);
+      if (!temScores && !temStats) {
+        return send(res, 404, { error: `id antigo "${idAntigo}" não existe em scores nem em stats` });
+      }
+      const pairs = await readReassignPairs();
+      pairs[idNovo] = idAntigo;
+      await writeReassignPairs(pairs);
+      return send(res, 200, { ok: true, pairs });
+    }
+    if (path === '/api/reassign/complete' && req.method === 'POST') {
+      const { idNovo, deleteOrphans } = JSON.parse((await readBody(req)).toString());
+      const pairs = await readReassignPairs();
+      if (!(idNovo in pairs)) return send(res, 404, { error: `não há par pendente para "${idNovo}"` });
+      delete pairs[idNovo];
+      await writeReassignPairs(pairs);
+      const deleted = { stats: false, scores: false };
+      if (deleteOrphans) {
+        deleted.stats = await adminDeleteDoc('stats', idNovo);
+        deleted.scores = await adminDeleteDoc('scores', idNovo);
+      }
+      return send(res, 200, { ok: true, pairs, deleted });
     }
 
     // --------------------------------------------------- estáticos

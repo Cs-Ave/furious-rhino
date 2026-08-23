@@ -1,6 +1,6 @@
 // Network-first service worker: always serves fresh files while online
 // (essential during development), falls back to cache for offline play.
-const CACHE = 'furious-rhino-v1813';
+const CACHE = 'furious-rhino-v1814';
 const ASSETS = [
   './',
   './index.html',
@@ -184,8 +184,14 @@ const ASSETS = [
   './js/systems/MedalSystem.js',
   './js/systems/StatsSystem.js',
   './js/systems/NotifySystem.js',
+  './js/systems/ReassignSystem.js',
   './js/setup/SetupPage.js',
   './js/setup/SetupAnalytics.js',
+  // v1.8.14: SetupSprites entrou aqui de carona — faltava desde a v1.8.9
+  // (lapso da regra 4 do CLAUDE.md; a aba só funciona com o estúdio no ar,
+  // mas o módulo precisa estar no cache para o /?setup abrir offline inteiro)
+  './js/setup/SetupSprites.js',
+  './js/setup/SetupReassign.js',
   './js/stats/StatsDashboard.js',
   './js/stats/Charts.js',
   './js/stats/MyStats.js',

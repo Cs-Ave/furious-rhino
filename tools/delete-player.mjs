@@ -129,7 +129,10 @@ async function main(query) {
       return;
     }
     if (matches.length > 1) {
-      console.log(`${matches.length} jogadores com o nome exato "${query}" (não deveria acontecer — rules impedem duplicidade, mas conferindo):`);
+      // v1.8.14: a unicidade de apelido é MELHOR-ESFORÇO no cliente
+      // (LeaderboardSystem.checkName) — as rules NÃO a impõem, então
+      // duplicatas são possíveis (sem transação; e já houve um "Teco" duplo)
+      console.log(`${matches.length} jogadores com o nome exato "${query}" (a unicidade é só do cliente — duplicata possível):`);
       for (const m of matches) console.log(`  ${m.name} (${m.score}m, id ${m.id})`);
       return;
     }

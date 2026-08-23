@@ -161,6 +161,22 @@ async function boot(query) {
       res(bosses.textContent.includes('órfão')), 100));
   }));
   ok('3o. nenhum POST espontâneo à API local', apiPosts.length === 0, apiPosts.join(' | '));
+
+  // v1.8.14 (aba 🆘 Recuperação): monta no clique; leituras do Firestore só
+  // no Conferir (o navegador não toca googleapis na montagem) e NUNCA
+  // autorizar/concluir aqui — escrever par de verdade é ato do dono
+  await page.click('#su-tab-btn-reassign');
+  await page.waitForTimeout(400); // import dinâmico do módulo da aba
+  ok('3p. aba Recuperação monta o atendimento (form + pendentes)',
+    await page.evaluate(() => Boolean(
+      document.getElementById('su-card-reassign')
+      && document.getElementById('su-re-check')
+      && document.getElementById('su-re-pending'))));
+  ok('3q. Autorizar nasce travado (só destrava após Conferir)',
+    await page.evaluate(() => document.getElementById('su-re-auth').disabled === true));
+  ok('3r. montar a aba não tocou o Firestore pelo navegador',
+    googleReqs.length === 0, googleReqs.join(' | '));
+  ok('3s. e nenhum POST à API local (state é GET)', apiPosts.length === 0);
   await page.click('#su-tab-btn-skins'); // o cenário 4 depende da lista visível
 
   if (generatorUp) {

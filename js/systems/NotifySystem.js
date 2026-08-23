@@ -347,6 +347,59 @@ export class NotifySystem {
     }
   }
 
+  // v1.8.14 — pedido de recuperação de identidade (o caso "Teco"): o jogador
+  // tocou 🆘 no erro de "apelido já está em uso". O push leva tudo que o
+  // ADMIN precisa para mediar: o id NOVO (a chave do par em config/reassign)
+  // e a assinatura do aparelho/local, para comparar com o history do doc
+  // antigo (leitura pública) antes de autorizar. Antifraude é humano.
+  static async identityClaim({ name } = {}) {
+    try {
+      if (this.isSilenced()) return false; // também poupa o node da suíte
+      const cfg = await this.config();
+      if (!cfg.enabled || !cfg.topic) return false;
+
+      const myId = StorageManager.getOrCreatePlayerId();
+      const lines = [`id novo: ${myId}`];
+      try {
+        const device = await StatsSystem.buildDeviceInfo();
+        const sig = StatsSystem.clientSignature(device);
+        if (sig) lines.push(`aparelho: ${sig}`);
+      } catch (e) { /* sem UA legível: o id já basta */ }
+      const geo = StorageManager.getGeo();
+      if (geo && geo.ok) {
+        const place = StatsSystem.geoLabel(geo);
+        if (place) lines.push(place);
+      }
+      const attempts = StorageManager.getAttempts();
+      lines.push(`neste aparelho: ${StorageManager.getRecord()}m · ${attempts} execuç${attempts === 1 ? 'ão' : 'ões'}`);
+
+      return this.post('onClaim', {
+        title: `🆘 Recuperação de apelido: "${String(name || '?')}"`,
+        message: lines.join('\n'),
+        tags: ['sos'],
+        priority: 4,
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // v1.8.14 — a migração completou no aparelho do jogador. É o sinal para o
+  // admin limpar o par do config/reassign e apagar os docs órfãos do id
+  // provisório (aba 🆘 Recuperação do /?setup, botão "Concluído").
+  static async reassignDone({ from, to, name } = {}) {
+    try {
+      return this.post('onReassignDone', {
+        title: `✅ Identidade restaurada${name ? `: ${name}` : ''}`,
+        message: [`id provisório: ${from || '?'}`, `id restaurado: ${to || '?'}`,
+          'Pode limpar o par e apagar os órfãos (setup › 🆘 Recuperação).'].join('\n'),
+        tags: ['white_check_mark'],
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+
   // -------------------------------------------------------------- lifecycle
 
   // `pagehide` é o fechamento de verdade; `visibilitychange` é o que dispara
