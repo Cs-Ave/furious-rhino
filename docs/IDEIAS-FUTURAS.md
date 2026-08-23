@@ -16,6 +16,7 @@
 **23/08/2026** — ideia **L. As Areias do Tempo** (deserto em 5 etapas + 2 combates), desenhada e entregue na v1.8.10 no mesmo dia; o Cerco saiu do limbo.
 **22/08/2026** — entra também a ideia **J. Estado de Alerta** (a cidade em três distritos, boss novo aos 2000 m), desenhada com o dono em sessão de painel criativo.
 **22/08/2026** — entra a ideia **K. Radiografia viva** (análise permanente de usabilidade) — **desenhada e entregue no mesmo dia (v1.8.7)**, com a medição de 22/08 colada ao lado do §2.
+**23/08/2026** — entra a ideia **M. A doutrina dos bosses** (função, réguas numéricas e redistribuição dos 5 bosses), fundida de dois pareceres (dados + design) a pedido do dono.
 
 ---
 
@@ -1178,13 +1179,233 @@ do bump v187 já pendente; `e2e-setup` ganhou 3 asserts (20/20).
 > ideias E/F/G precisarão negociá-la ou viver sem letra). Detalhes no
 > `GAME_DESIGN.md` ("As Areias do Tempo") e `docs/04` §8/§11.
 
+### M. A doutrina dos bosses — função, réguas e redistribuição 📐
+
+> **23/08/2026 — pedido do dono:** avaliar, como game designer/analista e com
+> os dados da radiografia, a função dos bosses, como torná-los mais
+> interessantes e como distribuí-los melhor — e registrar aqui para
+> implementação futura. Fundida de dois pareceres independentes (dados +
+> design) sobre a v1.8.10. Estado 📐: seis pacotes independentes (M1–M6),
+> cada um cabível numa release própria. Nenhum tem versão prometida (§1).
+
+**O que é.** A primeira doutrina explícita de bosses do jogo: o que um boss
+FAZ num auto-runner sem checkpoint, as réguas numéricas para julgar cada
+luta, o veredito atual dos 5, seis pacotes de melhoria e as regras de
+distribuição de âncoras futuras.
+
+**O dado que motiva (radiografia 23/08).** 59 aparelhos; ~93% das corridas
+vivem em 0–1000 m (1 boss) e **1,1% acima de 2000 m — para onde existem TRÊS
+bosses** (Barreira, Faraó, Guardião) e um deserto de 5 etapas. Funil por
+âncora: 1000 m → 18 jogadores · 2000 m → 5 · 3000 m → 4 · 5000 m → 1 ·
+10.000 m → 0. Portão: 48 lutas na janela, 38 full-clear (79%), mediana **4 s**
+— segue o pedágio do §4.4. Boss dos 2000 m: 11 chegadas, TODAS com 0 camadas
+e 0 mortes — **clientes pré-Muralha** (97% da base rodava < 1.8.4; o deploy
+1.8.4→1.8.8 é de 22/08 e a 1.8.10 nem subiu). Sem checkpoint, re-tentar a
+Muralha custa ~4–5 min e o Faraó ~10 min — o custo cruza a sessão média
+(~5 min) entre a Muralha e a Barreira. **Ressalva-mestra: a fotografia é
+PRÉ-CONTEÚDO** — a retenção melhorada (56% um-dia-só vs 69%) não é crédito de
+bosses que ninguém enfrentou; as metas J começam a contar do deploy.
+
+**A função de um boss neste jogo (e a nota de cada uma).**
+
+1. **Marco / memória espacial** — nota máxima: "morri na Muralha" é história,
+   "morri aos 2000 m" é estatística. Céu roteirizado + medalha + título de
+   morte próprio soldam lugar à dramaturgia. Não mexer.
+2. **Exame pedagógico** — resolvido da Muralha em diante (a fase ensina, o
+   boss cobra: D3 → abrir no alto; deserto → executar por tabela). No portão,
+   79%/4 s não é exame, é formatura — e ESTÁ CERTO assim (ver decisão abaixo).
+3. **Quebra de ritmo** — o boss é a única "sala" do jogo: o scroll para, o
+   verbo muda de reagir para ler-e-executar. Precioso e resolvido.
+4. **Gerador de objetivo ("da próxima vez eu passo") — o furo estrutural.**
+   O custo de re-tentativa cresce linearmente com a âncora e o aprendizado
+   decai entre encontros: quem morre no Faraó não ganha "da próxima vez
+   passo", ganha uma semana até a próxima aula — enrage de 30 s calibrado
+   para veteranos que não existem. É o problema que M6 ataca.
+5. **Verbo único (investir na fresta) — no limite saudável.** É força
+   enquanto a variação for de leitura (3 gramáticas de abertura, telegraphs
+   diegéticos, ordens anti-decoreba); vira monotonia quando colapsa em "o
+   mesmo, mais rápido" — o Faraó é o mais derivativo (identidade =
+   aritmética + 2 padrões reskinados); o Guardião, o mais bem resolvido no
+   papel (palíndromo + remix = variação de estrutura). A próxima luta que
+   for só "mais rápida" cruza a linha.
+6. **Prestígio / porta da fase seguinte** — quase formalizada: a Muralha
+   apaga holofotes, o Faraó abre a tempestade… e a Barreira é a única
+   vitória muda (M3 conserta). Regra a adotar: **toda vitória de boss encena
+   a fase seguinte**.
+
+**Veredito por boss (23/08) e quando julgar.**
+
+| Boss | O que os dados dizem | Veredito | Quando julgar de novo |
+|---|---|---|---|
+| Portão 1000 m | 79% full, 4 s; mortes vitalícias 6→12 na semana, mas dist. 6/1/3/38 + fúria negada n=2 apontam fricção LOCALIZADA (2–3 jogadores no truque antigo), não endurecimento | **Pedágio-ritual — e deve continuar sendo** | régua nova = blitz/sem-quique (M2), não dificuldade |
+| Muralha 2000 m | 11 chegadas-fantasma (clientes velhos), ZERO luta real | **Não estreou** | mãos quietas ≥4 semanas; direção com n≥5 (~3 sem.), veredito com n≥15 (~6–8 sem.). Observar: mediana `h` (<10 s = outro pedágio; >45 s = enrage virou teto; saudável 15–35 s), dist. de `e` na morte (0–1 = problema de LEITURA do holofote; 3 = drama), meta de chegada 1%→3% |
+| Barreira 3650 m | nem deployada; vazão esperada ~0,8 chegada/semana | **Cega de nascença** (sem cronômetro, sem métrica na radiografia — M5) | existência a cada radiografia; n≥10 só em ~3 meses |
+| Faraó 4700 m | "mais agressivo do jogo" é afirmação de TABELA; audiência histórica endereçável: 1 aparelho | **Regime de existência** | 1ª chegada, 1ª morte `farao`, 1º `y=5`; taxa só com n≥10 (~trimestre+) |
+| Guardião 9995 m | zero desde sempre | **Existência, nunca taxa** | o evento é `l > 0` pela primeira vez |
+
+**As réguas (registrar como padrão da casa).**
+
+- **Decay entre âncoras consecutivas: 3:1 saudável** (cada âncora recebe ≥1/3
+  das corridas da anterior); 5:1+ = o TRECHO entre elas mata ou entedia.
+  Hoje 1000→2000 é ~5:1 — é o trecho da ideia J, e é onde a meta de 3% atua.
+- **Mortes/chegadas por boss:** <5% = pedágio · **15–40% = saudável** ·
+  ≥70% = muro (teto que a R-07 já usa). A banda DESCE com a profundidade
+  (a punição embutida do re-percurso cresce sozinha): Portão 15–35% ·
+  Muralha 15–30% · Barreira 10–25% (a viagem já cobrou ~10 min) · Faraó
+  20–40% (o exame declarado) · Guardião sem banda. A meta J "mortes boss2
+  > 6" ≈ 13%+ das chegadas esperadas — consistente com o piso.
+- **Tempo de luta (onde há letra `z`/`h`):** mediana 10–25 s, ou 25–60% da
+  janela de enrage; <8 s = pedágio; encostar em >80% do enrage = luta
+  arrastada (rever cadência antes de HP).
+- **END no boss:** mortes ÷ (mortes + full-clears) na janela: 10–35%.
+  Complemento: % que passa o boss e morre nos 200 m seguintes ≈ 0 (o respiro
+  pós-vitória — a duna pós-Muralha é verificável por isso).
+
+**Os seis pacotes.**
+
+- **M1 — Verdade nos rótulos e nos leitores (XS · quase-bug · candidata à
+  próxima release).** `ScoreSystem.js:139/:146` mostram "Camadas do Cerco" /
+  "Cerco vencido" na vitória da MURALHA; `MyStats.js:67` não soma `u`/`y` e
+  `:166` chama a letra `e` de "Cerco"; `Constants.js:18` rotula `boss2` de
+  "Capturador". `RadiografiaCore.js:560` omite `cerco`/`farao` do loop de
+  mortes vitalícias (quando existirem, somem do relatório). E o enrage da
+  Barreira é `45000` literal (`GameScene.js:149`) — promover a constante +
+  slider no TuningPanel (Muralha e Faraó já têm). Risco de não ter: dois
+  bosses diferentes chamados "Cerco" no produto exatamente na semana em que
+  os dois estreiam — dado corrompido na leitura humana.
+- **M2 — Prestígio para a massa (XS–S).** O conteúdo de combate mais
+  rentável desta janela serve os 18+ que vivem entre 1000–2000 m, não os ≤4
+  do fundo: **blitz visível** (carimbo "⚡ BLITZ!" na vitória ≤20 s + recorde
+  local "sua fuga mais rápida: X s" no fim de corrida/box Campanha — o
+  speedrun que a mediana de 4 s está implorando para virar jogo);
+  **medalha `gate_clean`** ("Limpa" — vitória do portão com `q = 0`, zero
+  telemetria nova); **estacas de boss conhecido na pista** ("⚔️ MURALHA —
+  2000 m" via `createTrackMarks`, SÓ para bosses já enfrentados — a 1ª visita
+  continua surpresa); conferir que a carga de fúria presa na arena é liberada
+  na vitória em TODOS os bosses (o "fôlego de largada" do portão,
+  generalizado).
+- **M3 — Vitórias e relógios (S).** **Barreira:** dar-lhe a vitória que
+  falta — "a rede da rendição" (a última rede despenca FROUXA sobre os
+  escombros, poeira dourada, e a primeira silhueta de pirâmide do Vale se
+  revela no parallax) — cumpre a regra "toda vitória encena a fase
+  seguinte". **Faraó:** ancorar o enrage na 1ª camada quebrada, não no
+  início da luta (o Espelho de Rá "desperta" quando o Faraó é ferido) — o
+  tempo de leitura da primeira visita deixa de ser taxado, a exigência de
+  execução fica intacta; NÃO subir para 45 s seco (apagaria a única
+  diferença aritmética dele para o Cerco). **Guardião:** `holo: true` na 3ª
+  camada (o pico do palíndromo — o remix passa a citar TODOS os
+  antecessores; hoje `BOSS3_RIFLE` desconhece o padrão mais distintivo do
+  jogo) + silhueta da última cerca no parallax a partir de ~9800 m (ninguém
+  topa com o fim do mundo sem vê-lo chegar). **Vencer = encerrar a corrida
+  permanece intocável** — a LENDA converte "infinito" em "zerável".
+- **M4 — Coerência do deserto profundo (XS · carona de release, nunca
+  release).** Hash de clima próprio pós-4800 m (limpo/neblina/tempestade —
+  **sem chuva**; hoje o hash genérico sorteia 26% de chuva contra a tese "o
+  deserto engole": a única incoerência de ficção do jogo). Escada de
+  medalhas depois de `dist_4700`: `dist_5200` "Onde o Recorde Vive" (o
+  recorde real, 5.185 m, mora ali), `dist_6000`, `dist_7500`, `dist_9000` —
+  append-only, custo XS, e viram estacas de MEDIÇÃO grátis (bestM diz onde
+  parou; medalha diz que pisou) para o dia em que houver tráfego.
+- **M5 — Instrumentação (S).** (a) **Gate de era nas chegadas** (Muralha:
+  `run.v ≥ 1.8.7`; Barreira/Faraó: `≥ 1.8.10`) — sem ele, chegadas-fantasma
+  de clientes velhos diluem o full-clear da estreia e o veredito atrasa.
+  (b) **R-06/R-07 com mortes NA JANELA** — a régua atual mistura mortes
+  vitalícias (só crescem) com lutas de janela (rotacionam): degenera com o
+  tempo; a R-06 já se calou PARA SEMPRE (12÷48 = 25% > 0,15) e nunca mais
+  detectaria pedágio. (c) Métricas `b_muralha`/`b_cerco`/`b_farao` +
+  regras novas clonando a R-07 (sem cronômetro: pedágio = full ≥85% E
+  mortes ≤5%; muro = ≥70%; mínimos n≥5 direção / n≥15 veredito).
+  (d) `/?stats`: painel "Bosses" com os 5 (Barreira/Faraó exibem "—" com
+  nota explícita de cegueira) + heatmap com causas `cerco`/`farao` e bandas
+  cortadas nas âncoras (`1000–2000 / 2000–3650 / 3650–4700 / 4700+`).
+  (e) **Proxies de frustração** (zero letra — deriváveis de `runs[].t/s/c`):
+  rage-quit (P(sem corrida nova em ≤10 min | morte por boss) vs morte
+  não-boss NA MESMA faixa), re-tentativa do marco na mesma sessão, latência
+  mediana pós-morte — tiram o debate do checkpoint do achismo.
+- **M6 — Replay do Confronto (M · a aposta).** Treino contextual oferecido
+  na tela de morte por boss ("🥊 Treinar a Muralha" ao lado de "Correr de
+  novo" — a oferta chega no momento da motivação, resolvendo o problema de
+  descoberta que as skins já mediram). Gate: só bosses que o jogador JÁ
+  encontrou (derivado de `runs[]` — letra > 0 ou causa de morte; o 1º
+  encontro permanece sagrado). Sanidade: treino não é corrida — zero pontos,
+  zero telemetria, zero medalha (o treino ensina, a corrida consagra;
+  precedente: "desistir sem sujar os números"). Ataca o furo nº 4: a
+  decadência do aprendizado entre encontros, que nenhum tuning de tabela
+  resolve. Estreia na MURALHA quando ela tiver n≥15 — onde a audiência está,
+  não no Faraó. Alternativa mais barata avaliada e guardada como fallback:
+  "eco da tentativa" (morrer em boss → próxima corrida nasce com fúria
+  cheia) — remédio fraco (desconta ~1 min de um preço de 10) e toca o
+  contrato de igualdade do ranking.
+
+**Doutrina de distribuição (registrar como regra).**
+
+- **1 clímax fecha cada fase; fase ≥2000 m ganha miniboss no meio** (o
+  padrão emergente zoo/cidade/deserto, agora explícito — o miniboss corta o
+  custo de re-tentativa da fase ao meio: level design remediando o furo 4).
+- Compasso saudável: uma âncora a cada ~1000–1600 m em trecho habitado. Os
+  gaps atuais (1000/1650/1050) estão bem.
+- **Deserto profundo (4725→9995 m): NENHUM boss agora.** Gatilho para
+  sequer DESENHAR uma âncora no vão (~7000–7500 m, dividindo-o em dois de
+  ~2.600 m): **≥5 aparelhos com bestM ≥5000 OU ≥10 corridas/janela ≥4700 m,
+  em duas radiografias consecutivas.** Antes disso, é conteúdo para ≤1
+  pessoa. (💡 guardada: "o deserto profundo ganha rosto" — landmarks
+  procedurais a cada ~1000 m, armadilha esparsa — mesmo gatilho.)
+- O metro de conteúdo mais rentável NÃO é âncora nova: é fazer a Muralha
+  funcionar. Mover o decay 1000→2000 de 5:1 para 3:1 engorda todas as
+  âncoras a jusante de graça — inclusive as três sem público.
+
+**Decisões tomadas nesta análise (valem até dado em contrário).**
+
+1. O portão continua pedágio-ritual DE PROPÓSITO — dominar o ritual é
+   prazer, e endurecê-lo taxaria toda corrida dos 18+ para punir um problema
+   que não existe. Sua régua de prestígio é execução (blitz/sem-quique).
+2. Checkpoint segue fora da mesa: metros SÃO pontos (Spearman 0,999) —
+   recomeçar aos 4700 m falsificaria ranking, medalhas de distância e a
+   semântica de "corrida". O caminho é treino (M6), não checkpoint.
+3. A letra `i` NÃO vai para segundos de boss: serviria ~0,5% das corridas,
+   enquanto a precisão de investida (R-08/R-09) serve 100%. A cegueira de
+   cronômetro da Barreira/Faraó é ACEITA por decisão registrada (precedente
+   do boss3), com gatilho de reversão: se com n≥15 o diagnóstico exigir
+   saber se a luta dura 5 s ou 25 s, `i` re-entra na mesa.
+4. Quiques dos 4 bosses novos seguem descartados no endGame (cobertura do
+   `q` no portão: 8 corridas em ~1000 — poder discriminante baixo). O proxy
+   de drama é a distribuição de camadas na morte (`e`/`u`/`y`).
+5. NÃO rotacionar ordem/arsenal entre encontros — a ordem É a identidade e
+   o anti-decoreba já é desenhado (ler o glow). Reavaliar só com
+   re-encontros em massa na Muralha; forma barata: tabela `*_RIFLE_B`
+   sorteada par/ímpar, nunca ordem nova.
+
+**Armadilhas.** Chegadas sem gate de era misturam clientes velhos (o
+full-clear da estreia nasce diluído); a janela de 50 corridas rotaciona e
+APAGA as primeiras lutas da Barreira se a métrica não existir antes da
+estreia (M5 antes do deploy da 1.8.10, idealmente); medalhas append-only com
+id imutável (§6); `u ≥ 4`/`y ≥ 5` são contrato do `runBonus` — nunca
+reciclar semântica de letra; réguas de insight sempre com amostra mínima
+(⚪ "amostra insuficiente", nunca silêncio).
+
+**Decisões em aberto (dono).**
+
+1. Aprovar a direção do Replay do Confronto (M6) desde já, ou esperar o
+   primeiro veredito da Muralha (n≥15)?
+2. Enrage do Faraó: âncora na 1ª camada quebrada (recomendada) ou 45 s nos
+   2 primeiros encontros da vida e 30 s depois?
+3. Nomes/emojis das medalhas novas (`gate_clean`, `dist_5200`…).
+4. Ordem dos pacotes — sugerida: **M1 → M2+M4 → M5 → M3 → M6** (verdade nos
+   rótulos primeiro; prestígio para a massa e caronas XS; instrumentação
+   antes da estreia da Barreira; encenações; a aposta por último).
+
+**Custo** XS (M1/M4) a M (M6), por pacote · **Impacto** alto — M2 serve os
+18+ da massa hoje; M1+M5 destravam o julgamento dos 3 bosses que estreiam
+agora · **Depende de** deploy da v1.8.10 + 4 semanas de funil pós-deploy
+para tudo que julga a Muralha.
+
 ### Descartadas / adiadas (com o motivo, para não voltarem por engano)
 
 | Ideia | Por que não |
 |---|---|
 | **Ghost** (fantasma do amigo na pista) | Exigiria série temporal por corrida, coleção nova e mudança de rules — caro demais para o valor |
 | **Aba de missões no `/?setup`** | O console do Firebase já cobre a edição do `config/missions` |
-| **3º boss aos 3.000 m** | Só com dado que justifique (gatilho: massa de corridas na faixa depois do Cerco) |
+| **3º boss aos 3.000 m** | Só com dado que justifique — gatilho quantificado pela doutrina M: **≥5 aparelhos com bestM ≥5000 OU ≥10 corridas/janela ≥4700 m, em duas radiografias consecutivas**. (Nota 23/08: a Barreira dos 3650 m saiu na v1.8.10 por decisão de fase — miniboss do deserto —, não por esse gatilho, que segue valendo para qualquer âncora no deserto profundo) |
 | **Push a jogadores** | O ntfy é canal do administrador; notificar jogador é outra natureza de produto |
 | **Missões diárias automáticas** | Base de 51 não sustenta a esteira; vira lista vazia |
 
@@ -1241,6 +1462,7 @@ levantamento recomendou (barato e destravante primeiro):
 | ~~9~~ | ~~**I** — Arena de Desafios~~ | — | ✅ **entregue na v1.8.6** |
 | 10 | **J** — Estado de Alerta (cidade em 3 distritos) | G (fatiável em 3×M) | conteúdo: preenche o §4.3 exatamente onde a mediana pós-fuga morre |
 | ~~11~~ | ~~**K** — Radiografia viva~~ | — | ✅ **entregue na v1.8.7** (medição de 22/08 colada ao lado do §2) |
+| 12 | **M** — doutrina dos bosses (6 pacotes) | XS–M por pacote | alto: prestígio p/ a massa (M2) + destrava a leitura dos 3 bosses novos (M1/M5); depende do deploy da v1.8.10 + 4 semanas de funil |
 
 Nada obriga a essa ordem — A e G são independentes de tudo e podem furar a fila
 a qualquer momento.
