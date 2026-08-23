@@ -381,7 +381,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            /* v1.8.7-fix: com PWA nao instalado a fileira tem TRES pilulas
+               (Chamar galera + Desafiar + instalar) — sem wrap, a primeira
+               transbordava para fora da coluna e "sumia" */
+            flex-wrap: wrap;
+            gap: 6px 12px;
             margin-bottom: 8px;
             font-size: 13px;
             letter-spacing: 3px;
@@ -665,6 +669,61 @@
 
         /* --- ⚔️ Arena de Desafios (v1.8.6) --- */
         /* Botão "Desafiar" da home, ao lado do "Chamar galera" */
+        #challenge-search {
+            width: 100%;
+            box-sizing: border-box;
+            margin: 8px 0 6px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(0, 0, 0, 0.35);
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        /* v1.8.7-fix: o diretorio de adversarios — TODOS os cadastrados em
+           ordem alfabetica, com busca aproximada; o top 10 deixou de ser a
+           unica porta de entrada do desafio */
+        #challenge-directory {
+            max-height: 200px;
+            overflow-y: auto;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.25);
+            margin-bottom: 8px;
+            text-align: left;
+        }
+
+        #challenge-directory .dir-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 7px 12px;
+            border: none;
+            background: transparent;
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        #challenge-directory .dir-row:hover { background: rgba(255, 255, 255, 0.08); }
+
+        #challenge-directory .dir-row.sel {
+            background: rgba(78, 205, 196, 0.18);
+            color: #4ecdc4;
+            font-weight: 700;
+        }
+
+        #challenge-directory .dir-empty {
+            display: block;
+            padding: 10px 12px;
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 13px;
+        }
+
         #challenge-new {
             font-family: inherit;
             background: #2b2c33;
@@ -2241,7 +2300,7 @@
 
         <span class="start-footer footer-left">Designed by Thomas Avelino</span>
         <span class="start-footer footer-center">Estatísticas anônimas são coletadas · <a href="./?stats">/?stats</a></span>
-        <span class="start-footer footer-right" id="game-version">v1.8.6</span>
+        <span class="start-footer footer-right" id="game-version">v1.8.7</span>
     </div>
 
     <div id="ranking-modal" class="modal">
@@ -2272,6 +2331,9 @@
         <h2>⚔️ Novo desafio</h2>
         <p>Vence quem fizer a melhor corrida em <b>pontos</b> dentro do prazo.</p>
         <div id="challenge-players"></div>
+        <input id="challenge-search" type="search" maxlength="12" autocomplete="off"
+               placeholder="🔎 buscar jogador pelo nome...">
+        <div id="challenge-directory" aria-label="Jogadores disponíveis"></div>
         <div id="challenge-days"></div>
         <p id="challenge-error"></p>
         <div class="btn-row">

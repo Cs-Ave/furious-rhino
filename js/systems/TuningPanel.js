@@ -128,7 +128,18 @@ export async function initTuningPanel(scene) {
   }, 'encher').name('🔥 Encher fúria');
 
   // Quique e rifle são lidos NO MOMENTO do contato/tiro — efeito ao vivo
-  const boss = gui.addFolder('Boss (portão)');
+  // v1.8.7-fix: os três bosses moram numa pasta-mãe (menu mais enxuto), e
+  // cada um tem o próprio "pular para 50m antes" — o teleporte de teste vive
+  // junto dos sliders da luta, não mais solto no Debug.
+  const bosses = gui.addFolder('Bosses');
+  const pularParaBoss = (anchorPx) => {
+    const sprite = scene.rhino.getSprite();
+    // 50m = 2000px antes da âncora — ANTES do gatilho da arena (1100px),
+    // então dá para ver a câmera travar, o horn e o primeiro telegraph.
+    // body.reset zera a velocidade; o FurySystem reaplica no frame seguinte.
+    sprite.body.reset(anchorPx - 50 * Constants.PIXELS_PER_METER, Constants.GAME_HEIGHT - 200);
+  };
+  const boss = bosses.addFolder('Portão (1000m)');
   boss.add(Constants, 'BOSS_KNOCKBACK_VX', 100, 1000, 20).name('quique: vx');
   boss.add(Constants, 'BOSS_KNOCKBACK_VY', -800, 0, 20).name('quique: vy');
   boss.add(Constants, 'BOSS_KNOCKBACK_MS', 100, 2000, 50).name('quique: janela ms');
@@ -144,7 +155,9 @@ export async function initTuningPanel(scene) {
   // v1.8.5: os bosses novos. As tabelas são as MESMAS referências lidas a
   // cada tiro — sliders ao vivo, como no portão. v1.8.7: o slot dos 2000m é
   // a MURALHA (BOSS_MURALHA); o Cerco realocado não tem luta ligada.
-  const boss2 = gui.addFolder('Boss 2 (Muralha)');
+  boss.add({ ir: () => pularParaBoss(Constants.WIN_DISTANCE_PX) }, 'ir')
+    .name('⚔️ Pular p/ 50m antes');
+  const boss2 = bosses.addFolder('Muralha (2000m)');
   for (const layers of [4, 3, 2, 1]) {
     boss2.add(Constants.BOSS_MURALHA[layers], 'intervalMs', 400, 4000, 50)
       .name(`arsenal: cadência ${layers} camada${layers > 1 ? 's' : ''}`);
@@ -168,12 +181,17 @@ export async function initTuningPanel(scene) {
   });
   distritos.close();
 
-  const boss3 = gui.addFolder('Boss 3 (Guardião)');
+  boss2.add({ ir: () => pularParaBoss(Constants.BOSS2_ANCHOR_PX) }, 'ir')
+    .name('⚔️ Pular p/ 50m antes');
+  const boss3 = bosses.addFolder('Guardião (fim do mundo)');
   for (const layers of [5, 4, 3, 2, 1]) {
     boss3.add(Constants.BOSS3_RIFLE[layers], 'intervalMs', 400, 4000, 50)
       .name(`rifle: cadência ${layers} camada${layers > 1 ? 's' : ''}`);
   }
+  boss3.add({ ir: () => pularParaBoss(Constants.BOSS3_ANCHOR_PX) }, 'ir')
+    .name('⚔️ Pular p/ 50m antes');
   boss3.close();
+  bosses.close();
 
   // v1.8.4: pesos da PONTUAÇÃO COMPOSTA. Cada peso é lido NO MOMENTO do
   // evento (ScoreSystem soma o bônus enquanto a corrida acontece), então
@@ -220,55 +238,9 @@ export async function initTuningPanel(scene) {
     },
   }, 'passo').name('Avançar 1 frame');
 
-  // Teleporte para testar o tier 4 sem jogar 60s. body.reset zera a
-  // velocidade — o FurySystem reaplica a horizontal no frame seguinte
-  debug.add({
-    pular: () => {
-      const sprite = scene.rhino.getSprite();
-      sprite.body.reset(24000, Constants.GAME_HEIGHT - 200);
-    },
-  }, 'pular').name('Pular p/ 600m');
-
-  debug.add({
-    pular790: () => {
-      const sprite = scene.rhino.getSprite();
-      sprite.body.reset(Constants.WIN_DISTANCE_PX - 400, Constants.GAME_HEIGHT - 200);
-    },
-  }, 'pular790').name('Pular p/ 990m (portão)');
-
-  // Cai ANTES do gatilho da luta (WIN - BOSS_ARENA_PX): dá para ver a
-  // câmera travar, o horn e o primeiro telegraph do rifle
-  debug.add({
-    pularArena: () => {
-      const sprite = scene.rhino.getSprite();
-      sprite.body.reset(
-        Constants.WIN_DISTANCE_PX - Constants.BOSS_ARENA_PX - 300,
-        Constants.GAME_HEIGHT - 200
-      );
-    },
-  }, 'pularArena').name('⚔️ Pular p/ arena do boss');
-
-  // v1.8.5: cai ANTES do gatilho de cada luta nova (âncora - arena - 300),
-  // no mesmo padrão do pularArena
-  debug.add({
-    pularCerco: () => {
-      const sprite = scene.rhino.getSprite();
-      sprite.body.reset(
-        Constants.BOSS2_ANCHOR_PX - Constants.BOSS_ARENA_PX - 300,
-        Constants.GAME_HEIGHT - 200
-      );
-    },
-  }, 'pularCerco').name('⚔️ Pular p/ Cerco');
-
-  debug.add({
-    pularGuardiao: () => {
-      const sprite = scene.rhino.getSprite();
-      sprite.body.reset(
-        Constants.BOSS3_ANCHOR_PX - Constants.BOSS_ARENA_PX - 300,
-        Constants.GAME_HEIGHT - 200
-      );
-    },
-  }, 'pularGuardiao').name('⚔️ Pular p/ Guardião');
+  // v1.8.7-fix: os teleportes de boss migraram para a pasta Bosses (um
+  // "pular p/ 50m antes" dentro de cada luta) — o Debug ficou só com o que é
+  // ferramenta genérica.
 
   // Baixa um .txt SÓ com o que mudou, no formato do Constants.js e com
   // instruções de onde aplicar — colar direto no VS Code

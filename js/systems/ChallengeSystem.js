@@ -23,6 +23,8 @@ import { getDb } from './LeaderboardSystem.js';
 const CACHE_KEY = 'furious_rhino_chal_cache';        // { at: ms, list: [ch] }
 const SEEN_KEY = 'furious_rhino_chal_seen';          // { [id]: { at: ms, d?: 1 } }
 const STANDINGS_KEY = 'furious_rhino_chal_standings'; // { [chId]: { at: ms, rows } }
+const DIR_KEY = 'furious_rhino_chal_dir';            // { at: ms, list: [{id,name}] }
+const DIR_TTL_MS = 10 * 60 * 1000; // diretório de adversários: 10 min basta
 const SEEN_CAP = 60;       // convites lembrados (visto/recusado) — poda por idade
 const STANDINGS_CAP = 12;  // placares cacheados — poda por idade
 const ENDED_GRACE_S = 24 * 3600; // encerrados há < 24h ficam no cache (card de resultado)
@@ -165,6 +167,48 @@ export class ChallengeSystem {
   // (todas engolem erro e degradam para cache; NUNCA lançam)
 
   // Cache síncrono da lista — é o que a tela pinta no boot, sem rede.
+  // ------------------------------------------- diretório de adversários
+  // v1.8.7: "quem eu posso desafiar" deixou de ser o top 10 — é a coleção
+  // scores/ inteira (todo mundo que já pontuou com apelido), em ordem
+  // alfabética. 1 leitura de coleção a cada 10 min, no molde do checkName
+  // (que já baixa a coleção inteira para conferir apelido). Busca aproximada
+  // = slug sem acento/caixa, resolvida no cliente.
+  static dirSlug(name) {
+    return String(name || '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase().replace(/\s+/g, ' ').trim();
+  }
+
+  static directoryCached() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(DIR_KEY));
+      return raw && Array.isArray(raw.list) ? raw : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static async fetchDirectory(force = false) {
+    const cached = this.directoryCached();
+    if (!force && cached && Date.now() - cached.at < DIR_TTL_MS) return cached.list;
+    try {
+      const { fs, db } = await getDb();
+      const snap = await fs.getDocs(fs.collection(db, 'scores'));
+      const myId = StorageManager.getOrCreatePlayerId();
+      const list = snap.docs
+        .filter((d) => !/^claude-/.test(d.id) && d.id !== myId)
+        .map((d) => ({ id: d.id, name: String(d.data().name || '').slice(0, 12) }))
+        .filter((e) => e.name.length >= 3)
+        .sort((a, b) => this.dirSlug(a.name).localeCompare(this.dirSlug(b.name)));
+      try {
+        localStorage.setItem(DIR_KEY, JSON.stringify({ at: Date.now(), list }));
+      } catch (e) { /* sem cache é aceitável */ }
+      return list;
+    } catch (e) {
+      return cached ? cached.list : []; // rede falhou: o cache velho ainda serve
+    }
+  }
+
   static cached() {
     try {
       const raw = JSON.parse(localStorage.getItem(CACHE_KEY));

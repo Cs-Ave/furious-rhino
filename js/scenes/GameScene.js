@@ -977,13 +977,21 @@ export class GameScene extends Phaser.Scene {
     this.pendingInvite = null;
     const stop = (ev) => ev.stopPropagation();
 
-    // Botão "⚔️ Desafiar" da home: o top 10 é o diretório de adversários
+    // Botão "⚔️ Desafiar" da home (v1.8.7-fix): abre o modal de criação com
+    // o DIRETÓRIO de adversários — todos os cadastrados, em ordem alfabética,
+    // com busca aproximada. O top 10 continua sendo um atalho (⚔️ por linha),
+    // mas deixou de ser a única porta.
     const newBtn = document.getElementById('challenge-new');
     newBtn.addEventListener('pointerdown', stop);
     newBtn.addEventListener('click', (ev) => {
       stop(ev);
-      this.openRanking(true);
+      this.openChallengeCreate();
     });
+
+    // Busca aproximada do diretório: filtra por slug (sem acento/caixa)
+    const search = document.getElementById('challenge-search');
+    search.addEventListener('pointerdown', stop);
+    search.addEventListener('input', () => this.renderChallengeDirectory(search.value));
 
     // O card da home engole toques (regra de ouro 1)
     const card = document.getElementById('challenge-card');
@@ -1034,20 +1042,27 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  // btn é opcional (v1.8.7-fix): as linhas do DIRETÓRIO no modal chamam sem
+  // botão do ranking — quem repinta a seleção lá é o renderChallengeDirectory
   toggleChallengeSel(id, name, btn) {
     const cap = (Constants.CHALLENGE_MAX_PARTICIPANTS || 8) - 1; // -1: eu
     if (this.challengeSel.has(id)) {
       this.challengeSel.delete(id);
     } else if (this.challengeSel.size >= cap) {
+      const msg = `⚔️ no máximo ${cap} adversários por desafio.`;
       const status = document.getElementById('ranking-status');
-      if (status) status.textContent = `⚔️ no máximo ${cap} adversários por desafio.`;
+      if (status) status.textContent = msg;
+      const err = document.getElementById('challenge-error');
+      if (err) err.textContent = msg;
       return;
     } else {
       this.challengeSel.set(id, name);
     }
     const on = this.challengeSel.has(id);
-    btn.classList.toggle('sel', on);
-    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (btn) {
+      btn.classList.toggle('sel', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
     this.updateChallengeBar();
   }
 
@@ -1061,9 +1076,64 @@ export class GameScene extends Phaser.Scene {
 
   openChallengeCreate() {
     document.getElementById('challenge-error').textContent = '';
+    const search = document.getElementById('challenge-search');
+    search.value = '';
     this.renderChallengeChips();
+    this.renderChallengeDirectory('');
     this.renderChallengeDays();
     this.openModal(document.getElementById('challenge-create-modal'));
+    // Rede depois do cache: o modal abre na hora e a lista completa chega
+    // quando a coleção responder (padrão do pódio)
+    this.safeTelemetry(() => ChallengeSystem.fetchDirectory().then(() => {
+      const modal = document.getElementById('challenge-create-modal');
+      if (modal.style.display !== 'none') this.renderChallengeDirectory(search.value);
+    }));
+  }
+
+  // O diretório de adversários dentro do modal: todos os cadastrados (menos
+  // eu), alfabético, com a seleção espelhada nos chips. Nome de terceiro
+  // SEMPRE via textContent.
+  renderChallengeDirectory(query) {
+    const box = document.getElementById('challenge-directory');
+    box.textContent = '';
+    const cached = ChallengeSystem.directoryCached();
+    const list = cached ? cached.list : [];
+    if (!list.length) {
+      const p = document.createElement('span');
+      p.className = 'dir-empty';
+      p.textContent = navigator.onLine === false
+        ? 'Sem internet — a lista de jogadores aparece quando a rede voltar.'
+        : 'Carregando jogadores...';
+      box.appendChild(p);
+      return;
+    }
+    const slug = ChallengeSystem.dirSlug(query);
+    const vistos = list.filter((e) => !slug || ChallengeSystem.dirSlug(e.name).includes(slug));
+    if (!vistos.length) {
+      const p = document.createElement('span');
+      p.className = 'dir-empty';
+      p.textContent = 'Ninguém com esse nome — tente outra busca.';
+      box.appendChild(p);
+      return;
+    }
+    for (const e of vistos) {
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'dir-row' + (this.challengeSel.has(e.id) ? ' sel' : '');
+      const name = document.createElement('span');
+      name.textContent = e.name;
+      const mark = document.createElement('span');
+      mark.textContent = this.challengeSel.has(e.id) ? '✓' : '⚔️';
+      row.append(name, mark);
+      row.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+      row.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        this.toggleChallengeSel(e.id, e.name, null);
+        this.renderChallengeChips();
+        this.renderChallengeDirectory(document.getElementById('challenge-search').value);
+      });
+      box.appendChild(row);
+    }
   }
 
   renderChallengeChips() {
@@ -1072,7 +1142,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.challengeSel.size) {
       const p = document.createElement('span');
       p.className = 'chal-none';
-      p.textContent = 'Ninguém escolhido — marque ⚔️ no top 10.';
+      p.textContent = 'Ninguém escolhido — toque nos nomes da lista abaixo.';
       box.appendChild(p);
       return;
     }
