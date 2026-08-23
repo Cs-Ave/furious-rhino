@@ -85,5 +85,12 @@ export const SKINS = [
     "prefix": "rhino-mecacolor-run",
     "access": {"type":"default"},
     "desc": "Meca Color"
+  },
+  {
+    "id": "rinorob",
+    "name": "Rino Robô",
+    "prefix": "rhino-rinorob-run",
+    "access": {"type":"default"},
+    "desc": "🤖 De graça — latão, vapor e um chifre de energia."
   }
 ];

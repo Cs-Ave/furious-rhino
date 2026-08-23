@@ -331,6 +331,47 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.rhino.getSprite(), true, 0.1, 0, -200);
 
     if (this.registry.get('debug')) initTuningPanel(this);
+
+    // v1.9.1: PONTE DE PÂNICO. Uma exceção solta dentro do update() mata o
+    // loop de rAF do Phaser — o jogo congela na tela para sempre, sem aviso,
+    // sem gravar a corrida, e com a tentativa já contada no startRun (foi
+    // exatamente o "o jogo trava" que os jogadores relataram). Os handlers
+    // globais de window.onerror/unhandledrejection vivem no js/game.js, que
+    // não tem referência à cena; esta ponte dá a eles o encerramento digno.
+    // Arrow function para o `this` continuar sendo a cena viva.
+    window.__frCrash = (motivo) => this.crashToHome(motivo);
+  }
+
+  // v1.9.1: encerramento DIGNO de uma sessão quebrada. Não é game over: é o
+  // reconhecimento de que a cena não é mais confiável. Regra de ouro — uma
+  // sessão quebrada NÃO PONTUA: nada de recorde, nada de submitScore, nada
+  // de run gravada, nada de telemetria. E devolve a tentativa que o startRun
+  // já tinha contado, senão o jogador é punido por um bug nosso.
+  // Idempotente e blindado: pode ser chamado 60x por segundo pelo catch do
+  // update, e com a cena meio destruída — nada aqui pode lançar de novo.
+  crashToHome(motivo) {
+    try {
+      if (this.gameOver) return; // idempotência: só o primeiro crash conta
+      this.gameOver = true;
+
+      // A cena pode estar em qualquer estado de destruição — cada parada
+      // tem o seu próprio try/catch para uma não impedir a outra.
+      try { this.physics.pause(); } catch (e) { /* física já foi embora */ }
+      try { this.audio.stopMusic(); } catch (e) { /* áudio já foi embora */ }
+
+      // Devolve a tentativa contada no startRun (mesmo gesto do "Desistir"
+      // da pausa): corrida que nem chegou ao fim não é tentativa gasta.
+      try { StorageManager.removeAttempt(); } catch (e) { /* storage cheio/bloqueado */ }
+
+      // Overlay de falha (criado no index.html). Se não existir, silêncio —
+      // melhor um congelamento mudo do que uma exceção dentro do handler.
+      try {
+        const el = document.getElementById('crash-overlay');
+        if (el) el.style.display = 'flex';
+      } catch (e) { /* DOM indisponível */ }
+    } catch (e) {
+      // Rede final: o handler de pânico jamais pode ser a origem de um pânico
+    }
   }
 
   // Telemetria e ranking são ACESSÓRIOS: um erro deles (rede, regra do
@@ -1549,13 +1590,17 @@ export class GameScene extends Phaser.Scene {
 
   // v1.8.4: `total` é a pontuação composta (o que ranqueia) e `meters` a
   // façanha física (viaja junto para as estacas da pista dos rivais).
-  async submitScore(total, meters) {
-    this.pendingScore = { total, meters };
+  // v1.9.1: `seconds` viaja junto — e a guarda de plausibilidade do
+  // LeaderboardSystem precisa dele para barrar marca fisicamente impossível
+  // (o bug da v1.9.0 mandou 26 corridas ao pódio a até 217 m/s). Sem o tempo
+  // a guarda aceita tudo, que é o comportamento retrocompatível.
+  async submitScore(total, meters, seconds = 0) {
+    this.pendingScore = { total, meters, seconds };
     if (!StorageManager.getPlayerName()) {
       this.openNicknameModal();
       return;
     }
-    const ok = await LeaderboardSystem.submit(total, meters);
+    const ok = await LeaderboardSystem.submit(total, meters, seconds);
     if (ok) this.showOnlineStatus('🌍 Enviado ao ranking mundial!');
     // v1.8.1: recorde novo vira notícia da home (dedupe pela própria marca)
     if (ok) NewsSystem.push(`rec:${Math.floor(total)}`,
@@ -1797,8 +1842,10 @@ export class GameScene extends Phaser.Scene {
     this.closeModal(document.getElementById('nickname-modal'));
     this.input.keyboard.enableGlobalCapture();
     // v1.8.4: pendingScore é { total, meters } (o ranking é por pontos)
+    // v1.9.1: + `seconds`, para a guarda de plausibilidade valer também aqui
     if (submit && this.pendingScore) {
-      LeaderboardSystem.submit(this.pendingScore.total, this.pendingScore.meters).then((ok) => {
+      LeaderboardSystem.submit(this.pendingScore.total, this.pendingScore.meters,
+        this.pendingScore.seconds).then((ok) => {
         if (ok) this.showOnlineStatus('🌍 Enviado ao ranking mundial!');
       });
     }
@@ -1829,7 +1876,8 @@ export class GameScene extends Phaser.Scene {
     StorageManager.setNameAskedAt(StorageManager.getAttempts());
     this.updateIdentityLine();
     if (this.pendingScore) {
-      const ok = await LeaderboardSystem.submit(this.pendingScore.total, this.pendingScore.meters);
+      const ok = await LeaderboardSystem.submit(this.pendingScore.total,
+        this.pendingScore.meters, this.pendingScore.seconds);
       if (ok) this.showOnlineStatus(`🌍 No ranking como ${name}!`);
     }
   }
@@ -3208,80 +3256,93 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    // O early-return continua sendo a PRIMEIRA coisa: fora do try, nada aqui
+    // pode lançar e é o caminho mais quente do jogo.
     if (!this.started || this.gameOver || this.won) return;
 
-    this.bgClouds.tilePositionX = this.cameras.main.scrollX * 0.05 + time * 0.005;
-    this.bgMountains.tilePositionX = this.cameras.main.scrollX * 0.06;
-    const farX = this.cameras.main.scrollX * 0.15;
-    this.bgFarA.tilePositionX = farX;
-    this.bgFarB.tilePositionX = farX;
-    const nearX = this.cameras.main.scrollX * 0.4;
-    this.bgNearA.tilePositionX = nearX;
-    this.bgNearB.tilePositionX = nearX;
-    // Fator > 1: o primeiro plano passa MAIS RÁPIDO que o rino
-    this.bgFg.tilePositionX = this.cameras.main.scrollX * 1.5;
-    if (this.bgCars.alpha > 0.001) {
-      this.bgCars.tilePositionX = this.cameras.main.scrollX * 0.55;
-    }
-
-    this.updateAtmosphere(time, delta);
-
-    // ANTES do rhino.update: o step de física já rodou e limpou os flags, então
-    // o blocked.down escrito pelo terreno chega intacto em quem o lê
-    this.updateTerrain();
-    this.drawTerrainDebug();
-    this.updateOpeningHints();
-    this.updateTrackMarks();
-    this.updatePortals();
-    this.updateHazards();
-
-    this.rhino.update(time, delta);
-
-    // Wind streaks while dashing (e durante a FÚRIA TOTAL — rastro contínuo)
-    if (this.rhino.dashState === 'active' || this.furySystem.rampage) {
-      const sprite = this.rhino.getSprite();
-      // faixa do rastro acompanha a escala visual (senão o lombo fica sem vento)
-      const k = sprite.scaleX * Constants.ART_RASTER_SCALE;
-      for (let i = 0; i < 3; i++) {
-        this.windEmitter.emitParticleAt(
-          sprite.x - Phaser.Math.Between(20 * k, 60 * k),
-          sprite.y - Phaser.Math.Between(8 * k, 56 * k)
-        );
+    // v1.9.1: o corpo inteiro do update vive dentro deste try. Motivo: uma
+    // exceção qualquer aqui dentro mata o loop de rAF do Phaser e o jogo
+    // congela na tela para sempre — sem mensagem, sem gravar a corrida e com
+    // a tentativa já contada. Era o "o jogo trava" dos relatos.
+    try {
+      this.bgClouds.tilePositionX = this.cameras.main.scrollX * 0.05 + time * 0.005;
+      this.bgMountains.tilePositionX = this.cameras.main.scrollX * 0.06;
+      const farX = this.cameras.main.scrollX * 0.15;
+      this.bgFarA.tilePositionX = farX;
+      this.bgFarB.tilePositionX = farX;
+      const nearX = this.cameras.main.scrollX * 0.4;
+      this.bgNearA.tilePositionX = nearX;
+      this.bgNearB.tilePositionX = nearX;
+      // Fator > 1: o primeiro plano passa MAIS RÁPIDO que o rino
+      this.bgFg.tilePositionX = this.cameras.main.scrollX * 1.5;
+      if (this.bgCars.alpha > 0.001) {
+        this.bgCars.tilePositionX = this.cameras.main.scrollX * 0.55;
       }
-    }
-    this.furySystem.update(this.rhino, delta);
-    // v1.7: a música segue a CARGA (não mais a posição); no rampage trava no teto
-    this.audio.setIntensity(this.furySystem.getIntensityRatio());
-    // A luta do portão (v1.7): banda de contato, clamp, quique, caçador.
-    // Depois do furySystem (que fixa a velocidade do frame) e antes do
-    // spawnManager (a câmera travada da luta é o que suprime spawns).
-    for (const bf of this.bossFights) bf.update(time, delta);
-    // Animais leem o multiplicador do tier vigente por frame (padrão live)
-    Constants.TIER_STATE.animalSpeedMult =
-      Constants.getTierFor(this.rhino.getSprite().x).animalSpeedMult;
-    this.spawnManager.update(this.cameras.main);
-    this.updateDashIcon();
 
-    this.updateScoreDisplay();
+      this.updateAtmosphere(time, delta);
 
-    // Portão dos 1000m (1x por corrida): cruza SEM PARAR — a fuga conta na
-    // hora e o modo infinito começa na mesma passada
-    if (!this.gateReached && this.rhino.getSprite().x >= Constants.WIN_DISTANCE_PX) {
-      this.gateReached = true;
-      this.crossGate();
-    } else if (this.gateReached && this.rhino.getSprite().x >= Constants.WORLD_END_PX) {
-      // Fim físico do mundo (10.000m): ninguém corre para sempre
-      this.legend = true;
-      this.endGame(true);
-    }
+      // ANTES do rhino.update: o step de física já rodou e limpou os flags, então
+      // o blocked.down escrito pelo terreno chega intacto em quem o lê
+      this.updateTerrain();
+      this.drawTerrainDebug();
+      this.updateOpeningHints();
+      this.updateTrackMarks();
+      this.updatePortals();
+      this.updateHazards();
 
-    if (this.rhino.getSprite().y > Constants.GAME_HEIGHT + 100) {
-      if (this.invincible) {
-        // debug: volta para o ar em vez de morrer de queda
-        this.rhino.getSprite().body.reset(this.rhino.getSprite().x, 400);
-      } else {
-        this.endGame(false, 'fall');
+      this.rhino.update(time, delta);
+
+      // Wind streaks while dashing (e durante a FÚRIA TOTAL — rastro contínuo)
+      if (this.rhino.dashState === 'active' || this.furySystem.rampage) {
+        const sprite = this.rhino.getSprite();
+        // faixa do rastro acompanha a escala visual (senão o lombo fica sem vento)
+        const k = sprite.scaleX * Constants.ART_RASTER_SCALE;
+        for (let i = 0; i < 3; i++) {
+          this.windEmitter.emitParticleAt(
+            sprite.x - Phaser.Math.Between(20 * k, 60 * k),
+            sprite.y - Phaser.Math.Between(8 * k, 56 * k)
+          );
+        }
       }
+      this.furySystem.update(this.rhino, delta);
+      // v1.7: a música segue a CARGA (não mais a posição); no rampage trava no teto
+      this.audio.setIntensity(this.furySystem.getIntensityRatio());
+      // A luta do portão (v1.7): banda de contato, clamp, quique, caçador.
+      // Depois do furySystem (que fixa a velocidade do frame) e antes do
+      // spawnManager (a câmera travada da luta é o que suprime spawns).
+      for (const bf of this.bossFights) bf.update(time, delta);
+      // Animais leem o multiplicador do tier vigente por frame (padrão live)
+      Constants.TIER_STATE.animalSpeedMult =
+        Constants.getTierFor(this.rhino.getSprite().x).animalSpeedMult;
+      this.spawnManager.update(this.cameras.main);
+      this.updateDashIcon();
+
+      this.updateScoreDisplay();
+
+      // Portão dos 1000m (1x por corrida): cruza SEM PARAR — a fuga conta na
+      // hora e o modo infinito começa na mesma passada
+      if (!this.gateReached && this.rhino.getSprite().x >= Constants.WIN_DISTANCE_PX) {
+        this.gateReached = true;
+        this.crossGate();
+      } else if (this.gateReached && this.rhino.getSprite().x >= Constants.WORLD_END_PX) {
+        // Fim físico do mundo (10.000m): ninguém corre para sempre
+        this.legend = true;
+        this.endGame(true);
+      }
+
+      if (this.rhino.getSprite().y > Constants.GAME_HEIGHT + 100) {
+        if (this.invincible) {
+          // debug: volta para o ar em vez de morrer de queda
+          this.rhino.getSprite().body.reset(this.rhino.getSprite().x, 400);
+        } else {
+          this.endGame(false, 'fall');
+        }
+      }
+    } catch (e) {
+      // Este catch roda a 60 fps: NADA de caro aqui, nem log em loop. O
+      // crashToHome é idempotente e já marca gameOver — o early-return acima
+      // corta os frames seguintes na primeira linha.
+      this.crashToHome('update');
     }
   }
 
@@ -3666,11 +3727,65 @@ export class GameScene extends Phaser.Scene {
       escaped, bossLayers: this.runBossLayers, bossFightS, legend: !!this.legend,
     });
     const total = ScoreSystem.total(distance, bonus);
-    const isNewRecord = StorageManager.isNewRecord(distance);
-    // Antes do saveRecord, senão "tinha recorde anterior" seria sempre true
-    const hadPreviousRecord = StorageManager.getRecord() > 0;
-    StorageManager.saveRecord(distance);
-    StorageManager.saveRecordPts(total); // recorde de PONTOS, em paralelo
+
+    // v1.9.1: A CORRIDA É CONSOLIDADA LOCALMENTE PRIMEIRO. Até a v1.9.0 o
+    // recorde local e o envio ao pódio mundial vinham ANTES do addPlayTimeS/
+    // addRun, e nada entre os dois pontos tinha try/catch: uma exceção no meio
+    // deixava uma marca no ranking mundial SEM corrida coerente por trás (e o
+    // recorde local sem histórico que o explicasse). A ordem agora é: grava a
+    // corrida → só então recorde e pódio. Se algo abaixo estourar, o pior caso
+    // é uma corrida gravada que não subiu — o inverso do estrago.
+    // Desconta o tempo pausado: runS é relógio de parede, então sem isto uma
+    // pausa (ou a aba escondida) entraria inteira no playTimeS
+    const paused = this.pausedMs + (this.paused ? Date.now() - this.pauseStartedAt : 0);
+    const runS = Math.min(7200, Math.max(0,
+      Math.round((Date.now() - (this.runStartedAt || Date.now()) - paused) / 1000)));
+    StorageManager.addPlayTimeS(runS);
+    // Histórico das últimas 50 execuções: duração, desfecho e — a partir da
+    // v1.6.1 — as MECÂNICAS usadas. Os quatro primeiros contadores já eram
+    // mantidos para julgar medalha e eram jogados fora aqui.
+    StorageManager.addRun(distance, runS, won ? 'win' : (cause || 'wall'), {
+      wallsBroken: this.runWallsBroken,
+      rampsSmashed: this.runRampsSmashed,
+      towersDowned: this.runTowersDowned,
+      animalsHit: this.runAnimalsHit,
+      jumps: this.runJumps,
+      dashes: this.runDashes,
+      dashesWasted: this.runDashWasted,
+      pauses: this.runPauses,
+      specialsUsed: this.runSpecials,
+      furyDeniedBoss: this.runFuryDenied,
+      bossLayersBroken: this.runBossLayers,
+      bossBounces: this.runBossBounces,
+      bossFightS: Math.round((this.bossFight ? this.bossFight.fightMs : 0) / 1000),
+      // v1.8.5: os bosses novos (letras e/h/l do RUN_COUNTERS)
+      boss2LayersBroken: this.runBoss2Layers,
+      boss2FightS,
+      boss3LayersBroken: this.runBoss3Layers,
+      // v1.8.10: os combates do deserto (letras u/y do RUN_COUNTERS — agente
+      // A; sem letras de segundos, precedente do boss3)
+      cercoLayersBroken: this.runCercoLayers,
+      faraoLayersBroken: this.runFaraoLayers,
+      keyboard: this.usedKeyboard,
+      version: Constants.VERSION,
+      skin: this.skin ? this.skin.id : 'default',
+    });
+
+    // v1.9.1: recorde local blindado — se o localStorage estourar (cota cheia,
+    // modo privado), o fim de jogo TEM de continuar: o overlay precisa
+    // aparecer de qualquer jeito. `let` porque isNewRecord/hadPreviousRecord
+    // são lidos mais abaixo (medalhas) e agora nascem fora do try.
+    let isNewRecord = false;
+    let hadPreviousRecord = false;
+    try {
+      isNewRecord = StorageManager.isNewRecord(distance);
+      // Antes do saveRecord, senão "tinha recorde anterior" seria sempre true
+      hadPreviousRecord = StorageManager.getRecord() > 0;
+      StorageManager.saveRecord(distance);
+      StorageManager.saveRecordPts(total); // recorde de PONTOS, em paralelo
+    } catch (e) {
+      // Sem recorde salvo o jogo segue: a corrida acima já está registrada
+    }
     this.finalDistance = distance; // usado pelo botão Compartilhar (metros)
     this.finalTotal = total;
     this.finalIsRecord = isNewRecord; // idem — depois do saveRecord seria tarde
@@ -3770,46 +3885,22 @@ export class GameScene extends Phaser.Scene {
 
     // v1.8.4: o ranking mundial passa a ser por PONTOS (os metros viajam
     // junto, para as estacas da pista de quem te tem como rival)
-    if (LeaderboardSystem.shouldSubmit(total)) {
-      this.submitScore(total, distance); // fire-and-forget: rede nunca trava o fim de jogo
+    // v1.9.1: protegido pelo mesmo motivo do recorde — o pódio é ACESSÓRIO e
+    // já roda depois de a corrida estar gravada em runs[]; se o shouldSubmit
+    // ou o submitScore lançarem de forma síncrona, o overlay ainda aparece.
+    try {
+      if (LeaderboardSystem.shouldSubmit(total)) {
+        // v1.9.1: `runS` já existe aqui — o bloco da telemetria subiu para
+        // antes do recorde. É ele que arma a guarda de plausibilidade.
+        this.submitScore(total, distance, runS); // fire-and-forget: rede nunca trava o fim de jogo
+      }
+    } catch (e) {
+      // Pódio mundial que não subiu não pode roubar o fim de jogo do jogador
     }
 
-    // Telemetria: acumula os totais locais e espelha no Firestore
-    // Desconta o tempo pausado: runS é relógio de parede, então sem isto uma
-    // pausa (ou a aba escondida) entraria inteira no playTimeS
-    const paused = this.pausedMs + (this.paused ? Date.now() - this.pauseStartedAt : 0);
-    const runS = Math.min(7200, Math.max(0,
-      Math.round((Date.now() - (this.runStartedAt || Date.now()) - paused) / 1000)));
-    StorageManager.addPlayTimeS(runS);
-    // Histórico das últimas 50 execuções: duração, desfecho e — a partir da
-    // v1.6.1 — as MECÂNICAS usadas. Os quatro primeiros contadores já eram
-    // mantidos para julgar medalha e eram jogados fora aqui.
-    StorageManager.addRun(distance, runS, won ? 'win' : (cause || 'wall'), {
-      wallsBroken: this.runWallsBroken,
-      rampsSmashed: this.runRampsSmashed,
-      towersDowned: this.runTowersDowned,
-      animalsHit: this.runAnimalsHit,
-      jumps: this.runJumps,
-      dashes: this.runDashes,
-      dashesWasted: this.runDashWasted,
-      pauses: this.runPauses,
-      specialsUsed: this.runSpecials,
-      furyDeniedBoss: this.runFuryDenied,
-      bossLayersBroken: this.runBossLayers,
-      bossBounces: this.runBossBounces,
-      bossFightS: Math.round((this.bossFight ? this.bossFight.fightMs : 0) / 1000),
-      // v1.8.5: os bosses novos (letras e/h/l do RUN_COUNTERS)
-      boss2LayersBroken: this.runBoss2Layers,
-      boss2FightS,
-      boss3LayersBroken: this.runBoss3Layers,
-      // v1.8.10: os combates do deserto (letras u/y do RUN_COUNTERS — agente
-      // A; sem letras de segundos, precedente do boss3)
-      cercoLayersBroken: this.runCercoLayers,
-      faraoLayersBroken: this.runFaraoLayers,
-      keyboard: this.usedKeyboard,
-      version: Constants.VERSION,
-      skin: this.skin ? this.skin.id : 'default',
-    });
+    // v1.9.1: a telemetria LOCAL desta corrida (playTimeS + runs[]) subiu para
+    // o topo do endGame — ver o comentário lá em cima. Aqui restou só o addWin,
+    // que precisa vir antes do evaluateTotals logo abaixo.
     if (won && !this.winCounted) StorageManager.addWin(); // o portão já contou
     // Skins por totais de vida: avaliadas DEPOIS de addAnimalsHit/addWin
     // contarem esta corrida (attempts já entrou no startRun)

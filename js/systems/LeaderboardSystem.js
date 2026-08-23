@@ -1,4 +1,5 @@
 import { firebaseConfig } from '../firebase-config.js';
+import { Constants } from '../utils/Constants.js';
 import { StorageManager } from '../utils/StorageManager.js';
 import { SkinSystem } from './SkinSystem.js';
 import { ScoreSystem } from './ScoreSystem.js';
@@ -16,6 +17,12 @@ const SDK = 'https://www.gstatic.com/firebasejs/12.16.0';
 // bônus pode empurrar essa grandeza. Dois campos, dois tetos.
 const MAX_SCORE = 20000; // teto do TOTAL (score) — igual às rules
 const MAX_M = 10000;     // teto dos METROS (scoreM) — fim físico do mundo
+
+// v1.9.1: zona CEGA do filtro de plausibilidade (ver isPlausible). Corrida
+// curta NUNCA é julgada: o playTime viaja em segundos INTEIROS, e o
+// arredondamento infla a média o suficiente para condenar um inocente.
+const SANITY_MIN_S = 2;    // <= 2s gravados: não se julga (ver a conta abaixo)
+const SANITY_MIN_M = 300;  // < 300m: não se julga (ver a conta abaixo)
 
 let dbPromise = null;
 
@@ -45,8 +52,57 @@ export class LeaderboardSystem {
   // o total (ver StorageManager) — total × total, mesma unidade dos dois
   // lados. Enviar só quando MELHORA o total é o que casa com a regra do
   // servidor, que compara o campo `score` do doc.
-  static shouldSubmit(total) {
-    return this.isConfigured() && total >= 1 && total > StorageManager.getBestSent();
+  // v1.9.1: `meters`/`seconds` são OPCIONAIS e só existem para adiantar o
+  // veredito de isPlausible (o submit checa de novo, é ele a linha de
+  // defesa). Com os defaults 0 o comportamento é EXATAMENTE o de antes:
+  // meters 0 cai na regra "nada a barrar" e isPlausible devolve true.
+  static shouldSubmit(total, meters = 0, seconds = 0) {
+    return this.isConfigured() && total >= 1 && total > StorageManager.getBestSent()
+      && this.isPlausible(meters, seconds);
+  }
+
+  // v1.9.1: ÚLTIMA LINHA DE DEFESA do ranking mundial. Puro e testável no
+  // node: devolve false só quando a velocidade média da corrida é
+  // fisicamente impossível (> Constants.RUN_SANITY_MAX_MPS = 40 m/s).
+  //
+  // Motivo: na v1.9.0, 26 das 85 corridas que chegaram ao ranking tinham
+  // média impossível — até 217 m/s —, todas cravando o teto de 20.000 pts /
+  // 10.000 m e envenenando o pódio. Em ~820 corridas das versões anteriores,
+  // ZERO. O bug ainda não foi localizado e quem foi afetado é jogador
+  // legítimo: por isso a função é DELIBERADAMENTE frouxa. A regra da casa
+  // aqui é uma só — NA DÚVIDA, ACEITA. Barrar um inocente é pior do que
+  // deixar passar uma marca suja, que a gente ainda consegue limpar depois.
+  static isPlausible(meters, seconds) {
+    const s = Number(seconds);
+    const m = Number(meters);
+    // Sem tempo confiável não há o que julgar (ausente, 0, negativo, NaN,
+    // Infinity, string boba). É também o caminho da RETROCOMPATIBILIDADE:
+    // quem chama submit() sem o parâmetro novo cai aqui e passa.
+    if (!Number.isFinite(s) || s <= 0) return true;
+    // Sem distância não há média nenhuma para condenar.
+    if (!Number.isFinite(m) || m <= 0) return true;
+
+    // ------------------------------------------------ a zona cega e a conta
+    // O playTime é gravado em segundos INTEIROS: uma corrida de 1,4s vira
+    // "1s" e a média sai inflada em até (s+1)/s. Em s=1 isso é 2× (t pode
+    // chegar perto de 2s); em s=2, 1,5×. Se um desses fosse julgado, uma
+    // corrida real a 20 m/s (já acima do observado, mas abaixo do teto
+    // físico de 35,16) apareceria como 40 e seria barrada — inocente preso.
+    //
+    // Por que 300m e não 200m: o filtro só pode disparar quando a média
+    // MEDIDA passa de 40, ou seja s < m/40. A velocidade REAL mínima capaz
+    // de disparar o filtro é m/(s+1) (pior caso do arredondamento):
+    //   limiar 200m → mínimo em s=5, m=201: 200/6 = 33,3 m/s
+    //                 (ABAIXO do teto físico de 35,16 — janela de erro)
+    //   limiar 300m → mínimo em s=8, m=321: 320/9 = 35,6 m/s
+    //                 (ACIMA do teto físico — impossível por construção)
+    // Com 300m, toda corrida barrada teria de ter sustentado mais que o teto
+    // absoluto do jogo, mesmo com o arredondamento jogando contra ela. E o
+    // que a zona cega deixa passar é inofensivo: as corridas do bug bateram
+    // nos 10.000m, e nada abaixo de 300m chega perto do pódio.
+    if (m < SANITY_MIN_M || s <= SANITY_MIN_S) return true;
+
+    return m / s <= Constants.RUN_SANITY_MAX_MPS;
   }
 
   // Chave de comparação de apelidos: sem acento, sem caixa, sem espaço
@@ -117,10 +173,19 @@ export class LeaderboardSystem {
   // alimenta os textos "· 987 m"). Doc antigo não tem `scoreM` e continua
   // válido: para ele total == metros, e a leitura universal
   // (ScoreSystem.metersOf) resolve com `scoreM ?? score`. Nada é migrado.
-  static async submit(total, meters) {
+  //
+  // v1.9.1: entra `seconds` (duração da corrida, o mesmo playTime em segundos
+  // inteiros da telemetria) com default 0 — chamador antigo continua válido e
+  // com 0 o filtro aceita, como antes. É a guarda contra o bug da v1.9.0
+  // (26/85 corridas com média impossível, até 217 m/s, todas no teto).
+  static async submit(total, meters, seconds = 0) {
     const name = StorageManager.getPlayerName();
     if (!name) return false;
     if (!StorageManager.allowsRemoteWrite()) return false;
+    // Marca impossível não sobe ao ranking mundial. Fica só no aparelho: o
+    // bestSent local NÃO é tocado, então quando o bug for corrigido a
+    // próxima corrida honesta do jogador ainda consegue subir.
+    if (!this.isPlausible(meters, seconds)) return false;
     try {
       const { fs, db } = await getDb();
       const playerId = StorageManager.getOrCreatePlayerId();

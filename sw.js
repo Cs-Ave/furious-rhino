@@ -1,6 +1,6 @@
 // Network-first service worker: always serves fresh files while online
 // (essential during development), falls back to cache for offline play.
-const CACHE = 'furious-rhino-v190';
+const CACHE = 'furious-rhino-v191';
 const ASSETS = [
   './',
   './index.html',
@@ -72,6 +72,9 @@ const ASSETS = [
   './art/rhino-mecacolor-run-0.svg',
   './art/rhino-mecacolor-run-1.svg',
   './art/rhino-mecacolor-run-2.svg',
+  './art/rhino-rinorob-run-0.svg',
+  './art/rhino-rinorob-run-1.svg',
+  './art/rhino-rinorob-run-2.svg',
   // @setup:skins:fim
   './art/enemy-zookeeper.svg',
   './art/enemy-zookeeper-run-1.svg',

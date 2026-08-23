@@ -3,7 +3,7 @@ import { SPRITE_PARAMS } from '../art/SpriteParams.js';
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
-  VERSION: '1.9.0',
+  VERSION: '1.9.1',
 
   // Rótulo humano de cada desfecho de corrida. Fonte única para o painel, o
   // resumo do jogador e os pushes — os três diziam a mesma coisa com palavras
@@ -51,6 +51,27 @@ export const Constants = {
   DASH_SPEED: 750,
   DASH_ACTIVE_MS: 200,
   DASH_COOLDOWN_MS: 1000,
+
+  // v1.9.1: TETO DE PLAUSIBILIDADE da velocidade média de uma corrida (m/s).
+  // NÃO é um teto de física — é a última linha de defesa antes de uma marca
+  // impossível subir ao ranking MUNDIAL (LeaderboardSystem.isPlausible).
+  //
+  // Por que existe: na v1.9.0, 26 das 85 corridas que chegaram ao ranking
+  // tinham velocidade média fisicamente impossível — até 217 m/s — e todas
+  // bateram no teto de 20.000 pts / 10.000 m, envenenando o pódio. Em ~820
+  // corridas de TODAS as versões anteriores isso aconteceu ZERO vezes. Não é
+  // trapaça: é um bug ainda não localizado, e quem foi afetado é jogador
+  // legítimo. Enquanto a causa não aparece, o ranking se protege na borda.
+  //
+  // De onde vem o número: o teto FÍSICO absoluto do jogo é
+  //   DASH_SPEED 750 × furyFactor 1,5 × SPECIAL_SPEED_MULT 1,25 / 40 px/m
+  //   = 35,16 m/s
+  // e ele exigiria dash 100% do tempo (o dash dura 200ms a cada 1000ms de
+  // recarga) com rampage ligado — insustentável na prática: a velocidade
+  // média REAL observada em produção fica entre 8 e 11 m/s. Os 40 m/s são
+  // 35,16 arredondados PARA CIMA com folga deliberada: barrar um jogador
+  // honesto é pior do que deixar passar uma marca suja.
+  RUN_SANITY_MAX_MPS: 40,
 
   // Difficulty & distance
   // Portão da fuga aos 1000m (v1.6): 5 biomas de 200m cabem inteiros no

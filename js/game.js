@@ -24,10 +24,123 @@ if (new URLSearchParams(location.search).has('setup')) {
     (await import('./stats/StatsDashboard.js')).render();
   })();
 } else {
-  bootGame();
+  // v1.9.1: se o próprio boot falhar (import quebrado, arquivo antigo no
+  // cache do SW, Phaser fora do ar), a promise do bootGame rejeita e NADA
+  // acontece na tela — home congelada no vazio. Aqui a falha é certa e
+  // conhecida, então derruba direto, sem os filtros do unhandledrejection.
+  bootGame().catch((e) => derrubarSessao('boot: ' + descreverErro(e)));
+}
+
+// ==================== v1.9.1: REDE DE PROTEÇÃO GLOBAL ====================
+// O bug que motivou tudo: os jogadores relataram "o jogo trava e não abre
+// mais". Uma exceção QUALQUER dentro do update() mata o loop de rAF do
+// Phaser — a tela congela para sempre, sem mensagem nenhuma, a corrida se
+// perde e a tentativa já tinha sido contada no startRun. O projeto não tinha
+// window.onerror, nem unhandledrejection, nem try/catch no update: zero rede.
+// Divisão de trabalho: aqui ficam os handlers globais (este arquivo não tem
+// referência à cena); quem encerra com dignidade é a GameScene.crashToHome,
+// exposta como window.__frCrash no fim do create().
+
+// IDEMPOTÊNCIA (crítica): um erro dentro do update dispara ~60 vezes por
+// segundo. Sem esta flag de módulo, a rede agiria 60x/s. Ela age UMA vez e
+// depois todo o resto é ignorado em silêncio.
+let sessaoDerrubada = false;
+
+function descreverErro(e) {
+  try {
+    if (!e) return 'erro desconhecido';
+    return String(e.message || e.name || e);
+  } catch (err) { return 'erro desconhecido'; }
+}
+
+function derrubarSessao(motivo) {
+  if (sessaoDerrubada) return;
+  sessaoDerrubada = true;
+  try { console.error('[FURIOUS RHINO] sessão derrubada:', motivo); } catch (e) { /* console tampado */ }
+
+  // Caminho nobre: a cena está de pé e sabe encerrar direito — devolve a
+  // tentativa, NÃO grava recorde, NÃO envia ao pódio, NÃO grava a corrida.
+  // Checagem de tipo porque a cena pode nem ter subido ainda (falha no boot).
+  try {
+    if (typeof window.__frCrash === 'function') {
+      window.__frCrash(motivo);
+      return;
+    }
+  } catch (e) { /* a cena morreu junto com o jogo — cai no plano B */ }
+
+  // Plano B: overlay na unha. Falha antes da cena existir (ou cena inútil)
+  // não pode deixar o jogador diante de uma tela morta sem explicação.
+  try {
+    const el = document.getElementById('crash-overlay');
+    if (el) el.style.display = 'flex';
+  } catch (e) { /* DOM indisponível: não há mais nada a fazer */ }
+}
+
+// v1.9.1: REGRA DA CASA Nº 1 — "telemetria e ranking são acessórios". O
+// Firestore fora do ar, o celular no elevador ou uma regra negada JAMAIS
+// podem mostrar "o jogo travou". Uma promise rejeitada não diz de onde veio,
+// então reconhecemos a assinatura de rede: DOMException (fetch/abort), os
+// campos `code`/`status` que só erros de servidor (Firebase/HTTP) carregam, e
+// o texto das mensagens de rede dos três navegadores ("Failed to fetch" no
+// Chrome, "Load failed" no Safari, "NetworkError..." no Firefox).
+const ASSINATURA_DE_REDE =
+  /fetch|network|offline|firestore|firebase|permission|denied|abort|timeout|load failed|quota|storage|xhr|cors|service ?worker/i;
+
+function pareceErroDeRede(reason) {
+  try {
+    if (!reason) return true;                       // sem motivo = sem prova
+    if (typeof DOMException !== 'undefined' && reason instanceof DOMException) return true;
+    if (reason.code !== undefined || reason.status !== undefined) return true;
+    return ASSINATURA_DE_REDE.test(String(reason.message || reason.name || reason));
+  } catch (e) {
+    return true; // nem inspecionar deu certo: na dúvida, não derruba
+  }
+}
+
+// Só um erro de PROGRAMAÇÃO derruba a sessão: variável indefinida, método que
+// não existe, índice fora de faixa — o que de fato mata o update(). Qualquer
+// outra coisa (string solta, Error genérico, DOMException, undefined) fica de
+// fora: não dá para atribuir ao jogo com segurança, e um alarme falso ("o
+// jogo travou" com o jogo rodando) é MUITO pior do que um silêncio a mais.
+function ehBugDeVerdade(reason) {
+  const bug = reason instanceof TypeError || reason instanceof ReferenceError
+    || reason instanceof RangeError || reason instanceof SyntaxError;
+  return bug && !pareceErroDeRede(reason);
+}
+
+function instalarRedeDeProtecao() {
+  // Erro SÍNCRONO solto — exatamente o caso do update() que congelava a tela.
+  window.addEventListener('error', (ev) => {
+    // Falha de RECURSO (um .svg da arte que não carregou) não é bug de jogo.
+    // Esses eventos não borbulham, então só chegariam aqui com captura — mas
+    // a guarda é barata e a home tem uma dúzia de <img> de arte.
+    if (ev && ev.target && ev.target !== window) return;
+    derrubarSessao(descreverErro(ev && (ev.error || ev)));
+  });
+
+  // Promise rejeitada sem catch. Aqui somos DELIBERADAMENTE conservadores:
+  // portão 1 — só com a corrida em andamento (body.started, que o startRun
+  // marca). Todo o assíncrono acessório (pódio, notícias, desafios, stats,
+  // geo) roda na HOME; derrubar a home por uma promise de rede seria trocar
+  // um jogo perfeitamente vivo por um alarme falso.
+  // portão 2 — só com assinatura de bug de código, nunca de rede.
+  window.addEventListener('unhandledrejection', (ev) => {
+    try {
+      if (!document.body.classList.contains('started')) return;
+      if (!ehBugDeVerdade(ev && ev.reason)) return;
+      derrubarSessao('promise: ' + descreverErro(ev && ev.reason));
+    } catch (e) { /* o handler jamais pode ser a origem de um erro novo */ }
+  });
 }
 
 async function bootGame() {
+  // v1.9.1: a rede é instalada AQUI, primeira linha do boot do jogo, e não no
+  // topo do arquivo, por duas razões: (a) /?stats e /?setup são páginas
+  // estáticas sem cena e sem corrida — um overlay dizendo "o jogo travou" em
+  // cima do painel de estatísticas seria mentira; (b) estando antes do await
+  // dos imports, ela já cobre falhas do próprio carregamento das cenas.
+  instalarRedeDeProtecao();
+
   const [{ Constants }, { BootScene }, { GameScene }] = await Promise.all([
     import('./utils/Constants.js'),
     import('./scenes/BootScene.js'),
