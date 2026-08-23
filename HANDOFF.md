@@ -1,6 +1,6 @@
 # Handoff — FURIOUS RHINO v1.8.10
 
-**Data:** 23/08/2026 · **Status:** produção na **v1.8.8**; local: v1.8.9 (fábrica de sprites, commitada pela sessão paralela) + **v1.8.10 "As Areias do Tempo" PRONTA no working tree, sem commit** (13 suítes + e2e-deserto 14/14 verdes)
+**Data:** 23/08/2026 · **Status:** **v1.8.10 RELEASED em produção** (push `b8601e1`, tags v1.8.9/v1.8.10, 2 GitHub Releases). Smoke: versão no ar, pódio real, as 6 áreas do deserto respondendo, **5 lutas** ativas (portão 40000 · Muralha 80000 · Barreira 146000 · Faraó 188000 · Guardião 399800), 27 medalhas, zero textura faltando, zero erro de JS. Rules (`deaths ≤ 17`) publicadas pelo dono ANTES do push; sondas de teste limpas da coleção `challenges`. Fluxo de 3 portões cumprido.
 
 > ⚠️ Portão 3 da v1.8.10 exige REPUBLICAR as rules (`deaths.size() <= 17` — causas
 > `cerco`/`farao`) no console ANTES do push. As áreas/letra u/y/pontos estão nos
