@@ -13,6 +13,7 @@
 **Origem:** sessão de planejamento de 16/08/2026 (ver §7, Procedência).
 **Última atualização:** 21/08/2026 — criação a partir do levantamento de 16/08; a **ideia A saiu na v1.8.4** no mesmo dia, e as **ideias B, C e D saíram juntas na v1.8.5**, também no mesmo dia.
 **22/08/2026** — entra a ideia **I. Arena de Desafios** (desafios 1v1 e em grupo), desenhada com o dono — **e entregue na v1.8.6 no mesmo dia**.
+**23/08/2026** — ideia **L. As Areias do Tempo** (deserto em 5 etapas + 2 combates), desenhada e entregue na v1.8.10 no mesmo dia; o Cerco saiu do limbo.
 **22/08/2026** — entra também a ideia **J. Estado de Alerta** (a cidade em três distritos, boss novo aos 2000 m), desenhada com o dono em sessão de painel criativo.
 **22/08/2026** — entra a ideia **K. Radiografia viva** (análise permanente de usabilidade) — **desenhada e entregue no mesmo dia (v1.8.7)**, com a medição de 22/08 colada ao lado do §2.
 
@@ -1164,6 +1165,18 @@ do bump v187 já pendente; `e2e-setup` ganhou 3 asserts (20/20).
    `(w+r+o+a)/d` — mesma pendência da ideia A.
 4. Arquivar fotografias automaticamente (`--json` → pasta versionada) se a
    cadência de medição virar rotina.
+
+### L. As Areias do Tempo — o deserto em 5 etapas ✅ **v1.8.10**
+
+> ✅ **DESENHADA E ENTREGUE em 23/08/2026 (v1.8.10)**, por pedido direto do dono
+> ("gamer designer": deserto egípcio pós-cidade, 5 etapas de 500 m, pirâmides,
+> flechas, boss defensor muito agressivo na muralha, infinito depois). Decisão
+> do dono no desenho: **o Cerco virou o MINIBOSS do meio do deserto** (Barreira
+> da Escavação, 3650 m) — as tabelas declaradas desde a v1.8.5 enfim ligadas; o
+> clímax é inédito (Faraó de Bronze, 4700 m, letra `y`, causa `farao`). O
+> alfabeto de `runs[]` fechou em `u`/`y` — **resta apenas a letra `i`** (as
+> ideias E/F/G precisarão negociá-la ou viver sem letra). Detalhes no
+> `GAME_DESIGN.md` ("As Areias do Tempo") e `docs/04` §8/§11.
 
 ### Descartadas / adiadas (com o motivo, para não voltarem por engano)
 

@@ -271,5 +271,80 @@ eq('...LENDA + Cerco pagam, blitz não (z=40 > 20)',
   ScoreSystem.runBonus(runLendaCheia),
   50 + 20 + 30 + 36 + 12 * W.bossLayer + W.boss2 + W.escape + W.legend);
 
+// ---------- 12. v1.8.10 "As Areias do Tempo": Barreira (u) e Faraó (y) ----------
+// Os dois combates do deserto entram no MESMO contrato dos três bosses da
+// v1.8.5: camada vale bossLayer, vitória (contador cheio) paga o peso
+// próprio — cerco (150, u >= CERCO_LAYERS.length = 4) e farao (250,
+// y >= FARAO_LAYERS.length = 5). As chaves cerco/farao de SCORE_WEIGHTS e
+// FARAO_LAYERS são do agente A — se estes asserts caírem com peso 0 ou
+// TypeError de FARAO_LAYERS, é a integração com o Constants que falta.
+eq('peso da vitória da Barreira (cerco)', ScoreSystem.pointsFor('cerco'), 150);
+eq('peso da vitória do Faraó (farao)', ScoreSystem.pointsFor('farao'), 250);
+eq('a Barreira tem 4 camadas (a borda da vitória)', Constants.CERCO_LAYERS.length, 4);
+eq('o Faraó tem 5 camadas (a luta mais longa do jogo)', Constants.FARAO_LAYERS.length, 5);
+
+// As BORDAS da vitória são a regra
+eq('Barreira: u=3 paga só as camadas (sem vitória)',
+  ScoreSystem.runBonus({ m: 3600, c: 'cerco', u: 3 }), 3 * W.bossLayer + W.escape);
+eq('Barreira: u=4 paga camadas + vitória (4×25 + 150)',
+  ScoreSystem.runBonus({ m: 3700, c: 'dart', u: 4 }), 4 * W.bossLayer + W.cerco + W.escape);
+eq('Faraó: y=4 paga só as camadas (sem vitória)',
+  ScoreSystem.runBonus({ m: 4700, c: 'farao', y: 4 }), 4 * W.bossLayer + W.escape);
+eq('Faraó: y=5 paga camadas + vitória (5×25 + 250)',
+  ScoreSystem.runBonus({ m: 4750, c: 'spike', y: 5 }), 5 * W.bossLayer + W.farao + W.escape);
+
+// ASSERT-GUARDA do contrato, versão v1.8.10: a soma manual refaz os MESMOS
+// eventos que a cena dispara ao vivo (addScore('bossLayer') por camada nos
+// DOIS combates + o prêmio de vitória no defeatCerco/defeatFarao).
+function somaAoVivoAreias(run) {
+  let pts = somaAoVivoDeserto(run); // w/r/o/a/b/e/l + vitória do boss2 + endBonus
+  for (const n of [run.u, run.y]) {
+    for (let i = 0; i < (n || 0); i++) pts += ScoreSystem.pointsFor('bossLayer');
+  }
+  if ((run.u || 0) >= Constants.CERCO_LAYERS.length) pts += ScoreSystem.pointsFor('cerco');
+  if ((run.y || 0) >= Constants.FARAO_LAYERS.length) pts += ScoreSystem.pointsFor('farao');
+  return pts;
+}
+const runAreias = { m: 4750, c: 'farao', w: 8, r: 3, o: 2, a: 6, b: 3, z: 14, e: 4, u: 4, y: 4 };
+eq('runBonus == soma ao vivo (deserto v1.8.10: b/e/u/y juntos)',
+  ScoreSystem.runBonus(runAreias), somaAoVivoAreias(runAreias));
+eq('...e o número é o esperado à mão (40+15+30+18 +375 +150+150 +100+50)',
+  ScoreSystem.runBonus(runAreias), 928);
+
+const runTravessia = { m: 10100, c: 'win', w: 12, a: 9, b: 3, z: 18, e: 4, l: 5, u: 4, y: 5 };
+eq('runBonus == soma ao vivo (LENDA com os CINCO combates fechados)',
+  ScoreSystem.runBonus(runTravessia), somaAoVivoAreias(runTravessia));
+eq('...blitz + as três vitórias pagas + LENDA',
+  ScoreSystem.runBonus(runTravessia),
+  60 + 27 + 21 * W.bossLayer + W.boss2 + W.cerco + W.farao
+    + W.escape + W.blitz + W.legend);
+
+// breakdown: as linhas novas da tela de fim de corrida
+eq('breakdown: Barreira derrubada rende as DUAS linhas (camadas + vitória)',
+  ScoreSystem.breakdown({ meters: 3700, cercoLayers: 4 }).lines.map((l) => [l.label, l.pts]),
+  [['🕸️ Camadas da Barreira ×4', 4 * W.bossLayer], ['🕸️ Barreira derrubada', W.cerco]]);
+eq('breakdown: Barreira a meio caminho NÃO ganha a linha de vitória',
+  ScoreSystem.breakdown({ meters: 3650, cercoLayers: 3 }).lines.map((l) => l.label),
+  ['🕸️ Camadas da Barreira ×3']);
+eq('breakdown: Faraó derrotado rende as DUAS linhas (camadas + vitória)',
+  ScoreSystem.breakdown({ meters: 4750, faraoLayers: 5 }).lines.map((l) => [l.label, l.pts]),
+  [['🏺 Camadas do Faraó ×5', 5 * W.bossLayer], ['🏺 Faraó derrotado', W.farao]]);
+eq('breakdown: Faraó a 4 camadas NÃO ganha a linha de vitória',
+  ScoreSystem.breakdown({ meters: 4700, faraoLayers: 4 }).lines.map((l) => l.label),
+  ['🏺 Camadas do Faraó ×4']);
+eq('breakdown: bônus da corrida do deserto bate com o runBonus dela',
+  ScoreSystem.breakdown({
+    meters: 4750, walls: 8, ramps: 3, towers: 2, animals: 6,
+    bossLayers: 3, boss2Layers: 4, cercoLayers: 4, faraoLayers: 4,
+    escaped: true, blitz: true,
+  }).bonus, ScoreSystem.runBonus(runAreias));
+
+// Contrato com as firestore.rules: o teto de causas subiu para 17 (cerco e
+// farao entram no mapa deaths). Assert de TEXTO — as rules não são módulo.
+const { readFileSync } = await import('node:fs');
+const rulesText = readFileSync(new URL('../firestore.rules', import.meta.url), 'utf8');
+eq('firestore.rules aceita as 17 causas (deaths.size() <= 17)',
+  rulesText.includes('deaths.size() <= 17'), true);
+
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

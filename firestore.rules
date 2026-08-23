@@ -103,9 +103,11 @@ service cloud.firestore {
           && core('playTimeS') && core('wins')
           && core('bestM') && request.resource.data.bestM <= 10000
           && request.resource.data.deaths is map
-          // v1.8.5: 15 (era 14) — entram as causas boss2 (Cerco) e boss3
-          // (Guardião do Fim). Bump retrocompatível, custo zero de orçamento.
-          && request.resource.data.deaths.size() <= 15
+          // v1.8.5: 15 (era 14) — entraram as causas boss2 (Cerco) e boss3
+          // (Guardião do Fim). v1.8.10: 17 — entram cerco (Barreira da
+          // Escavação) e farao (Faraó de Bronze). Bump retrocompatível,
+          // custo zero de orçamento (precedente do 14→15).
+          && request.resource.data.deaths.size() <= 17
           && (!('runs' in request.resource.data)
               || (request.resource.data.runs is list
                   && request.resource.data.runs.size() <= 50))

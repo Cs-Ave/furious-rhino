@@ -1,6 +1,6 @@
 # FURIOUS RHINO — Documento de Design
 
-> Estado atual do jogo (v1.8.7). Este documento descreve o que **é**, não o que
+> Estado atual do jogo (v1.8.10). Este documento descreve o que **é**, não o que
 > se imaginou no começo — as decisões de v1.1 em diante estão registradas aqui
 > com o motivo, e várias delas foram tomadas a partir dos dados reais de
 > telemetria (ver "Decisões orientadas por dados" no fim).
@@ -283,6 +283,38 @@ linha de código):
 - O contrato técnico da tela não mudou: o overlay inteiro inicia a corrida ao
   toque, e todo botão isola o toque (`stopPropagation`) — trancado por teste.
 
+## 🏜️ As Areias do Tempo (v1.8.10) — o deserto em cinco etapas
+
+*A cidade caçava; o deserto engole.* Depois do Pórtico da Rodovia a estrada
+acaba de verdade: cinco etapas de 500 m (2200–4700 m) na mesma máquina de
+áreas da cidade, com fachada, elenco, armadilha e clima próprios — e DOIS
+combates. O nome se paga na aritmética do céu: os 2500 m atravessam ~4 dias
+inteiros de ciclo; o tempo derrete na travessia.
+
+- **E1 Estrada Engolida** (dunas, camelo, abutre, naja; areia movediça — a
+  primeira armadilha em que a resposta é pular POR CIMA) → **E2 Miragem do
+  Oásis** (croc e naja com arte reaproveitada, flamingo) → **E3 Sítio da
+  Escavação** (múmias em par, escaravelho, o arqueiro de FLECHAS — e o
+  caixote esmagável) → **E4 Vale dos Faraós** (paredes-pirâmide, obeliscos-
+  torre cuspindo flechas, Falcão de Hórus em zig, a flecheira no ritmo do
+  glifo) → **E5 Necrópole** (tempestade de areia, o exame, corredor limpo
+  pré-boss).
+- **A Barreira da Escavação (3650 m)**: o Cerco declarado na v1.8.5 e
+  realocado na v1.8.7 FINALMENTE vive — mecânica intacta (4 camadas
+  MID→GROUND→HIGH→MID, canhão de redes), paleta nova de sacos de areia e
+  andaime. Miniboss no meio da fase: vitória +150, causa própria `cerco`,
+  letra `u`.
+- **O FARAÓ DE BRONZE (4700 m)** — o defensor mais agressivo do jogo, por
+  TABELA e não por HP: 5 camadas MID→HIGH→GROUND→MID→HIGH (a terceira
+  gramática de abertura), cadência 1200→700 ms (a mais curta), rajada tripla
+  em leque cedo, **Espelho de Rá** (o telegraph de holofote vira feixe solar
+  varrendo até a zona de pouso) e **Mergulho de Hórus** (rasante com projétil-
+  falcão), enrage aos 30 s. Vitória +250, causa `farao`, letra `y`. Depois, o
+  deserto profundo infinito até o Guardião do Fim (intocado).
+- **Pontuação**: as letras `u`/`y` fecham o alfabeto de `runs[]` (sobra só
+  `i`); o contrato "ao vivo == recomputado" segue trancado; as flechas usam o
+  MESMO pool de dardos com textura própria (restaurada no reuso).
+
 ## 🏙️ Estado de Alerta (v1.8.7) — a cidade em três distritos
 
 A cidade era um skin infinito: depois do portão, dificuldade plana e nenhum
@@ -378,12 +410,21 @@ O ranking provoca, mas não convoca: 69% dos jogadores jogavam um único dia
 (radiografia de 16/08) porque nada os chamava de volta AMANHÃ. A Arena é a
 resposta: um desafio direto, com prazo e com gente conhecida.
 
-- **Como funciona**: um jogador marca outros no top 10 (⚔️ em cada linha) e
-  envia um desafio de 1, 3 ou 7 dias. Vence a **melhor corrida em pontos**
+- **Como funciona**: o botão Desafiar abre o **diretório completo de
+  adversários** (a coleção `scores/` inteira, ordem alfabética, busca por
+  slug sem acento — o top 10 com as ⚔️ segue como atalho) e envia um desafio
+  de 1, 3 ou 7 dias para até 7 marcados. Vence a **melhor corrida em pontos**
   dentro da janela — a régua da pontuação composta, imune a farm por volume e
   virável até o último dia. Só quem ACEITA entra no placar (o convite chega
   num popup ao abrir o jogo); criar exige apelido próprio, ser desafiado não;
-  máximo de 3 desafios criados ativos por jogador.
+  o teto de 3 disputas simultâneas conta **envolvimentos** (criou OU aceitou).
+- **Encerrar antes do prazo é do criador** (v1.8.8): o botão grava
+  `cancelledAt` no doc **uma única vez** (cláusula própria nas rules — o
+  update continua aceitando só isso ou o aceite crescer). Cancelado nunca é
+  ativo: não convida, não pontua, não planta estaca; os desafiados veem o
+  aviso e o dispensam localmente. Na home, os cards de desafio ocupam o lugar
+  do box Campanha enquanto existirem (máx. 3 empilhados) — sem disputa, a
+  Campanha volta.
 - **A decisão de arquitetura que sustenta tudo: o desafio é metadado, o
   placar é derivado.** O doc em `challenges/` guarda quem/prazo/aceites,
   escrito uma vez pelo criador (o único update permitido é o mapa de aceites
@@ -405,6 +446,78 @@ resposta: um desafio direto, com prazo e com gente conhecida.
 - **Custo de rede**: 1 query por hora para descobrir convites, 1 leitura por
   participante (cache de 30 min) para o placar — cabe no plano gratuito, e a
   corrida nunca espera a rede (as estacas leem só o cache).
+
+## 📡 Radiografia viva (v1.8.7) — a análise que deixou de ser um evento
+
+A radiografia de 16/08 nasceu de um script apagado de propósito, com uma
+receita de recriação no banco de ideias — atrito que fazia a análise não
+acontecer. A decisão: **a análise vira ferramenta titular e mantida**, com
+três princípios de design:
+
+- **Um núcleo puro, dois invólucros.** `RadiografiaCore` recebe as coleções
+  decodificadas e devolve métricas + insights + markdown, sem fetch nem DOM —
+  o MESMO código roda na aba 📊 do estúdio e no `npm run radiografia`.
+  Determinismo é contrato: mesma base → mesmo relatório byte a byte (o diff
+  entre duas medições mede só a mudança do DADO).
+- **O motor de insights fala como o diagnóstico do banco de ideias**: regras
+  determinísticas com gatilho numérico, **amostra mínima** (abaixo dela sai
+  "⚪ amostra insuficiente" — nunca silêncio, nunca afirmação sem base) e
+  severidade; cada texto aponta a ideia do banco que ataca o problema. A
+  fotografia de 16/08 vive **congelada** no núcleo como baseline — todo
+  relatório nasce com a coluna Δ. Rigor assumido: com ~50 jogadores o IC95 de
+  uma proporção é ±14 p.p. — os textos dizem "sinal, não prova".
+- **Zero writes, por construção**: leitura pública via REST, sondas
+  `claude-*` filtradas na busca, e o teste tranca por text-assert que os
+  fetchers não têm POST. A primeira medição real (22/08) já pagou a
+  ferramenta: revelou que 100% da base rodava < 1.8.4 — o deploy estava
+  pendente desde a v1.8.4 e nenhum outro painel teria mostrado isso.
+
+## 🛠️ Estúdio unificado (v1.8.8) — um duplo-clique, um servidor
+
+A dor registrada na QA: "a tela fala em 3000, o atalho abre 3210 — qual é o
+procedimento?". A restrição física: **página web não inicia processo local**
+(sandbox do navegador) — nenhum botão de "ligar servidor" é possível com tudo
+morto. A resposta inverteu o problema: o servidor do gerador passou a servir
+**o jogo inteiro** e a escutar nas duas portas (cede a 3000 ao python do dono
+com aviso — os dois modos convivem); o `iniciar-estudio.bat` da raiz sobe
+tudo e abre o `/?setup` no endereço certo. O card **Servidores locais**
+mostra as duas linhas de status e ganhou o ⏻ Parar (desligar a página pode;
+ligar, nunca — e o aviso muda quando parar derruba a própria página). Duas
+regras de projeto nasceram aqui: o probe do status do jogo é **HEAD, nunca
+GET** (um GET entraria no cache do service worker e daria falso "no ar"), e
+**jogar sempre pela :3000** — localStorage e service worker são por ORIGEM;
+jogar na :3210 criaria uma segunda identidade do zero.
+
+## 🖼️ Aba Sprites (v1.8.9) — o elenco inteiro na mão do dono
+
+O catálogo, a calibração e a criação de inimigos saíram do código e viraram
+tela — com quatro decisões de design que sustentam tudo:
+
+- **O `Constants.js` é sagrado.** Seus ~300 comentários são a memória de
+  design do projeto; nenhum servidor o reescreve. A calibração do dono vive
+  num arquivo de DADOS próprio (`SpriteParams.js`, JSON estrito, machine-
+  owned) **mesclado por cima no load** — `overrides` por espécie (valor
+  `null` apaga; `w/h/tex/anim/pair` proibidos) e `novas` (espécies criadas
+  pela aba, completas). `SPRITE_BASE` guarda o pré-merge: a UI sempre mostra
+  o diff "design × ajuste do dono", e um override no-op vira aviso.
+- **Toda gravação é tudo-ou-nada.** Snapshot dos bytes → escreve → roda o
+  portão (`test-sprites` + `test-skins`, cada um num processo novo que
+  enxerga o merge fresco) → rollback total se reprovar. O mesmo desenho do
+  estúdio de skins, generalizado para N arquivos.
+- **As flags que mudam a CLASSIFICAÇÃO de spawn são as perigosas.** `fly` e
+  `zig` transformam a espécie em voadora em três pontos do motor; `pair`
+  recursa o spawn. Por isso: confirmação explícita na UI, validação no
+  endpoint e os **invariantes dos e2e replicados no portão** (todo elenco
+  mantém ≥1 terrestre; a floresta segue sem voador — é o fallback `bird` que
+  o e2e-special congela; jaulas sem par; Brecha só-pombo). `pair` é proibido
+  em espécie criada, decisão de v1, não limitação.
+- **O rig do rinoceronte virou o default de um motor paramétrico.** As 7
+  constantes de geometria do vetorizador (96/64, encaixe 95×63, piso das
+  pernas, janela da cabeça, frame-mestre) viraram parâmetros com os valores
+  históricos como default — skins byte-compatíveis, e inimigos de qualquer
+  tamanho no mesmo pipeline. A hitbox sugerida sai medida da máscara, com o
+  `offX` já espelhado (`w − offX_arte − bodyW`) — automatiza o comentário
+  que a arte manuscrita carregava à mão.
 
 ## 🏁 Engajamento
 
@@ -537,28 +650,33 @@ Leitura de 48 jogadores, 981 tentativas, 512 corridas e 945 mortes da v1.5:
 
 | O boss do portão virou pedágio (41/48 lutas full-clear, mediana de 4 s) e o deserto pós-portão não tinha um único marco — 51 das 61 corridas pós-portão morriam antes dos 1.400 m. | **Estado de Alerta** (v1.8.7): a cidade em 3 distritos com curva pedagógica (chão → meia altura → céu), a MURALHA aos 2000 m abrindo pelo alto, e o funil do painel medindo as metas da fase. |
 
+| O deserto pós-2200 m era um infinito sem rosto (backdrop urbano genérico, t6 plano, zero marco até a LENDA) — e o Cerco realocado esperava âncora desde a v1.8.7. | **As Areias do Tempo** (v1.8.10): 5 etapas com curva própria, o Cerco vivo como miniboss aos 3650 m e o Faraó de Bronze aos 4700 m — o funil agora mede até 4800 m. |
+
 ## 🧪 Testes
 
-Treze suítes (detalhe por suíte em `docs/04-referencia-tecnica.md` §11); números
-de 21/08/2026 — os que dependem do registry de skins variam com ele:
+Quinze suítes (detalhe por suíte em `docs/04-referencia-tecnica.md` §11);
+números de 23/08/2026 — os que dependem do registry de skins variam com ele:
 
 | Comando | Asserts | Foco |
 |---|---|---|
-| `npm run test-stats` | 99 | Telemetria/agregação, `holdDays` nas duas semânticas, consistência contra as rules (inclusive as letras `e/h/l` e as causas `boss2`/`boss3`), digest — sem navegador |
-| `npm run test-score` | 83 | A fórmula da pontuação composta: pesos, blitz na borda, teto do bônus, formatadores — e o contrato de recomputação (ao vivo == recomputado de `runs[]`), agora cobrindo camadas e vitória dos bosses novos |
-| `npm run test-challenge` | 68 | A Arena: melhor corrida na janela (bordas, empates, pontos ≠ metros), countdown, status, guardas de criação e o texto das rules do `challenges` |
+| `npm run test-stats` | 101 | Telemetria/agregação, `holdDays` nas duas semânticas, consistência contra as rules (inclusive as letras `e/h/l` e as causas `boss2`/`boss3`), digest — sem navegador |
+| `npm run test-score` | 83 | A fórmula da pontuação composta: pesos, blitz na borda, teto do bônus, formatadores — e o contrato de recomputação (ao vivo == recomputado de `runs[]`), cobrindo camadas e vitória dos bosses novos |
+| `npm run test-challenge` | 77 | A Arena: melhor corrida na janela (bordas, empates, pontos ≠ metros), countdown, status, guardas de criação, o texto das rules do `challenges` — e o **cancelamento** (`cancelledAt` gravado 1×) |
 | `npm run test-skins` | ~93 | Portão do /?setup (roda a cada gravação, com rollback): lógica de acesso com skins sintéticas + estrutura do registry real |
-| `npm run test-integrate` | 49 | A integração do estúdio como funções puras (round-trip, upsert/remove, patch do sw) |
-| `npm run test-ramp` | 39 | Rampa/trampolim, abertura guiada, teclado, pausa + desistir, par/escolta, knockback, a home nova e o contrato do toque |
+| `npm run test-integrate` | 49 | A integração do estúdio como funções puras (round-trip, upsert/remove, patch dos blocos gerenciados do sw) |
+| `npm run test-sprites` | 31 | O **portão da aba Sprites**: contrato do SpriteParams, merge no Constants, paridade art/↔manifesto↔sw, w/h==viewBox, invariantes de spawn (elencos com terrestre, floresta sem voador, jaulas sem par) |
+| `npm run test-radiografia` | 62 | A radiografia: fixture sintética das 3 eras, conferência com o digest, `flattenRuns ⊇ RUN_COUNTERS`, determinismo byte a byte, zero writes por text-assert |
+| `npm run test-ramp` | 45 | Rampa/trampolim, abertura guiada, teclado, pausa + desistir, par/escolta, knockback, a home nova (cards de desafio no lugar da Campanha) e o contrato do toque |
 | `npm run test-boss` | 16 | A luta do portão: quique, ordem das camadas, fúria negada na arena, causa `boss` |
-| `npm run test-boss2` | 13 | O Cerco: ordem não monótona, leque/rasante/enrage — e **a 4ª camada NÃO encerra a corrida** |
+| `npm run test-boss2` | 14 | A Muralha (2000 m): 4 camadas abrindo NO ALTO, atirador vivo silenciado no início da luta, vitória sem encerrar a corrida, causa `boss2` |
 | `npm run test-boss3` | 10 | O Guardião: palíndromo de 5 camadas — e **a 5ª camada dispara a LENDA** |
 | `npm run test-special` | 25 | Bioma dos animais, ciclo completo da FÚRIA TOTAL, desabamento |
 | `npm run test-e2e-skins` | 15 | Comportamento das skins no navegador contra registry canônico injetado (arte do núcleo — imune a remoções do dono) |
-| `npm run test-e2e-setup` | 15–17 | O estúdio /?setup (nº varia com o servidor do gerador no ar ou não) |
+| `npm run test-e2e-setup` | 26 | O estúdio /?setup: gate, as três abas (catálogo ≥38 espécies; zero requisição espontânea), card Servidores (nº varia com o gerador no ar ou não) |
 | `npm run test-e2e-stats` | 69 | Telemetria REAL no Firestore com sonda `claude-*`; prova que a suíte não suja produção |
-| `npm run digest` | — | Monta o resumo diário contra produção **sem enviar** |
+| `npm run radiografia` / `digest` | — | Análise de usabilidade completa / resumo diário — contra produção, **sem escrever nada** |
 
-Os e2e exigem o jogo servido em `localhost:3000` (`python -m http.server 3000`).
+Os e2e exigem o jogo servido em `localhost:3000` — `python -m http.server 3000`
+**ou** o servidor unificado do estúdio (`npm run sprite-gen`).
 Regra aprendida a ferro: **a regressão de release roda todas — sempre** (um
 subconjunto deixou passar um teste quebrado na v1.8.2).

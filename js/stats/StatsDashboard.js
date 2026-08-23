@@ -330,7 +330,7 @@ function tabOverview(root) {
 
   root.append(el('h2', null, '🏁 Progresso: quantos jogadores já alcançaram…'));
   root.append(chartBox(stepArea(agg.funnelSteps, { highlight: '🗽' }),
-    `De ${agg.players} jogadores. Marcos: portão ${GATE_M}m, viaduto 1400m, checkpoint 1800m, Muralha 2000m, rodovia 2200m.`));
+    `De ${agg.players} jogadores. Marcos: portão ${GATE_M}m, Muralha 2000m, rodovia 2200m, Barreira 3650m, Faraó 4700m.`));
 
   // Recorde mundial ao longo do tempo — máximo acumulado sobre todas as corridas
   const sorted = runs.slice().sort((a, b) => a.t - b.t);
@@ -956,7 +956,7 @@ export function aggregate(docs) {
     playTimeS: 0,
     standalone: 0,
     deathsTier: [0, 0, 0, 0, 0, 0],
-    causes: { wall: 0, spike: 0, animal: 0, dart: 0, tower: 0, boss: 0, boss2: 0, boss3: 0, fall: 0 },
+    causes: { wall: 0, spike: 0, animal: 0, dart: 0, tower: 0, boss: 0, boss2: 0, boss3: 0, cerco: 0, farao: 0, fall: 0 },
     funnelSteps: [],
     escaped: 0,
     device: new Map(),
@@ -1002,7 +1002,9 @@ export function aggregate(docs) {
     agg.causes.tower += num(deaths.tower);
     agg.causes.boss += num(deaths.boss);
     agg.causes.boss2 += num(deaths.boss2); // v1.8.5 — Capturador do Cerco
-    agg.causes.boss3 += num(deaths.boss3); // v1.8.5 — Caçador-Mor
+    agg.causes.boss3 += num(deaths.boss3);
+    agg.causes.cerco += num(deaths.cerco);
+    agg.causes.farao += num(deaths.farao); // v1.8.5 — Caçador-Mor
     agg.causes.fall += num(deaths.fall);
 
     bests.push(num(d.bestM));
@@ -1030,9 +1032,17 @@ export function aggregate(docs) {
     1800: '1800m 🚨 (checkpoint da contenção)',
     2000: '2000m 🧱 (a Muralha)',
     2200: '2200m 🛣️ (atravessou a cidade)',
+    // v1.8.10 — As Areias do Tempo (degraus de 200m; a Barreira mora aos
+    // 3650 e o Faraó aos 4700 — os degraus 3600/4600 medem a chegada)
+    2800: '2800m 🌴 (miragem do oásis)',
+    3200: '3200m ⛏️ (sítio da escavação)',
+    3600: '3600m 🕸️ (a Barreira)',
+    4200: '4200m ⚰️ (necrópole)',
+    4600: '4600m 🏺 (o Faraó)',
+    4800: '4800m 🏜️ (atravessou o deserto)',
   };
   const maxBest = Math.max(0, ...bests, 0);
-  const top = Math.max(2200, Math.ceil(maxBest / 200) * 200);
+  const top = Math.max(4800, Math.ceil(maxBest / 200) * 200);
   for (let m = 200; m <= top; m += 200) {
     const label = FUNNEL_MARKS[m] || `${m}m`;
     agg.funnelSteps.push([label, bests.filter((b) => b >= m).length]);

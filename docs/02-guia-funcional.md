@@ -1,6 +1,6 @@
 # Furious Rhino — Guia funcional
 
-> Documentação da versão **1.8.7** · atualizada em 21/08/2026
+> Documentação da versão **1.8.10** · atualizada em 23/08/2026
 > Cada funcionalidade do jogo: o que faz, como o usuário interage e exemplos práticos. Termos técnicos vêm explicados entre parênteses na primeira vez.
 
 ## 1. Controles
@@ -116,8 +116,9 @@ Depois de gasto, o medidor volta a encher com a distância (~900 m por carga). A
 Os registros e o ranking:
 
 - **Recorde local**: fica salvo no aparelho e aparece no box Campanha.
+- **As Areias do Tempo (v1.8.10)**: depois da cidade, o deserto (2200–4700 m) em cinco etapas — dunas, oásis, escavação, Vale dos Faraós e necrópole — com armadilhas novas (areia movediça, flecheira, caixote), flechas de arqueiros e obeliscos, e DOIS chefes: a Barreira da Escavação (3650 m, o Cerco reformado) e o **Faraó de Bronze** (4700 m, o mais agressivo do jogo — 5 camadas, Espelho de Rá e Mergulho de Hórus). Vencer libera o deserto infinito até o fim do mundo.
 - **Estado de Alerta (v1.8.7)**: a cidade (1000–2200 m) tem três distritos — Subúrbio Sonolento, o Despertar e a Zona de Contenção — com inimigos, armadilhas e visual próprios, portais marcados em 1400/1800/2200 m, o boss **Muralha** aos 2000 m (4 camadas abrindo pelo alto) e a **Brecha** como saída triunfal. O Cerco foi realocado para o deserto (volta numa versão futura).
-- **Arena de Desafios (v1.8.6)**: na lista do top 10, cada jogador tem uma espadinha ⚔️ — marque um ou vários (até 7) e envie um desafio de 1, 3 ou 7 dias; vence a melhor corrida em pontos dentro do prazo. O desafiado recebe o convite ao abrir o jogo e só entra no placar se aceitar. O card do desafio fica na tela inicial (participantes, melhor marca de cada um, 👑 no líder e o tempo restante); na corrida, os adversários aparecem como estacas vermelhas na pista. Para desafiar é preciso ter apelido próprio; cada jogador cria no máximo 3 desafios ao mesmo tempo.
+- **Arena de Desafios (v1.8.6)**: o botão **Desafiar** abre o **diretório completo de adversários** (todo mundo do ranking, em ordem alfabética, com busca que ignora acentos) — toque no nome para marcar um ou vários (até 7) e envie um desafio de 1, 3 ou 7 dias; vence a melhor corrida em pontos dentro do prazo. As espadinhas ⚔️ do top 10 seguem como atalho. O desafiado recebe o convite ao abrir o jogo e só entra no placar se aceitar. Os cards dos desafios ocupam o lugar do box Campanha na tela inicial enquanto houver disputa (até 3 empilhados — sem desafios, a Campanha volta): participantes, melhor marca de cada um, 👑 no líder e o tempo restante; na corrida, os adversários aparecem como estacas vermelhas na pista. **O criador pode encerrar um desafio antes do prazo** (botão Encerrar, com confirmação) — os desafiados veem o aviso "Fulano cancelou o desafio" e um desafio cancelado não convida, não pontua e não planta estaca. Para desafiar é preciso ter apelido próprio; o limite de 3 disputas simultâneas conta as que você criou **ou** aceitou.
 - **Ranking mundial** (em pontos desde a v1.8.4, com a distância ao lado): a lista completa abre no botão **"ver top 10 ›"** ao lado do pódio. Para entrar, o jogador escolhe um **apelido único** (3–12 caracteres — o jogo confere se já existe; acentos e maiúsculas não diferenciam: "Thómas" e "thomas" são o mesmo apelido). Ao lado da distância de cada um aparece **há quantos dias aquela marca está de pé** ("há 12d", ou "hoje" para marca do dia) — trocar de apelido não zera a contagem nem troca a skin da vitrine.
 - Quem prefere **"Ficar anônimo"** recebe um nome automático (`Anonimo_7`). O jogo volta a convidar para escolher um nome de verdade **no momento de orgulho** — logo depois de o score subir no ranking ("🏆 Você é o #7 do mundo!") — no máximo 1 vez a cada 3 corridas, e nunca de forma bloqueante.
 - **Marcas na pista**: durante a corrida, estacas mostram onde fica **o seu recorde** (🏅), o **rival logo acima de você** no ranking (⚔️) e o **líder mundial** (👑). Ultrapassar cada uma provoca o jogador na tela.
@@ -160,9 +161,9 @@ As skins de pódio são um **privilégio dinâmico**, não um desbloqueio: caiu 
 
 As conquistas são **retroativas**: quem já tinha feito a façanha nas últimas 50 corridas ganha a skin no primeiro jogo após a atualização. Conquistas novas criadas no estúdio seguem a mesma regra — o jogo revê o histórico recente e concede o que já foi merecido.
 
-### O estúdio de skins (`/?setup` — só para o criador)
+### O estúdio de skins (`/?setup`, aba 🎨 — só para o criador)
 
-Página especial (mesma chave do painel detalhado) onde o criador faz uma skin nova **de ponta a ponta, sem programar**: solta a folha de desenhos (gerada por IA), escolhe os 3 quadros do galope, ajusta a paleta, vê a prévia animada, dá nome e descrição e **configura como o jogador ganha a skin** — as opções são:
+A página `/?setup` é o **estúdio do dono**, com três abas: 🎨 Skins (esta seção), 🖼️ Sprites e 📊 Radiografia (as duas últimas na **seção 15**). Na aba Skins o criador faz uma skin nova **de ponta a ponta, sem programar**: solta a folha de desenhos (gerada por IA), escolhe os 3 quadros do galope, ajusta a paleta, vê a prévia animada, dá nome e descrição e **configura como o jogador ganha a skin** — as opções são:
 
 - 🎁 **Grátis** — disponível para todo mundo;
 - 🏆 **Pódio** — exclusiva de uma posição exata do ranking (1º, 2º ou 3º), com a mesma dinâmica de "perdeu o posto, perdeu a skin";
@@ -172,6 +173,8 @@ Página especial (mesma chave do painel detalhado) onde o criador faz uma skin n
 Depois de criada, a skin pode ser **editada** (nome, descrição, regra de desbloqueio) e tem uma chave **"no jogo / fora do jogo"**: desligada, a skin some do guarda-roupa na hora — reversível, ninguém perde a conquista, e quem a estava vestindo volta ao rinoceronte original até ela voltar. **Qualquer skin pode ser removida de vez** — inclusive as originais, com um aviso extra lembrando que a arte delas não tem cópia no gerador; a única intocável é a Furious Rhino original, o "plano B" de todas as outras.
 
 Um detalhe importante: a página funciona no computador do criador (ela conversa com um programa local que grava os arquivos do jogo) e **nada vai ao ar sozinho** — a skin nova só chega aos jogadores na próxima publicação do jogo. Cada gravação roda a bateria de testes automaticamente e **desfaz tudo se algo reprovar**, então o jogo nunca fica quebrado no meio do caminho.
+
+**Subir o estúdio é um duplo-clique** (desde a v1.8.8): o `iniciar-estudio.bat`, na pasta do jogo, liga o **servidor unificado** (que serve o jogo E o gerador de uma vez) e já abre a página no endereço certo. O card **"Servidores locais"** no topo mostra as duas linhas de status — o jogo (quem está servindo a página, com tempo no ar) e o estúdio (endereço e porta) — e tem o botão **⏻ Parar servidor** (com aviso quando parar derruba a própria página). Se o servidor estiver parado, a página explica os caminhos para subi-lo.
 
 ## 10. "📊 Minhas estatísticas" (para o jogador)
 
@@ -192,7 +195,7 @@ Página pública de estatísticas agregadas: `https://cs-ave.github.io/furious-r
 
 | Aba | O que mostra |
 |---|---|
-| 🦏 **Visão geral** | Jogadores, execuções, fugas, tempo total; jogadores únicos × execuções por dia; **funil** de quantos chegam a cada trecho de 200 m; melhor marca dia a dia |
+| 🦏 **Visão geral** | Jogadores, execuções, fugas, tempo total; jogadores únicos × execuções por dia; **funil** de quantos chegam a cada marco — inclusive os da cidade, até 2200 m, com os nomes dos distritos; melhor marca dia a dia |
 | 💀 **Dificuldade** | Histograma de onde os jogadores morrem; mapa de calor causa × distância; **curva de aprendizado** (o jogador melhora com a prática?) |
 | 📈 **Engajamento** | Retenção (quantos voltam depois de 1, 7, 30 dias); horários de jogo; duração das corridas; quem abandona × quem é fiel |
 | 💨 **Mecânicas** | Quem usa a investida (e a Fúria Total) e se isso melhora o desempenho; atrito com a recarga; **"A luta do portão"** (tentativas contra o chefe, taxa de fuga, mortes pelo rifle, duração e quiques médios); teclado × toque |
@@ -223,4 +226,19 @@ Controles úteis (parâmetros na seção D do `HANDOFF.md` e em [`04-referencia-
 
 ## 14. Modo debug (para desenvolvimento)
 
-Abrir o jogo com `/?debug=1` liga um painel de ajustes ao vivo (física do rinoceronte, dificuldade por nível — incluindo **os pesos do sorteio de obstáculos e a densidade de animais** (dupla e escolta, ver o guia de calibração no [`04-referencia-tecnica.md`](04-referencia-tecnica.md)) —, velocidade e **força do voo do atropelo** dos animais, duração/boost da Fúria Total, quique e rifle do chefe — inclusive ligar/desligar o **bloqueio da fúria na arena** — e, desde a v1.8.5, **as cadências do canhão do Cerco e do rifle do Caçador-Mor**, camada a camada, mais o tempo do enrage), além de: ver as caixas de colisão, invencibilidade, avançar quadro a quadro, teleportar para os 600 m, para o portão ou **direto para a arena de qualquer um dos três chefes**, **encher a fúria na hora**, **vestir qualquer skin sem desbloqueio** e **ajustar a escala visual do rinoceronte ao vivo** (pasta "Skins" — só naquela sessão, nada fica salvo) e **exportar os ajustes** num arquivo pronto para colar no código.
+Abrir o jogo com `/?debug=1` liga um painel de ajustes ao vivo (física do rinoceronte, dificuldade por nível — incluindo **os pesos do sorteio de obstáculos e a densidade de animais** (dupla e escolta, ver o guia de calibração no [`04-referencia-tecnica.md`](04-referencia-tecnica.md)) —, velocidade e **força do voo do atropelo** dos animais, e duração/boost da Fúria Total). Os chefes têm uma **pasta própria "Bosses"** com Portão, Muralha e Guardião: sliders de cadência camada a camada, tempo do enrage, o liga/desliga do **bloqueio da fúria na arena** e um botão **"Pular p/ 50 m antes"** de cada arena. Além disso: ver as caixas de colisão, invencibilidade, avançar quadro a quadro, teleportar para os 600 m ou para o portão, **encher a fúria na hora**, **vestir qualquer skin sem desbloqueio**, **ajustar a escala visual do rinoceronte ao vivo** (pasta "Skins" — só naquela sessão, nada fica salvo), um toggle de **"Escrita local (Firestore)"** para testes com gravação real, e **exportar os ajustes** num arquivo pronto para colar no código. O painel tem barra de rolagem permanente (o menu é longo).
+
+## 15. As outras abas do estúdio (`/?setup` — só para o criador)
+
+Além da aba 🎨 Skins (seção 9), o estúdio tem duas abas novas:
+
+### 🖼️ Sprites (v1.8.9) — a gestão de todos os desenhos do jogo
+
+- **📚 Catálogo**: todos os personagens do jogo (as 38 espécies de animais/inimigos, os 4 caçadores dos chefes, o rinoceronte com as skins e os ícones do painel), cada um **animado do jeito que anima no jogo** (mesma velocidade de quadros), com o **local onde aparece** (bioma, distrito da cidade, chefe...), o tipo de movimento (voa, pula, atira, zigue-zague) e um interruptor "tamanho de jogo" que mostra tudo na escala real da corrida. O cenário (paredes, rampas, fundos) fica fora — é desenhado por código, não por arquivos.
+- **✏️ Parâmetros por espécie**: cada espécie expande num editor — velocidade, pulo, voo, tiro e a **caixa de colisão desenhada por cima do desenho** (arrastando os números, o retângulo se move na hora). **Salvar grava no jogo de verdade** (num arquivo de calibração separado — o código de design fica intocado), **roda a bateria de testes e desfaz tudo se algo reprovar**. Um selo "● N ajustes" marca quem foi calibrado; **Reverter** devolve a espécie ao original. Mudanças valem no próximo F5 do jogo — e só chegam aos jogadores na próxima publicação, como sempre.
+- **⚙️ Gerar inimigo**: o mesmo fluxo do gerador de skins, adaptado — folha de desenhos com **2 células** (o corpo igual nas duas; só a peça móvel muda: pernas, asa ou hélice), tamanho livre, tipo do segundo quadro e arquétipo. O resultado mostra a prévia animada e a **caixa de colisão sugerida** (medida automaticamente do desenho) e cai em...
+- **📥 Não atribuídos**: o estoque dos sprites gerados que ainda **não estão no jogo**. Dali, cada um pode ser **excluído** ou **atribuído** de duas formas: **substituir a arte de uma espécie existente** (o vira-lata ganha um visual novo, por exemplo — o estúdio confere se o tamanho e o tipo de animação batem) ou **criar uma espécie NOVA de ponta a ponta**: comportamento por arquétipo, caixa de colisão e a escolha de **em quais biomas/distritos** ela aparece — com um resumo do que será gravado antes de confirmar, e as mesmas proteções (bateria de testes + desfazer tudo).
+
+### 📊 Radiografia (v1.8.7) — a análise de usabilidade sob demanda
+
+Um botão **▶ Rodar análise** baixa os dados públicos do jogo (mesmos do painel `/?stats`) e monta a **radiografia completa**: funil de distância, retenção, curva de aprendizado, uso das mecânicas, os três chefes, a pontuação composta em campo, skins e a Arena — cada número comparado com a **fotografia de 16/08/2026** (a linha de base congelada). No fim, um **motor de insights** transforma os números em diagnósticos automáticos com cor de severidade (🔴🟠🟡🟢 — e ⚪ quando a amostra é pequena demais para afirmar qualquer coisa). Dá para **copiar o relatório inteiro** (pronto para colar no banco de ideias) e **baixar os dados** em arquivo. A mesma análise roda no terminal com `npm run radiografia`. Tudo é **só leitura** — a análise nunca grava nada no banco.

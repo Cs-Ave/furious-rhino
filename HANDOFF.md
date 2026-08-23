@@ -1,6 +1,10 @@
-# Handoff — FURIOUS RHINO v1.8.8
+# Handoff — FURIOUS RHINO v1.8.10
 
-**Data:** 23/08/2026 · **Status:** v1.8.4 → v1.8.8 **RELEASED em produção** (push `763a9b2`, tags v1.8.4–v1.8.8, 5 GitHub Releases, smoke: v1.8.8 no ar, pódio real em pts, Desafiar com 52 jogadores, zero erro de JS). Rules do console atualizadas pelo dono em 23/08 (cláusula do cancelledAt) ANTES do push. Portões 1-2-3 cumpridos na ordem.
+**Data:** 23/08/2026 · **Status:** produção na **v1.8.8**; local: v1.8.9 (fábrica de sprites, commitada pela sessão paralela) + **v1.8.10 "As Areias do Tempo" PRONTA no working tree, sem commit** (13 suítes + e2e-deserto 14/14 verdes)
+
+> ⚠️ Portão 3 da v1.8.10 exige REPUBLICAR as rules (`deaths.size() <= 17` — causas
+> `cerco`/`farao`) no console ANTES do push. As áreas/letra u/y/pontos estão nos
+> resumos do GAME_DESIGN e docs/04; suíte nova `tools/e2e-deserto.mjs`.
 
 ## 0. v1.8.7 — Estado de Alerta (working tree, sem commit)
 

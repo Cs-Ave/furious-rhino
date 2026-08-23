@@ -5,7 +5,37 @@
 
 ---
 
-## v1.8.7 — 22/08/2026 (versão atual)
+## v1.8.10 — 23/08/2026 (versão atual)
+
+**Tema: As Areias do Tempo — a estrada acaba, e o deserto engole.**
+
+- **A fase do deserto** (2200–4700 m), em cinco etapas de 500 m: a **Estrada Engolida** (dunas comendo o asfalto, camelos em disparada, abutres), a **Miragem do Oásis** (água traiçoeira com crocodilos e najas), o **Sítio da Escavação** (múmias acordando, escaravelhos e o arqueiro de flechas), o **Vale dos Faraós** (paredes-pirâmide com hieróglifos, obeliscos que atiram FLECHAS, o Falcão de Hórus em zigue-zague) e a **Necrópole de Areia** (tempestade de areia, tudo junto).
+- **DOIS combates**: no meio, **a Barreira da Escavação** (3650 m) — o Cerco, prometido desde a v1.8.5, finalmente vivo, reformado com sacos de areia e andaimes; no fim, **O FARAÓ DE BRONZE** (4700 m) — o defensor mais agressivo do jogo: 5 camadas abrindo pelo MEIO, a cadência mais curta de todas, o **Espelho de Rá** (o feixe de luz que varre até onde o tiro vai cair) e o **Mergulho de Hórus**. Vencer derruba a muralha de arenito e o modo infinito segue pelo deserto profundo até o fim do mundo.
+- **Armadilhas novas**: areia movediça (pule por cima!), a flecheira (atravesse no ritmo do glifo) e o caixote de escavação (destrua na investida).
+- **9 perseguidores novos** + elenco por etapa; nas etapas do deserto o tempo derrete: os 2500 m atravessam ~4 dias inteiros do ciclo de céu.
+- **Medalhas**: o "Fura-Bloqueio" (dormia desde a v1.8.7) **acordou** apontando para a Barreira; entram Miragem do Oásis, Vale dos Faraós, Necrópole, "Atravessou o Deserto" e o "Quebra-Faraó" — 27 no total.
+- O funil do `/?stats` agora mede até 4800 m com os marcos do deserto rotulados.
+- Mudança nas regras do banco: o mapa de causas de morte aceita as duas novas (`cerco`/`farao`) — publicada antes desta versão ir ao ar.
+
+## v1.8.9 — 23/08/2026
+
+**Tema: a aba 🖼️ Sprites — o elenco inteiro do jogo na mão do criador.**
+
+- **O estúdio ganhou a terceira aba: 🖼️ Sprites.** Um **catálogo vivo** de todos os personagens do jogo (as 38 espécies, os caçadores dos chefes, o rinoceronte com as skins e os ícones do painel), cada um **animado do jeito que anima na corrida**, com o lugar onde aparece, o tipo de movimento e um interruptor que mostra tudo no tamanho real do jogo.
+- **Calibrar uma espécie virou coisa de tela**: velocidade, pulo, voo, tiro e a **caixa de colisão desenhada por cima do desenho** — salvar grava no jogo de verdade, **roda a bateria de testes e desfaz tudo sozinho se algo quebrar**. Um selo mostra quem foi ajustado e um botão devolve a espécie ao original. (O código de design continua intocado: os ajustes moram num arquivo próprio, aplicado por cima.)
+- **Gerar um inimigo novo é o mesmo fluxo das skins**: folha de desenhos com 2 células, tamanho livre, prévia animada e a caixa de colisão **sugerida automaticamente** pelo desenho. O resultado cai num **estoque de "não atribuídos"** — dali, ou ele **substitui a arte de uma espécie existente** (com conferência de tamanho e tipo de animação), ou vira uma **espécie NOVA de ponta a ponta**: comportamento, colisão e em quais trechos do mundo ela aparece — com um resumo do que será gravado antes de confirmar e as mesmas proteções de sempre.
+- Proteções que vêm de fábrica: a floresta segue sem voadores (regra de design), todo trecho do mundo mantém ao menos um inimigo terrestre, e a Brecha continua só com pombos — a bateria de testes reverte qualquer gravação que quebre isso.
+
+## v1.8.8 — 23/08/2026
+
+**Tema: o estúdio virou um clique só — um servidor, um atalho, um painel de status.**
+
+- **`iniciar-estudio.bat`**: um duplo-clique no atalho (na pasta do jogo) liga tudo — o servidor local passou a servir **o jogo e o gerador de uma vez** (e convive em paz com o jeito antigo de subir o jogo, se você preferir) — e abre o estúdio já no endereço certo. Acabou a confusão de "qual porta abro?".
+- **Card "Servidores locais"** no topo do estúdio: uma linha para o jogo (quem está servindo a página e há quanto tempo) e uma para o gerador (endereço e porta), com o botão **⏻ Parar servidor** — e um aviso esperto quando parar derruba a própria página. A página antiga do gerador foi aposentada.
+- **Encerrar desafio**: o criador de um desafio da Arena pode encerrá-lo antes do prazo (com confirmação). Os desafiados veem o aviso do cancelamento, e um desafio cancelado não convida, não pontua e não planta estaca. (Regras do banco atualizadas e publicadas para isso.)
+- **A home se reorganiza sozinha**: com desafios ativos, os cards das disputas ocupam o lugar do box Campanha (até 3 empilhados) — sem disputa, a Campanha volta. O botão "Instalar o jogo" foi para a esquerda, na mesma linha dos demais.
+
+## v1.8.7 — 22/08/2026
 
 **Tema: Estado de Alerta — a cidade acorda, e ela não gostou de você.**
 
@@ -16,6 +46,8 @@
 - **Medalhas dos distritos**: marcos novos em 1400/1800/2200 m, "Queda da Muralha", e os nomes antigos re-batizados no vocabulário da cidade.
 - **O funil do painel `/?stats` agora mede a fase** (faixas até 2200 m com os marcos rotulados) — é a régua que dirá se a cidade segura os jogadores como foi desenhada para segurar.
 - Por dentro: zero mudança nas regras do banco, zero dado novo por corrida — e o pool de dardos cresceu para a cidade inteira poder atirar sem tiro engolido.
+- **📊 Radiografia viva** (também nesta versão): a análise de usabilidade que antes exigia recriar um script virou ferramenta permanente — a aba 📊 do estúdio (e o comando `npm run radiografia`) baixa os dados públicos, monta o relatório completo (funil, retenção, aprendizado, chefes, pontuação em campo, Arena) comparado com a fotografia de 16/08, e um **motor de diagnósticos automáticos** aponta o que melhorou e o que pede atenção — dizendo "amostra pequena demais" quando não há base para afirmar. Tudo só leitura; a primeira medição real saiu no mesmo dia (e foi ela que revelou que as versões novas ainda não tinham chegado aos jogadores).
+- **Desafiar ficou mais fácil**: o botão abre o diretório completo de adversários (com busca), não só o top 10; e o painel `?debug=1` ganhou a pasta "Bosses" (cadências dos três chefes + atalho para cada arena).
 
 ## v1.8.6 — 22/08/2026
 

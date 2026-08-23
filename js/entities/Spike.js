@@ -17,7 +17,7 @@ export class Spike extends Phaser.Physics.Arcade.Sprite {
   // de perigo. Definir ANTES do reset, que é quem aplica a textura (mesmo
   // contrato do CrackedWall.setSkin).
   setSkin(skin) {
-    this.skin = skin === '-city' ? '-city' : '';
+    this.skin = ['-city', '-egito'].includes(skin) ? skin : '';
   }
 
   // 'ground': spike row sitting on the ground.

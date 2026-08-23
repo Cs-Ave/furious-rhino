@@ -23,9 +23,9 @@ export class CrackedWall extends Phaser.Physics.Arcade.Sprite {
   // textura (mesmo padrão do setVariant da rampa).
   // v1.8.7: a parede é a ÚNICA entidade com família por DISTRITO da cidade
   // (espinho/torre/rampa seguem binárias ''/-city) — a lista fechada aqui é
-  // a mesma dos wallSkin de Constants.CITY_DISTRICTS; valor fora dela cai no
+  // a mesma dos wallSkin de Constants.CITY_DISTRICTS (v1.8.10: + deserto); valor fora dela cai no
   // zoológico, nunca numa textura inexistente.
-  static WALL_SKINS = ['-city', '-suburbio', '-vidro', '-contencao'];
+  static WALL_SKINS = ['-city', '-suburbio', '-vidro', '-contencao', '-ruina', '-piramide'];
 
   setSkin(skin) {
     this.skin = CrackedWall.WALL_SKINS.includes(skin) ? skin : '';

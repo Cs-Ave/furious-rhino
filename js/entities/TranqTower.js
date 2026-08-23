@@ -21,7 +21,7 @@ export class TranqTower extends Phaser.Physics.Arcade.Sprite {
   }
 
   setSkin(skin) {
-    this.skin = skin === '-city' ? '-city' : '';
+    this.skin = ['-city', '-egito'].includes(skin) ? skin : '';
   }
 
   // baseY: topo do terreno onde a torre pisa. Sem ele, o chão plano (620) —
@@ -74,7 +74,8 @@ export class TranqTower extends Phaser.Physics.Arcade.Sprite {
         // Morteiro: dardo PARA CIMA em arco (gravidade), caindo no caminho
         // do rino — sobe ~175px e aterrissa ~200px para o lado dele em ~1,1s
         const side = rhino.x >= mx ? 1 : -1;
-        this.scene.spawnManager.fireDart(mx, my, side * 180, -700, true);
+        this.scene.spawnManager.fireDart(mx, my, side * 180, -700, true, false,
+          this.skin === '-egito' ? 'arrow-projectile' : null);
       } else {
         // Tiro reto mirado: frente na aproximação, para cima se ele estiver
         // pulando a torre, nas costas se já passou sem derrubá-la
@@ -82,7 +83,8 @@ export class TranqTower extends Phaser.Physics.Arcade.Sprite {
         const dy = rhino.y - 30 - my; // centro do corpo (origem do rino é o pé)
         const len = Math.hypot(dx, dy) || 1;
         this.scene.spawnManager.fireDart(
-          mx, my, (dx / len) * tier.dartSpeed, (dy / len) * tier.dartSpeed
+          mx, my, (dx / len) * tier.dartSpeed, (dy / len) * tier.dartSpeed,
+          false, false, this.skin === '-egito' ? 'arrow-projectile' : null
         );
       }
       this.scene.audio.playDart();

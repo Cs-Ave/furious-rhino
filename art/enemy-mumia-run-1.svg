@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 66" width="46" height="66">
+  <!-- FURIOUS RHINO - v1.8.10. Frame B da mumia: pernas em fase oposta,
+       bracos levemente alternados e a tira solta esvoacando noutra curva;
+       cabeca, tronco e amuleto IDENTICOS (par: enemy-mumia.svg). -->
+  <defs>
+    <linearGradient id="muB2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e4d7b8"/>
+      <stop offset="1" stop-color="#c2b28c"/>
+    </linearGradient>
+  </defs>
+  <!-- tira solta esvoacando (fase B) -->
+  <path d="M10 26 Q4 27 2 32" fill="none" stroke="#c2b28c" stroke-width="3" stroke-linecap="round"/>
+  <path d="M10 42 Q5 41 3 36" fill="none" stroke="#c2b28c" stroke-width="2.6" stroke-linecap="round"/>
+  <!-- perna de tras (fase B: dando o passo) -->
+  <path d="M18 48 Q19 55 17 61" fill="none" stroke="#17171b" stroke-width="7.5" stroke-linecap="round"/>
+  <path d="M18 48 Q19 55 17 61" fill="none" stroke="#c2b28c" stroke-width="4.6" stroke-linecap="round"/>
+  <path d="M15 59 Q13 62 15.5 64 L21 64 Q21 61 19 59.6" fill="#d4c49e" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- tronco enfaixado -->
+  <path d="M12 22 Q10 40 14 52 L30 52 Q34 40 32 22 Z" fill="url(#muB2)" stroke="#17171b" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M12.5 27 L32 24 M12 33 L32.5 30 M12.5 39 L32.5 36 M13 45 L32 42 M14 50 L30.5 47.5" fill="none" stroke="#a08e64" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M14 24 L31 27.5 M13 30 L32 33.5 M13 36 L32 39.5 M13.5 42 L31.5 45" fill="none" stroke="#a08e64" stroke-width="1" stroke-linecap="round" opacity="0.6"/>
+  <ellipse cx="22" cy="31" rx="4" ry="3" fill="#2e8a80" stroke="#17171b" stroke-width="1.3"/>
+  <path d="M22 28.4 v5.2 M19 31 h6" fill="none" stroke="#17171b" stroke-width="0.8"/>
+  <!-- perna da frente (fase B: recolhendo) -->
+  <path d="M26 50 Q27 56 24 61" fill="none" stroke="#17171b" stroke-width="7.5" stroke-linecap="round"/>
+  <path d="M26 50 Q27 56 24 61" fill="none" stroke="#d4c49e" stroke-width="4.6" stroke-linecap="round"/>
+  <path d="M22.5 59 Q20.5 62 23 64 L28.5 64 Q28.5 61 26.5 59.6" fill="#d4c49e" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- braco de tras esticado (leve alternancia) -->
+  <path d="M28 27 Q36 27.5 42 29.5" fill="none" stroke="#17171b" stroke-width="7" stroke-linecap="round"/>
+  <path d="M28 27 Q36 27.5 42 29.5" fill="none" stroke="#a89870" stroke-width="4.2" stroke-linecap="round"/>
+  <path d="M41 27.5 q3 0.5 3.4 2.6 q-2 1.6 -4 0.8" fill="#a89870" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- braco da frente esticado (leve alternancia) -->
+  <path d="M26 32 Q35 30.5 43 31.5" fill="none" stroke="#17171b" stroke-width="7" stroke-linecap="round"/>
+  <path d="M26 32 Q35 30.5 43 31.5" fill="none" stroke="#d4c49e" stroke-width="4.2" stroke-linecap="round"/>
+  <path d="M42 29.5 q3.2 0.6 3.6 2.8 q-2.2 1.6 -4.2 0.7" fill="#d4c49e" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M30 29.6 l0 3 M35 29.4 l0 3.2" fill="none" stroke="#a08e64" stroke-width="1" stroke-linecap="round"/>
+  <!-- cabeca enfaixada -->
+  <circle cx="22" cy="13" r="10.5" fill="url(#muB2)" stroke="#17171b" stroke-width="2.4"/>
+  <path d="M12.5 10.5 Q22 7.5 31.5 10.5 M12 15 Q22 12.5 32 15 M13.5 19.5 Q22 17.5 30.5 19.5" fill="none" stroke="#a08e64" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M13 12.2 Q22 9.6 31 12.2 L31 16.8 Q22 14.4 13 16.8 Z" fill="#3a2f20" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+  <circle cx="26.5" cy="14" r="2.6" fill="#7be0a0"/>
+  <circle cx="26.5" cy="14" r="1.2" fill="#17171b"/>
+  <path d="M17 14.6 l3.4 -0.6" fill="none" stroke="#7be0a0" stroke-width="1.3" stroke-linecap="round"/>
+  <!-- pontinha de faixa solta na cabeca (fase B) -->
+  <path d="M14 6 Q10 6.5 7.5 4" fill="none" stroke="#c2b28c" stroke-width="2.6" stroke-linecap="round"/>
+</svg>

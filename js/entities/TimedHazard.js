@@ -10,13 +10,16 @@ import { Constants } from '../utils/Constants.js';
 //
 // Contrato com a cena (o GameScene registra o overlap e chama o handler
 // canônico; aqui não mora decisão de morte nem de pontuação):
-//   reset(x, kind)   kind ∈ 'cacamba' | 'hidrante' | 'arco'
+//   reset(x, kind)   kind ∈ 'cacamba' | 'hidrante' | 'arco' e, no deserto
+//                    (v1.8.10), 'movedica' | 'flecheira' | 'caixote'
 //   this.kind        para a cena decidir o counterplay
 //   this.lethal      true = contato mata AGORA. Nos temporizados, só na
-//                    fase ON; na caçamba, sempre — até o smash()
-//   this.deathCause  'wall' (caçamba) | 'spike' (hidrante e arco)
-//   smash()          só caçamba: destruída no dash — vira entulho, corpo off
-//                    (quem decide se o dash resolve é a cena)
+//                    fase ON; nos sempre-ligados, sempre — até o smash()
+//   this.deathCause  'wall' (caçamba/caixote) | 'spike' (hidrante e arco) |
+//                    'fall' (movediça — a areia engole) | 'dart' (flecheira)
+//   smash()          só os `smashable` (caçamba/caixote): destruído no dash
+//                    — vira entulho, corpo off (quem decide se o dash
+//                    resolve é a cena)
 //
 // Zero física móvel, zero conflito com o FurySystem. Texturas do agente C
 // (TextureFactory); setTexture só roda se a chave existir — fallback
@@ -28,9 +31,9 @@ export class TimedHazard extends Phaser.Physics.Arcade.Sprite {
   // sizeBody, qualquer que seja a altura da textura desenhada.
   static KINDS = {
     // Bloco 100×64 no chão: a primeira barreira BAIXA do jogo — pulável OU
-    // destrutível no dash. Corpo SEMPRE ligado; mata como parede.
+    // destrutível no dash (smashable). Corpo SEMPRE ligado; mata como parede.
     cacamba: {
-      tex: 'hazard-cacamba', cause: 'wall',
+      tex: 'hazard-cacamba', cause: 'wall', smashable: true,
       bodyW: 100, bodyH: 64, bodyTop: Constants.GROUND_TOP - 64,
     },
     // Coluna d'água 48×220 saindo do chão; 900 OFF / 600 ON, borbulha nos
@@ -47,6 +50,33 @@ export class TimedHazard extends Phaser.Physics.Arcade.Sprite {
       tex: 'hazard-arco', texOn: 'hazard-arco-on', cause: 'spike',
       bodyW: 140, bodyH: 100, bodyTop: 400,
       offMs: 900, onMs: 600, telegraphMs: 300,
+    },
+    // ---- v1.8.10 "As Areias do Tempo": as armadilhas do deserto ----
+    // AREIA MOVEDIÇA: mancha rasa 120×40 rente ao chão — a primeira
+    // armadilha com o AR LIVRE em cima: pular por cima é a única resposta
+    // (nem dash resolve — a areia não se destrói). Sempre letal (sem ciclo),
+    // NÃO esmagável; a areia ENGOLE, por isso a causa é 'fall' (já existe —
+    // custo zero nas rules).
+    movedica: {
+      tex: 'hazard-movedica', cause: 'fall',
+      bodyW: 120, bodyH: 40, bodyTop: Constants.GROUND_TOP - 40,
+    },
+    // FLECHEIRA: duas colunas com ranhuras cuspindo flechas numa banda LETAL
+    // a MEIA ALTURA (corpo 150×90 com topo em y=430): correr por baixo NÃO
+    // salva nem pular alto — a janela é o timing do ciclo, como o hidrante,
+    // mas na altura do corpo. Telegraph próprio: o glifo da coluna ACENDE
+    // (tint dourado subindo, sem pisca — ver preUpdate). Causa 'dart'.
+    flecheira: {
+      tex: 'hazard-flecheira', texOn: 'hazard-flecheira-on', cause: 'dart',
+      bodyW: 150, bodyH: 90, bodyTop: 430,
+      offMs: 1100, onMs: 500, telegraphMs: 350,
+    },
+    // CAIXOTE do sítio de escavação: irmão menor da caçamba (90×70) —
+    // sempre ligado, pulável OU destrutível no dash (smashable). Causa
+    // 'wall', como toda barreira sólida.
+    caixote: {
+      tex: 'hazard-caixote', cause: 'wall', smashable: true,
+      bodyW: 90, bodyH: 70, bodyTop: Constants.GROUND_TOP - 70,
     },
   };
 
@@ -98,7 +128,8 @@ export class TimedHazard extends Phaser.Physics.Arcade.Sprite {
       this.body.enable = false;
       this.lethal = false;
     } else {
-      // Caçamba: corpo sempre on — a cena decide pulo/smash/morte
+      // Sem ciclo (caçamba/movediça/caixote): corpo sempre on — a cena
+      // decide pulo/smash/morte
       this.phaseOn = true;
       this.body.enable = true;
       this.lethal = true;
@@ -113,7 +144,7 @@ export class TimedHazard extends Phaser.Physics.Arcade.Sprite {
     if (!this.active) return;
     if (this.scene.physics.world.isPaused) return;
     const cfg = TimedHazard.KINDS[this.kind];
-    if (!cfg.onMs || this.smashed) return; // caçamba/entulho: sem ciclo
+    if (!cfg.onMs || this.smashed) return; // sempre-ligados/entulho: sem ciclo
     this.phaseMs -= delta;
     if (this.phaseOn) {
       if (this.phaseMs <= 0) this.setPhase(false, cfg);
@@ -126,14 +157,24 @@ export class TimedHazard extends Phaser.Physics.Arcade.Sprite {
     // Telegraph no fim do OFF — a linguagem da seteira da torre. Hidrante:
     // "borbulha" (tint fraco piscando). Arco: brilho CRESCENTE — o pisca em
     // fill acelera de ~140 ms a ~40 ms conforme o disparo chega (tint
-    // multiplicativo não clareia; setTintFill sim).
+    // multiplicativo não clareia; setTintFill sim). Flecheira (v1.8.10): o
+    // GLIFO ACENDE — dourado SUBINDO sem pisca (rampa contínua de branco a
+    // ouro; tint multiplicativo escurece os outros canais, e é isso que lê
+    // como pedra ganhando brasa) — a armadilha egípcia fala a língua dela.
     if (this.phaseMs <= cfg.telegraphMs) {
-      const period = this.kind === 'arco' ? 40 + this.phaseMs / 3 : 90;
-      if (Math.floor(time / period) % 2 === 0) {
-        if (this.kind === 'arco') this.setTintFill(0xcfe0ff);
-        else this.setTint(0x9fd8ff);
+      if (this.kind === 'flecheira') {
+        const t = 1 - this.phaseMs / cfg.telegraphMs; // 0 → 1 até o disparo
+        const g = Math.round(0xff - (0xff - 0xd2) * t);
+        const b = Math.round(0xff - (0xff - 0x4a) * t);
+        this.setTint((0xff << 16) | (g << 8) | b); // 0xffffff → 0xffd24a
       } else {
-        this.clearTint();
+        const period = this.kind === 'arco' ? 40 + this.phaseMs / 3 : 90;
+        if (Math.floor(time / period) % 2 === 0) {
+          if (this.kind === 'arco') this.setTintFill(0xcfe0ff);
+          else this.setTint(0x9fd8ff);
+        } else {
+          this.clearTint();
+        }
       }
     }
   }
@@ -147,12 +188,13 @@ export class TimedHazard extends Phaser.Physics.Arcade.Sprite {
     this.trySetTexture(on ? cfg.texOn : cfg.tex);
   }
 
-  // Só caçamba: o dash a destrói (+5, contagem e morte como `wall` são da
-  // cena — aqui só o efeito físico/visual). Vira entulho: corpo off, sobra
-  // a metade de baixo da textura com tint de poeira. Crop e tint limpos no
-  // reset/deactivate (CrackedWall.clearCollapse).
+  // Só os `smashable: true` (caçamba; caixote na v1.8.10): o dash destrói
+  // (+5, contagem e morte como `wall` são da cena — aqui só o efeito
+  // físico/visual). Vira entulho: corpo off, sobra a metade de baixo da
+  // textura com tint de poeira. Crop e tint limpos no reset/deactivate
+  // (CrackedWall.clearCollapse).
   smash() {
-    if (this.kind !== 'cacamba' || this.smashed) return;
+    if (!TimedHazard.KINDS[this.kind].smashable || this.smashed) return;
     this.smashed = true;
     this.lethal = false;
     this.body.enable = false;

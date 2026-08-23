@@ -1,6 +1,6 @@
 # Furious Rhino — Referência técnica
 
-> Documentação da versão **1.8.7** · atualizada em 21/08/2026
+> Documentação da versão **1.8.10** · atualizada em 23/08/2026
 > Para quem vai dar manutenção. Complementa (não substitui) `GAME_DESIGN.md` (o design e suas razões) e `HANDOFF.md` (estado da última sessão de trabalho e tabelas completas de parâmetros).
 
 ## 1. Estrutura de pastas
@@ -17,13 +17,16 @@ MobileGame/
 ├── GAME_DESIGN.md          # Documento de design com o porquê de cada decisão
 ├── HANDOFF.md              # Estado da última release + referência completa de parâmetros
 ├── docs/                   # Esta documentação
-├── art/                    # 105 SVGs — a arte que o jogo carrega (fonte da verdade)
+├── iniciar-estudio.bat     # Duplo-clique: sobe o servidor unificado e abre o /?setup
+├── art/                    # 127 SVGs — a arte que o jogo carrega (fonte da verdade)
 ├── art2/                   # Propostas de arte aprovadas + preview (registro do fluxo
 │                           #   "arte primeiro"; o jogo carrega SÓ o que foi copiado p/ art/)
 │                           #   art2/skins/ = folhas-fonte das skins + CLIs do pipeline
-├── gerador-de-sprites/     # Ferramenta dev (v1.8): servidor local (:3210) que converte
-│                           #   folhas raster (IA) em skins SVG e grava a integração no
-│                           #   jogo (integrate.mjs) — a pasta NUNCA entra no sw.js
+├── gerador-de-sprites/     # Ferramenta dev: o SERVIDOR UNIFICADO do estúdio (v1.8.8 —
+│                           #   API na :3210 + o jogo na :3000) que converte folhas raster
+│                           #   (IA) em skins E sprites de inimigo, e grava a integração
+│                           #   com portão de testes (integrate.mjs). output/enemies/ é o
+│                           #   estoque de sprites não atribuídos. NUNCA entra no sw.js
 ├── js/
 │   ├── game.js             # Entry point / roteador (?setup, ?stats, ?debug)
 │   ├── firebase-config.js  # Credenciais públicas do Firebase (proteção real = rules)
@@ -32,13 +35,19 @@ MobileGame/
 │   ├── entities/           # Rhino, Animal, CrackedWall, Spike, TranqTower, TranqDart,
 │   │                       #   Ramp, HunterSniper (o atirador dos 3 bosses, paramétrico)
 │   ├── systems/            # TextureFactory, SpawnManager, FurySystem, BossFight,
-│   │                       #   AudioSystem, SkinSystem + SkinRegistry (v1.8 — o registry
-│   │                       #   é DADOS, reescrito pelo /?setup), MedalSystem,
-│   │                       #   LeaderboardSystem, StatsSystem, NotifySystem, TuningPanel
-│   ├── utils/              # Constants (todo o tuning) e StorageManager (persistência local)
-│   ├── stats/              # StatsDashboard, Charts, MyStats (painel e resumo do jogador)
-│   ├── setup/              # SetupPage (v1.8): o estúdio de skins do dono (/?setup=chave)
-│   └── art/                # ArtManifest (gerado) e SvgSprites (gerador aposentado)
+│   │                       #   AudioSystem, SkinSystem + SkinRegistry (DADOS, reescrito
+│   │                       #   pelo /?setup), ScoreSystem, ChallengeSystem, NewsSystem,
+│   │                       #   MedalSystem, LeaderboardSystem, StatsSystem, NotifySystem,
+│   │                       #   TuningPanel
+│   ├── utils/              # Constants (todo o tuning + o MERGE do SpriteParams no fim)
+│   │                       #   e StorageManager (persistência local)
+│   ├── stats/              # StatsDashboard, Charts, MyStats + RadiografiaCore (v1.8.7 —
+│   │                       #   o agregador puro da radiografia, navegador E node)
+│   ├── setup/              # SetupPage (moldura + aba Skins), SetupSprites (aba 🖼️,
+│   │                       #   v1.8.9) e SetupAnalytics (aba 📊, v1.8.7)
+│   └── art/                # ArtManifest (mantido à mão), SpriteParams (DADOS de
+│                           #   calibração, machine-owned pela aba Sprites) e SvgSprites
+│                           #   (gerador aposentado)
 ├── tools/                  # Scripts Node: testes, digest, exportação de arte, limpeza
 └── .github/workflows/
     └── daily-digest.yml    # Cron do resumo diário (23h UTC = 20h Brasília)
@@ -71,23 +80,29 @@ Para os testes e ferramentas (Node 18+):
 
 ```bash
 npm install                     # só devDependencies
-npm run test-stats              # 99 asserts, sem navegador
+npm run test-stats              # 101 asserts, sem navegador
 npm run test-score              # 83 asserts da pontuação composta, sem navegador
-npm run test-skins              # ~94 asserts das skins, sem navegador (nº varia com o registry)
-npm run test-integrate          # 42 asserts da integração do /?setup, sem navegador
-npm run test-ramp               # 39 asserts em Chromium — exige o servidor acima no ar
+npm run test-challenge          # 77 asserts da Arena de Desafios, sem navegador
+npm run test-skins              # ~93 asserts das skins, sem navegador (nº varia com o registry)
+npm run test-integrate          # 49 asserts da integração do /?setup, sem navegador
+npm run test-sprites            # 31 asserts da camada de sprites (v1.8.9), sem navegador
+npm run test-radiografia        # 62 asserts da radiografia (v1.8.7), sem navegador e SEM rede
+npm run test-ramp               # 45 asserts em Chromium — exige o servidor acima no ar
 npm run test-boss               # 16 asserts e2e da luta do portão — idem
-npm run test-boss2              # 13 asserts e2e do Cerco (2000m) — idem
+npm run test-boss2              # 14 asserts e2e da Muralha (2000m) — idem
 npm run test-boss3              # 10 asserts e2e do Guardião do Fim — idem
 npm run test-special            # 25 asserts e2e da FÚRIA TOTAL, biomas e desabamento — idem
 npm run test-e2e-skins          # 15 asserts e2e das skins — idem
-npm run test-e2e-setup          # 17 asserts e2e do estúdio /?setup — idem (2 ramos: gerador no ar/parado)
+npm run test-e2e-setup          # 26 asserts e2e do estúdio /?setup — idem (2 ramos: gerador no ar/parado)
 npm run test-e2e-stats          # e2e da telemetria em Chromium — idem
+npm run radiografia             # análise de usabilidade completa contra a produção (só leitura)
 npm run digest                  # monta o resumo diário SEM enviar
-npm run sprite-gen              # sobe o servidor do gerador/estúdio em localhost:3210
+npm run sprite-gen              # sobe o SERVIDOR UNIFICADO: jogo na :3000 + gerador na :3210
 ```
 
-URLs especiais: `/?debug=1` (painel de tuning + `window.game` para os e2e), `/?stats` (painel público), `/?stats=0929` (painel detalhado), `/?setup=0929` (estúdio de skins do dono — a escrita exige o `sprite-gen` no ar), `/?ntfy=test|off|on` (testar/silenciar pushes).
+Atalho do dono: **duplo-clique no `iniciar-estudio.bat`** (raiz) — sobe o servidor unificado e abre o `/?setup=0929` no endereço certo.
+
+URLs especiais: `/?debug=1` (painel de tuning + `window.game` para os e2e), `/?stats` (painel público), `/?stats=0929` (painel detalhado), `/?setup=0929` (o estúdio do dono, três abas: 🎨 Skins · 🖼️ Sprites · 📊 Radiografia — a escrita exige o servidor no ar; a radiografia só lê), `/?ntfy=test|off|on` (testar/silenciar pushes).
 
 ## 4. Os quatro lugares da versão
 
@@ -119,7 +134,7 @@ Projeto `furious-rhino`. Credenciais em `js/firebase-config.js` são **públicas
 | `scores/{playerId}` | pública | só campos `{name, nameLower, score, scoreAt, skin, updatedAt, scoreM}`; name 3–12 chars; **`score` int 1–20000 e só cresce — desde a v1.8.4 é o TOTAL (metros + bônus), não os metros**; `scoreM` (v1.8.4) opcional, int 1–10000, os metros da marca, com `score >= scoreM` e `score <= scoreM * 2` (o teto do bônus vira trava anti-abuso); sem `scoreM` o teto do `score` continua 10000 (é o cliente velho, cujo score AINDA são os metros); `scoreAt` (v1.8) opcional, timestamp `<= request.time` — o "quando a marca foi atingida"; `skin` (v1.8.1) opcional, string 1–24 — a skin usada ao cravar a marca (vitrine do pódio). Ambos regravados com o valor ANTIGO na troca de apelido (cópias locais `furious_rhino_best_sent_at`/`_skin`; sem elas os campos saem e a leitura cai nos fallbacks); delete proibido |
 | `stats/{playerId}` | pública (é o que faz o painel funcionar) | 12 campos de topo no máximo; núcleos monotônicos (`attempts/playTimeS/wins/bestM` só crescem); `runs` ≤ 50; `deaths` ≤ 15 chaves (v1.8.5 — entraram `boss2`/`boss3`); `client` ≤ 10; `geo` ≤ 4; delete proibido |
 | `config/notify` e `config/news` | pública | **proibida** — só o console (o wildcard `config/{doc}` cobre os dois). `config/news` (v1.8.1) = o Diário da Fuga: campo `items`, array de strings — cada string é um card na home, a 1ª sempre aparece; o jogo relê a cada 1h |
-| `challenges/{id}` (v1.8.6) | pública | **create**: só a forma — 7 campos (`from, participants, names, startAt, endAt, accepted, createdAt`), participants 2–8, janela `endAt − startAt <= 604800` (7 dias), epochs em SEGUNDOS (casam com `runs[].t`), `createdAt == request.time`; **update**: SÓ o mapa `accepted` pode mudar (`diff().affectedKeys().hasOnly(['accepted'])`) e só CRESCER (`hasAll` das chaves antigas, ≤ 8) — o aceite regrava o doc relido inteiro; delete proibido. Sem auth o aceite é falsificável: modelo de confiança assumido do jogo inteiro. O placar NÃO mora aqui — é derivado do `stats/` dos aceitos |
+| `challenges/{id}` (v1.8.6) | pública | **create**: só a forma — 7 campos (`from, participants, names, startAt, endAt, accepted, createdAt`), participants 2–8, janela `endAt − startAt <= 604800` (7 dias), epochs em SEGUNDOS (casam com `runs[].t`), `createdAt == request.time`; **update**: o mapa `accepted` pode mudar (só CRESCER — `hasAll` das chaves antigas, ≤ 8; o aceite regrava o doc relido inteiro) OU, desde a v1.8.8, o campo `cancelledAt` pode ser gravado **uma única vez** (o criador encerrando o desafio antes do prazo); nada mais muda; delete proibido. Sem auth o aceite é falsificável: modelo de confiança assumido do jogo inteiro. O placar NÃO mora aqui — é derivado do `stats/` dos aceitos |
 
 **A restrição que governa tudo:** o orçamento de avaliação das rules estoura com campos soltos — constatado que **19 campos de topo passavam e 20 falhavam**, negando writes legítimos em silêncio. Portanto: **nenhum campo novo de primeiro nível em `stats`**. Campo novo entra nos mapas existentes ou nos elementos de `runs[]` (forma livre).
 
@@ -173,7 +188,9 @@ Tudo em `js/utils/Constants.js` (deploy sempre necessário). Principais:
 | `BIOME_ANIMALS` | 6 elencos | quais espécies nascem em cada bioma (fora da cidade) |
 | `CITY_DISTRICTS` | 5 áreas | v1.8.7: os distritos da cidade — `from/key/wallSkin/cast/weights/breach`; elenco e pesos POR ÁREA via `cityAreaFor(x)`; skin de parede via `skinFor(x,'wall')` |
 | `BOSS_MURALHA / MURALHA_ENRAGE_MS` | 4 degraus / 45000 | v1.8.7: arsenal do boss dos 2000 m (flag nova `holo` = granada-de-luz com telegraph de holofote; `rasanteStyle:'k9'` na def) |
-| `CERCO_NET / CERCO_LAYERS` | declaradas | v1.8.7: o Cerco realocado — SEM luta ligada até o funil mostrar massa pós-2000 m |
+| `CERCO_NET / CERCO_LAYERS / CERCO_ANCHOR_PX` | 4 degraus / 146000 | v1.8.10: o Cerco VIVE — Barreira da Escavação (3650 m), paleta `escavacao`, letra `u`, causa `cerco` |
+| `BOSS_FARAO / FARAO_LAYERS / FARAO_ANCHOR_PX / FARAO_ENRAGE_MS` | 5 degraus / 5 camadas / 188000 / 30000 | v1.8.10: o Faraó de Bronze — a tabela mais agressiva (700 ms no fim), `holo` (Espelho de Rá), `rasanteStyle:'falcao'`, letra `y`, causa `farao` |
+| `CITY_DISTRICTS` (deserto) | +6 áreas | v1.8.10: duna/oasis/escavacao/vale/necropole + deserto infinito — campos novos `propSkin/ground/fg/cars/skyLife` por área |
 | `CAUSE_LABELS` | 8 rótulos | fonte única dos nomes de desfecho (painel, resumo, pushes) |
 
 Calibrar com dados, não no escuro: aba **Dificuldade** do painel (heatmap causa × distância). O `TuningPanel` (`?debug=1`) permite testar valores ao vivo e exportar um `.txt` com só o que mudou, no formato do `Constants.js`.
@@ -225,17 +242,19 @@ Parâmetros completos e receitas: `HANDOFF.md` §4A/§4B. Resumo de operação:
 |---|---|
 | `test-stats` (Node puro) | Agregação, contadores (inclusive `f/b/q/z` e a causa `boss`), consistência das camadas **contra as rules** (um teste falha se alguém criar campo de topo em `stats`; outros se `scoreAt`/`skin` sumirem da whitelist de `scores`), `LeaderboardSystem.holdDays` nas DUAS semânticas (por marca = lista; cascata = pódio), `buildDigest` |
 | `test-score` (Node puro, v1.8.4) | A fórmula da pontuação composta: peso de cada evento, evento desconhecido valendo 0, blitz na BORDA dos 20 s, LENDA, o teto `bônus <= metros` agindo, o clamp em `SCORE_MAX_TOTAL`, `metersOf` nas três formas (`scoreM`/`m`/`score` cru) e os formatadores. O assert-chave é o **contrato de recomputação**: a soma feita ao vivo durante a corrida tem de bater exatamente com `runBonus(run)` |
+| `e2e-deserto` (Chromium, v1.8.10) | As Areias do Tempo: as 5 áreas com famílias `-ruina`/`-piramide`/`-egito`, a Barreira (MID→GROUND→HIGH→MID, +150, letra `u`, silenciamento na intro) e o Faraó (5 camadas MID→HIGH→GROUND→MID→HIGH, +250, letra `y`, enrage 30 s, rasante `falcao`), causas/títulos próprios |
 | `e2e-boss2` (Chromium, v1.8.7) | A MURALHA no slot dos 2000 m: 4 camadas abrindo NO ALTO (HIGH→GROUND→MID→HIGH), startFight SILENCIANDO torre viva na arena (`muzzleHostiles`), vitória sem encerrar a corrida (+250 ao vivo), causa `boss2` herdada com título próprio, enrage de 45 s |
 | `test-challenge` (Node puro, v1.8.6) | A Arena de Desafios: `bestInWindow` (bordas EXATAS da janela, escolha por PONTOS e não metros, empate = mais antiga), countdown, `statusOf`/`leaderOf`, convites não vistos, guardas puras de criação (apelido/teto/duração) e os asserts de texto das rules de `challenges` (whitelist, janela ≤ 7d, o `hasAll` do aceite, delete proibido) |
 | `test-skins` (Node puro, v1.8) | É o **portão do /?setup** (roda a cada gravação da página, com rollback se reprovar). Lógica de acesso testada com **skins sintéticas** — rank exato, condições declarativas (`conditionMet`), totais, `hidden`, retro-scan, `requirementText`, `resolveEquipped` sem regravar — e o registry REAL só passa por checagens estruturais: ids/prefixos no padrão, JSON estrito, SVGs em `art/`, `ASSETS` e marcadores do `sw.js`. **Regra: nenhum assert pode "pinar" valores do registry** (o dono edita skins à vontade) |
 | `test-integrate` (Node puro, v1.8) | A integração do estúdio como funções puras: round-trip byte-idêntico do `SkinRegistry.js`, upsert/remove (só o `default` intocável; originais também removem, com `stripSwArtLines` limpando as linhas manuscritas do `sw.js`), flag `hidden`, validação de entradas/condições, e o patch idempotente do bloco `@setup:skins` no `sw.js` (CACHE jamais tocado) |
 | `e2e-ramp` (Chromium) | Trajetória frame a frame da travessia da rampa (o assert "nunca trava" protege contra regressão do soft-lock), trampolim, destruição, abertura guiada, portão/cidade, teclado, pausa (inclusive **desistir da corrida** sem contabilizar), par/escolta de animais, knockback para a direita, e (v1.8.1) a **home nova**: pódio do cache com cascata e fallback de skin, Diário com evento local, box Campanha, e o **contrato do toque em (640,650)** iniciando a corrida — zero erro de JS |
 | `e2e-boss` (Chromium) | A luta do portão: quique sem morte e **retomada sozinha** (o assert que mataria a rota de corpo sólido), investida liberada na janela pós-quique, 3 quebras na ordem chão→meio→alto, vitória dispara o `crossGate`, morte pelo rifle com causa `boss` — e (v1.8) a fúria negada na arena com carga preservada, cadeado no medidor, rampage prévio que sobrevive mas **não quebra desalinhado**, e liberação pós-derrota |
-| `e2e-boss2` (Chromium, v1.8.5) | O Cerco: texturas urban, câmera travada na âncora, anti-soft-lock, clamp, zero spawn na arena, fúria negada (`n` sobe), ordem **mid→ground→high→mid** com as texturas acompanhando, **a 4ª camada NÃO chama `crossGate`** (gameOver false, +250 pts ao vivo, câmera recola), Capturador cai, morte com causa `boss2` e título "CAPTURADO! 🕸️", enrage muda a cadência. ⚠️ Teleporte para a arena exige semear `gateReached`/`escaped` antes do `body.reset`, senão o gatilho legado do portão dispara `crossGate` no mesmo frame |
+| `test-sprites` (Node puro, v1.8.9) | O **portão da aba Sprites** (roda a cada gravação, com rollback): contrato do `SpriteParams.js` (miolo JSON estrito, ZERO imports — ciclo com o Constants mataria o boot), merge são (TYPES ≡ SPECS ≡ BEHAVIOR), whitelists dos overrides, paridade `art/` ↔ manifesto ↔ `sw.js` (inclusive o inverso: todo SVG do disco no ASSETS), **`w/h` do manifesto == `viewBox` de cada SVG** (contrato que não existia para ninguém), espécies criadas completas (arquivos + derivações `anim`/`airTexture`), marcadores `@setup:sprites` 1×, e os **invariantes de spawn** que os e2e congelam: todo elenco com ≥1 terrestre, floresta sem voador (o fallback `bird`), jaulas sem `pair`, Brecha só-pombo, bandas `fly/zig` dentro de [300,600] |
+| `test-radiografia` (Node puro, v1.8.7) | A radiografia: fixture sintética cobrindo as 3 eras e TODAS as letras (incl. `e/h/l/g/v/p`), totais idênticos ao `buildDigest` (a conferência do banco de ideias virou assert), funil/curva calculados à mão, `flattenRuns ⊇ RUN_COUNTERS` (letra nova sem leitor = vermelho), recomputo de bônus == `ScoreSystem.runBonus`, **determinismo byte a byte** do markdown, e a higiene dos fetchers por text-assert (filtro `^claude-`, zero writes) |
 | `e2e-boss3` (Chromium, v1.8.5) | O Guardião do Fim: arena dentro da zona da LENDA (zero spawn de graça), palíndromo **ground→mid→high→mid→ground**, fúria negada, **a 5ª camada dispara a LENDA** (`legend`/`won`/overlay com a linha do chefe no breakdown), morte com causa `boss3` |
 | `e2e-special` (Chromium) | Sorteio de espécies por bioma, o ciclo completo da FÚRIA TOTAL (carga por distância, ativação sem virar dash, destruição do espinho, drenagem e reversão) e (v1.8) o desabamento do topo da parede: crop, tombo, autodestruição e pool limpo na reciclagem |
 | `e2e-skins` (Chromium, v1.8) | Comportamento no navegador contra um **registry canônico injetado por interceptação de rede** (`context.route` + `serviceWorkers: 'block'` — o registry real do dono não pode derrubar a suíte): preview e sprite vestem a skin; destronado vira default **sem regravar a escolha**; hub sem iniciar corrida; persistência após reload; fúria com `firePrefix` próprio (o canônico usa arte do NÚCLEO — `rhino-run`/`rhino-fire-run` — porque qualquer skin real pode ser removida com a arte pelo /?setup); e a guarda da escala visual — **hitbox segue 76×54 com os pés no chão** para qualquer `RHINO_VISUAL_SCALE` |
-| `e2e-setup` (Chromium, v1.8) | O estúdio /?setup: sem chave/chave errada → restrito; chave certa → monta sem Phaser; preview do requisito gerado ao vivo; nome de skin original barrado na digitação; lista com só o default travado e toggle + ✏️ + 🗑 em todas as outras (v3); dois ramos (servidor do gerador no ar/parado) |
+| `e2e-setup` (Chromium) | O estúdio /?setup: sem chave/chave errada → restrito; chave certa → monta sem Phaser; as **três abas** (Skins montada no load com os 4 ids congelados; Sprites e Radiografia preguiçosas — o catálogo monta ≥38 espécies dos módulos ES, o órfão `boss2-hunter` é sinalizado, e **nenhuma requisição espontânea** sai antes de um clique do dono: zero Firestore, zero POST à API local); card Servidores (linha do jogo verde, botão ⏻ presente — o e2e **nunca o clica**); preview do requisito ao vivo; nome de skin original barrado na digitação; lista com só o default travado (v3); dois ramos (gerador no ar/parado) |
 | `e2e-stats` (Chromium) | Telemetria real no Firestore (sonda `claude-rules-check-01`), portão continuar/sair, LENDA, painel + chave, resiliência (telemetria quebrada não trava o jogo), e o assert final que compara a coleção antes/depois — **a suíte não suja a produção**. ⚠️ Os teleportes para além do portão usam `invincible = true` (senão o clamp do boss segura o rinoceronte na arena) |
 
 Regras de higiene dos testes (v1.7.2): rodando em `localhost`, o jogo **não escreve no Firestore por padrão** (`StorageManager.allowsRemoteWrite()`) — isso já protege qualquer suíte, mesmo uma que esqueça de semear algo. `e2e-stats` é a única que precisa validar a escrita real contra as rules, então semeia o opt-in (`furious_rhino_allow_local_write = '1'`) junto com o `player_id` de sonda `claude-*`; as outras três não semeiam o opt-in e por isso nunca gravam, ainda que também usem ids `claude-*` por convenção. Todo contexto nasce também com `furious_rhino_notify_off = '1'` (senão cada rodada dispararia pushes).
@@ -250,6 +269,7 @@ Regras de higiene dos testes (v1.7.2): rodando em `localhost`, o jogo **não esc
 - `art2/` = o ateliê do fluxo "arte primeiro": propostas + `preview-biomes.html` (cards animados, comparação com o elenco em jogo, faixa em escala real). O que o dono aprova é copiado para `art/` e entra no manifesto/sw.js; a pasta fica como registro. O portão blindado do boss é procedural (`TextureFactory.generateGateArmored`, 3 estados) — precisa casar com o `zoo-gate`/`zoo-gate-broken` que substitui.
 - **Skins do rinoceronte (v1.8)**: mesmo rig obrigatório — viewBox 96×64, pés na base, narina em (89,38), 3 frames de corrida (ciclo 0-1-2-1); a hitbox vive no construtor do `Rhino` e não muda com a textura. Cores claras/médias no corpo da forma normal (o tint de fúria multiplica branco→vermelho — skin escura fica ilegível). Origens: recolors geradas por `art2/skins/make-skins.mjs` (pódio com medalhão numerado e a "Thanks for playing"); folhas raster (do amigo do dono ou de IA) vetorizadas pelo **gerador de sprites**.
 - **Estúdio de skins** (`/?setup=0929`, com o servidor `npm run sprite-gen` no ar — ou duplo-clique em **`iniciar-estudio.bat`** na raiz, que desde a v1.8.8 sobe o servidor UNIFICADO — jogo na `:3000` + gerador na `:3210` — e abre o estúdio direto): o fluxo completo do dono, sem editar código — folha (JPG/PNG/SVG) → fatiamento automático ou grade fixa → 3 frames na ordem do galope → paleta k-means (editável, 1 contorno) → gerar (encaixe em 95×63 do canvas; aba 🔥 opcional para fúria própria) → preview animado + onion-skin → formulário de desbloqueio (grátis / pódio 1-3 / conquista numa corrida / totais de vida, com preview do texto do cadeado) → **Aplicar** copia os SVGs para `art/`, reescreve `SkinRegistry.js` e o bloco do `sw.js`, roda `test-skins` e **reverte tudo se reprovar**. A lista de skins existentes permite editar, alternar a flag "no jogo/fora do jogo" e remover (só as criadas). O servidor assume a porta de instâncias antigas ao subir e manda o header de Private Network Access (Chrome exige para a página em produção falar com localhost). Se a `:3000` já estiver ocupada (python), ele avisa e segue só na `:3210` — os dois modos convivem. A página antiga do gerador foi aposentada na v1.8.8 (histórico no git); o card "Servidores locais" do `/?setup` mostra jogo + gerador e tem o botão ⏻ Parar. Receita da folha no card de upload: fundo branco puro, células separadas, **nada atravessando os vãos**, cel-shading chapado, corpos idênticos entre poses, ≥2000 px de largura. **Publicação continua manual**: nada do estúdio faz git/bump — a skin vai ao ar na release seguinte.
+- **Aba 🖼️ Sprites** (v1.8.9): a gestão dos sprites do jogo. **Calibração** vive em `js/art/SpriteParams.js` (JSON estrito, machine-owned; `overrides` por espécie com merge raso — `null` apaga, sub-objetos `fly/zig/shoot` substituem inteiro; `w/h/tex/anim/pair` proibidos em override) mesclado pelo `Constants` no load — **reescrever o `Constants.js` pelo servidor é proibido** (os comentários são a memória de design; `SPRITE_BASE` guarda o pré-merge para a UI mostrar o diff). **Espécie nova** = entrada em `novas` (specs completos + behavior + `anim {sufixo,fps}` + `casts`) + SVGs em `art/` + bloco `@setup:sprites` no `sw.js` — o `BootScene` a carrega via `Constants.SPRITE_NEW`, fora do manifesto. **Gerador de inimigo**: 1-2 frames, alvo livre (16..160×16..120), `masterIdx 0`, hitbox sugerida medida do bbox (o `offX` sai já espelhado: `offX = w − offX_arte − bodyW`); o resultado fica em `gerador-de-sprites/output/enemies/<id>/` + `index.json` até a atribuição. Toda gravação = `writeAndValidateFiles` (snapshot de bytes → escreve → `test-sprites` + `test-skins` em processos novos → rollback total no vermelho). Restrições de design: `pair` proibido em espécie criada, voador proibido na floresta, Brecha/rodovia protegidas — as mesmas que os e2e congelam.
 
 ## 13. Armadilhas conhecidas (leia antes de mexer)
 
@@ -284,6 +304,10 @@ Regras de higiene dos testes (v1.7.2): rodando em `localhost`, o jogo **não esc
 | Animação CSS × transform | Keyframe que anima `transform` atropela um `scaleX(-1)` estático no mesmo elemento — flip com a propriedade `scale`, que compõe separada |
 | `hasOnly` das rules × campo novo | A whitelist de `scores` é fechada: **campo novo não previsto = write NEGADO EM SILÊNCIO** (o `submit` engole o erro por design). Pior, até a v1.8.4 nenhum teste conferia a whitelist COMPLETA — só a presença de duas strings soltas. Hoje o `test-stats` extrai o `hasOnly` por regex e compara a lista inteira; **campo novo no doc = rule publicada ANTES do deploy, sempre** |
 | `score` ≠ metros (v1.8.4) | `scores/{id}.score` virou o TOTAL; os metros moram em `scoreM` (ausente = doc antigo, em que score AINDA são os metros). Toda leitura passa por `ScoreSystem.metersOf(entry)` — usar `score` como distância replanta a estaca do rival no lugar errado da pista e quebra a comparação do recorde mundial no `NotifySystem` |
+| `git checkout` × CRLF × testes byte a byte | Com autocrlf, restaurar um arquivo via `git checkout` o regrava com **CRLF** — e os asserts byte-idênticos (`test-integrate`, round-trips do registry/SpriteParams) quebram EM SILÊNCIO no casamento de linhas (aconteceu 2× em 22-23/08). Depois de qualquer checkout de arquivo com contrato byte-estável, normalizar para LF |
+| Probe do card Servidores é HEAD, nunca GET | O status "jogo no ar" testa `location.origin + '/api/status'` com **HEAD**: o service worker ignora não-GET e o probe vai direto à rede. Com GET, um 200 entraria no Cache Storage (`cache.put`) e depois serviria um falso "no ar" com tudo morto |
+| Letra nova em `runs[]` sem leitor | `RUN_COUNTERS` é a fonte; a radiografia (`flattenRuns`) e a aba Sprites precisam conhecê-la. O `test-radiografia` FALHA se nascer letra fora do `flattenRuns` — é proteção, não burocracia: a razão de existir das ferramentas é não deixar dado sem leitor |
+| SpriteParams com import | O `Constants` importa o `SpriteParams` — um import DENTRO dele fecharia ciclo e **mataria o boot do jogo inteiro**. O `test-sprites` proíbe por regex (`^import`), e o header do arquivo grita |
 
 ## 14. Manutenção da documentação
 

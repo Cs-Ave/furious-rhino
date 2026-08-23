@@ -31,7 +31,7 @@ export class Ramp extends Phaser.GameObjects.Image {
   }
 
   setSkin(skin) {
-    this.skin = skin === '-city' ? '-city' : '';
+    this.skin = ['-city', '-egito'].includes(skin) ? skin : '';
   }
 
   // Roda em TODO reset: o sprite reciclado carrega a variante — e a textura

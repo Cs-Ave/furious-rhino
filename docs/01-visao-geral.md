@@ -1,6 +1,6 @@
 # Furious Rhino — Visão geral
 
-> Documentação da versão **1.8.7** · atualizada em 21/08/2026
+> Documentação da versão **1.8.10** · atualizada em 23/08/2026
 > Este documento é para quem **não é programador**. Sem jargão — e quando um termo técnico for inevitável, ele vem explicado entre parênteses.
 
 ## O que é
@@ -45,7 +45,7 @@ Este projeto não é só o jogo — é também a "sala de controle" dele:
 - **Estatísticas do jogador** — um botão "📊 Minhas estatísticas" mostra seu histórico: onde você costuma morrer, quantas vezes fugiu, suas medalhas.
 - **Medalhas** — 19 conquistas, de "Primeira Fuga" a "Lenda do Mundo" (vencer o chefe do fim do mundo).
 - **Skins** — um guarda-roupa de aparências para o rinoceronte (botão 🎨): gratuitas, por conquista difícil e **exclusivas do pódio do ranking** — só quem está naquele degrau do topo do mundo veste a skin do degrau, e a perde se perder o posto. O elenco muda com o tempo (o criador cria e troca skins pelo estúdio).
-- **Estúdio de skins** — uma página especial (`/?setup`, protegida por chave) onde o criador transforma folhas de desenhos geradas por IA em skins prontas e decide **como cada uma é conquistada** (grátis, pódio do ranking, façanha numa corrida ou totais de vida) — tudo sem programar; a skin entra no jogo na publicação seguinte.
+- **Estúdio do criador** — uma página especial (`/?setup`, protegida por chave, aberta com um duplo-clique num atalho) com três abas: **🎨 Skins** (transformar folhas de desenhos geradas por IA em skins prontas e decidir como cada uma é conquistada — grátis, pódio, façanha ou totais de vida), **🖼️ Sprites** (o catálogo de todos os personagens do jogo, animado, com os parâmetros de cada um editáveis — velocidade, pulo, caixa de colisão — e um gerador que cria inimigos novos, até espécies inéditas, sem programar) e **📊 Radiografia** (a análise completa de como os jogadores usam o jogo, com diagnósticos automáticos). Tudo com uma rede de segurança: cada gravação roda a bateria de testes e se desfaz sozinha se algo quebrar; nada vai ao ar sem a publicação seguinte.
 - **Painel do criador** — uma página especial (`/?stats`) com gráficos sobre todos os jogadores: quantos jogam por dia, onde o jogo está difícil demais, quem volta a jogar. É com esses dados que o jogo é ajustado a cada versão — várias decisões de design vieram de olhar para eles.
 - **Avisos no celular do criador** — quando alguém começa a jogar, quando termina uma sessão e quando o recorde mundial cai, o criador recebe uma notificação. Todo dia às 20h chega um resumo automático.
 

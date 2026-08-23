@@ -202,7 +202,9 @@ export class Animal extends Phaser.Physics.Arcade.Sprite {
         vx = (dx >= 0 ? 1 : -1) * cfg.dartSpeed; // reto, à altura do cano
         vy = 0;
       }
-      this.scene.spawnManager.fireDart(this.x, this.y, vx, vy);
+      // v1.8.10: atirador pode vestir o projétil (arqueiro atira FLECHA)
+      this.scene.spawnManager.fireDart(this.x, this.y, vx, vy, false, false,
+        (Constants.ANIMAL_BEHAVIOR[this.animalType].shoot || {}).tex || null);
       this.scene.audio.playDart();
       this.nextShotAt = cfg.intervalMs ? time + cfg.intervalMs : 0;
     }

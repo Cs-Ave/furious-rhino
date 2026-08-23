@@ -96,9 +96,8 @@ export class GameScene extends Phaser.Scene {
     // v1.8.7 — BOSS 2, a MURALHA (2000m): a Operação Muralha fechou o
     // viaduto com viaturas empilhadas + torre de holofote. Mesma anatomia do
     // portão (canvas 240x620, contato por banda + clamp); a vitória NÃO
-    // encerra nada — a barricada desaba e a Brecha começa. O CERCO foi
-    // REALOCADO para porteiro do deserto (declarado sem wiring — decisão do
-    // dono; as texturas boss2-gate/boss2-hunter seguem geradas).
+    // encerra nada — a barricada desaba e a Brecha começa. O CERCO, antes
+    // declarado sem wiring, virou a Barreira da Escavação (v1.8.10, abaixo).
     this.boss2Sprite = this.add.image(Constants.BOSS2_ANCHOR_PX, Constants.GROUND_TOP, 'muralha-gate-4')
       .setOrigin(0.5, 1).setDepth(-1);
     this.boss2Fight = new BossFight(this, this.boss2Sprite, {
@@ -123,6 +122,64 @@ export class GameScene extends Phaser.Scene {
       // invencível de debug ou teleporte — o boss recolhe sem festa
       isBypassed: (scene) => scene.rhino.getSprite().x >= Constants.BOSS2_ANCHOR_PX,
       onDefeat: (fight) => fight.scene.defeatMuralha(),
+    });
+
+    // v1.8.10 — "AS AREIAS DO TEMPO": os DOIS combates do deserto.
+    // A BARREIRA DA ESCAVAÇÃO (3650m): o CERCO declarado desde a v1.8.5
+    // finalmente ganha wiring — vira o miniboss que fecha o Sítio da
+    // Escavação. Mecânica 100% das tabelas CERCO_* (sliders vivos), paleta
+    // nova `escavacao` nas texturas e o Capturador REUSA o rig boss2-hunter.
+    this.cercoSprite = this.add.image(Constants.CERCO_ANCHOR_PX, Constants.GROUND_TOP, 'cerco-gate-4')
+      .setOrigin(0.5, 1).setDepth(-1);
+    this.cercoFight = new BossFight(this, this.cercoSprite, {
+      id: 'cerco',
+      anchorX: Constants.CERCO_ANCHOR_PX,
+      layers: Constants.CERCO_LAYERS, // ['mid','ground','high','mid'] — abre no MEIO
+      rifle: Constants.CERCO_NET, // MESMA referência: sliders do ?debug=1 vivos
+      arenaPx: Constants.BOSS_ARENA_PX,
+      gateFaceHalf: Constants.BOSS_GATE_FACE_HALF,
+      texturePrefix: 'cerco-gate',
+      hunterTexture: 'boss2-hunter',        // REUSO: o rig do Capturador (v1.8.5)
+      hunterAimTexture: 'boss2-hunter-aim',
+      camLockOffsetPx: 1040,
+      layersProp: 'runCercoLayers',
+      bouncesProp: 'runCercoBounces',
+      // 45s = o enrage padrão da casa. LITERAL de propósito: MURALHA_ENRAGE_MS
+      // é da Muralha (o agente B migra a constante — depois um dos dois morre)
+      enrageMs: 45000,
+      rasanteStyle: 'k9', // o rasante anti-camping segue sendo o cão de choque
+      hints: { intro: '🕸️ A BARREIRA DA ESCAVAÇÃO!', how: '💥 INVISTA na fresta que brilha!' },
+      hintStorageKey: 'furious_rhino_cerco_seen',
+      deathCause: 'cerco', // causa PRÓPRIA (rules já com 17 chaves — agente B)
+      isBypassed: (scene) => scene.rhino.getSprite().x >= Constants.CERCO_ANCHOR_PX,
+      onDefeat: (fight) => fight.scene.defeatCerco(),
+    });
+
+    // O FARAÓ DE BRONZE (4700m): o defensor da muralha de arenito no fim da
+    // Necrópole — o exame mais agressivo do jogo POR TABELA (5 camadas,
+    // cadência 1200→700ms, Espelho de Rá, Mergulho de Hórus, enrage 30s).
+    this.faraoSprite = this.add.image(Constants.FARAO_ANCHOR_PX, Constants.GROUND_TOP, 'farao-gate-5')
+      .setOrigin(0.5, 1).setDepth(-1);
+    this.faraoFight = new BossFight(this, this.faraoSprite, {
+      id: 'farao',
+      anchorX: Constants.FARAO_ANCHOR_PX,
+      layers: Constants.FARAO_LAYERS, // 5 camadas — abre no MEIO (3ª gramática)
+      rifle: Constants.BOSS_FARAO, // MESMA referência: sliders do ?debug=1 vivos
+      arenaPx: Constants.BOSS_ARENA_PX,
+      gateFaceHalf: Constants.BOSS_GATE_FACE_HALF,
+      texturePrefix: 'farao-gate',
+      hunterTexture: 'farao-hunter',        // rig próprio: máscara de Anúbis
+      hunterAimTexture: 'farao-hunter-aim',
+      camLockOffsetPx: 1040,
+      layersProp: 'runFaraoLayers',
+      bouncesProp: 'runFaraoBounces',
+      enrageMs: Constants.FARAO_ENRAGE_MS, // 30s — quem chegou aqui executa rápido
+      rasanteStyle: 'falcao', // Mergulho de Hórus: projétil-falcão rente ao chão
+      hints: { intro: '🏺 O FARAÓ DE BRONZE GUARDA A MURALHA!', how: '💥 INVISTA na fresta que brilha!' },
+      hintStorageKey: 'furious_rhino_farao_seen',
+      deathCause: 'farao',
+      isBypassed: (scene) => scene.rhino.getSprite().x >= Constants.FARAO_ANCHOR_PX,
+      onDefeat: (fight) => fight.scene.defeatFarao(),
     });
 
     // v1.8.5 — BOSS 3, o CAÇADOR-MOR (fim do mundo): a última cerca. Vencer
@@ -155,7 +212,10 @@ export class GameScene extends Phaser.Scene {
       },
     });
 
-    this.bossFights = [this.bossFight, this.boss2Fight, this.boss3Fight];
+    // Ordem por âncora (portão 40000 → Muralha 80000 → Cerco 146000 →
+    // Faraó 188000 → Guardião 400000); o update itera todos por frame.
+    this.bossFights = [this.bossFight, this.boss2Fight,
+      this.cercoFight, this.faraoFight, this.boss3Fight];
     this.createSectorArches();
     this.createTrackMarks();
 
@@ -222,6 +282,13 @@ export class GameScene extends Phaser.Scene {
     this.runBoss2Bounces = 0;
     this.runBoss3Layers = 0;
     this.runBoss3Bounces = 0;
+    // v1.8.10: os combates do deserto — camadas da Barreira da Escavação
+    // (letra `u` do runs[]) e do Faraó de Bronze (`y`). Os quiques deles são
+    // contados mas NÃO persistidos: `q` segue exclusivo do portão.
+    this.runCercoLayers = 0;
+    this.runCercoBounces = 0;
+    this.runFaraoLayers = 0;
+    this.runFaraoBounces = 0;
     // v1.8: skin concedida NESTA corrida (para a mensagem do fim de jogo)
     this.runSkinUnlocked = null;
     this.usedKeyboard = false;
@@ -2006,6 +2073,17 @@ export class GameScene extends Phaser.Scene {
       x: 88000, tex: 'portal-rodovia',
       label: 'RODOVIA — KM 0', labelDy: 294, fx: 'fanfare',
     });
+    // v1.8.10 — obeliscos de fronteira das etapas do deserto, SEM fx (o
+    // flash/sting/toast é do switchArea; os bosses são os marcos físicos
+    // das outras fronteiras — Cerco 146000 e Faraó 188000). O label vem da
+    // própria tabela de áreas (fonte única com o toast do agente A).
+    for (const bx of [108000, 128000, 148000, 168000]) {
+      const area = Constants.CITY_DISTRICTS.find((a) => a.from === bx);
+      marks.push({
+        x: bx, tex: 'marco-obelisco',
+        label: (area && area.label) || '', labelDy: 316,
+      });
+    }
 
     this.portalMarks = [];
     for (const m of marks) {
@@ -2065,6 +2143,10 @@ export class GameScene extends Phaser.Scene {
     floresta: { n: 4, species: ['macaw', 'toucan'], speed: [20, 44] },
     pantano: { n: 1, species: ['owl'], speed: [10, 22] },
     cidade: { n: 5, species: ['jay', 'cockatiel'], speed: [30, 66] },
+    // v1.8.10 — deserto (skyLife das áreas, não do bioma): ABUTRES circulam
+    // ao longe, lentos. texPrefix troca a família de textura (o rig do
+    // abutre é enemy-abutre/-flap, não animal-bird-*).
+    deserto: { n: 3, species: ['abutre'], speed: [8, 22], texPrefix: 'enemy-' },
   };
 
   skyLifeFor(key) {
@@ -2115,7 +2197,10 @@ export class GameScene extends Phaser.Scene {
     const cfg = this.skyLife || this.skyLifeFor(Constants.BIOMES[0]);
     b.species = Phaser.Utils.Array.GetRandom(cfg.species);
     b.dir = Math.random() < 0.65 ? 1 : -1; // maioria foge do zoo, como o rino
-    b.setTexture(`animal-bird-${b.species}`);
+    // v1.8.10: base de textura resolvida AQUI (texPrefix opcional do cfg —
+    // o abutre do deserto vive em enemy-*, os pássaros em animal-bird-*)
+    b.texBase = `${cfg.texPrefix || 'animal-bird-'}${b.species}`;
+    b.setTexture(b.texBase);
     b.setFlipX(b.dir < 0);
     b.speed = cfg.speed[0] + Math.random() * (cfg.speed[1] - cfg.speed[0]);
     b.y = 60 + Math.random() * 200;
@@ -2209,7 +2294,7 @@ export class GameScene extends Phaser.Scene {
       if (b.flapT > 260) {
         b.flapT = 0;
         b.flapped = !b.flapped;
-        b.setTexture(`animal-bird-${b.species}${b.flapped ? '-flap' : ''}`);
+        b.setTexture(`${b.texBase}${b.flapped ? '-flap' : ''}`);
         b.setFlipX(b.dir < 0);
       }
       if ((b.dir > 0 && b.x > 1360) || (b.dir < 0 && b.x < -80)) this.resetSkyBird(b);
@@ -2240,15 +2325,10 @@ export class GameScene extends Phaser.Scene {
 
     // Na cidade o chão vira asfalto. A troca é seca de propósito: ela
     // acontece no mesmo frame do estouro do portão, escondida pelo flash.
-    this.ground.setTexture(key === 'cidade' ? 'ground-city' : 'ground');
-    this.bgFg.setTexture(key === 'cidade' ? 'bg-fg-city' : 'bg-fg');
-    this.applySkyLife(key);
-
-    // Tráfego só existe na cidade
-    this.tweens.killTweensOf(this.bgCars);
-    this.tweens.add({
-      targets: this.bgCars, alpha: key === 'cidade' ? 1 : 0, duration: 500,
-    });
+    // v1.8.10: chão/fg/carros/céu-vida saem do applyAreaEnvironment — a
+    // ÁREA vence quando define os campos (um teleporte pode trocar bioma E
+    // área no mesmo frame; consultar a área por x aqui garante a ordem).
+    this.applyAreaEnvironment(Constants.cityAreaFor(this.rhino.getSprite().x));
 
     // Teleportes de debug podem pular vários biomas com o tween anterior no
     // ar: mata o tween e recomeça o crossfade da camada B do zero
@@ -2276,20 +2356,59 @@ export class GameScene extends Phaser.Scene {
   // backdrop genérico da cidade (é ele que assume o infinito pós-2200).
   static AREA_BACKDROP = {
     suburbio: 'suburbio', vidro: 'vidro', contencao: 'contencao', rodovia: 'cidade',
+    // v1.8.10 — as 5 etapas do deserto; o infinito pós-Faraó (`deserto`)
+    // REUSA o backdrop do vale (as pirâmides ficam no horizonte para
+    // sempre), escurecido de graça pelo ciclo do céu
+    duna: 'duna', oasis: 'oasis', escavacao: 'escavacao', vale: 'vale',
+    necropole: 'necropole', deserto: 'vale',
   };
   // O flash de cada distrito é COLORIDO (âmbar/ciano/vermelho) — a
-  // identidade da área no lugar do branco fixo dos biomas
-  static AREA_FLASH = { suburbio: 0xffb066, vidro: 0x4ad1ff, contencao: 0xff4a5e };
+  // identidade da área no lugar do branco fixo dos biomas.
+  // v1.8.10 — deserto: areia clara → turquesa do oásis → poeira ocre →
+  // dourado do Vale → âmbar fúnebre da Necrópole. `deserto` fica FORA de
+  // propósito (sem flash/sting — a fronteira física é a muralha do Faraó).
+  static AREA_FLASH = {
+    suburbio: 0xffb066, vidro: 0x4ad1ff, contencao: 0xff4a5e,
+    duna: 0xe8c98a, oasis: 0x4ecdc4, escavacao: 0xd9a441,
+    vale: 0xffd24a, necropole: 0xc9852a,
+  };
+
+  // v1.8.10 — chão, primeiro plano, tráfego e céu-vida por ÁREA. Os campos
+  // são OPCIONAIS na tabela (ground/fg/cars/skyLife): a área VENCE quando
+  // define; ausente, vale o default do BIOMA vigente (comportamento antigo,
+  // byte a byte, para as 4 áreas da cidade + Brecha). Chamado pelo
+  // switchArea E pelo switchBiome — nos teleportes de debug os dois disparam
+  // no mesmo frame e, sem o funil único, o bioma sobrescreveria a área.
+  applyAreaEnvironment(area) {
+    const biome = Constants.BIOMES[this.biomeIndex] || Constants.BIOMES[0];
+    const city = biome === 'cidade';
+    this.ground.setTexture((area && area.ground) || (city ? 'ground-city' : 'ground'));
+    this.bgFg.setTexture((area && area.fg) || (city ? 'bg-fg-city' : 'bg-fg'));
+    this.applySkyLife((area && area.skyLife) || biome);
+    // Tráfego só existe na cidade — e some quando a área diz cars:false
+    // (não há carros na areia); religa sozinho ao voltar a uma área com cars
+    const carsOn = city && !(area && area.cars === false);
+    this.tweens.killTweensOf(this.bgCars);
+    this.tweens.add({
+      targets: this.bgCars, alpha: carsOn ? 1 : 0, duration: 500,
+    });
+  }
 
   // Gêmeo do switchBiome para os DISTRITOS (Estado de Alerta): crossfade de
   // 500ms nas mesmas camadas B, flash colorido, toast com o label da área e
   // o sting de 3 notas próprio. Consultado no updateAtmosphere ao lado da
   // troca de bioma; a régua CITY_DISTRICTS nunca toca tier/clima.
+  // v1.8.10: também aplica os campos novos da área (ground/fg/cars/skyLife)
+  // via applyAreaEnvironment — os toasts de etapa do deserto saem daqui
+  // (labels da tabela do agente A).
   switchArea(areaIdx) {
     this.cityAreaIndex = areaIdx;
     if (areaIdx < 0) return; // voltou para fora da régua (teleporte de debug)
     const area = Constants.CITY_DISTRICTS[areaIdx];
     if (!area) return;
+
+    // Campos novos (v1.8.10): chão/fg/carros/céu-vida da área, quando houver
+    this.applyAreaEnvironment(area);
 
     if (this.started) {
       const color = GameScene.AREA_FLASH[area.key];
@@ -2302,9 +2421,10 @@ export class GameScene extends Phaser.Scene {
         });
         this.audio.playAreaSting(areaIdx);
       }
-      // Brecha e rodovia também anunciam ('🌅 A BRECHA' / o label da área);
-      // o triunfo do pórtico em si fica com o updatePortals
-      this.showToast(area.label, { y: 200, size: 32, duration: 1800 });
+      // Brecha e as etapas do deserto também anunciam (o label da área);
+      // o triunfo do pórtico em si fica com o updatePortals. Áreas sem
+      // label (rodovia legada, deserto profundo) trocam em silêncio.
+      if (area.label) this.showToast(area.label, { y: 200, size: 32, duration: 1800 });
     }
 
     const bg = GameScene.AREA_BACKDROP[area.key];
@@ -2642,6 +2762,26 @@ export class GameScene extends Phaser.Scene {
     { x: 66000, kind: 'hidrante' },
     { x: 74000, kind: 'arco' },
     { x: 77000, kind: 'arco' },
+    // v1.8.10 — deserto (ordenado global, janelas >= 3000px — pool de 4
+    // aguenta; longe das arenas: Cerco trava aos ~144960, Faraó ~186960).
+    // E1/E2: areia movediça — a lição nova (pular; nem o dash salva)
+    { x: 92000, kind: 'movedica' },
+    { x: 104000, kind: 'movedica' },
+    { x: 112000, kind: 'movedica' },
+    { x: 120000, kind: 'movedica' },
+    // E3: caixotes do sítio — irmãos menores da caçamba (smash no dash)
+    { x: 130000, kind: 'caixote' },
+    { x: 136000, kind: 'caixote' },
+    { x: 142000, kind: 'caixote' },
+    // E4: flecheiras nas ruínas do Vale (timing na altura do corpo)
+    { x: 152000, kind: 'flecheira' },
+    { x: 158000, kind: 'flecheira' },
+    { x: 164000, kind: 'flecheira' },
+    // E5: o exame da Necrópole mistura os três tipos
+    { x: 169000, kind: 'movedica' },
+    { x: 172000, kind: 'flecheira' },
+    { x: 175000, kind: 'caixote' },
+    { x: 178000, kind: 'flecheira' },
   ];
 
   // Spawn por POSIÇÃO: quando o lookahead da câmera cruza a janela, o
@@ -3219,6 +3359,99 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  // v1.8.10 — a BARREIRA DA ESCAVAÇÃO caiu (3650m): molde do defeatMuralha.
+  // A corrida CONTINUA — a pilha de sacos de areia/andaime desaba para a
+  // ESQUERDA (contra o sentido da corrida, padrão v1.8) e o Vale espera.
+  // O +150 nasce ao vivo (pointsFor 'cerco'); o breakdown recomputa a MESMA
+  // regra a partir de u >= 4 — nada é somado duas vezes.
+  defeatCerco() {
+    const gx = Constants.CERCO_ANCHOR_PX;
+
+    if (this.cercoSprite) {
+      const piece = this.add.image(gx, Constants.GROUND_TOP, this.cercoSprite.texture.key)
+        .setOrigin(0.5, 1).setDepth(this.cercoSprite.depth);
+      this.cercoSprite.setTexture('cerco-gate-broken');
+      this.tweens.add({
+        targets: piece,
+        angle: Phaser.Math.Between(-96, -78),
+        y: piece.y + 30,
+        alpha: 0,
+        duration: 900, // mesmo tempo do tombo do caçador/parede
+        ease: 'Quad.easeIn',
+        onComplete: () => piece.destroy(),
+      });
+    }
+
+    this.createExplosion(gx, Constants.GROUND_TOP - 110);
+    this.createBreakParticles(gx, Constants.GROUND_TOP - 110);
+    this.createBreakParticles(gx - 70, Constants.GROUND_TOP - 40);
+    this.createBreakParticles(gx + 70, Constants.GROUND_TOP - 70);
+    this.cameras.main.shake(320, 0.014);
+    this.addScore('cerco', gx - 80, 300);
+    this.audio.playBreak();
+    this.audio.playFanfare();
+
+    this.showToast('🕸️ A BARREIRA CAIU!');
+    // O 2º aviso deixa explícito que a pista abriu — padrão do crossGate
+    this.time.delayedCall(1500, () => {
+      if (this.gameOver) return;
+      this.showToast('🔺 O VALE DOS FARAÓS ESPERA!', { y: 250, size: 34, color: '#ffe9a8', duration: 2000 });
+    });
+  }
+
+  // v1.8.10 — o FARAÓ DE BRONZE caiu (4700m): a muralha de arenito desaba
+  // para a esquerda e a TEMPESTADE DE AREIA ABRE — encenada como flashes
+  // cor-de-areia DECRESCENTES (o clima roteirizado do corredor pós-boss já
+  // é limpo; aqui é só a dramaturgia da abertura, molde dos holofotes da
+  // Muralha). +250 ao vivo (pointsFor 'farao'); breakdown recomputa y >= 5.
+  defeatFarao() {
+    const gx = Constants.FARAO_ANCHOR_PX;
+
+    if (this.faraoSprite) {
+      const piece = this.add.image(gx, Constants.GROUND_TOP, this.faraoSprite.texture.key)
+        .setOrigin(0.5, 1).setDepth(this.faraoSprite.depth);
+      this.faraoSprite.setTexture('farao-gate-broken');
+      this.tweens.add({
+        targets: piece,
+        angle: Phaser.Math.Between(-96, -78),
+        y: piece.y + 30,
+        alpha: 0,
+        duration: 900,
+        ease: 'Quad.easeIn',
+        onComplete: () => piece.destroy(),
+      });
+    }
+
+    this.createExplosion(gx, Constants.GROUND_TOP - 110);
+    this.createBreakParticles(gx, Constants.GROUND_TOP - 110);
+    this.createBreakParticles(gx - 70, Constants.GROUND_TOP - 40);
+    this.createBreakParticles(gx + 70, Constants.GROUND_TOP - 70);
+    this.cameras.main.shake(320, 0.014);
+    this.addScore('farao', gx - 80, 300);
+    this.audio.playBreak();
+    this.audio.playFanfare();
+
+    // A tempestade abrindo: véus de areia cada vez mais fracos (flash
+    // decrescente cor-de-areia — a leitura de "o ar limpou")
+    [[300, 0.3], [800, 0.18], [1300, 0.09]].forEach(([ms, a]) => {
+      this.time.delayedCall(ms, () => {
+        if (this.gameOver) return;
+        const veil = this.add.rectangle(640, 360, 1280, 720, 0xe8c98a)
+          .setScrollFactor(0).setDepth(50).setAlpha(a);
+        this.tweens.add({
+          targets: veil, alpha: 0, duration: 380,
+          onComplete: () => veil.destroy(),
+        });
+      });
+    });
+
+    this.showToast('🏺 O FARAÓ CAIU!');
+    this.time.delayedCall(1500, () => {
+      if (this.gameOver) return;
+      this.showToast('🏜️ A TEMPESTADE ABRIU — O DESERTO PROFUNDO!', { y: 250, size: 32, color: '#ffe9a8', duration: 2000 });
+    });
+  }
+
   // Confete em coordenadas de tela. Usado pela fuga (1000m) e pela cutscene
   // de LENDA (fim do mundo).
   launchConfetti(durationMs) {
@@ -3350,17 +3583,18 @@ export class GameScene extends Phaser.Scene {
   }
 
   // cause: 'wall' | 'spike' | 'animal' | 'dart' | 'tower' | 'fall' |
-  //        'boss' | 'boss2' | 'boss3' (só derrotas)
+  //        'boss' | 'boss2' | 'boss3' | 'cerco' | 'farao' (só derrotas)
   endGame(won, cause = null) {
     if (this.gameOver) return; // reentrada dobraria mortes/envios
     this.gameOver = true;
     this.won = won;
     this.deathCause = cause;
     // Todo tiro de boss é tranquilizante (ninguém morre neste jogo): o fim
-    // por qualquer um deles segue o fluxo do sono — a rede do Cerco também
-    // adormece, só o título do overlay muda
+    // por qualquer um deles segue o fluxo do sono — a rede do Cerco e a luz
+    // do Faraó também adormecem, só o título do overlay muda
     const tranqCause = cause === 'dart' || cause === 'boss' ||
-      cause === 'boss2' || cause === 'boss3';
+      cause === 'boss2' || cause === 'boss3' ||
+      cause === 'cerco' || cause === 'farao';
     this.physics.pause();
 
     this.audio.stopMusic();
@@ -3401,6 +3635,9 @@ export class GameScene extends Phaser.Scene {
       // 'bossLayer' no breakLayer genérico; a vitória do Cerco, no
       // defeatMuralha) — aqui elas só viram LINHAS do detalhamento
       boss2Layers: this.runBoss2Layers, boss3Layers: this.runBoss3Layers,
+      // v1.8.10: idem para os combates do deserto (vitórias ao vivo nos
+      // defeatCerco/defeatFarao; aqui só as LINHAS do detalhamento)
+      cercoLayers: this.runCercoLayers, faraoLayers: this.runFaraoLayers,
       escaped, blitz, legend: !!this.legend,
     });
     const ptsId = won ? 'win-final-points' : 'final-points';
@@ -3429,10 +3666,12 @@ export class GameScene extends Phaser.Scene {
       }
     } else {
       document.getElementById('game-over-title').textContent =
-        // Todo tiro de boss é tranquilizante (ninguém mata o rino); a
-        // Muralha detém em nome da cidade — mesmo sono, título próprio
+        // Todo tiro de boss é tranquilizante (ninguém mata o rino); Muralha,
+        // Barreira e Faraó detêm em nome próprio — mesmo sono, título próprio
         cause === 'boss2' ? 'DETIDO NA MURALHA! 🚧'
-          : tranqCause ? 'TRANQUILIZADO! 💤' : 'GAME OVER';
+          : cause === 'cerco' ? 'CAPTURADO NA BARREIRA! 🕸️'
+            : cause === 'farao' ? 'DETIDO PELO FARAÓ! 🏺'
+              : tranqCause ? 'TRANQUILIZADO! 💤' : 'GAME OVER';
       document.getElementById('final-score').textContent = distance;
       if (isNewRecord) {
         document.getElementById('record-message').textContent = '🎉 NOVO RECORDE!';
@@ -3454,6 +3693,9 @@ export class GameScene extends Phaser.Scene {
       rampsSmashed: this.runRampsSmashed, towersDowned: this.runTowersDowned,
       // v1.8.5: Fura-Bloqueio (Cerco vencido) e Lenda do Mundo (Guardião)
       boss2Layers: this.runBoss2Layers, legend: !!this.legend,
+      // v1.8.10: a Barreira (boss2_win re-batizada: cercoLayers >= 4) e o
+      // Quebra-Faraó (faraoLayers >= 5) — critérios no MedalSystem
+      cercoLayers: this.runCercoLayers, faraoLayers: this.runFaraoLayers,
     });
     if (newMedals.length) {
       const id = won ? 'win-medal-message' : 'medal-message';
@@ -3506,6 +3748,10 @@ export class GameScene extends Phaser.Scene {
       boss2LayersBroken: this.runBoss2Layers,
       boss2FightS,
       boss3LayersBroken: this.runBoss3Layers,
+      // v1.8.10: os combates do deserto (letras u/y do RUN_COUNTERS — agente
+      // A; sem letras de segundos, precedente do boss3)
+      cercoLayersBroken: this.runCercoLayers,
+      faraoLayersBroken: this.runFaraoLayers,
       keyboard: this.usedKeyboard,
       version: Constants.VERSION,
       skin: this.skin ? this.skin.id : 'default',

@@ -25,6 +25,12 @@ export class TextureFactory {
     this.generatePortals(scene);
     this.generateHazards(scene);
     this.generateK9Projectile(scene);
+    // v1.8.10 — As Areias do Tempo
+    this.generateGroundDesert(scene);
+    this.generateForegroundDesert(scene);
+    this.generateMarcoObelisco(scene);
+    this.generateArrowProjectile(scene);
+    this.generateFalcaoProjectile(scene);
     this.generateTrackFlag(scene);
     this.generateWeather(scene);
     this.generateLeaf(scene);
@@ -37,16 +43,18 @@ export class TextureFactory {
 
   // ---------------------------------------------------------------- walls
 
-  // Skins da mesma parede: tijolo no zoológico e QUATRO famílias de fachada
-  // urbana (v1.8.7 — uma por distrito do Estado de Alerta). Canvas, banda da
-  // fresta e mecânica são idênticos — muda só o material.
-  // 30 chaves: cracked-<altura>[-skin][-broken].
+  // Skins da mesma parede: tijolo no zoológico, QUATRO famílias de fachada
+  // urbana (v1.8.7 — uma por distrito do Estado de Alerta) e DUAS do deserto
+  // (v1.8.10 — ruína de adobe e parede-pirâmide). Canvas, banda da fresta e
+  // mecânica são idênticos — muda só o material.
+  // 42 chaves: cracked-<altura>[-skin][-broken].
   static generateWalls(scene) {
     const H = Constants.CRACK_HEIGHTS;
     const heights = [[H.GROUND, 'ground'], [H.MID, 'mid'], [H.HIGH, 'high']];
 
     for (const [pos, name] of heights) {
-      for (const skin of ['', '-city', '-suburbio', '-vidro', '-contencao']) {
+      for (const skin of ['', '-city', '-suburbio', '-vidro', '-contencao',
+        '-ruina', '-piramide']) {
         this.generateCrackedWallVariant(scene, `cracked-${name}${skin}`, pos, skin, name);
         this.generateBrokenWallVariant(scene, `cracked-${name}${skin}-broken`, pos, skin, name);
       }
@@ -123,6 +131,31 @@ export class TextureFactory {
       metal: 0x8a939f, metalDark: 0x3d444c,
       band: 0xb2a98f, bandLight: 0xd0c7ab, bandLine: 0x3a3a32,
     },
+    // ------- v1.8.10 "As Areias do Tempo": as duas famílias do deserto ----
+    '-ruina': {
+      // Ruína de ADOBE engolida pela areia (E1–E3): tijolo cru rebocado,
+      // vãos escuros (uma tocha acesa aqui e ali) e madeira de andaime
+      // espetada na fachada — a escavação tomou conta
+      style: 'ruina',
+      body: 0xa8825a, slab: 0xc2a36b, slabShade: 0x6b4f2a,
+      pillar: 0x8a6a42, pillarLight: 0xd0b184,
+      winOn: 0xffb84a, winOff: 0x3a2a1a, frame: 0x4a3520,
+      wood: 0x8a5a33, woodDark: 0x6b4326,
+      metal: 0x8a939f, metalDark: 0x59616b,
+      band: 0xe0c492, bandLight: 0xf0d9ae, bandLine: 0x6b4f2a,
+    },
+    '-piramide': {
+      // Parede-PIRÂMIDE do Vale/Necrópole: blocos calcários em aparelho de
+      // pedra, hieróglifos discretos, ouro e lápis-lazúli nos frisos —
+      // monumento, não prédio (sem janelas)
+      style: 'piramide',
+      body: 0xbe9c66, slab: 0xd4b47e, slabShade: 0x8a6e42,
+      pillar: 0x9a7a4e, pillarLight: 0xe4cc9a,
+      winOn: 0xffd24a, winOff: 0x4a3a24, frame: 0x5a4426,
+      gold: 0xd4af37, lapis: 0x1e4b8f, glyph: 0x7a5f34,
+      metal: 0x8a939f, metalDark: 0x59616b,
+      band: 0xf0e2c0, bandLight: 0xfaf0d6, bandLine: 0x7a5f34,
+    },
   };
 
   // A paleta de um skin de parede urbano ('-city' usa o dicionário CITY
@@ -198,6 +231,38 @@ export class TextureFactory {
         continue;
       }
 
+      if (style === 'piramide') {
+        // Aparelho de PEDRA em vez de janelas: juntas verticais alternadas
+        // por andar (blocos calcários) + um bloco com hieróglifos por andar
+        // ímpar — a leitura de monumento
+        const off = (floor % 2) * 25;
+        g.fillStyle(C.slabShade, 0.5);
+        for (let jx = x0 + 12 + off; jx < x0 + w - 12; jx += 50) {
+          const jy = Math.max(y + 12, y0);
+          const jh = Math.min(y + 56, y0 + h) - jy;
+          if (jh > 0) g.fillRect(jx, jy, 3, jh);
+        }
+        if (floor % 2 === 1) {
+          const gy = y + 18;
+          if (gy >= y0 && gy + 34 <= y0 + h) {
+            // coluna de glifos: olho, zigue-zague d'água, sol, ankh (barras)
+            g.fillStyle(C.glyph, 0.9);
+            g.fillEllipse(x0 + 34, gy + 4, 12, 6);           // olho
+            g.fillCircle(x0 + 62, gy + 4, 4);                // sol
+            for (let i = 0; i < 3; i++) {                    // água
+              g.fillRect(x0 + 26 + i * 8, gy + 14, 6, 2);
+              g.fillRect(x0 + 30 + i * 8, gy + 17, 6, 2);
+            }
+            g.fillRect(x0 + 58, gy + 12, 3, 14);             // ankh: haste
+            g.fillRect(x0 + 53, gy + 17, 13, 3);             //   travessa
+            g.fillCircle(x0 + 59.5, gy + 12, 3.5);           //   alça
+            g.fillStyle(C.body, 1);
+            g.fillCircle(x0 + 59.5, gy + 12, 1.6);
+          }
+        }
+        continue;
+      }
+
       // Duas janelas RETRATO por andar (mesma geometria da família clássica)
       [16, 62].forEach((dx, i) => {
         const wy = y + 16;
@@ -214,6 +279,27 @@ export class TextureFactory {
           g.fillRect(x0 + dx, wy + 20, 22, 4);
           g.fillStyle(C.frame, 0.55);
           g.fillRect(x0 + dx, wy, 22, 2);
+          return;
+        }
+        // Ruína de adobe: VÃO-buraco de topo arqueado, sem caixilho — 1 em
+        // 5 aceso por tocha lá dentro; nos andares pares, pontas de VIGA de
+        // andaime espetadas no reboco (a escavação escorou a ruína)
+        if (style === 'ruina') {
+          g.fillStyle(on ? C.winOn : C.winOff, 1);
+          g.fillRect(x0 + dx, wy + 6, 22, 26);
+          g.fillEllipse(x0 + dx + 11, wy + 7, 22, 14);       // arco do vão
+          if (on) {                                          // brasa da tocha
+            g.fillStyle(0xff7b2a, 0.85);
+            g.fillCircle(x0 + dx + 11, wy + 22, 4);
+          }
+          g.fillStyle(C.slabShade, 0.6);                     // reboco caído
+          g.fillTriangle(x0 + dx - 2, wy + 32, x0 + dx + 6, wy + 32, x0 + dx + 2, wy + 26);
+          if (floor % 2 === 0) {
+            g.fillStyle(C.woodDark, 1);
+            g.fillRect(x0 + dx + 26, wy + 2, 7, 6);          // ponta de viga
+            g.fillStyle(C.wood, 1);
+            g.fillRect(x0 + dx + 26, wy + 2, 7, 2);
+          }
           return;
         }
         g.fillStyle(on ? C.winOn : C.winOff, 1);
@@ -281,6 +367,57 @@ export class TextureFactory {
         g.fillRect(x0 + 92, zy, 4, 18);
       }
     }
+    if (style === 'ruina') {
+      // ANDAIME de madeira encostado na base: dois montantes, plataforma e
+      // travessa diagonal — o sítio escorou o que a areia não engoliu
+      const ay = 540;
+      if (ay >= y0 && ay + 80 <= y0 + h) {
+        g.fillStyle(C.woodDark, 1);
+        g.fillRect(x0 + 12, ay, 6, 80);                      // montantes
+        g.fillRect(x0 + 78, ay, 6, 80);
+        g.fillStyle(C.wood, 1);
+        g.fillRect(x0 + 8, ay + 22, 84, 7);                  // plataforma
+        g.fillRect(x0 + 8, ay + 58, 84, 6);
+        g.fillStyle(C.woodDark, 0.9);                        // diagonal
+        g.fillTriangle(x0 + 18, ay + 64, x0 + 24, ay + 64, x0 + 82, ay + 29);
+        g.fillTriangle(x0 + 76, ay + 29, x0 + 82, ay + 29, x0 + 18, ay + 64);
+        g.fillStyle(0x9a8a6a, 1);                            // balde no deck
+        g.fillRect(x0 + 60, ay + 12, 12, 10);
+      }
+      // Areia acumulada na base — a duna morde a fachada
+      const sy = 690;
+      if (sy >= y0 && sy + 30 <= y0 + h) {
+        g.fillStyle(0xe0c492, 1);
+        g.fillTriangle(x0 - 2, 720, x0 + 54, 720, x0 + 14, sy);
+        g.fillTriangle(x0 + 40, 720, x0 + 102, 720, x0 + 78, sy + 10);
+      }
+    }
+    if (style === 'piramide') {
+      // FRISO de ouro com incrustação de lápis-lazúli no alto do corpo
+      const fy = 116;
+      if (fy >= y0 && fy + 16 <= y0 + h) {
+        g.fillStyle(C.gold, 1);
+        g.fillRect(x0 + 4, fy, 92, 14);
+        g.fillStyle(C.lapis, 1);
+        for (let i = 0; i < 6; i++) g.fillRect(x0 + 10 + i * 15, fy + 4, 8, 6);
+      }
+      // Medalhão do OLHO DE HÓRUS no meio do corpo
+      const oy = 320;
+      if (oy - 18 >= y0 && oy + 22 <= y0 + h) {
+        g.fillStyle(C.gold, 1);
+        g.fillCircle(x0 + 50, oy, 17);
+        g.fillStyle(C.body, 1);
+        g.fillCircle(x0 + 50, oy, 13);
+        g.fillStyle(C.lapis, 1);
+        g.fillEllipse(x0 + 50, oy - 3, 18, 8);               // olho
+        g.fillStyle(0xf4efe0, 1);
+        g.fillEllipse(x0 + 50, oy - 3, 10, 5);
+        g.fillStyle(C.frame, 1);
+        g.fillCircle(x0 + 50, oy - 3, 2.4);                  // pupila
+        g.fillRect(x0 + 49, oy + 3, 2.4, 8);                 // lágrima
+        g.fillRect(x0 + 51, oy + 8, 7, 2.4);                 // espiral
+      }
+    }
 
     // Pilares de canto — dão a leitura de "prédio" mesmo em tira de 100px
     g.fillStyle(C.pillar, 1);
@@ -316,6 +453,8 @@ export class TextureFactory {
     if (skin === '-suburbio') { this.drawSuburbioCrown(g, kind, w, opts); return; }
     if (skin === '-vidro') { this.drawVidroCrown(g, kind, w); return; }
     if (skin === '-contencao') { this.drawContencaoCrown(g, kind, w); return; }
+    if (skin === '-ruina') { this.drawRuinaCrown(g, kind, w); return; }
+    if (skin === '-piramide') { this.drawPiramideCrown(g, kind, w); return; }
     const C = this.CITY;
     const cx = w / 2;
 
@@ -562,6 +701,135 @@ export class TextureFactory {
     return;
   }
 
+  // Coroas da RUÍNA (v1.8.10): viga de andaime com balde (ground), roldana
+  // de escavação (mid), lona esticada (high). Faixa y 0..100, x 0..100.
+  static drawRuinaCrown(g, kind, w) {
+    const P = this.FACADES['-ruina'];
+    const cx = w / 2;
+
+    if (kind === 'ground') {
+      // Viga de andaime em balanço, com corda e balde pendurados
+      g.fillStyle(P.woodDark, 1);
+      g.fillRect(cx - 4, 46, 8, 54);                 // montante
+      g.fillStyle(P.wood, 1);
+      g.fillRect(8, 40, 84, 8);                      // a viga
+      g.fillStyle(P.woodDark, 0.9);                  // mão-francesa
+      g.fillTriangle(cx - 4, 74, cx + 4, 74, 26, 48);
+      g.lineStyle(2, 0x4a3520, 1);                   // corda
+      g.lineBetween(20, 48, 20, 74);
+      g.fillStyle(0x9a8a6a, 1);                      // balde
+      g.fillRect(13, 74, 14, 12);
+      g.fillStyle(0x7a6a4a, 1);
+      g.fillRect(13, 74, 14, 3);
+      g.fillStyle(P.slab, 1);                        // topo esboroado
+      g.fillTriangle(60, 100, 96, 100, 82, 78);
+      return;
+    }
+
+    if (kind === 'mid') {
+      // Roldana de escavação num tripé de madeira
+      g.fillStyle(P.woodDark, 1);
+      g.fillTriangle(18, 100, 26, 100, cx - 2, 34);  // pernas
+      g.fillTriangle(74, 100, 82, 100, cx + 2, 34);
+      g.fillStyle(P.wood, 1);
+      g.fillRect(cx - 20, 30, 40, 6);                // travessa
+      g.fillStyle(0x8a939f, 1);                      // a roda
+      g.fillCircle(cx, 46, 12);
+      g.fillStyle(P.body, 1);
+      g.fillCircle(cx, 46, 7);
+      g.fillStyle(0x59616b, 1);
+      g.fillCircle(cx, 46, 2.6);                     // eixo
+      g.lineStyle(2, 0x4a3520, 1);                   // corda passando na roda
+      g.lineBetween(cx - 12, 46, cx - 12, 84);
+      g.lineBetween(cx + 12, 46, cx + 12, 78);
+      g.fillStyle(0x9a8a6a, 1);                      // cesto subindo
+      g.fillRect(cx + 6, 78, 13, 10);
+      return;
+    }
+
+    // Lona esticada entre duas estacas (o abrigo de sombra do sítio)
+    g.fillStyle(P.woodDark, 1);
+    g.fillRect(12, 44, 5, 56);                       // estacas
+    g.fillRect(83, 52, 5, 48);
+    g.fillStyle(0xd8c9a6, 1);                        // a lona (pano claro)
+    g.fillTriangle(8, 46, 92, 54, 88, 74);
+    g.fillTriangle(8, 46, 88, 74, 14, 68);
+    g.fillStyle(0xb9a884, 0.8);                      // vinco da lona
+    g.fillTriangle(8, 46, 50, 60, 14, 68);
+    g.lineStyle(2, 0x4a3520, 1);                     // esticadores
+    g.lineBetween(10, 47, 4, 60);
+    g.lineBetween(90, 55, 96, 68);
+  }
+
+  // Coroas da PIRÂMIDE (v1.8.10): olho de Hórus (ground), obelisco pequeno
+  // (mid), cartucho real (high). Faixa y 0..100, x 0..100.
+  static drawPiramideCrown(g, kind, w) {
+    const P = this.FACADES['-piramide'];
+    const cx = w / 2;
+
+    if (kind === 'ground') {
+      // Olho de Hórus num frontão de pedra
+      g.fillStyle(P.pillar, 1);                      // frontão
+      g.fillTriangle(6, 100, 94, 100, cx, 40);
+      g.fillStyle(P.body, 1);
+      g.fillTriangle(16, 100, 84, 100, cx, 52);
+      g.fillStyle(P.gold, 1);                        // medalhão
+      g.fillCircle(cx, 78, 16);
+      g.fillStyle(P.body, 1);
+      g.fillCircle(cx, 78, 12);
+      g.fillStyle(P.lapis, 1);                       // o olho
+      g.fillEllipse(cx, 75, 17, 7);
+      g.fillStyle(0xf4efe0, 1);
+      g.fillEllipse(cx, 75, 9, 4.5);
+      g.fillStyle(P.frame, 1);
+      g.fillCircle(cx, 75, 2.2);
+      g.fillRect(cx - 1, 80, 2.2, 8);                // lágrima
+      g.fillRect(cx + 2, 85, 6, 2.2);                // espiral
+      g.fillStyle(P.gold, 1);                        // sol no vértice
+      g.fillCircle(cx, 44, 5);
+      return;
+    }
+
+    if (kind === 'mid') {
+      // Obelisco pequeno de topo: fuste afilado + piramidion dourado
+      g.fillStyle(P.pillar, 1);                      // base
+      g.fillRect(cx - 16, 90, 32, 10);
+      g.fillRect(cx - 12, 84, 24, 8);
+      g.fillStyle(P.body, 1);                        // fuste
+      g.fillTriangle(cx - 10, 84, cx + 10, 84, cx + 5, 22);
+      g.fillTriangle(cx - 10, 84, cx + 5, 22, cx - 5, 22);
+      g.fillStyle(P.slabShade, 0.5);                 // aresta em sombra
+      g.fillTriangle(cx + 4, 84, cx + 10, 84, cx + 5, 24);
+      g.fillStyle(P.gold, 1);                        // piramidion
+      g.fillTriangle(cx - 6, 24, cx + 6, 24, cx, 8);
+      g.fillStyle(P.glyph, 0.9);                     // glifos no fuste
+      g.fillCircle(cx, 38, 2.6);
+      g.fillRect(cx - 3, 46, 6, 2.2);
+      g.fillEllipse(cx, 56, 7, 3.4);
+      g.fillRect(cx - 1.2, 64, 2.4, 9);
+      return;
+    }
+
+    // Cartucho real: anel oval com glifos, deitado sobre a cornija
+    g.fillStyle(P.pillar, 1);                        // cornija
+    g.fillRect(8, 88, 84, 12);
+    g.fillStyle(P.slab, 1);
+    g.fillRect(4, 84, 92, 6);
+    g.lineStyle(5, P.gold, 1);                       // o anel do cartucho
+    g.strokeEllipse(cx, 46, 52, 72);
+    g.fillStyle(P.gold, 1);                          // o nó da base
+    g.fillRect(cx - 10, 82, 20, 6);
+    g.fillStyle(P.body, 1);                          // miolo
+    g.fillEllipse(cx, 46, 44, 62);
+    g.fillStyle(P.glyph, 0.95);                      // os glifos do nome
+    g.fillCircle(cx, 24, 4);                         // sol
+    g.fillEllipse(cx, 38, 14, 5);                    // boca
+    g.fillRect(cx - 7, 48, 14, 3);                   // céu
+    g.fillTriangle(cx - 6, 68, cx + 6, 68, cx, 56);  // duna
+    g.fillStyle(P.lapis, 0.9);
+    g.fillRect(cx - 8, 72, 16, 3);
+  }
+
   // Staggered brick courses; band recolored amber exactly at
   // crackPos*720 +- CRACK_BAND_HALF so the visual IS the gameplay window.
   static drawBricks(g, x0, y0, w, h, inBand) {
@@ -792,6 +1060,7 @@ export class TextureFactory {
     g.destroy();
 
     this.generateSpikeTowerCity(scene);
+    this.generateSpikeTowerEgito(scene);
   }
 
   // Mesmo canvas 120x120 e a MESMA fileira de espinhos (aço já é neutro): só
@@ -840,6 +1109,58 @@ export class TextureFactory {
     this.drawSpikeRow(g, 0, 10);
 
     g.generateTexture('spike-tower-city', 120, 120);
+    g.destroy();
+  }
+
+  // v1.8.10 — pedestal de ARENITO do deserto (família -egito): mesmo canvas
+  // 120x120 e a MESMA fileira de espinhos em (10,0) — a hitbox do Spike não
+  // muda. Blocos calcários, friso de glifos e cornija — a armadilha parece
+  // ter sido escavada junto com a ruína.
+  static generateSpikeTowerEgito(scene) {
+    const C = Constants.COLORS;
+    const P = this.FACADES['-piramide'];
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // sapata de pedra meio enterrada na areia
+    g.fillStyle(P.pillar, 1);
+    g.fillRect(0, 110, 120, 10);
+    g.fillStyle(0xe0c492, 1);                 // areia acumulada
+    g.fillTriangle(0, 120, 34, 120, 10, 108);
+    g.fillTriangle(86, 120, 120, 120, 106, 110);
+
+    // bloco de arenito com juntas de aparelho
+    g.fillStyle(P.body, 1);
+    g.fillRect(8, 58, 104, 54);
+    g.fillStyle(P.slabShade, 0.6);
+    for (let y = 58; y <= 112; y += 18) g.fillRect(8, y, 104, 2);
+    g.fillRect(44, 58, 2, 54);
+    g.fillRect(78, 58, 2, 54);
+    g.fillStyle(P.pillar, 1);
+    g.fillRect(8, 58, 4, 54);
+    g.fillRect(108, 58, 4, 54);
+
+    // friso de glifos no lugar da tarja urbana — o aviso em outra língua
+    g.fillStyle(P.gold, 1);
+    g.fillRect(12, 74, 96, 16);
+    g.fillStyle(P.frame, 0.95);
+    g.fillEllipse(26, 82, 12, 6);             // olho
+    g.fillCircle(44, 82, 3.6);                // sol
+    for (let i = 0; i < 2; i++) {             // água
+      g.fillRect(54 + i * 8, 79, 6, 2);
+      g.fillRect(58 + i * 8, 83, 6, 2);
+    }
+    g.fillRect(80, 76, 2.6, 12);              // ankh
+    g.fillRect(76, 81, 11, 2.6);
+    g.fillStyle(P.lapis, 1);
+    g.fillRect(94, 78, 8, 8);
+
+    // tampa/cornija de pedra com beiral (suporte dos espinhos)
+    g.fillStyle(C.steelBase, 1);
+    g.fillRect(4, 54, 112, 8);
+
+    this.drawSpikeRow(g, 0, 10);
+
+    g.generateTexture('spike-tower-egito', 120, 120);
     g.destroy();
   }
 
@@ -979,6 +1300,14 @@ export class TextureFactory {
     // — o exame da lição do D3)
     this.generateArmoredSet(scene, 'muralha-gate', Constants.BOSS2_LAYERS, { palette: 'muralha' });
     this.generateArmoredBroken(scene, 'muralha-gate', Constants.BOSS2_LAYERS, { palette: 'muralha' });
+    // v1.8.10 — os dois combates do deserto (wiring no GameScene): a
+    // BARREIRA DA ESCAVAÇÃO (paleta escavacao: sacos de areia + andaime +
+    // rede) e o FARAÓ DE BRONZE (paleta egito: arenito/ouro/lápis-lazúli,
+    // 5 camadas — a luta mais longa do jogo; tocha acesa no deck).
+    this.generateArmoredSet(scene, 'cerco-gate', Constants.CERCO_LAYERS, { palette: 'escavacao' });
+    this.generateArmoredBroken(scene, 'cerco-gate', Constants.CERCO_LAYERS, { palette: 'escavacao' });
+    this.generateArmoredSet(scene, 'farao-gate', Constants.FARAO_LAYERS, { palette: 'egito' });
+    this.generateArmoredBroken(scene, 'farao-gate', Constants.FARAO_LAYERS, { palette: 'egito' });
   }
 
   // v1.8.5: o portão virou PARAMÉTRICO — os bosses seguintes reusam a mesma
@@ -1044,6 +1373,37 @@ export class TextureFactory {
         cars: true, searchlight: true,
       };
     }
+    if (name === 'escavacao') {
+      // v1.8.10 — Barreira da Escavação (3650m): sacos de areia empilhados
+      // entre montantes de andaime, com a REDE do Capturador por cima do
+      // vão. sandbags: camada selada vira fileiras de sacos; net: malha de
+      // corda sobre a chapa do fundo.
+      const wood = 0x8a5a33, woodDark = 0x6b4326, sand = 0xc2a36b;
+      return {
+        plate: 0x6b532f, seam: 0x4a3a20, truss: wood,
+        beam: wood, face: sand, frame: woodDark,
+        lock: 0x4a3a20, lockShine: 0xe0c492, bolt: woodDark,
+        pillar: wood, pillarEdge: 0xc2a36b, rivet: 0x4a3a20,
+        deck: sand, deckLip: woodDark, rail: 0x4a3a20,
+        hazardA: 0xe0c492, hazardB: 0x4a3a20, hazardPlate: false,
+        sandbags: true, net: true,
+      };
+    }
+    if (name === 'egito') {
+      // v1.8.10 — Faraó de Bronze (4700m): muralha de ARENITO com frisos de
+      // ouro e lápis-lazúli. glyphs: a camada selada ganha o cartucho e os
+      // glifos; torch: tocha ACESA no deck (apagada/tombada no wrecked).
+      const stone = 0xd9b98a, stoneDark = 0x9a7a4e, gold = 0xd4af37, lapis = 0x1e4b8f;
+      return {
+        plate: stoneDark, seam: 0x6b532f, truss: 0xb59a6b,
+        beam: 0xb59a6b, face: stone, frame: 0x8a6a42,
+        lock: lapis, lockShine: gold, bolt: gold,
+        pillar: 0xb59a6b, pillarEdge: 0xe8d3a8, rivet: gold,
+        deck: stone, deckLip: 0x8a6a42, rail: 0x6b532f,
+        hazardA: gold, hazardB: lapis, hazardPlate: false,
+        glyphs: true, torch: true,
+      };
+    }
     if (name === 'dark') {
       // A última cerca do mundo: aço quase preto com solda vermelha
       return {
@@ -1100,6 +1460,17 @@ export class TextureFactory {
     for (let y = 140; y < 640; y += 90) {
       g.lineBetween(40, y, 200, y - 70);
       g.lineBetween(40, y - 70, 200, y);
+    }
+
+    if (P.net) {
+      // v1.8.10 — a REDE do Capturador cobrindo o vão: malha de corda em
+      // losangos, por cima da chapa (só textura — o perigo real são as
+      // redes disparadas pelo rifle CERCO_NET)
+      g.lineStyle(2, 0xd8c9a6, 0.4);
+      for (let ny = 60; ny < 700; ny += 44) {
+        g.lineBetween(40, ny, 200, ny - 160);
+        g.lineBetween(40, ny - 160, 200, ny);
+      }
     }
 
     // Vigas horizontais entre as bandas
@@ -1188,6 +1559,38 @@ export class TextureFactory {
             g.fillRect(104, top + 2, 4, 6);
             g.fillRect(122, top + 2, 4, 6);
           }
+          if (P.sandbags) {
+            // Barreira da Escavação: a camada selada É uma pilha de SACOS
+            // DE AREIA entre montantes de andaime (fiadas alternadas)
+            for (let row = 0; row * 20 + 16 < h; row++) {
+              const sy = top + h - 10 - row * 20;
+              const off = (row % 2) * 24;
+              g.fillStyle(row % 2 ? 0xb8955c : 0xc2a36b, 1);
+              for (let sx = 58 + off; sx < 186; sx += 48) {
+                g.fillEllipse(sx, sy, 44, 17);
+              }
+              g.fillStyle(0x8a6a42, 0.5);             // costura dos sacos
+              for (let sx = 58 + off; sx < 186; sx += 48) {
+                g.fillRect(sx - 14, sy - 1, 28, 2);
+              }
+            }
+            g.fillStyle(0x6b4326, 1);                 // montantes de madeira
+            g.fillRect(48, top + 4, 7, h - 8);
+            g.fillRect(185, top + 4, 7, h - 8);
+          }
+          if (P.glyphs) {
+            // Faraó: friso de glifos + cartucho no centro da camada selada
+            g.fillStyle(0xd4af37, 1);
+            g.fillRect(48, top + 6, 144, 8);          // friso de ouro
+            g.fillStyle(0x1e4b8f, 1);
+            for (let gx2 = 54; gx2 < 186; gx2 += 22) g.fillRect(gx2, top + 8, 10, 4);
+            g.lineStyle(4, 0xd4af37, 1);              // cartucho
+            g.strokeEllipse(120, top + h / 2 + 4, 56, Math.max(30, h * 0.42));
+            g.fillStyle(0x7a5f34, 0.95);              // glifos do nome
+            g.fillCircle(120, top + h / 2 - 6, 4);
+            g.fillEllipse(120, top + h / 2 + 6, 15, 5);
+            g.fillRect(113, top + h / 2 + 14, 14, 3);
+          }
           g.lineStyle(8, P.lock, 1);
           g.lineBetween(48, top + 6, 192, top + h - 6);
           g.lineBetween(48, top + h - 6, 192, top + 6);
@@ -1264,6 +1667,33 @@ export class TextureFactory {
         g.fillTriangle(182, 6, 182, 20, 20, 80);
         g.fillStyle(0xff4a5e, 1);                  // luz de obstáculo
         g.fillCircle(203, 2.5, 2.5);
+      }
+    }
+
+    if (P.torch) {
+      // v1.8.10 — TOCHA do Faraó na ponta direita do deck: braseiro de
+      // bronze aceso enquanto a muralha está de pé; tombado e apagado no
+      // wrecked (a queda da luta lida no primeiro olhar)
+      if (opts.wrecked) {
+        g.save(); g.translateCanvas(206, 74); g.rotateCanvas(0.6);
+        g.fillStyle(0x8a6a42, 1);
+        g.fillRect(-3, -34, 6, 34);                // mastro tombado
+        g.fillStyle(0x6b532f, 1);
+        g.fillEllipse(0, -36, 20, 8);              // braseiro apagado
+        g.restore();
+      } else {
+        g.fillStyle(0x8a6a42, 1);
+        g.fillRect(200, 34, 6, 48);                // mastro
+        g.fillStyle(0xd4af37, 1);
+        g.fillEllipse(203, 32, 22, 9);             // braseiro de bronze
+        g.fillStyle(0x8a6a42, 1);
+        g.fillEllipse(203, 34, 16, 5);
+        g.fillStyle(0xff7b2a, 1);                  // a chama
+        g.fillTriangle(194, 30, 212, 30, 203, 4);
+        g.fillStyle(0xffd24a, 1);
+        g.fillTriangle(198, 30, 208, 30, 203, 12);
+        g.fillStyle(0xffd24a, 0.18);               // halo
+        g.fillCircle(203, 18, 16);
       }
     }
 
@@ -1349,6 +1779,7 @@ export class TextureFactory {
     g.destroy();
 
     this.generateTranqTowerCity(scene);
+    this.generateTranqTowerEgito(scene);
   }
 
   // Versão urbana: poste de vigilância com caixa d'água. Mesmo canvas 84x120 e
@@ -1404,6 +1835,68 @@ export class TextureFactory {
     g.fillCircle(41, 2, 2);
 
     g.generateTexture('tranq-tower-city', 84, 120);
+    g.destroy();
+  }
+
+  // v1.8.10 — OBELISCO-guardião do deserto (família -egito): mesmo canvas
+  // 84x120 e a MESMA seteira em (36,70) — o disparo sai de this.y + 38
+  // (TranqTower.preUpdate), mover a abertura desalinharia o dardo (aqui,
+  // a FLECHA: o pool de dardos veste arrow-projectile via skin do spawn).
+  // Fuste afilado de arenito, olho de Hórus vigiando no topo, piramidion
+  // dourado — a torre parece ter sempre estado ali.
+  static generateTranqTowerEgito(scene) {
+    const P = this.FACADES['-piramide'];
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    const slit = 0x23180c;
+    const cx = 42;
+
+    // base de pedra em dois degraus, com areia mordendo
+    g.fillStyle(P.pillar, 1);
+    g.fillRect(10, 112, 64, 8);
+    g.fillRect(16, 104, 52, 10);
+    g.fillStyle(0xe0c492, 1);
+    g.fillTriangle(4, 120, 26, 120, 12, 108);
+
+    // fuste afilado (duas faces: luz e sombra)
+    g.fillStyle(P.body, 1);
+    g.fillTriangle(20, 104, 64, 104, 54, 16);
+    g.fillTriangle(20, 104, 54, 16, 30, 16);
+    g.fillStyle(P.slabShade, 0.55);           // face em sombra
+    g.fillTriangle(52, 104, 64, 104, 54, 18);
+    // juntas do aparelho
+    g.fillStyle(P.slabShade, 0.5);
+    for (let y = 28; y < 104; y += 16) {
+      const t = (y - 16) / 88;                // afunilamento
+      const half = 22 - 10 * (1 - t);
+      g.fillRect(cx - half + 4, y, half * 2 - 8, 2);
+    }
+
+    // piramidion dourado + olho de Hórus vigiando logo abaixo
+    g.fillStyle(P.gold, 1);
+    g.fillTriangle(28, 18, 56, 18, cx, 0);
+    g.fillStyle(P.gold, 1);                   // moldura do olho
+    g.fillEllipse(cx, 32, 26, 15);
+    g.fillStyle(P.lapis, 1);
+    g.fillEllipse(cx, 32, 21, 10);
+    g.fillStyle(0xf4efe0, 1);
+    g.fillEllipse(cx, 32, 12, 6);
+    g.fillStyle(0x17171b, 1);
+    g.fillCircle(cx, 32, 2.8);                // a pupila que te segue
+    g.fillRect(cx - 1.2, 39, 2.4, 8);         // lágrima de Hórus
+    g.fillRect(cx + 1.5, 44, 7, 2.2);
+
+    // glifos no fuste (entre o olho e a seteira)
+    g.fillStyle(P.glyph, 0.9);
+    g.fillCircle(cx, 52, 2.6);
+    g.fillRect(cx - 4, 58, 8, 2.2);
+    g.fillEllipse(cx, 64, 9, 3.6);
+
+    // seteira escura de onde sai a flecha — posição CONTRATUAL (36,70)
+    g.fillStyle(slit, 1);
+    g.fillRect(36, 70, 10, 32);
+    g.fillCircle(41, 70, 5);
+
+    g.generateTexture('tranq-tower-egito', 84, 120);
     g.destroy();
   }
 
@@ -1506,6 +1999,46 @@ export class TextureFactory {
     g.destroy();
   }
 
+  // v1.8.10 — chão do DESERTO: mesmo canvas 1280x100 (o tileSprite do mundo
+  // troca de textura sem recriar nada — regra do ground-city). Areia socada
+  // com crosta clara ondulada no topo e pedras/cacos determinísticos.
+  static generateGroundDesert(scene) {
+    const w = 1280, h = 100;
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    g.fillStyle(0xcbab6f, 1);            // areia socada
+    g.fillRect(0, 12, w, h - 12);
+    g.fillStyle(0xe0c492, 1);            // crosta clara ao sol
+    g.fillRect(0, 0, w, 12);
+    g.fillStyle(0xb9986a, 1);            // ondulações penduradas na crosta
+    for (let x = 0; x < w; x += 32) {
+      g.fillTriangle(x, 12, x + 32, 12, x + 16, 20);
+    }
+    g.fillStyle(0xf0dcae, 0.5);
+    g.fillRect(0, 0, w, 3);
+
+    // Pedras, cacos de cerâmica e ossos — determinísticos (LCG)
+    let seed = 53;
+    const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+    for (let i = 0; i < 24; i++) {
+      g.fillStyle(i % 2 === 0 ? 0xa8874f : 0x8c6f40, 1);
+      g.fillCircle(rnd() * w, 22 + rnd() * 72, 2 + rnd() * 4);
+    }
+    g.fillStyle(0xb4552f, 0.9);          // cacos de ânfora
+    [260, 700, 1080].forEach((x) => g.fillTriangle(x, 60, x + 14, 60, x + 8, 50));
+    g.fillStyle(0xe8ddc2, 0.9);          // lascas de osso
+    [140, 520, 940, 1220].forEach((x) => g.fillRect(x, 76, 12, 3));
+    // marcas de vento em arcos longos
+    g.lineStyle(2, 0xb9986a, 0.6);
+    for (let x = 0; x < w; x += 160) {
+      g.lineBetween(x + 10, 40, x + 90, 44);
+      g.lineBetween(x + 60, 66, x + 150, 70);
+    }
+
+    g.generateTexture('ground-desert', w, h);
+    g.destroy();
+  }
+
   // ----------------------------------------------------------------- ramps
 
   static generateRamps(scene) {
@@ -1516,6 +2049,9 @@ export class TextureFactory {
       // um canvas diferente faria o entulho saltar de posição no smash)
       this.generateRampCity(scene, `ramp-${name}-city`, spec);
       this.generateRampCityRubble(scene, `ramp-${name}-city-rubble`, spec);
+      // v1.8.10 — irmãs do deserto (família -egito): duna com capa de pedra
+      this.generateRampEgito(scene, `ramp-${name}-egito`, spec);
+      this.generateRampEgitoRubble(scene, `ramp-${name}-egito-rubble`, spec);
     }
   }
 
@@ -1647,6 +2183,112 @@ export class TextureFactory {
     for (let x = 18; x < w - 20; x += 78) {
       g.fillRect(x, base - 20, 3, 20);
       g.fillRect(x, base - 20, 14, 3);
+    }
+
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  // v1.8.10 — rampa do DESERTO: duna de areia socada com degraus de pedra
+  // calcária assentados na subida (a escavação aproveitou a duna). Mesma
+  // técnica de colunas de 2px das irmãs (nada de gradiente, largura sempre
+  // positiva) e MESMO canvas por variante.
+  static generateRampEgito(scene, key, spec) {
+    const P = this.FACADES['-piramide'];
+    const w = spec.asc + spec.top + spec.desc;
+    const h = spec.rise + Constants.RAMP_SKIRT;
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    const STEP = 2, CAP = 12;
+    let seed = 61;
+    const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+
+    // massa de areia + capa de pedra clara na superfície
+    for (let x = 0; x < w; x += STEP) {
+      const bw = Math.min(STEP, w - x);
+      if (bw <= 0) continue;
+      const ty = spec.rise - this.rampRise(spec, x + bw / 2);
+      g.fillStyle(0xcbab6f, 1);                 // areia
+      g.fillRect(x, ty, bw, h - ty);
+      g.fillStyle(0xa88a52, 1);                 // sombra na base
+      g.fillRect(x, h - 16, bw, 16);
+      g.fillStyle(P.body, 1);                   // capa de pedra
+      g.fillRect(x, ty, bw, CAP);
+      g.fillStyle(P.slab, 0.7);                 // luz rasante
+      g.fillRect(x, ty, bw, 3);
+    }
+
+    // juntas dos blocos da capa, acompanhando a inclinação
+    g.fillStyle(P.slabShade, 0.8);
+    for (let x = 28; x < w - 10; x += 52) {
+      const ty = spec.rise - this.rampRise(spec, x);
+      g.fillRect(x, ty, 2, CAP);
+    }
+    // ondulações da areia no corpo da duna
+    g.fillStyle(0xb9986a, 0.7);
+    for (let i = 0; i < 8; i++) {
+      const px = 20 + rnd() * (w - 60);
+      const surf = spec.rise - this.rampRise(spec, px);
+      const py = surf + CAP + 12 + rnd() * Math.max(4, h - surf - CAP - 34);
+      g.fillEllipse(px, py, 26 + rnd() * 22, 4);
+    }
+    // um glifo esculpido no paramento, aqui e ali
+    g.fillStyle(P.glyph, 0.8);
+    for (let x = 60; x < w - 40; x += 150) {
+      const ty = spec.rise - this.rampRise(spec, x) + CAP + 14;
+      if (ty > h - 26) continue;
+      g.fillEllipse(x, ty + 4, 12, 5);
+      g.fillRect(x - 5, ty + 10, 10, 2);
+    }
+
+    // penhasco do trampolim: face de pedra fraturada com estratos
+    if (spec.desc <= 0) {
+      g.fillStyle(P.pillar, 1);
+      g.fillRect(w - 16, 0, 16, h);
+      g.fillStyle(P.slabShade, 1);
+      for (let y = 18; y < h; y += 18) g.fillRect(w - 16, y, 16, 3);
+      g.fillStyle(P.body, 1);                   // mordidas na quina
+      for (let y = 8; y < h - 20; y += 26) {
+        g.fillTriangle(w - 16, y, w - 16, y + 14, w - 4, y + 7);
+      }
+      g.fillStyle(P.body, 1);                   // beirada da capa
+      g.fillRect(w - 18, 0, 18, CAP);
+    }
+
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  // Entulho do deserto: blocos calcários tombados sobre o monte de areia
+  static generateRampEgitoRubble(scene, key, spec) {
+    const P = this.FACADES['-piramide'];
+    const w = spec.asc + spec.top + spec.desc;
+    const h = spec.rise + Constants.RAMP_SKIRT;
+    const base = spec.rise;
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    let seed = 37;
+    const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+
+    g.fillStyle(0xcbab6f, 1);
+    g.fillRect(0, base, w, h - base);            // a saia segue enterrada
+
+    // blocos de pedra tombados uns sobre os outros
+    for (let x = -8; x < w; x += 30) {
+      const bw = Math.min(26 + rnd() * 16, w - x);
+      if (bw <= 6) continue;
+      const top = base - (8 + rnd() * 24);
+      g.fillStyle(rnd() < 0.5 ? P.body : P.pillar, 1);
+      g.fillRect(Math.max(0, x), top, bw - Math.max(0, -x), base - top + 6);
+      g.fillStyle(P.slab, 0.7);
+      g.fillRect(Math.max(0, x), top, bw - Math.max(0, -x), 4);
+    }
+    // cacos e areia levantada
+    for (let i = 0; i < 12; i++) {
+      g.fillStyle(i % 2 === 0 ? P.slab : P.slabShade, 1);
+      g.fillRect(rnd() * w, base - rnd() * 14, 5 + rnd() * 6, 4 + rnd() * 4);
+    }
+    g.fillStyle(0xe0c492, 0.85);                 // areia derramada por cima
+    for (let x = 10; x < w - 20; x += 60) {
+      g.fillTriangle(x, base, x + 34, base, x + 16, base - 10);
     }
 
     g.generateTexture(key, w, h);
@@ -2780,6 +3422,398 @@ export class TextureFactory {
       g.fillStyle(0x4ad1ff, 0.9);
       g.fillRect(346, 180, 8, 5);
     });
+
+    // ========== v1.8.10 — AS AREIAS DO TEMPO: um par far/near por etapa ====
+    // Mesmas regras da casa: emenda ±640 (ou x em 36..604), props que pisam
+    // o chão com base em FAR_BASE, zero gradiente (faixas/alpha).
+
+    // ---------- props do deserto ----------
+    const SAND = 0xe0c492, SAND_D = 0xcbab6f, SAND_DD = 0xa8874f;
+    // Pirâmide ao longe: face iluminada + face em sombra e junta de blocos
+    const pyramid = (g, x, s, base = FAR_BASE + 40) => {
+      const half = 150 * s, hgt = 190 * s;
+      g.fillStyle(0xc9a468, 1);
+      g.fillTriangle(x - half, base, x + half, base, x, base - hgt);
+      g.fillStyle(0xa8874f, 1);                    // face em sombra
+      g.fillTriangle(x + 26 * s, base, x + half, base, x, base - hgt);
+      g.fillStyle(0x8c6f40, 0.5);                  // fiadas de blocos
+      for (let i = 1; i < 6; i++) {
+        const t = i / 6;
+        g.fillRect(x - half * (1 - t), base - hgt * t, half * 2 * (1 - t), 2.5);
+      }
+      g.fillStyle(0xf0dcae, 0.9);                  // piramidion ao sol
+      g.fillTriangle(x - 16 * s, base - hgt + 22 * s, x + 16 * s, base - hgt + 22 * s, x, base - hgt);
+    };
+    // Esfinge em silhueta (olhando para a esquerda, de onde o rino vem)
+    const sphinxSil = (g, x, s, base = FAR_BASE) => {
+      g.fillStyle(0x9a7a4e, 1);
+      g.fillRect(x - 60 * s, base - 34 * s, 120 * s, 34 * s);   // corpo deitado
+      g.fillRect(x - 66 * s, base - 20 * s, 22 * s, 20 * s);    // patas à frente
+      g.fillRect(x - 56 * s, base - 44 * s, 30 * s, 14 * s);    // peito
+      g.fillStyle(0xb59a6b, 1);
+      g.fillRect(x - 62 * s, base - 76 * s, 34 * s, 40 * s);    // cabeça + nemes
+      g.fillTriangle(x - 70 * s, base - 70 * s, x - 62 * s, base - 76 * s, x - 62 * s, base - 46 * s);
+      g.fillTriangle(x - 28 * s, base - 76 * s, x - 20 * s, base - 66 * s, x - 28 * s, base - 46 * s);
+      g.fillStyle(0x7a5f34, 1);                    // sombra do rosto
+      g.fillRect(x - 58 * s, base - 62 * s, 26 * s, 5 * s);
+    };
+    // Obelisco distante
+    const obeliskFar = (g, x, s, base = FAR_BASE) => {
+      g.fillStyle(0xb59a6b, 1);
+      g.fillTriangle(x - 9 * s, base, x + 9 * s, base, x + 4 * s, base - 120 * s);
+      g.fillTriangle(x - 9 * s, base, x + 4 * s, base - 120 * s, x - 4 * s, base - 120 * s);
+      g.fillStyle(0xd4af37, 1);
+      g.fillTriangle(x - 5 * s, base - 118 * s, x + 5 * s, base - 118 * s, x, base - 132 * s);
+    };
+    // Carcaça de carro meio engolida pela areia (a estrada acabou aqui)
+    const carCarcass = (g, x, base = FAR_BASE) => {
+      g.fillStyle(0x8a5a4a, 1);                    // lataria enferrujada
+      g.fillRoundedRect(x, base - 34, 88, 22, 6);
+      g.fillRoundedRect(x + 18, base - 48, 46, 18, 6);
+      g.fillStyle(0x6b4436, 1);                    // ferrugem funda
+      g.fillRect(x + 8, base - 26, 20, 8);
+      g.fillCircle(x + 70, base - 40, 5);
+      g.fillStyle(0x3a3a40, 0.9);                  // vãos dos vidros
+      g.fillRect(x + 24, base - 44, 16, 12);
+      g.fillRect(x + 44, base - 44, 14, 12);
+      g.fillStyle(SAND, 1);                        // areia engolindo
+      g.fillTriangle(x - 14, base, x + 46, base, x + 8, base - 22);
+      g.fillTriangle(x + 52, base, x + 100, base, x + 84, base - 16);
+    };
+    // Andaime de madeira do sítio (2 montantes + plataformas + diagonal)
+    const scaffoldFar = (g, x, h2, base = FAR_BASE) => {
+      g.fillStyle(0x6b4326, 1);
+      g.fillRect(x, base - h2, 7, h2);
+      g.fillRect(x + 52, base - h2, 7, h2);
+      g.fillStyle(0x8a5a33, 1);
+      for (let yy = base - 16; yy > base - h2; yy -= 34) g.fillRect(x - 5, yy, 70, 6);
+      g.fillStyle(0x6b4326, 0.9);
+      g.fillTriangle(x + 4, base - 4, x + 10, base - 4, x + 58, base - 36);
+    };
+    // Guindaste de MADEIRA (shaduf de obra): mastro + lança com corda e cesto
+    const woodCrane = (g, x, base = FAR_BASE) => {
+      g.fillStyle(0x6b4326, 1);
+      g.fillRect(x - 5, base - 120, 10, 120);      // mastro
+      g.fillStyle(0x8a5a33, 1);
+      g.save(); g.translateCanvas(x, base - 112); g.rotateCanvas(-0.22);
+      g.fillRect(-16, -6, 120, 8);                 // lança inclinada
+      g.restore();
+      g.lineStyle(2, 0x4a3520, 1);                 // corda
+      g.lineBetween(x + 86, base - 134, x + 86, base - 60);
+      g.fillStyle(0x9a8a6a, 1);                    // cesto de pedra
+      g.fillRect(x + 78, base - 60, 17, 13);
+      g.fillStyle(0x6b4326, 1);                    // contrapeso
+      g.fillCircle(x - 24, base - 104, 9);
+    };
+    const crateStack = (g, x, base = FAR_BASE) => {
+      const crate = (cx2, cy, s) => {
+        g.fillStyle(0x8a5a33, 1);
+        g.fillRect(cx2, cy - 26 * s, 30 * s, 26 * s);
+        g.fillStyle(0x6b4326, 1);
+        g.fillRect(cx2, cy - 26 * s, 30 * s, 4 * s);
+        g.fillRect(cx2, cy - 14 * s, 30 * s, 3 * s);
+        g.fillStyle(0xc2a36b, 0.8);
+        g.fillRect(cx2 + 3 * s, cy - 23 * s, 4 * s, 20 * s);
+      };
+      crate(x, base, 1);
+      crate(x + 34, base, 1.1);
+      crate(x + 14, base - 28, 0.9);
+    };
+    // Coluna quebrada (fuste canelado + tambor tombado ao lado)
+    const brokenColumn = (g, x, h2, base = FAR_BASE) => {
+      g.fillStyle(0xb59a6b, 1);
+      g.fillRect(x - 12, base - h2, 24, h2);
+      g.fillStyle(0x8c6f40, 0.6);                  // caneluras
+      for (let cxx = x - 8; cxx <= x + 6; cxx += 7) g.fillRect(cxx, base - h2 + 4, 3, h2 - 4);
+      g.fillStyle(0xb59a6b, 1);                    // topo mordido
+      g.fillTriangle(x - 12, base - h2, x - 2, base - h2, x - 8, base - h2 - 10);
+      g.fillTriangle(x, base - h2, x + 12, base - h2, x + 7, base - h2 - 7);
+      g.fillStyle(0x9a7a4e, 1);                    // tambor caído
+      g.fillEllipse(x + 26, base - 7, 26, 14);
+    };
+    // Tocha acesa (a única luz da Necrópole)
+    const torchProp = (g, x, base = FAR_BASE, s = 1) => {
+      g.fillStyle(0x4a3520, 1);
+      g.fillRect(x - 3 * s, base - 64 * s, 6 * s, 64 * s);
+      g.fillStyle(0x8a6a42, 1);
+      g.fillEllipse(x, base - 64 * s, 16 * s, 6 * s);
+      g.fillStyle(0xff7b2a, 1);
+      g.fillTriangle(x - 7 * s, base - 66 * s, x + 7 * s, base - 66 * s, x, base - 88 * s);
+      g.fillStyle(0xffd24a, 1);
+      g.fillTriangle(x - 4 * s, base - 66 * s, x + 4 * s, base - 66 * s, x, base - 78 * s);
+      g.fillStyle(0xffd24a, 0.14);                 // halo
+      g.fillCircle(x, base - 74 * s, 22 * s);
+    };
+    // Água do oásis: espelho turquesa com listras horizontais (sem gradiente)
+    const oasisWater = (g, top, bottom) => {
+      g.fillStyle(0x2e8a80, 1);
+      g.fillRect(0, top, 640, bottom - top);
+      for (let i = 0; i < 7; i++) {
+        g.fillStyle(0x4ecdc4, 0.45 - i * 0.05);
+        g.fillRect(0, top + 6 + i * 10, 640, 4);
+      }
+      g.fillStyle(0xdff6f2, 0.35);                 // brilhos
+      [[90, 12], [280, 30], [430, 16], [560, 36]].forEach(([x, dy]) =>
+        g.fillEllipse(x, top + dy, 70, 4));
+    };
+    // Touceira de capim seco (near)
+    const dryTuft = (g, bx, base = 260) => {
+      for (let i = -4; i <= 4; i++) {
+        g.fillStyle(i % 2 === 0 ? 0xb9a244 : 0x8a763a, 1);
+        const tall = 26 + ((i * 5) % 11);
+        g.fillTriangle(bx - 4, base, bx + 4, base, bx + i * 6, base - tall);
+      }
+    };
+
+    // ============ 2200–2700m: ESTRADA ENGOLIDA — o asfalto some ============
+    makeFar('duna', (g) => {
+      hills(g, 0xe8d3a8, SAND_D);                  // dunas ao longe
+      // o asfalto da rodovia morrendo sob a areia (faixa que se desfaz)
+      g.fillStyle(0x3a4149, 1);
+      g.fillRect(0, 404, 640, 16);
+      g.fillStyle(SAND, 1);                        // línguas de areia por cima
+      [[60, 90], [230, 130], [420, 110], [580, 100]].forEach(([x, w2]) => {
+        g.fillTriangle(x - 20, 420, x + w2, 420, x + w2 / 2, 396);
+      });
+      g.fillStyle(0xe8d98a, 0.8);                  // a faixa tracejada morrendo
+      [20, 120, 320, 500].forEach((x) => g.fillRect(x, 410, 34, 4));
+      carCarcass(g, 300);
+      obeliskFar(g, 110, 0.7);
+      // abutres circulando bem alto (cópia ±640 nas bordas)
+      const vultures = [[80, 70, 1], [200, 100, 0.8], [420, 60, 1.1], [560, 96, 0.85]];
+      vultures.forEach(([x, y, s]) => {
+        flyBird(g, x, y, s, 0x3a2f24);
+        if (x < 40) flyBird(g, x + 640, y, s, 0x3a2f24);
+        if (x > 600) flyBird(g, x - 640, y, s, 0x3a2f24);
+      });
+      rocks(g, 470, FAR_BASE + 8);
+      haze(g);
+    });
+    makeNear('duna', (g) => {
+      g.fillStyle(SAND_D, 1);                      // o mar de areia
+      g.fillRect(0, 244, 640, 16);
+      g.fillStyle(SAND, 1);                        // cristas de duna
+      for (let x = 0; x < 640; x += 128) g.fillEllipse(x + 64, 250, 128, 22);
+      // placa de rodovia meio enterrada, torta
+      g.save(); g.translateCanvas(150, 216); g.rotateCanvas(-0.16);
+      g.fillStyle(0x8a939f, 1); g.fillRect(-4, 0, 8, 34);
+      g.fillStyle(0x2c7a39, 1); g.fillRect(-36, -34, 72, 36);
+      g.fillStyle(0xf6f4ef, 1); g.fillRect(-26, -24, 40, 6);
+      g.fillRect(-26, -12, 30, 6);
+      g.restore();
+      // costela de asfalto quebrado espiando da areia
+      g.fillStyle(0x3a4149, 1);
+      g.fillTriangle(360, 250, 430, 250, 400, 232);
+      g.fillTriangle(470, 252, 520, 252, 498, 238);
+      dryTuft(g, 60);
+      dryTuft(g, 300);
+      dryTuft(g, 560);
+      g.fillStyle(0xf4efe0, 1);                    // ossada ao sol
+      g.fillEllipse(250, 252, 30, 6);
+      g.fillCircle(268, 250, 5);
+    });
+
+    // ============ 2700–3200m: MIRAGEM DO OÁSIS — água traiçoeira ===========
+    makeFar('oasis', (g) => {
+      hills(g, 0xe8d3a8, SAND_D);
+      oasisWater(g, 330, 420);                     // o espelho d'água
+      // palmeiras na margem + REFLEXO invertido raso (a miragem)
+      palm(g, 120, 0.95);
+      palm(g, 480, 0.8);
+      palm(g, 300, 0.6);
+      g.fillStyle(0x3f8a4e, 0.25);                 // reflexos das copas
+      [[120, 0.95], [480, 0.8], [300, 0.6]].forEach(([x, s]) => {
+        g.fillEllipse(x, 348 + 10 * s, 90 * s, 16 * s);
+      });
+      g.fillStyle(0x8a5a2b, 0.3);                  // reflexos dos troncos
+      [[120, 0.95], [480, 0.8]].forEach(([x, s]) => g.fillRect(x - 3 * s, 336, 6 * s, 30));
+      // garças/flamingos distantes na lâmina d'água
+      g.fillStyle(0xe88aa0, 0.9);
+      [[210, 352], [235, 358], [420, 350]].forEach(([x, y]) => {
+        g.fillEllipse(x, y, 10, 6);
+        g.fillRect(x + 3, y - 10, 2, 10);
+        g.fillCircle(x + 4, y - 11, 2.5);
+      });
+      haze(g);
+    });
+    makeNear('oasis', (g) => {
+      g.fillStyle(SAND_D, 1);
+      g.fillRect(0, 244, 640, 16);
+      g.fillStyle(0x2e8a80, 1);                    // beira d'água chegando perto
+      g.fillEllipse(320, 258, 300, 18);
+      g.fillStyle(0x4ecdc4, 0.5);
+      g.fillEllipse(310, 254, 240, 8);
+      // juncos e pedras da margem
+      [80, 180, 460, 600].forEach((x, i) => {
+        g.lineStyle(3, 0x5c7a3a, 1);
+        g.lineBetween(x, 260, x - 4, 208 - (i % 2) * 12);
+        g.lineBetween(x + 6, 260, x + 12, 216);
+        g.fillStyle(0x6b4a24, 1);
+        g.fillRoundedRect(x - 8, 196 - (i % 2) * 12, 9, 24, 4);
+      });
+      rocks(g, 250, 248);
+      dryTuft(g, 540);
+      g.fillStyle(0xf6d6e6, 1);                    // flor da margem
+      g.fillCircle(400, 240, 5);
+      g.fillStyle(0xffe066, 1);
+      g.fillCircle(400, 240, 2);
+    });
+
+    // ============ 3200–3700m: SÍTIO DA ESCAVAÇÃO — andaimes e poeira ========
+    makeFar('escavacao', (g) => {
+      hills(g, 0xd8c091, 0xbfa06a);
+      // a trincheira da escavação: corte escuro no terreno
+      g.fillStyle(0x8c6f40, 1);
+      g.fillRect(0, 380, 640, 40);
+      g.fillStyle(0x6b532f, 1);
+      g.fillRect(0, 388, 640, 32);
+      scaffoldFar(g, 80, 130);
+      scaffoldFar(g, 470, 100);
+      woodCrane(g, 300);
+      crateStack(g, 180, FAR_BASE + 6);
+      crateStack(g, 540, FAR_BASE + 2);
+      // tenda do sítio
+      g.fillStyle(0xd8c9a6, 1);
+      g.fillTriangle(370, FAR_BASE, 450, FAR_BASE, 410, FAR_BASE - 52);
+      g.fillStyle(0xb9a884, 1);
+      g.fillTriangle(410, FAR_BASE, 450, FAR_BASE, 410, FAR_BASE - 52);
+      // poeira suspensa da obra (faixas claras)
+      g.fillStyle(0xe8d3a8, 0.18);
+      g.fillRect(0, 300, 640, 26);
+      g.fillStyle(0xe8d3a8, 0.12);
+      g.fillRect(0, 326, 640, 30);
+      haze(g);
+    });
+    makeNear('escavacao', (g) => {
+      g.fillStyle(0xbfa06a, 1);                    // chão revirado do sítio
+      g.fillRect(0, 244, 640, 16);
+      // corda de isolamento em estacas (passo 128 divide 640 — emenda)
+      g.fillStyle(0x6b4326, 1);
+      for (let x = 32; x < 640; x += 128) g.fillRect(x, 190, 7, 66);
+      g.lineStyle(3, 0xd8c9a6, 1);
+      for (let x = -96; x < 640; x += 128) {
+        g.lineBetween(x + 36, 198, x + 100, 212);
+        g.lineBetween(x + 100, 212, x + 164, 198);
+      }
+      crateStack(g, 90, 256);
+      // pá e picareta fincadas no monte
+      g.fillStyle(SAND_DD, 1);
+      g.fillTriangle(300, 260, 400, 260, 350, 224);
+      g.fillStyle(0x8a5a33, 1);
+      g.fillRect(330, 186, 5, 48);                 // cabo da pá
+      g.fillStyle(0x8a939f, 1);
+      g.fillTriangle(324, 182, 341, 182, 332.5, 196);
+      g.fillStyle(0x8a5a33, 1);
+      g.fillRect(366, 190, 5, 44);                 // cabo da picareta
+      g.fillStyle(0x59616b, 1);
+      g.fillEllipse(368, 188, 34, 8);
+      // ânfora desenterrada ao lado da trincheira
+      g.fillStyle(0xb4552f, 1);
+      g.fillEllipse(520, 232, 26, 34);
+      g.fillRect(512, 210, 16, 10);
+      g.fillStyle(0x8a3f24, 1);
+      g.fillEllipse(520, 236, 18, 16);
+      dryTuft(g, 600);
+    });
+
+    // ============ 3700–4200m: VALE DOS FARAÓS — as pirâmides ===============
+    makeFar('vale', (g) => {
+      // as PIRÂMIDES dominam o horizonte (a maior no meio, emenda limpa)
+      hills(g, 0xe8d3a8, SAND_D);
+      pyramid(g, 320, 1.15);
+      pyramid(g, 110, 0.72);
+      pyramid(g, 540, 0.6);
+      sphinxSil(g, 460, 1);
+      obeliskFar(g, 216, 0.9);
+      obeliskFar(g, 596, 0.7);
+      // o sol do deserto pesa: faixa de calor tremido
+      g.fillStyle(0xfff3c4, 0.1);
+      g.fillRect(0, 250, 640, 22);
+      haze(g);
+    });
+    makeNear('vale', (g) => {
+      g.fillStyle(SAND_D, 1);
+      g.fillRect(0, 244, 640, 16);
+      brokenColumn(g, 90, 90, 258);
+      brokenColumn(g, 420, 60, 256);
+      // bloco caído com cartucho esculpido
+      g.fillStyle(0xb59a6b, 1);
+      g.fillRect(220, 210, 84, 46);
+      g.fillStyle(0x9a7a4e, 1);
+      g.fillRect(220, 210, 84, 6);
+      g.lineStyle(3, 0x7a5f34, 1);
+      g.strokeEllipse(262, 234, 40, 26);
+      g.fillStyle(0x7a5f34, 1);
+      g.fillCircle(254, 230, 3);
+      g.fillRect(262, 236, 14, 3);
+      // cabeça de estátua semienterrada olhando o vale
+      g.fillStyle(0xb59a6b, 1);
+      g.fillRect(520, 214, 40, 42);
+      g.fillTriangle(512, 222, 520, 214, 520, 248);
+      g.fillStyle(0x7a5f34, 1);
+      g.fillRect(528, 230, 22, 5);                 // a sombra dos olhos
+      g.fillStyle(SAND, 1);
+      g.fillTriangle(500, 260, 580, 260, 545, 244);
+      dryTuft(g, 350);
+      dryTuft(g, 620);
+    });
+
+    // ============ 4200–4700m: NECRÓPOLE DE AREIA — a escuridão =============
+    makeFar('necropole', (g) => {
+      // o vale afunda: massas escuras de rocha tumular
+      hills(g, 0x8a7350, 0x6b5940);
+      g.fillStyle(0x4a3d2c, 1);                    // paredão de tumbas
+      g.fillRect(0, 300, 640, 120);
+      // portais de tumba escavados (vãos pretos com verga de pedra)
+      [[70, 1], [210, 0.8], [360, 1.1], [520, 0.85]].forEach(([x, s]) => {
+        g.fillStyle(0x9a7a4e, 1);
+        g.fillRect(x - 24 * s, 330, 48 * s, 8);
+        g.fillStyle(0x17130c, 1);
+        g.fillRect(x - 17 * s, 338, 34 * s, 62 * s);
+        g.fillStyle(0x2a2118, 1);
+        g.fillRect(x - 17 * s, 338, 6 * s, 62 * s);
+      });
+      brokenColumn(g, 150, 110, FAR_BASE - 6);
+      brokenColumn(g, 450, 84, FAR_BASE - 10);
+      torchProp(g, 260, FAR_BASE + 30, 1.1);
+      torchProp(g, 580, FAR_BASE + 26, 0.9);
+      // a escuridão desce (faixas, nunca gradiente)
+      for (let i = 0; i < 10; i++) {
+        g.fillStyle(0x14100a, 0.05 + i * 0.028);
+        g.fillRect(0, i * 7, 640, 8);
+      }
+      g.fillStyle(0x14100a, 0.22);
+      g.fillRect(0, 70, 640, 40);
+    });
+    makeNear('necropole', (g) => {
+      g.fillStyle(0x8a7350, 1);                    // areia suja de cinza
+      g.fillRect(0, 244, 640, 16);
+      // sarcófago aberto encostado na parede
+      g.save(); g.translateCanvas(120, 250); g.rotateCanvas(-0.08);
+      g.fillStyle(0xb59a6b, 1);
+      g.fillRoundedRect(-26, -104, 52, 104, 12);
+      g.fillStyle(0x7a5f34, 1);
+      g.fillRoundedRect(-18, -96, 36, 88, 9);
+      g.fillStyle(0x17130c, 1);
+      g.fillRoundedRect(-14, -92, 28, 80, 7);
+      g.restore();
+      // urnas canópicas enfileiradas
+      [[300, 1], [336, 0.85], [368, 0.95]].forEach(([x, s]) => {
+        g.fillStyle(0x9a7a4e, 1);
+        g.fillEllipse(x, 240, 24 * s, 30 * s);
+        g.fillStyle(0xb59a6b, 1);
+        g.fillCircle(x, 222 - 4 * s, 9 * s);       // tampa-cabeça
+      });
+      torchProp(g, 240, 258, 1.15);
+      torchProp(g, 500, 258, 1.05);
+      // ossadas na areia
+      g.fillStyle(0xe8ddc2, 1);
+      g.fillEllipse(430, 252, 34, 6);
+      g.fillCircle(450, 249, 5);
+      g.fillRect(555, 244, 26, 4);
+      g.fillCircle(556, 246, 4);
+      g.fillCircle(581, 246, 4);
+    });
   }
 
   // Faixa de tráfego da cidade: passa entre o fundo e o plano médio, com
@@ -2887,6 +3921,48 @@ export class TextureFactory {
     for (let i = 0; i < 5; i++) c.fillEllipse(60 + i * 130, 46, 26, 8);
     c.generateTexture('bg-fg-city', w, h);
     c.destroy();
+  }
+
+  // v1.8.10 — primeiro plano do DESERTO: mesma faixa visível (linhas 0..60),
+  // arbustos SECOS e pedras no lugar do capim verde. Silhueta escura (a
+  // camada leva o tint atmosférico), emenda ±640 nas touceiras de borda.
+  static generateForegroundDesert(scene) {
+    const w = 640, h = 120, VIS = 60;
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    const DARK = 0x6b5533, DARKER = 0x4a3a20, STONE = 0x7a6a4a;
+
+    // areia da beirada, da linha 34 para baixo
+    g.fillStyle(DARKER, 1);
+    g.fillRect(0, 34, w, h - 34);
+
+    let seed = 19;
+    const rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+    g.fillStyle(STONE, 1);
+    for (let i = 0; i < 10; i++) {
+      g.fillEllipse(rnd() * w, 40 + rnd() * (VIS - 40), 26 + rnd() * 40, 10 + rnd() * 9);
+    }
+
+    // Arbustos secos: galhos em leque a partir da linha 36 (cópia ±640)
+    const bush = (bx) => {
+      for (let i = -4; i <= 4; i++) {
+        g.fillStyle(i % 2 === 0 ? DARK : DARKER, 1);
+        const tall = 16 + ((i * 9) % 11) + (i === 0 ? 8 : 0);
+        // galho torto: duas hastes finas por direção
+        g.fillTriangle(bx - 3, 38, bx + 3, 38, bx + i * 6, 38 - tall);
+        g.fillTriangle(bx + i * 6 - 2, 38 - tall + 4, bx + i * 6 + 2, 38 - tall + 4,
+          bx + i * 6 + i, 38 - tall - 5);
+      }
+    };
+    for (let x = 20; x < w; x += 74) {
+      bush(x);
+      if (x < 60) bush(x + w);
+      if (x > w - 60) bush(x - w);
+    }
+    g.fillStyle(DARK, 1);
+    g.fillRect(0, 34, w, 8);
+
+    g.generateTexture('bg-fg-desert', w, h);
+    g.destroy();
   }
 
   // ------------------------------------------------------ arco de setor
@@ -3128,6 +4204,69 @@ export class TextureFactory {
     g.destroy();
   }
 
+  // v1.8.10 — OBELISCO de fronteira das etapas do deserto (marco SEM fx nas
+  // fronteiras 108000/128000/148000/168000 — os bosses são os marcos das
+  // outras). Origin (0.5,1) no chão, como os portais; o label da etapa é um
+  // Text por cima (createSectorArches). Fuste com cartucho esculpido e
+  // piramidion dourado — o deserto conta as etapas em pedra.
+  static generateMarcoObelisco(scene) {
+    const w = 160, h = 300;
+    const P = this.FACADES['-piramide'];
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    const cx = w / 2;
+
+    // base em dois degraus, com areia acumulada
+    g.fillStyle(P.pillar, 1);
+    g.fillRect(cx - 52, h - 18, 104, 18);
+    g.fillRect(cx - 40, h - 34, 80, 18);
+    g.fillStyle(P.slab, 1);
+    g.fillRect(cx - 52, h - 18, 104, 4);
+    g.fillRect(cx - 40, h - 34, 80, 4);
+    g.fillStyle(0xe0c492, 1);
+    g.fillTriangle(cx - 70, h, cx - 26, h, cx - 52, h - 14);
+    g.fillTriangle(cx + 30, h, cx + 74, h, cx + 54, h - 10);
+
+    // fuste afilado: face iluminada + face em sombra
+    g.fillStyle(P.body, 1);
+    g.fillTriangle(cx - 26, h - 34, cx + 26, h - 34, cx + 12, 34);
+    g.fillTriangle(cx - 26, h - 34, cx + 12, 34, cx - 12, 34);
+    g.fillStyle(P.slabShade, 0.5);
+    g.fillTriangle(cx + 12, h - 34, cx + 26, h - 34, cx + 12, 38);
+    // juntas do aparelho
+    g.fillStyle(P.slabShade, 0.55);
+    for (let y = 60; y < h - 40; y += 34) {
+      const t = (y - 34) / (h - 68);
+      const half = 12 + 14 * t;
+      g.fillRect(cx - half + 3, y, half * 2 - 6, 2.5);
+    }
+
+    // piramidion dourado apontando o caminho
+    g.fillStyle(P.gold, 1);
+    g.fillTriangle(cx - 14, 38, cx + 14, 38, cx, 6);
+    g.fillStyle(0xfff3c4, 0.8);
+    g.fillTriangle(cx - 7, 38, cx, 38, cx, 14);
+
+    // cartucho esculpido no fuste (o "nome" da etapa em pedra)
+    g.lineStyle(4, P.gold, 1);
+    g.strokeEllipse(cx, 150, 34, 92);
+    g.fillStyle(P.gold, 1);
+    g.fillRect(cx - 8, 198, 16, 5);
+    g.fillStyle(P.glyph, 0.95);
+    g.fillCircle(cx, 118, 4.5);                    // sol
+    g.fillEllipse(cx, 140, 16, 6);                 // boca
+    g.fillRect(cx - 8, 156, 16, 3);                // céu
+    g.fillTriangle(cx - 7, 184, cx + 7, 184, cx, 168); // duna
+    g.fillStyle(P.lapis, 0.9);
+    g.fillRect(cx - 9, 190, 18, 4);
+
+    // sombra na base (assenta o marco no chão)
+    g.fillStyle(0x000000, 0.14);
+    g.fillEllipse(cx, h - 4, 120, 10);
+
+    g.generateTexture('marco-obelisco', w, h);
+    g.destroy();
+  }
+
   // -------------------------------------------------- hazards dos distritos
   // v1.8.7: as texturas do TimedHazard (a entidade é do BossFight/agente B).
   // Caçamba 100x64 (smashável — par -rubble no MESMO canvas, regra da casa);
@@ -3138,6 +4277,10 @@ export class TextureFactory {
     this.generateHazardCacamba(scene);
     this.generateHazardHidrante(scene);
     this.generateHazardArco(scene);
+    // v1.8.10 — as armadilhas do deserto (kinds do TimedHazard, agente B)
+    this.generateHazardMovedica(scene);
+    this.generateHazardFlecheira(scene);
+    this.generateHazardCaixote(scene);
   }
 
   static generateHazardCacamba(scene) {
@@ -3330,6 +4473,189 @@ export class TextureFactory {
     draw(true);
   }
 
+  // v1.8.10 — AREIA MOVEDIÇA (120x40, rente ao chão): poço de areia
+  // ondulada em anéis, com o centro afundando — sempre letal, pulável, nem
+  // o dash salva (causa 'fall': a areia ENGOLE). Leitura por CONTRASTE de
+  // material: mais escura e lisa que a crosta do ground-desert.
+  static generateHazardMovedica(scene) {
+    const w = 120, h = 40;
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // o poço: anéis concêntricos afundando para o centro
+    g.fillStyle(0x8c6f40, 1);
+    g.fillEllipse(60, 24, 118, 30);
+    g.fillStyle(0x7a5f34, 1);
+    g.fillEllipse(60, 25, 96, 24);
+    g.fillStyle(0x6b532f, 1);
+    g.fillEllipse(60, 26, 72, 18);
+    g.fillStyle(0x5a4426, 1);                     // o olho do sorvedouro
+    g.fillEllipse(60, 27, 44, 11);
+    // linhas de sucção em espiral (arcos)
+    g.lineStyle(2, 0x9a7a4e, 0.8);
+    g.beginPath(); g.arc(60, 25, 34, 0.3, Math.PI - 0.4); g.strokePath();
+    g.beginPath(); g.arc(60, 24, 46, Math.PI + 0.3, Math.PI * 2 - 0.3); g.strokePath();
+    g.lineStyle(2, 0x59431f, 0.9);
+    g.beginPath(); g.arc(60, 26, 20, 0.2, Math.PI - 0.2); g.strokePath();
+    // bolhas de ar escapando (a única coisa que sobe)
+    g.fillStyle(0xc2a36b, 0.9);
+    g.fillCircle(48, 22, 2.5);
+    g.fillCircle(76, 26, 2);
+    g.fillCircle(62, 19, 1.6);
+    // borda clara na crista (emenda com a crosta do chão)
+    g.lineStyle(2.5, 0xe0c492, 0.9);
+    g.strokeEllipse(60, 23, 116, 26);
+    // um chifre de gazela espetado — o aviso de quem não pulou
+    g.lineStyle(3, 0xe8ddc2, 1);
+    g.lineBetween(88, 20, 96, 6);
+    g.lineBetween(96, 6, 100, 2);
+
+    g.generateTexture('hazard-movedica', w, h);
+    g.destroy();
+  }
+
+  // v1.8.10 — FLECHEIRA (200x230, origin 0.5,1 no chão): duas colunas de
+  // arenito com RANHURAS na altura do corpo do TimedHazard (mundo y
+  // 430..520 = canvas y 40..130). No -on as flechas CRUZAM o vão. O
+  // telegraph (tint dourado subindo) é do B — aqui, o glifo aceso no -on.
+  static generateHazardFlecheira(scene) {
+    const w = 200, h = 230;
+    const P = this.FACADES['-piramide'];
+    const BAND0 = 40, BAND1 = 130; // a banda letal, em y de canvas
+    const draw = (on) => {
+      const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+      for (const [x0, flip] of [[10, 1], [162, -1]]) {
+        // sapata + coluna de blocos
+        g.fillStyle(P.pillar, 1);
+        g.fillRect(x0 - 4, h - 10, 36, 10);
+        g.fillStyle(P.body, 1);
+        g.fillRect(x0, 16, 28, h - 26);
+        g.fillStyle(P.slabShade, 0.55);           // juntas
+        for (let y = 34; y < h - 12; y += 26) g.fillRect(x0, y, 28, 2.5);
+        g.fillStyle(P.slabShade, 0.5);            // lado em sombra
+        g.fillRect(flip > 0 ? x0 + 22 : x0, 16, 6, h - 26);
+        // capitel
+        g.fillStyle(P.pillar, 1);
+        g.fillRect(x0 - 4, 8, 36, 12);
+        g.fillStyle(P.gold, 1);
+        g.fillRect(x0 - 4, 4, 36, 5);
+        // RANHURAS de disparo na banda letal (voltadas para o vão)
+        g.fillStyle(0x23180c, 1);
+        for (let sy = BAND0 + 6; sy < BAND1; sy += 28) {
+          g.fillRect(flip > 0 ? x0 + 16 : x0 + 2, sy, 10, 14);
+        }
+        // o GLIFO-gatilho (olho): apagado no off, ACESO no on
+        g.fillStyle(on ? 0xffd24a : P.glyph, 1);
+        g.fillEllipse(x0 + 14, 158, 16, 8);
+        g.fillStyle(on ? 0xfff3c4 : P.body, 1);
+        g.fillEllipse(x0 + 14, 158, 8, 4);
+        g.fillStyle(0x23180c, 1);
+        g.fillCircle(x0 + 14, 158, 1.8);
+        if (on) {
+          g.fillStyle(0xffd24a, 0.2);             // halo do glifo aceso
+          g.fillCircle(x0 + 14, 158, 14);
+        }
+      }
+
+      if (on) {
+        // AS FLECHAS cruzando o vão (3 alturas, sentidos alternados) +
+        // riscos de velocidade — a banda letal visível de relance
+        const arrow = (ax, ay, dir) => {
+          g.lineStyle(2, 0xc2a36b, 0.5);          // risco de velocidade
+          g.lineBetween(ax - 34 * dir, ay, ax + 18 * dir, ay);
+          g.fillStyle(0x8a5a33, 1);               // haste
+          g.fillRect(Math.min(ax, ax + 20 * dir), ay - 1.5, 20, 3);
+          g.fillStyle(0x8a939f, 1);               // ponta
+          g.fillTriangle(ax + 24 * dir, ay, ax + 16 * dir, ay - 4, ax + 16 * dir, ay + 4);
+          g.fillStyle(0xd6453c, 1);               // penas
+          g.fillTriangle(ax - 2 * dir, ay, ax - 8 * dir, ay - 4, ax - 8 * dir, ay + 4);
+        };
+        arrow(70, BAND0 + 14, 1);
+        arrow(130, BAND0 + 44, -1);
+        arrow(84, BAND0 + 74, 1);
+        g.fillStyle(0xffd24a, 0.1);               // véu da banda inteira
+        g.fillRect(38, BAND0, 124, BAND1 - BAND0);
+      }
+
+      g.generateTexture(on ? 'hazard-flecheira-on' : 'hazard-flecheira', w, h);
+      g.destroy();
+    };
+    draw(false);
+    draw(true);
+  }
+
+  // v1.8.10 — CAIXOTE do sítio (90x70): irmão menor da caçamba — pulável OU
+  // destrutível no dash (smashable → par -rubble no MESMO canvas). Madeira
+  // de escavação, estêncil de olho e corda de amarração.
+  static generateHazardCaixote(scene) {
+    const w = 90, h = 70;
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    const wood = 0x8a5a33, woodDark = 0x6b4326, woodLight = 0xa8794a;
+
+    // palha e um artefato espiando pela tampa entreaberta
+    g.fillStyle(0xc9b25e, 1);
+    g.fillTriangle(20, 12, 46, 12, 33, 2);
+    g.fillTriangle(42, 12, 70, 12, 56, 4);
+    g.fillStyle(0xd4af37, 1);                     // ponta de ouro lá dentro
+    g.fillCircle(50, 8, 5);
+
+    // o caixote: tábuas horizontais + moldura
+    g.fillStyle(wood, 1);
+    g.fillRect(4, 12, 82, 52);
+    g.fillStyle(woodDark, 0.9);                   // frestas das tábuas
+    for (let y = 24; y < 64; y += 13) g.fillRect(4, y, 82, 3);
+    g.fillStyle(woodLight, 0.7);                  // luz no topo das tábuas
+    for (let y = 14; y < 62; y += 13) g.fillRect(6, y, 78, 3);
+    g.fillStyle(woodDark, 1);                     // moldura
+    g.fillRect(4, 12, 82, 6);
+    g.fillRect(4, 58, 82, 6);
+    g.fillRect(4, 12, 7, 52);
+    g.fillRect(79, 12, 7, 52);
+    // corda de amarração em X
+    g.lineStyle(4, 0xc2a36b, 0.9);
+    g.lineBetween(11, 16, 79, 60);
+    g.lineBetween(11, 60, 79, 16);
+    // estêncil do sítio: olho de Hórus pintado
+    g.fillStyle(0x1e4b8f, 0.85);
+    g.fillEllipse(45, 38, 22, 10);
+    g.fillStyle(wood, 1);
+    g.fillEllipse(45, 38, 11, 5);
+    g.fillStyle(0x1e4b8f, 0.85);
+    g.fillCircle(45, 38, 2.6);
+    g.fillRect(44, 44, 2.6, 8);
+    // pés + areia na base
+    g.fillStyle(woodDark, 1);
+    g.fillRect(10, 64, 16, 6);
+    g.fillRect(64, 64, 16, 6);
+    g.fillStyle(0xe0c492, 1);
+    g.fillTriangle(0, 70, 22, 70, 8, 62);
+    g.fillTriangle(70, 70, 90, 70, 82, 64);
+
+    g.generateTexture('hazard-caixote', w, h);
+    g.destroy();
+
+    // -rubble: MESMO canvas — tábuas partidas, palha e o artefato derramado
+    const r = scene.make.graphics({ x: 0, y: 0, add: false });
+    r.fillStyle(0xc9b25e, 1);                     // palha derramada
+    r.fillTriangle(6, 70, 56, 70, 30, 50);
+    r.fillTriangle(44, 70, 88, 70, 68, 54);
+    r.save(); r.translateCanvas(8, 56); r.rotateCanvas(0.4);
+    r.fillStyle(wood, 1); r.fillRect(0, 0, 40, 9);
+    r.fillStyle(woodDark, 1); r.fillRect(0, 0, 40, 3);
+    r.restore();
+    r.save(); r.translateCanvas(52, 62); r.rotateCanvas(-0.3);
+    r.fillStyle(woodDark, 1); r.fillRect(0, 0, 34, 8);
+    r.restore();
+    r.fillStyle(woodLight, 1);
+    [[26, 62, 8], [48, 64, 6], [74, 60, 7]].forEach(([x, y, s]) => r.fillRect(x, y, s, s * 0.7));
+    r.fillStyle(0xd4af37, 1);                     // o ouro rolou para fora
+    r.fillCircle(70, 66, 5);
+    r.fillStyle(0xfff3c4, 0.8);
+    r.fillCircle(68.5, 64.5, 1.8);
+    r.generateTexture('hazard-caixote-rubble', w, h);
+    r.destroy();
+  }
+
   // Dardo-cão do rasante da Muralha (rasanteStyle 'k9' do B): um vulto de
   // pastor em disparada, 24x12 — pequeno como o tranq-dart, lido pela
   // SILHUETA + colete vermelho (voa da direita para a esquerda).
@@ -3350,6 +4676,50 @@ export class TextureFactory {
     g.fillStyle(0xffe9a8, 1);                       // olho aceso
     g.fillCircle(3.5, 4.5, 1);
     g.generateTexture('k9-projectile', 24, 12);
+    g.destroy();
+  }
+
+  // v1.8.10 — FLECHA do arqueiro/obelisco (26x6): haste de madeira, ponta
+  // de bronze e penas vermelhas — voa para a ESQUERDA como o tranq-dart
+  // (mesmo pool de dardos; o TranqDart.deactivate devolve a textura-base).
+  static generateArrowProjectile(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(0xd4af37, 1);                       // ponta de bronze
+    g.fillTriangle(0, 3, 7, 0.5, 7, 5.5);
+    g.fillStyle(0x8a5a33, 1);                       // haste
+    g.fillRect(7, 2, 13, 2);
+    g.fillStyle(0xa8794a, 1);
+    g.fillRect(7, 2, 13, 1);
+    g.fillStyle(0xd6453c, 1);                       // penas
+    g.fillTriangle(20, 3, 26, 0, 24, 3);
+    g.fillTriangle(20, 3, 26, 6, 24, 3);
+    g.lineStyle(1, 0x17171b, 0.8);                  // contorno de leitura
+    g.strokeTriangle(0, 3, 7, 0.5, 7, 5.5);
+    g.generateTexture('arrow-projectile', 26, 6);
+    g.destroy();
+  }
+
+  // v1.8.10 — FALCÃO em mergulho (30x14): o projétil do Mergulho de Hórus
+  // (rasanteStyle 'falcao' do Faraó). Silhueta de asas fechadas + peito
+  // claro e colar dourado — lido de relance como AVE, não como dardo.
+  static generateFalcaoProjectile(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(0x4a3a55, 1);                       // dorso ardósia
+    g.fillEllipse(14, 7, 20, 8);
+    g.fillCircle(5, 6, 4);                          // cabeça (vai à frente)
+    g.fillTriangle(1, 6, 4, 4.5, 4, 7.5);           // bico
+    g.fillStyle(0x4a3a55, 1);                       // asas coladas ao corpo
+    g.fillTriangle(12, 4, 28, 1, 22, 6);
+    g.fillTriangle(14, 10, 30, 12, 24, 8);          // cauda/asa de baixo
+    g.fillStyle(0xe8ddc2, 1);                       // peito claro
+    g.fillEllipse(12, 9.5, 12, 4);
+    g.fillStyle(0xd4af37, 1);                       // colar de Hórus
+    g.fillRect(8, 4, 2.5, 6);
+    g.fillStyle(0xffd24a, 1);                       // olho solar
+    g.fillCircle(5, 5, 1.4);
+    g.fillStyle(0x17171b, 1);
+    g.fillCircle(5.4, 5, 0.7);
+    g.generateTexture('falcao-projectile', 30, 14);
     g.destroy();
   }
 

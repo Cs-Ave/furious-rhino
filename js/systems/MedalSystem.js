@@ -25,6 +25,12 @@ export const MEDALS = [
   { id: 'dist_1800', emoji: '🚨', name: 'Zona de Contenção', desc: 'Passe o checkpoint (1800m) — a cidade te caça', test: (s) => s.distance >= 1800 },
   { id: 'dist_2000', emoji: '🏆', name: 'Inalcançável', desc: 'Corra 2000m — a Muralha à vista', test: (s) => s.distance >= 2000 },
   { id: 'dist_2200', emoji: '🛣️', name: 'Atravessou a Cidade', desc: 'Cruze o Pórtico da Rodovia (2200m)', test: (s) => s.distance >= 2200 },
+  // v1.8.10 — As Areias do Tempo: o deserto fecha o buraco de medalhas que
+  // ia de 2200m ate a LENDA. Marcos das etapas + os dois combates.
+  { id: 'dist_2700', emoji: '🌴', name: 'Miragem do Oásis', desc: 'Corra 2700m — a água é traiçoeira', test: (s) => s.distance >= 2700 },
+  { id: 'dist_3700', emoji: '🔺', name: 'Vale dos Faraós', desc: 'Passe a Barreira e entre no Vale (3700m)', test: (s) => s.distance >= 3700 },
+  { id: 'dist_4200', emoji: '⚰️', name: 'Necrópole de Areia', desc: 'Corra 4200m — a tempestade te espera', test: (s) => s.distance >= 4200 },
+  { id: 'dist_4700', emoji: '🏜️', name: 'Atravessou o Deserto', desc: 'Chegue à muralha do Faraó (4700m)', test: (s) => s.distance >= 4700 },
   { id: 'walls_5', emoji: '🧱', name: 'Demolidor', desc: 'Quebre 5 paredes em uma corrida', test: (s) => s.wallsBroken >= 5 },
   { id: 'ramps_3', emoji: '🚜', name: 'Escavadeira', desc: 'Destrua 3 morros em uma corrida', test: (s) => s.rampsSmashed >= 3 },
   { id: 'towers_2', emoji: '⚡', name: 'Torre Abaixo', desc: 'Derrube 2 torres em uma corrida', test: (s) => s.towersDowned >= 2 },
@@ -34,7 +40,10 @@ export const MEDALS = [
   // o Cerco foi realocado para o deserto e ainda não tem âncora, então a
   // medalha dele fica DORMENTE (test => false) até ele reabrir — conceder
   // Fura-Bloqueio por vencer a Muralha seria a medalha errada. Id imutável.
-  { id: 'boss2_win', emoji: '🕸️', name: 'Fura-Bloqueio', desc: 'Derrube a barricada do Cerco (em breve, no deserto)', test: () => false },
+    // v1.8.10: a medalha dormente ACORDOU — o Cerco vive, reformado como a
+  // Barreira da Escavação (3650m). Id imutável; desc/test re-batizados.
+  { id: 'boss2_win', emoji: '🕸️', name: 'Fura-Bloqueio', desc: 'Derrube a Barreira da Escavação (3650m)', test: (s) => (s.cercoLayers || 0) >= 4 },
+  { id: 'farao_win', emoji: '🏺', name: 'Quebra-Faraó', desc: 'Derrote o Faraó de Bronze (4700m)', test: (s) => (s.faraoLayers || 0) >= 5 },
   { id: 'city_boss_win', emoji: '🧱', name: 'Queda da Muralha', desc: 'Derrube a Operação Muralha (2000m)', test: (s) => (s.boss2Layers || 0) >= 4 },
   { id: 'legend_world', emoji: '👑', name: 'Lenda do Mundo', desc: 'Vença o Caçador-Mor no fim do mundo', test: (s) => Boolean(s.legend) },
 ];

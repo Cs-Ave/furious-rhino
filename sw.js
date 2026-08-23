@@ -1,6 +1,6 @@
 // Network-first service worker: always serves fresh files while online
 // (essential during development), falls back to cache for offline play.
-const CACHE = 'furious-rhino-v189';
+const CACHE = 'furious-rhino-v1810';
 const ASSETS = [
   './',
   './index.html',
@@ -119,6 +119,27 @@ const ASSETS = [
   './art/enemy-scooter-alt.svg',
   './art/boss-hunter.svg',
   // v1.8.7 — elenco dos distritos + Comandante da Muralha
+  // v1.8.10 — elenco do deserto + Faraó de Bronze
+  './art/enemy-abutre-flap.svg',
+  './art/enemy-abutre.svg',
+  './art/enemy-arqueiro-alt.svg',
+  './art/enemy-arqueiro.svg',
+  './art/enemy-camelo-run-1.svg',
+  './art/enemy-camelo.svg',
+  './art/enemy-chacal-air.svg',
+  './art/enemy-chacal.svg',
+  './art/enemy-escaravelho-run-1.svg',
+  './art/enemy-escaravelho.svg',
+  './art/enemy-falcao-alt.svg',
+  './art/enemy-falcao.svg',
+  './art/enemy-flamingo-flap.svg',
+  './art/enemy-flamingo.svg',
+  './art/enemy-mumia-run-1.svg',
+  './art/enemy-mumia.svg',
+  './art/enemy-naja-alt.svg',
+  './art/enemy-naja.svg',
+  './art/farao-hunter-aim.svg',
+  './art/farao-hunter.svg',
   './art/enemy-dronesent-alt.svg',
   './art/enemy-dronesent.svg',
   './art/enemy-dronezig-alt.svg',

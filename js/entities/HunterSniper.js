@@ -17,9 +17,20 @@ import { Constants } from '../utils/Constants.js';
 //   hunterTexture / hunterAimTexture   arte parado / mirando
 //   enrageMs     0 = sem enrage; >0 = passado esse tempo de luta a cadência
 //                desce UM degrau na tabela (nunca um muro de morte)
-//   rasanteStyle (v1.8.7, opcional) 'k9' = o rasante veste a textura
-//                'k9-projectile' (cão de choque cruzando a arena — Muralha);
-//                ausente/qualquer outro valor = dardo padrão
+//   rasanteStyle (v1.8.7; v1.8.10 generalizado) chave do MAPA RASANTE_TEX
+//                abaixo — 'k9' (cão de choque da Muralha) ou 'falcao' (o
+//                Mergulho de Hórus do Faraó de Bronze); ausente/fora do
+//                mapa = dardo padrão
+
+// rasanteStyle → textura do projétil do rasante. Era o literal 'k9'
+// (v1.8.7); o Faraó trouxe o segundo estilo e o if virou tabela. As
+// texturas são do agente C — sem elas, o tint próprio do estilo assume
+// (fallback silencioso, o código escreve contra os nomes do contrato). O
+// TranqDart.deactivate devolve textura E tint no descarte (higiene de
+// pool), então qualquer chave nova aqui já nasce com o restore garantido.
+const RASANTE_TEX = { k9: 'k9-projectile', falcao: 'falcao-projectile' };
+const RASANTE_TINT = { k9: 0x9db4ff, falcao: 0xd9a441 };
+
 export class HunterSniper extends Phaser.GameObjects.Sprite {
   constructor(scene, x, y, def) {
     super(scene, x, y, def.hunterTexture);
@@ -248,18 +259,19 @@ export class HunterSniper extends Phaser.GameObjects.Sprite {
     const len = Math.hypot(dx, dy) || 1;
     const v = Constants.BOSS_SHOT_SPEED;
     this.scene.spawnManager.fireDart(m.x, m.y, (dx / len) * v, (dy / len) * v, false, this.shotCause());
-    // rasanteStyle 'k9' (campo da def, v1.8.7): o rasante da Muralha é um
-    // K9 de choque cruzando a arena rente ao chão — o MESMO dardo,
-    // reskinado. A textura é do agente C; sem ela, tint azul-aço. O
-    // TranqDart devolve textura e tint no deactivate (higiene de pool).
-    if (this.def.rasanteStyle === 'k9') {
+    // rasanteStyle (campo da def): o rasante veste a textura do estilo — o
+    // K9 de choque da Muralha ou o falcão do Mergulho de Hórus (Faraó de
+    // Bronze) cruzando a arena rente ao chão. O MESMO dardo, reskinado.
+    // Textura ausente = tint do estilo; restore no TranqDart.deactivate.
+    const rasTex = RASANTE_TEX[this.def.rasanteStyle];
+    if (rasTex) {
       const d = this.lastFiredDart();
       if (d) {
-        if (this.scene.textures.exists('k9-projectile')) {
+        if (this.scene.textures.exists(rasTex)) {
           d.clearTint(); // sem o dourado de boss por cima do sprite próprio
-          d.setTexture('k9-projectile');
+          d.setTexture(rasTex);
         } else {
-          d.setTint(0x9db4ff);
+          d.setTint(RASANTE_TINT[this.def.rasanteStyle]);
         }
       }
     }

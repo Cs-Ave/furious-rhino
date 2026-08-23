@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 66 40" width="66" height="40">
+  <!-- FURIOUS RHINO - v1.8.10. Frame B do abutre: as asas batem para BAIXO
+       (dedadas abertas sob o corpo); corpo, gola, cauda e cabeca IDENTICOS
+       ao frame A (par: enemy-abutre.svg). -->
+  <defs>
+    <linearGradient id="abB2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6b533a"/>
+      <stop offset="1" stop-color="#4a3826"/>
+    </linearGradient>
+  </defs>
+  <!-- asa de tras ABAIXADA -->
+  <path d="M26 26 L6 36 L13 32 L8 39 L17 33 L16 38 L23 30 Z" fill="#3a2c1e" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- cauda em leque curto -->
+  <path d="M16 22 L4 28 L9 29 L5 33 L13 31 L12 35 L20 28 Z" fill="url(#abB2)" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- corpo estreito -->
+  <ellipse cx="33" cy="23" rx="18" ry="9" fill="url(#abB2)" stroke="#17171b" stroke-width="2.2"/>
+  <!-- gola de penugem clara -->
+  <path d="M43 16 Q48 19 47.5 25 Q45 29 41 29 Q45 23 42 17 Z" fill="#e8ddc2" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+  <circle cx="45.5" cy="18" r="2.2" fill="#e8ddc2"/>
+  <circle cx="47" cy="22" r="2" fill="#e8ddc2"/>
+  <!-- asa da frente ABAIXADA -->
+  <path d="M30 26 L18 38 L25 33 L22 39.5 L30 33 L30 38 L35 30 Z" fill="url(#abB2)" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- patas recolhidas -->
+  <path d="M34 31 l5 3 M39 30 l4 3" fill="none" stroke="#c9852a" stroke-width="2" stroke-linecap="round"/>
+  <!-- pescoco e cabeca PELADA rosada -->
+  <path d="M46 22 Q52 20 54 15" fill="none" stroke="#17171b" stroke-width="6.4" stroke-linecap="round"/>
+  <path d="M46 22 Q52 20 54 15" fill="none" stroke="#d98a7a" stroke-width="3.6" stroke-linecap="round"/>
+  <circle cx="56" cy="12" r="6.2" fill="#e09b8a" stroke="#17171b" stroke-width="2"/>
+  <!-- bico ganchudo -->
+  <path d="M61.5 11 Q65.5 11.5 65 14 Q62 15.5 60 13.8 Z" fill="#e8c26a" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M60.8 14.6 Q62.5 15.6 64 15.2" fill="none" stroke="#17171b" stroke-width="1.1" stroke-linecap="round"/>
+  <!-- olho guloso -->
+  <circle cx="56.5" cy="10.5" r="2.6" fill="#ffffff" stroke="#17171b" stroke-width="0.9"/>
+  <circle cx="57.3" cy="10.9" r="1.5" fill="#17171b"/>
+  <circle cx="56.7" cy="10.2" r="0.55" fill="#ffffff"/>
+  <path d="M53.5 8 L59 8.6" fill="none" stroke="#17171b" stroke-width="1.4" stroke-linecap="round"/>
+  <!-- ruguinhas do pescoco pelado -->
+  <path d="M52 16.5 q2 1 3.6 0.4 M51.5 18.6 q1.8 0.9 3.2 0.4" fill="none" stroke="#b56a5a" stroke-width="0.9" stroke-linecap="round"/>
+</svg>

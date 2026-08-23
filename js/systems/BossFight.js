@@ -28,8 +28,9 @@ import { HunterSniper } from '../entities/HunterSniper.js';
 //   camLockOffsetPx  a câmera trava em anchorX - isto
 //   layersProp / bouncesProp  nomes dos contadores da corrida na cena
 //   enrageMs      0 = sem enrage; >0 = depois disso a cadência sobe 1 degrau
-//   rasanteStyle  (v1.8.7, opcional) 'k9' = o rasante do atirador veste a
-//                 textura 'k9-projectile' (a Muralha); ausente = dardo padrão
+//   rasanteStyle  (v1.8.7; v1.8.10 vira mapa) chave de RASANTE_TEX no
+//                 HunterSniper — 'k9' (Muralha) ou 'falcao' (Mergulho de
+//                 Hórus do Faraó); ausente/fora do mapa = dardo padrão
 //   hints         { intro, how } dos toasts de ensino
 //   encounters    { get, add } do contador de encontros (o portão injeta os
 //                 métodos legados do StorageManager); na falta, cai em

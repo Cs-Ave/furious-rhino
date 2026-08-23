@@ -101,12 +101,30 @@ export class SpawnManager {
         resumeX: win + 1000,
         anchor: win,
       },
-      // v1.8.5 — arena do CERCO (2000m): mesma geometria da arena do portão
+      // v1.8.5 — arena da MURALHA (2000m): mesma geometria da arena do portão
       {
         from: Constants.BOSS2_ANCHOR_PX - (Constants.BOSS_ARENA_PX + 200),
         to: Constants.BOSS2_ANCHOR_PX + 1000,
         resumeX: Constants.BOSS2_ANCHOR_PX + 1000,
         anchor: Constants.BOSS2_ANCHOR_PX,
+      },
+      // v1.8.10 — arena da BARREIRA DA ESCAVAÇÃO (o Cerco, 3650m): mesma
+      // geometria das outras arenas (146000−1300 → 146000+1000). O anchor
+      // alimenta nearBossArena: nenhum combo parte um par a caminho da luta.
+      {
+        from: Constants.CERCO_ANCHOR_PX - (Constants.BOSS_ARENA_PX + 200),
+        to: Constants.CERCO_ANCHOR_PX + 1000,
+        resumeX: Constants.CERCO_ANCHOR_PX + 1000,
+        anchor: Constants.CERCO_ANCHOR_PX,
+      },
+      // v1.8.10 — arena do FARAÓ DE BRONZE (4700m): 188000−1300 → 189000.
+      // O `to` coincide com o from da área `deserto` (189000): a retomada já
+      // nasce no deserto profundo, do outro lado da muralha desmoronada.
+      {
+        from: Constants.FARAO_ANCHOR_PX - (Constants.BOSS_ARENA_PX + 200),
+        to: Constants.FARAO_ANCHOR_PX + 1000,
+        resumeX: Constants.FARAO_ANCHOR_PX + 1000,
+        anchor: Constants.FARAO_ANCHOR_PX,
       },
       // Fim do mundo (LENDA): últimos 1500px livres para a chegada. v1.8.5:
       // o GUARDIÃO mora nela (âncora 399800) — o anchor faz nearBossArena
@@ -125,11 +143,11 @@ export class SpawnManager {
       // 1500px sem nenhuma luta por perto.
       { from: 55700, to: 56300, resumeX: 56300 }, // 1400m — Viaduto do Centro
       { from: 71700, to: 72300, resumeX: 72300 }, // 1800m — Checkpoint da Contenção
-      { from: 87700, to: 88300, resumeX: 88300 }, // 2200m — Pórtico da Rodovia (KM 0)
+      { from: 87700, to: 88300, resumeX: 88300 }, // 2200m — Pórtico (KM 0): v1.8.10, a entrada do deserto
     ];
   }
 
-  // A zona sem spawn que contém x, ou null. São 6 — varredura linear é mais
+  // A zona sem spawn que contém x, ou null. São 8 — varredura linear é mais
   // barata que qualquer índice.
   inNoSpawnZone(x) {
     const zones = this.noSpawnZones();
@@ -416,7 +434,8 @@ export class SpawnManager {
   pickBiomeAnimal(x, mode = 'any') {
     const biome = Constants.BIOMES[Constants.getBiomeIndex(x)];
     // v1.8.7: dentro da cidade cada distrito tem elenco próprio (cast);
-    // cast null (rodovia) volta ao elenco legado da cidade
+    // cast null volta ao elenco legado do bioma — v1.8.10: nenhuma área usa
+    // mais (o deserto profundo tem cast explícito), mas o fallback fica
     const areaCast = Constants.cityAreaFor(x)?.cast;
     const list = areaCast ||
       Constants.BIOME_ANIMALS[biome] || Constants.ANIMAL_TYPES;
@@ -549,10 +568,13 @@ export class SpawnManager {
   // onDartHit como está. O legado `true` (chamadas antigas/testes) cai em
   // 'boss'. O tint dourado é o MESMO para os três: "dardo de boss" é uma
   // linguagem visual só.
-  fireDart(x, y, vx, vy = 0, gravity = false, boss = false) {
+  // v1.8.10: `tex` opcional veste o projétil (a FLECHA do deserto — arqueiro
+  // e obelisco); o TranqDart.deactivate restaura a textura-base no reuso
+  fireDart(x, y, vx, vy = 0, gravity = false, boss = false, tex = null) {
     const dart = this.dartsGroup.getFirst(false);
     if (!dart) return;
     dart.fire(x, y, vx, vy, gravity);
+    if (tex && this.scene.textures.exists(tex)) dart.setTexture(tex);
     if (boss) {
       dart.fromBoss = boss === true ? 'boss' : boss;
       dart.setTint(0xffc84a);

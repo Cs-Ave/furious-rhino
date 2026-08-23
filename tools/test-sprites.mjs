@@ -187,10 +187,15 @@ ok('3c. ./js/art/SpriteParams.js está no ASSETS do sw',
   ok('6c. jaulas sem espécie `pair` (congela o par=4 do e2e-ramp)',
     !Constants.BIOME_ANIMALS.jaulas.some((t) => Constants.ANIMAL_SPECS[t].pair));
   const brecha = Constants.CITY_DISTRICTS.find((d) => d.key === 'brecha');
-  const rodovia = Constants.CITY_DISTRICTS.find((d) => d.key === 'rodovia');
-  eq('6d. Brecha continua só-pombo (design da volta olímpica)',
-    brecha && brecha.cast, ['pombo']);
-  eq('6e. rodovia continua cast null (elenco legado)', rodovia && rodovia.cast, null);
+  // v1.8.10: a entrada 'rodovia' foi SUBSTITUÍDA pelo deserto (Areias do
+  // Tempo) — a última área é 'deserto' (infinita, elenco = união das etapas)
+  const deserto = Constants.CITY_DISTRICTS.find((d) => d.key === 'deserto');
+  eq('6d. área infinita do deserto existe e fecha a tabela',
+    Boolean(deserto) && deserto.from === 189000 &&
+    Constants.CITY_DISTRICTS[Constants.CITY_DISTRICTS.length - 1].key === 'deserto', true);
+  eq('6e. deserto infinito tem elenco próprio (união das etapas, com terrestre)',
+    Array.isArray(deserto.cast) && deserto.cast.length >= 10 &&
+    deserto.cast.includes('camelo') && deserto.cast.includes('falcao'), true);
   const bandasRuins = Constants.ANIMAL_TYPES.filter((t) => {
     const band = (B[t].zig && B[t].zig.band) || B[t].fly;
     return band && !(band[0] < band[1] && band[0] >= 300 && band[1] <= 600);

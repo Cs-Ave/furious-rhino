@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 78 40" width="78" height="40">
+  <!-- FURIOUS RHINO - v1.8.10. Frame B do flamingo: a asa bate para BAIXO
+       (penas de ponta escuras sob o corpo); corpo, pescoco, pernas e
+       cabeca IDENTICOS ao frame A (par: enemy-flamingo.svg). -->
+  <defs>
+    <linearGradient id="flB2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2a0b4"/>
+      <stop offset="1" stop-color="#e07a96"/>
+    </linearGradient>
+  </defs>
+  <!-- pernas compridas arrastando atras -->
+  <path d="M22 26 Q12 30 3 29" fill="none" stroke="#17171b" stroke-width="3.4" stroke-linecap="round"/>
+  <path d="M22 26 Q12 30 3 29" fill="none" stroke="#d6607e" stroke-width="1.7" stroke-linecap="round"/>
+  <path d="M24 28 Q15 34 6 34.5" fill="none" stroke="#17171b" stroke-width="3.4" stroke-linecap="round"/>
+  <path d="M24 28 Q15 34 6 34.5" fill="none" stroke="#d6607e" stroke-width="1.7" stroke-linecap="round"/>
+  <path d="M3 29 l-2.5 -1.5 M3 29 l-2 1.8 M6 34.5 l-2.6 -1 M6 34.5 l-1.8 2" fill="none" stroke="#17171b" stroke-width="1.4" stroke-linecap="round"/>
+  <!-- cauda de penas -->
+  <path d="M18 20 L8 16 L13 20 L7 22 L15 24 Z" fill="#d6607e" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- corpo -->
+  <ellipse cx="34" cy="21" rx="19" ry="9.5" fill="url(#flB2)" stroke="#17171b" stroke-width="2.2"/>
+  <!-- asa ABAIXADA (pontas escuras sob o corpo) -->
+  <path d="M32 26 L24 38 L29 32 L28 38.5 L34 32 L36 38 L39 30 L42 34 L41 26 Z" fill="#f2b8c6" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M24 38 L29 32 M36 38 L39 30" fill="none" stroke="#3a2c30" stroke-width="2.2" stroke-linecap="round"/>
+  <!-- pescoco em S esticado a frente -->
+  <path d="M50 18 C58 16 60 12 61 8" fill="none" stroke="#17171b" stroke-width="6.6" stroke-linecap="round"/>
+  <path d="M50 18 C58 16 60 12 61 8" fill="none" stroke="#f2a0b4" stroke-width="3.8" stroke-linecap="round"/>
+  <!-- cabeca -->
+  <circle cx="63" cy="7.5" r="6" fill="url(#flB2)" stroke="#17171b" stroke-width="2"/>
+  <!-- bico curvo de ponta preta -->
+  <path d="M68 6 Q74.5 6 76 9.5 Q73 12.5 69 11 Z" fill="#f6d6e6" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M73.5 8 Q75.5 8.8 76 9.5 Q74.5 11.2 72.5 11.2 Z" fill="#17171b"/>
+  <!-- olho grande -->
+  <circle cx="63.5" cy="6.5" r="2.6" fill="#ffffff" stroke="#17171b" stroke-width="0.9"/>
+  <circle cx="64.3" cy="6.9" r="1.5" fill="#17171b"/>
+  <circle cx="63.7" cy="6.2" r="0.55" fill="#ffffff"/>
+  <!-- bochecha -->
+  <circle cx="60.5" cy="10" r="1.6" fill="#f2b8c6"/>
+</svg>

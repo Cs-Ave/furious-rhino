@@ -3,7 +3,7 @@ import { SPRITE_PARAMS } from '../art/SpriteParams.js';
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
-  VERSION: '1.8.9',
+  VERSION: '1.8.10',
 
   // Rótulo humano de cada desfecho de corrida. Fonte única para o painel, o
   // resumo do jogador e os pushes — os três diziam a mesma coisa com palavras
@@ -19,6 +19,9 @@ export const Constants = {
     boss3: '🏹 Caçador-Mor',  // v1.8.5 — o Guardião do Fim (9995m)
     fall: '🕳️ Anomalia de física',
     win: '🗽 Fuga',
+    // v1.8.10 "As Areias do Tempo" — os dois combates do deserto
+    cerco: '🕸️ Capturador da Barreira', // a Barreira da Escavação (3650m)
+    farao: '🏺 Faraó de Bronze',        // o defensor da muralha (4700m)
   },
 
   // Game dimensions & scale
@@ -132,13 +135,15 @@ export const Constants = {
   // (agente B) migra — depois um dos dois morre.
   MURALHA_ENRAGE_MS: 45000,
 
-  // --------------------------------- O CERCO (declarado, realocado)
-  // v1.8.7: o Cerco saiu do slot dos 2000m e vira o PORTEIRO DO DESERTO
-  // (âncora proposta 120000px/3000m, decisão em aberto). Mecânica 100%
-  // intacta — estas tabelas ficam DECLARADAS (precedente da casa: B e C
-  // ficaram declarados na v1.8.4) e reabrem quando o funil de conversão
-  // (ideia H do IDEIAS-FUTURAS) mostrar massa de corridas pós-2000m.
-  // A medalha `boss2_win` ("Fura-Bloqueio") segue com o Cerco.
+  // --------------------- O CERCO: a Barreira da Escavação (3650m, VIVO)
+  // v1.8.10 "As Areias do Tempo": o wiring CHEGOU. Depois de duas versões
+  // declaradas (precedente da casa: B e C na v1.8.4), o Cerco vira o
+  // MINIBOSS do meio do deserto — a Barreira da Escavação, âncora
+  // CERCO_ANCHOR_PX (146000px/3650m), fechando o Sítio da Escavação.
+  // Mecânica 100% intacta; paleta nova `escavacao` e o Capturador reusa o
+  // rig boss2-hunter (def no GameScene, agente C). Letra `u`
+  // (cercoLayersBroken), causa própria `cerco`, +150 na vitória (u ≥ 4).
+  // A medalha `boss2_win` ("Fura-Bloqueio") acorda re-batizada para cá.
   // 4 camadas fora da ordem "de baixo para cima": obriga a ler o glow em vez
   // de decorar a sequência do portão
   CERCO_LAYERS: ['mid', 'ground', 'high', 'mid'],
@@ -149,6 +154,36 @@ export const Constants = {
     3: { intervalMs: 1250, telegraphMs: 420, burst: 2, mortar: false, rasante: true, fan: true },
     2: { intervalMs: 1050, telegraphMs: 380, burst: 2, mortar: false, rasante: true, fan: true },
     1: { intervalMs: 900, telegraphMs: 350, burst: 3, mortar: true, fan: true },
+  },
+  // Âncora da Barreira da Escavação: 3650m, no ANOITECER do ciclo de céu —
+  // dramaturgia de graça, zero mudança nas âncoras do céu.
+  CERCO_ANCHOR_PX: 146000,
+
+  // ------------------------- O FARAÓ DE BRONZE (4700m) — v1.8.10
+  // O defensor da muralha de arenito no fim da Necrópole: o exame MAIS
+  // agressivo do jogo POR TABELA, não por HP — a tese "a cidade caçava; o
+  // deserto engole" cobrada no último degrau antes do deserto profundo.
+  FARAO_ANCHOR_PX: 188000,
+  // 5 camadas (mais longa que qualquer luta) e abre no MEIO — a terceira
+  // gramática de abertura (portão abre embaixo, Muralha no alto).
+  FARAO_LAYERS: ['mid', 'high', 'ground', 'mid', 'high'],
+  // Enrage aos 30s (vs 45 dos outros): quem chegou aos 4700m já provou que
+  // sabe ler telegraph — aqui a régua é executar rápido.
+  FARAO_ENRAGE_MS: 30000,
+  // Arsenal por camadas RESTANTES (objetos mutáveis: TuningPanel pode ligar
+  // sliders). Vocabulário 100% existente: burst = rajada; fan = leque;
+  // holo = Espelho de Rá (o feixe de luz varrendo até a zona de pouso,
+  // diegético como espelho solar — mesma mecânica da granada-de-luz da
+  // Muralha); rasante = Mergulho de Hórus (projétil-falcão rente ao chão,
+  // anti-camping; o estilo 'falcao' é despachado no wiring, agente B).
+  // Sem mortar de propósito: o holo JÁ é o tiro em arco desta luta.
+  // Cadência 1200→700ms — a mais curta do jogo (Guardião para em 850).
+  BOSS_FARAO: {
+    5: { intervalMs: 1200, telegraphMs: 420, burst: 1 },
+    4: { intervalMs: 1050, telegraphMs: 400, burst: 2, holo: true },
+    3: { intervalMs: 950,  telegraphMs: 380, burst: 3, fan: true, holo: true },
+    2: { intervalMs: 820,  telegraphMs: 350, burst: 3, fan: true, holo: true, rasante: true },
+    1: { intervalMs: 700,  telegraphMs: 320, burst: 3, fan: true, holo: true, rasante: true },
   },
 
   // ---------------------------------- BOSS 3: o Caçador-Mor (declarado)
@@ -179,10 +214,15 @@ export const Constants = {
   // Ficam de fora, de propósito, `j/p/x/n` (pulo/dash/dano: spam e
   // frustração não pontuam) e `f` (o especial já aparece no que ele quebra).
   SCORE_WEIGHTS: { wall: 5, ramp: 5, tower: 15, animal: 3, bossLayer: 25, escape: 100, blitz: 50, legend: 400,
-    // v1.8.5: vitória do Cerco (2000m) — camada de boss segue valendo
-    // bossLayer nos três bosses; o Guardião não tem bônus próprio porque a
-    // vitória dele JÁ paga o legend (+400).
-    boss2: 150 },
+    // v1.8.5: vitória do boss dos 2000m — camada de boss segue valendo
+    // bossLayer em TODOS os bosses; o Guardião não tem bônus próprio porque
+    // a vitória dele JÁ paga o legend (+400).
+    boss2: 150,
+    // v1.8.10: vitórias do deserto — Barreira (u ≥ 4) paga como a Muralha;
+    // Faraó (y ≥ 5) paga mais que qualquer boss porque é o exame mais
+    // agressivo do jogo (5 camadas, cadência 700ms, enrage 30s). O espelho
+    // no runBonus/breakdown é do ScoreSystem (agente B).
+    cerco: 150, farao: 250 },
   SCORE_BLITZ_MAX_S: 20,         // 3 camadas do portão em <= 20s = blitz
   SCORE_BONUS_CAP: 1,            // bônus <= metros × isto (na simulação nunca precisou agir)
   SCORE_MAX_TOTAL: 20000,        // mesmo teto das firestore.rules (score is int, 1..20000)
@@ -332,6 +372,31 @@ export const Constants = {
     // Recolors do drone-base (mesma silhueta, paleta preto/vermelho)
     dronezig:  { w: 56,  h: 36, bodyW: 40,  bodyH: 18, offX: 8,  offY: 11, tex: 'enemy-dronezig', scale: 1.4 },
     dronesent: { w: 60,  h: 44, bodyW: 42,  bodyH: 24, offX: 9,  offY: 8,  tex: 'enemy-dronesent', scale: 1.4 },
+
+    // ---------------- elenco v1.8.10 do DESERTO (As Areias do Tempo)
+    // Mesmas regras das levas v1.7/v1.8.7: offX já vem ESPELHADO
+    // (w - offX_arte - bodyW); pescoço/bico/arco/capelo FORA da colisão.
+    // Corcova e pescoço do camelo fora da hitbox (como o chifre do rino)
+    camelo:      { w: 90, h: 78, bodyW: 68, bodyH: 56, offX: 8,  offY: 20, tex: 'enemy-camelo' },
+    // Envergadura larga, corpo estreito — asas são enfeite, como no eagle
+    abutre:      { w: 66, h: 40, bodyW: 44, bodyH: 22, offX: 10, offY: 10, tex: 'enemy-abutre' },
+    // Recolor do snake: capelo ERGUIDO no visual, hitbox BAIXA como a da
+    // cobra — o corpo rasteiro é o que colide, o capelo é telegraph
+    naja:        { w: 64, h: 46, bodyW: 50, bodyH: 16, offX: 6,  offY: 26, tex: 'enemy-naja' },
+    // Recolor do bird em voo: pescoço e pernas esticados fora da colisão
+    flamingo:    { w: 78, h: 40, bodyW: 54, bodyH: 18, offX: 10, offY: 12, tex: 'enemy-flamingo' },
+    // Hitbox 34×58 do design (alta e estreita, molde da tropa); nasce
+    // SEMPRE em par — múmias saem da tumba de dois em dois
+    mumia:       { w: 46, h: 66, bodyW: 34, bodyH: 58, offX: 6,  offY: 6,  tex: 'enemy-mumia', pair: true },
+    // Hitbox 40×24 do design: pequeno e rasteiro, pulinho curto resolve
+    escaravelho: { w: 52, h: 32, bodyW: 40, bodyH: 24, offX: 6,  offY: 6,  tex: 'enemy-escaravelho' },
+    // Saltador magro (molde do k9): focinho fora da colisão
+    chacal:      { w: 68, h: 46, bodyW: 54, bodyH: 32, offX: 6,  offY: 12, tex: 'enemy-chacal' },
+    // Zig do céu do Vale: silhueta de falcão, asas fora da colisão
+    falcao:      { w: 62, h: 36, bodyW: 42, bodyH: 18, offX: 8,  offY: 10, tex: 'enemy-falcao' },
+    // Arco estendido FORA da hitbox (offX assimétrico, como a rede do
+    // zookeeper e o microfone do reporter)
+    arqueiro:    { w: 52, h: 64, bodyW: 28, bodyH: 52, offX: 8,  offY: 10, tex: 'enemy-arqueiro' },
   },
 
   // 5 espécies visuais de pássaro (mesma hitbox/behavior de 'bird');
@@ -415,6 +480,9 @@ export const Constants = {
     // v1.8.7 — elenco dos distritos da cidade (ideia J)
     'viralata', 'gatobeco', 'pombo', 'reporter', 'pipa', 'helinews',
     'camionete', 'k9', 'tropa', 'dronezig', 'dronesent',
+    // v1.8.10 — elenco do deserto (As Areias do Tempo, ideia L)
+    'camelo', 'abutre', 'naja', 'flamingo', 'mumia', 'escaravelho',
+    'chacal', 'falcao', 'arqueiro',
   ],
 
   // v1.7: cada bioma tem elenco próprio (antes as mesmas 5 espécies
@@ -475,7 +543,7 @@ export const Constants = {
     //   zig: { vy, band: [minY, maxY] } — onda triangular: vy constante com
     //     flip quando y sai da banda (clamp); o frame -alt pisca no flip
     //     (telegraph diegético do zag). Zig também vale como flag de voador.
-    //   shoot: { ... } — atirador (Animal.updateShoot reusa fireDart):
+    //   shoot: { ... , tex: 'arrow-projectile' } — atirador (Animal.updateShoot reusa fireDart):
     //     range: [min,max] px do rino (só terrestre; aimed dispensa),
     //     telegraphMs (setTintFill, molde da TranqTower), dartSpeed,
     //     intervalMs (cadência; sem ele = 1 tiro por janela de range),
@@ -502,6 +570,31 @@ export const Constants = {
     // Paira (bob curto) e atira mirado a cada 1400ms com laser de 320ms
     dronesent: { speed: 140, bobVy: 20, fly: [360, 430], sentinel: true,
       shoot: { intervalMs: 1400, telegraphMs: 320, dartSpeed: 700, aimed: true } },
+
+    // ---------------- elenco v1.8.10 do DESERTO (As Areias do Tempo)
+    // Camelo em disparada: o "scooter" do deserto, rasteiro rápido
+    camelo:      { speed: 200, anim: 'camelo-run' },
+    // Circula alto com bob largo (40): a silhueta que anuncia a etapa 1
+    abutre:      { speed: 160, bobVy: 40, fly: [420, 520], anim: 'abutre-run' },
+    // Lenta como a cobra (85 vs 80): o perigo é não VER, não desviar
+    naja:        { speed: 85,  anim: 'naja-run' },
+    // Voa numa faixa BAIXA ([460,540]): pressiona o pulo no chão traiçoeiro
+    flamingo:    { speed: 150, bobVy: 50, fly: [460, 540], anim: 'flamingo-run' },
+    // Par obrigatório (spec.pair): lenta, mas nunca vem sozinha
+    mumia:       { speed: 80,  anim: 'mumia-run' },
+    // O rasteiro mais rápido do deserto: pequeno, baixo e veloz
+    escaravelho: { speed: 210, anim: 'escaravelho-run' },
+    // Saltador do Vale (molde do k9: −760/400ms; 420ms = pulos mais espaçados)
+    chacal:      { speed: 150, jumpV: -760, jumpIntervalMs: 420, airTexture: 'enemy-chacal-air' },
+    // Falcão de Hórus: zig SEM anim — o frame -alt piscando no flip é o
+    // telegraph do zag (mesmo contrato de pipa/dronezig)
+    falcao:      { speed: 190, zig: { vy: 280, band: [380, 545] } },
+    // ATIRADOR terrestre (molde da camionete): 1 flecha quando o rino entra
+    // em [650,880]px; telegraph de 300ms (o -alt = arco tenso); dartSpeed
+    // 640 entre a camionete (620) e o t6 (700); cap 1 = nunca dois arqueiros
+    // atirando juntos. Sem anim: o -alt é telegraph, não passada.
+    arqueiro:    { speed: 140,
+      shoot: { range: [650, 880], telegraphMs: 300, dartSpeed: 640, cap: 1 } },
   },
 
   // Animações de 2 frames do elenco (enemy-<tipo> → enemy-<tipo>-<sufixo>).
@@ -522,6 +615,12 @@ export const Constants = {
     ['pickup', 'alt', 6], ['scooter', 'alt', 8],
     ['viralata', 'run-1', 10], ['pombo', 'flap', 8], ['reporter', 'run-1', 8],
     ['helinews', 'alt', 10], ['tropa', 'run-1', 6], ['dronesent', 'alt', 8],
+    // v1.8.10 — deserto. Ficam FORA por design: falcao (o -alt dele é
+    // telegraph de zig, não frame de corrida — contrato de pipa/dronezig) e
+    // chacal (usa -air como textura de pulo por estado, sem anim, como o k9)
+    ['camelo', 'run-1', 10], ['abutre', 'flap', 7], ['naja', 'alt', 4],
+    ['flamingo', 'flap', 7], ['mumia', 'run-1', 5], ['escaravelho', 'run-1', 12],
+    ['arqueiro', 'alt', 6],
   ],
 
   // 6 tiers de dificuldade, um a cada 200m (8000px de mundo). Objetos
@@ -642,8 +741,51 @@ export const Constants = {
       weights: {}, breach: false },
     { from: 81000, key: 'brecha',    label: '🌅 A BRECHA', wallSkin: '-contencao',
       cast: ['pombo'], weights: {}, breach: true },
-    { from: 88000, key: 'rodovia',   label: null, wallSkin: '-city',
-      cast: null, weights: {}, breach: false },  // cast null = elenco legado da cidade
+
+    // ------------- v1.8.10 "AS AREIAS DO TEMPO" (ideia L): o deserto em 5
+    // etapas de 500m (2200–4700m) + o infinito, no slot da antiga `rodovia`.
+    // A tese: *a cidade caçava; o deserto engole* — a mediana pós-portão
+    // morre aos 1.224m (§4.3 do IDEIAS-FUTURAS) e o funil afunila rápido,
+    // então a 1ª etapa é respiro pós-Muralha e a pressão escala etapa a
+    // etapa até o exame mais agressivo do jogo (Faraó, 4700m).
+    // Campos NOVOS por área (opcionais, lidos por switchArea/skinFor):
+    //   propSkin — família de espinho/torre/rampa (antes hard-coded -city)
+    //   ground/fg — texturas de chão e primeiro plano do trecho
+    //   cars: false — some o tráfego de fundo (não há carros na areia)
+    //   skyLife — fauna do céu de fundo ('deserto' = abutres ao longe)
+    { from: 88000,  key: 'duna',      label: '🐫 ESTRADA ENGOLIDA', wallSkin: '-ruina', propSkin: '-egito',
+      ground: 'ground-desert', fg: 'bg-fg-desert', cars: false, skyLife: 'deserto',
+      // Respiro pós-boss: towerW 0.24 (t6) → 0.10 — a sobra vira rasteiro,
+      // leitura baixa e honesta na chegada ao bioma novo
+      cast: ['camelo', 'abutre', 'naja', 'ostrich', 'snake'],
+      weights: { towerW: 0.10 }, breach: false },
+    { from: 108000, key: 'oasis',     label: '🌴 MIRAGEM DO OÁSIS', wallSkin: '-ruina', propSkin: '-egito',
+      ground: 'ground-desert', fg: 'bg-fg-desert', cars: false, skyLife: 'deserto',
+      // Chão traiçoeiro é o tema: menos torre (0.08), MAIS parede (0.20 vs
+      // 0.12 do t6) — a leitura fica rente à água
+      cast: ['croc', 'naja', 'flamingo', 'abutre', 'capybara'],
+      weights: { towerW: 0.08, wallW: 0.20 }, breach: false },
+    { from: 128000, key: 'escavacao', label: '⛏️ SÍTIO DA ESCAVAÇÃO', wallSkin: '-ruina', propSkin: '-egito',
+      ground: 'ground-desert', fg: 'bg-fg-desert', cars: false, skyLife: 'deserto',
+      // Pesos do t6 puros daqui em diante: o funil já filtrou quem chegou
+      cast: ['mumia', 'escaravelho', 'arqueiro', 'person', 'abutre'],
+      weights: {}, breach: false },
+    { from: 148000, key: 'vale',      label: '🔺 VALE DOS FARAÓS', wallSkin: '-piramide', propSkin: '-egito',
+      ground: 'ground-desert', fg: 'bg-fg-desert', cars: false, skyLife: 'deserto',
+      cast: ['chacal', 'falcao', 'arqueiro', 'escaravelho', 'mumia'],
+      weights: {}, breach: false },
+    { from: 168000, key: 'necropole', label: '⚰️ NECRÓPOLE DE AREIA', wallSkin: '-piramide', propSkin: '-egito',
+      ground: 'ground-desert', fg: 'bg-fg-desert', cars: false, skyLife: 'deserto',
+      // O exame: teto real do jogo, tudo junto, na tempestade de areia
+      cast: ['mumia', 'chacal', 'falcao', 'arqueiro', 'escaravelho', 'naja'],
+      weights: {}, breach: false },
+    // O DESERTO PROFUNDO (pós-Faraó, infinito até o Guardião do Fim):
+    // elenco = a UNIÃO das 5 etapas — depois da muralha, o deserto inteiro
+    { from: 189000, key: 'deserto',   label: null, wallSkin: '-piramide', propSkin: '-egito',
+      ground: 'ground-desert', fg: 'bg-fg-desert', cars: false, skyLife: 'deserto',
+      cast: ['camelo', 'abutre', 'naja', 'ostrich', 'snake', 'croc', 'flamingo',
+        'capybara', 'mumia', 'escaravelho', 'arqueiro', 'person', 'chacal', 'falcao'],
+      weights: {}, breach: false },
   ],
 
   // Índice da área da cidade para um x de mundo: −1 antes do portão, senão a
@@ -666,12 +808,13 @@ export const Constants = {
 
   // Família de skin de um obstáculo na posição x. Fora da cidade '' (zoo);
   // dentro, a PAREDE tem família por distrito (wallSkin) e todo o resto
-  // (espinho/torre/rampa) segue na família -city — os 4 ternários binários
-  // do SpawnManager viraram esta função (o débito de extensão pago uma vez).
+  // (espinho/torre/rampa) usa o propSkin da área — v1.8.10: era '-city'
+  // hard-coded, o que vestiria espinho/torre/rampa do deserto de concreto
+  // urbano; áreas sem propSkin (as 4 da cidade + Brecha) caem no -city.
   skinFor(x, kind = 'wall') {
     const area = this.cityAreaFor(x);
     if (!area) return '';
-    return kind === 'wall' ? area.wallSkin : '-city';
+    return kind === 'wall' ? area.wallSkin : (area.propSkin || '-city');
   },
 
   // y de spawn de um voador de escolta/combo. O y histórico é 470 (fixo);
@@ -717,6 +860,24 @@ export const Constants = {
     'limpo',      // 1800–2000m  corredor pré-boss: neblina sorteada (34% de
                   //             alpha) seria ilegível sobre holofote/telegraph
     'limpo',      // 2000–2200m  a Brecha — a volta olímpica amanhece limpa
+    // v1.8.10 (ideia L): 11→24 faixas — o roteiro cobre o deserto INTEIRO
+    // (2200–4800m). Deserto SEM chuva, por clima e por tese; a neblina aqui
+    // é MIRAGEM/POEIRA e a tempestade é DE AREIA (leitura visual do agente
+    // C, mesma mecânica). Roteirizado porque o hash pós-roteiro sorteava
+    // tempestade em cima do Cerco (3650m) — telegraph ilegível na luta.
+    'limpo',      // 2200–2400m  duna — chegada ao bioma novo, leitura limpa
+    'limpo',      // 2400–2600m  duna
+    'limpo',      // 2600–2800m  duna/oásis
+    'neblina',    // 2800–3000m  oásis — a MIRAGEM (neblina rebatizada)
+    'limpo',      // 3000–3200m  oásis
+    'neblina',    // 3200–3400m  escavação — poeira do sítio
+    'limpo',      // 3400–3600m  corredor limpo pré-Cerco
+    'limpo',      // 3600–3800m  a BARREIRA (3650m) luta em céu limpo
+    'limpo',      // 3800–4000m  vale — respiro pós-miniboss
+    'tempestade', // 4000–4200m  vale — a tempestade de areia arma
+    'tempestade', // 4200–4400m  necrópole — o exame, tudo junto
+    'limpo',      // 4400–4600m  corredor limpo pré-Faraó
+    'limpo',      // 4600–4800m  o FARAÓ (4700m) luta em céu limpo
   ],
   // Teto de alpha da neblina: acima disto ela começa a esconder obstáculo
   FOG_MAX_ALPHA: 0.34,

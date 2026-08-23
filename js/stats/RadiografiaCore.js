@@ -46,7 +46,7 @@ export function decode(v) {
 // Letras-contador de runs[] — espelho de StorageManager.RUN_COUNTERS (que não
 // pode ser importado aqui: localStorage). O teste assere que esta lista cobre
 // TODAS as chaves de lá: letra nova gravada sem leitor aqui = teste vermelho.
-export const RUN_LETTER_KEYS = ['w', 'r', 'o', 'a', 'j', 'd', 'x', 'p', 'f', 'n', 'b', 'q', 'z', 'e', 'h', 'l'];
+export const RUN_LETTER_KEYS = ['w', 'r', 'o', 'a', 'j', 'd', 'x', 'p', 'f', 'n', 'b', 'q', 'z', 'e', 'h', 'l', 'u', 'y'];
 
 // Significado curto de cada letra (imprime na cobertura do relatório)
 export const RUN_LETTER_DESC = {
@@ -55,6 +55,8 @@ export const RUN_LETTER_DESC = {
   n: 'fúria negada na arena', b: 'camadas do portão', q: 'quiques do portão',
   z: 'segundos de luta (portão)', e: 'camadas do boss 2000m',
   h: 'segundos de luta (2000m)', l: 'camadas do Guardião',
+  // v1.8.10 — os dois combates do deserto (As Areias do Tempo)
+  u: 'camadas da Barreira (3650m)', y: 'camadas do Faraó (4700m)',
 };
 
 const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);

@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 72" width="64" height="72">
+  <!-- FURIOUS RHINO - v1.8.10. Pose de MIRA do Farao de Bronze (telegraph
+       do rifle BOSS_FARAO): mesmo personagem do farao-hunter.svg — pernas,
+       saiote, tronco, colar e mascara de Anubis IDENTICOS. Mudam: o
+       CAJADO-UAS e NIVELADO apontando para baixo-esquerda com o disco
+       solar na ponta ACESO — a boca do feixe no canvas (5,30), contrato
+       de HunterSniper.muzzle(): dali saem o Espelho de Ra e as rajadas —
+       e os bracos na pegada de tiro; a cabeca inclina sobre o cajado. -->
+  <defs>
+    <linearGradient id="fhG2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8c25e"/>
+      <stop offset="1" stop-color="#b8892e"/>
+    </linearGradient>
+  </defs>
+  <!-- pernas com caneleiras de bronze -->
+  <rect x="24.5" y="52" width="7.5" height="13" rx="3" fill="#a8762a" stroke="#17171b" stroke-width="2"/>
+  <rect x="34" y="52" width="7.5" height="13" rx="3" fill="#c9963a" stroke="#17171b" stroke-width="2"/>
+  <!-- sandalias -->
+  <rect x="22.6" y="63.6" width="10" height="6" rx="2.4" fill="#6b4326" stroke="#4a2e16" stroke-width="1.8"/>
+  <rect x="33.4" y="63.6" width="10" height="6" rx="2.4" fill="#8a5a33" stroke="#4a2e16" stroke-width="1.8"/>
+  <path d="M27.5 63.8 L27.5 66.8 M38.5 63.8 L38.5 66.8" fill="none" stroke="#d9a441" stroke-width="1.2"/>
+  <!-- saiote real plissado -->
+  <path d="M24 50 L42 50 L44 58 L22 58 Z" fill="#f4efe0" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M27 50.5 L26 57.5 M31 50.5 L31 57.5 M35 50.5 L36 57.5 M39 50.5 L41 57.5" fill="none" stroke="#c9b98e" stroke-width="1.2"/>
+  <!-- tronco: peitoral de bronze -->
+  <ellipse cx="33" cy="44" rx="13.5" ry="12" fill="url(#fhG2)" stroke="#17171b" stroke-width="2.5"/>
+  <ellipse cx="32" cy="50" rx="9.5" ry="4.6" fill="#8a6520" opacity="0.55"/>
+  <path d="M22.5 39 Q33 33 43.5 38.5" fill="none" stroke="#f0d488" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <!-- colar usekh + escaravelho de lapis -->
+  <path d="M24 38.5 Q33 34.5 42 38.5" fill="none" stroke="#1e4b8f" stroke-width="3" stroke-linecap="round"/>
+  <path d="M23.5 41.5 Q33 37.5 42.5 41.5" fill="none" stroke="#d6453c" stroke-width="2.4" stroke-linecap="round"/>
+  <ellipse cx="33" cy="45.5" rx="3.4" ry="2.6" fill="#1e4b8f" stroke="#17171b" stroke-width="1.2"/>
+  <path d="M33 43.2 v4.6 M30.4 45.5 h5.2" fill="none" stroke="#17171b" stroke-width="0.8"/>
+  <!-- cinturao com fivela solar -->
+  <rect x="22.5" y="52" width="21" height="4.2" rx="1.6" fill="#6b4326" stroke="#4a2e16" stroke-width="1.8"/>
+  <circle cx="33" cy="54" r="2.2" fill="#ffd24a" stroke="#17171b" stroke-width="1.2"/>
+  <!-- o CAJADO-UAS NIVELADO: haste ate a boca do feixe em (5,30) -->
+  <g>
+    <path d="M5 30 L42 37" fill="none" stroke="#17171b" stroke-width="4.8" stroke-linecap="round"/>
+    <path d="M5 30 L26 34" fill="none" stroke="#8a5a33" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M26 34 L42 37" fill="none" stroke="#a5772f" stroke-width="2.8" stroke-linecap="round"/>
+    <!-- a forquilha do uas vira "coronha" no ombro -->
+    <path d="M42 37 L48.5 39.5 L47 43.5 L40.6 40 Z" fill="#6b4326" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+    <!-- o DISCO SOLAR ACESO na boca do feixe -->
+    <circle cx="7" cy="30.4" r="4.6" fill="#ffd24a" stroke="#17171b" stroke-width="1.6"/>
+    <circle cx="7" cy="30.4" r="2.2" fill="#fff3c4"/>
+    <path d="M2 25.5 l2.2 2.2 M1 30.4 l2.6 0 M2 35.3 l2.2 -2.2 M7 24 l0 2.4 M12 25.5 l-2.2 2.2" fill="none" stroke="#ffd24a" stroke-width="1.6" stroke-linecap="round"/>
+    <!-- anel de lapis no meio da haste (a "luneta") -->
+    <rect x="26" y="31.2" width="8" height="4" rx="2" fill="#1e4b8f" stroke="#17171b" stroke-width="1.3" transform="rotate(10 30 33.2)"/>
+  </g>
+  <!-- bracos na pegada: frente na haste, tras na forquilha -->
+  <path d="M26 39 Q21.5 37.5 18 34.8" fill="none" stroke="#17171b" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M26 39 Q21.5 37.5 18 34.8" fill="none" stroke="#c9963a" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="16.8" cy="33.8" r="2.9" fill="#c08850" stroke="#17171b" stroke-width="1.7"/>
+  <path d="M41 40.5 Q39.5 39.5 37.8 39" fill="none" stroke="#17171b" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M41 40.5 Q39.5 39.5 37.8 39" fill="none" stroke="#b8892e" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="36.6" cy="38.8" r="2.9" fill="#c08850" stroke="#17171b" stroke-width="1.7"/>
+  <!-- MASCARA DE ANUBIS inclinada sobre o cajado, mirando -->
+  <circle cx="24.5" cy="21.5" r="11.5" fill="url(#fhG2)" stroke="#17171b" stroke-width="2.5"/>
+  <!-- focinho fino de chacal, apontando a mira -->
+  <path d="M15 23 Q9 23.5 6 26.5 Q8.5 29.5 13 29 Q16.5 28.5 18 26.5 Z" fill="#c9963a" stroke="#17171b" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="7.3" cy="27.2" r="1.3" fill="#17171b"/>
+  <!-- ORELHAS de chacal -->
+  <path d="M17.5 12.5 L13.5 3.2 L22.5 9.5 Z" fill="#c9963a" stroke="#17171b" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M27.5 11 L28 2 L34.5 10 Z" fill="#d9a441" stroke="#17171b" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M17 10 L15.5 6 M29.5 8 L29.5 4.5" fill="none" stroke="#1e4b8f" stroke-width="1.4" stroke-linecap="round"/>
+  <!-- olho de lapis APERTADO na mira -->
+  <path d="M15.5 18.5 Q19.5 17 23.5 18.4 Q20 20.6 15.5 19.6 Z" fill="#1e4b8f" stroke="#17171b" stroke-width="1.4" stroke-linejoin="round"/>
+  <circle cx="19.3" cy="18.8" r="1" fill="#7be0ff"/>
+  <path d="M14.5 16.2 L23 17" fill="none" stroke="#17171b" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- listras do nemes -->
+  <path d="M30.5 13 Q36 15.5 36 22.5 Q36 28.5 32.5 31.5 L29 29.5 Q32 25.5 31.5 19.5 Z" fill="#1e4b8f" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M32.3 16 Q34.3 19.5 33.9 23.5 M31.9 27 Q33.1 24.5 33.3 21.5" fill="none" stroke="#d9a441" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- uraeus na testa -->
+  <path d="M21.5 11 Q20.5 8 23.5 7.5 Q25.5 8.5 24.5 11.3 Z" fill="#ffd24a" stroke="#17171b" stroke-width="1.2" stroke-linejoin="round"/>
+</svg>

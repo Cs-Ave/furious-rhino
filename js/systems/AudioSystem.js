@@ -430,11 +430,15 @@ export class AudioSystem {
 
   // ------------------------------------------- v1.8.7 — Estado de Alerta
 
-  // Sting de entrada de distrito: 3 notas no molde do playFuryReady, com
-  // caráter próprio por área — subúrbio grave/lento (a cidade dorme), torres
-  // de vidro médio/brilhante (a manhã do rush) e contenção tensa em terça
-  // menor (a caçada). `n` é o índice do distrito (0..2); fora da faixa cai
-  // na variação mais próxima — a Brecha e a Rodovia não chamam isto.
+  // Sting de entrada de área: 3 notas no molde do playFuryReady, com
+  // caráter próprio por área. `n` é o ÍNDICE DA ÁREA em CITY_DISTRICTS
+  // (v1.8.10: o array V está ALINHADO 1:1 com a tabela — 0 subúrbio,
+  // 1 vidro, 2 contenção, 3 brecha (placeholder: sem flash, nunca toca),
+  // 4..8 as cinco etapas do deserto; 9+ (deserto profundo, sem flash)
+  // clampa na última). Cidade: subúrbio grave/lento, vidro brilhante,
+  // contenção em terça menor. Deserto: quintas vazias e modo eólio — o
+  // vazio que engole (duna aberta, oásis cintilante, escavação de trabalho,
+  // Vale monumental, Necrópole grave e fúnebre).
   playAreaSting(n) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
@@ -442,6 +446,19 @@ export class AudioSystem {
       { type: 'sine',     gap: 0.22, dur: 0.36, peak: 0.26, notes: [147, 175, 196] },
       { type: 'triangle', gap: 0.09, dur: 0.18, peak: 0.26, notes: [523, 659, 784] },
       { type: 'sawtooth', gap: 0.14, dur: 0.26, peak: 0.13, notes: [220, 262, 311] },
+      // 3 — Brecha: placeholder de alinhamento (a Brecha não tem flash, o
+      // switchArea nunca chama; se chamar um dia, um eco neutro do subúrbio)
+      { type: 'sine',     gap: 0.2,  dur: 0.3,  peak: 0.2,  notes: [196, 247, 294] },
+      // 4 — duna: quinta vazia D–A–D, lenta e grave (a estrada some)
+      { type: 'sine',     gap: 0.26, dur: 0.44, peak: 0.24, notes: [147, 220, 294] },
+      // 5 — oásis: eólio de Lá (A–C–E), cintilante como miragem
+      { type: 'triangle', gap: 0.11, dur: 0.2,  peak: 0.24, notes: [440, 523, 659] },
+      // 6 — escavação: quinta vazia G–D com sétima (G–D–F), áspera
+      { type: 'sawtooth', gap: 0.15, dur: 0.26, peak: 0.12, notes: [196, 294, 349] },
+      // 7 — Vale dos Faraós: quinta+oitava F–C–F, monumental
+      { type: 'triangle', gap: 0.18, dur: 0.34, peak: 0.26, notes: [175, 262, 349] },
+      // 8 — Necrópole: eólio grave descendo ao chão (E–B–E baixo), fúnebre
+      { type: 'sawtooth', gap: 0.24, dur: 0.42, peak: 0.11, notes: [165, 123, 82] },
     ];
     const v = V[Math.max(0, Math.min(V.length - 1, n | 0))];
     v.notes.forEach((freq, i) => {

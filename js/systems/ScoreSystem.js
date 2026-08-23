@@ -66,7 +66,8 @@ export class ScoreSystem {
   // Recomputa o bônus de um item de runs[] (contadores de 1 letra:
   // m metros · c causa · w paredes · r rampas · o torres · a animais ·
   // b camadas do portão · z segundos de luta · e camadas do Cerco ·
-  // l camadas do Guardião — v1.8.5).
+  // l camadas do Guardião — v1.8.5 · u camadas da Barreira da Escavação ·
+  // y camadas do Faraó de Bronze — v1.8.10).
   //
   // ⚠️ CONTRATO: esta função tem de devolver EXATAMENTE o mesmo número que a
   // soma feita ao vivo durante a corrida (pointsFor por evento + endBonus).
@@ -90,12 +91,18 @@ export class ScoreSystem {
       + (Number(r.r) || 0) * this.pointsFor('ramp')
       + (Number(r.o) || 0) * this.pointsFor('tower')
       + (Number(r.a) || 0) * this.pointsFor('animal')
-      // v1.8.5: camada de boss vale o MESMO peso nos três bosses (b portão,
-      // e Cerco, l Guardião) — a habilidade premiada é uma só
-      + ((Number(r.b) || 0) + (Number(r.e) || 0) + (Number(r.l) || 0)) * this.pointsFor('bossLayer')
+      // v1.8.5: camada de boss vale o MESMO peso em todos os bosses (b
+      // portão, e Cerco, l Guardião; v1.8.10: u Barreira da Escavação e
+      // y Faraó de Bronze) — a habilidade premiada é uma só
+      + ((Number(r.b) || 0) + (Number(r.e) || 0) + (Number(r.l) || 0)
+        + (Number(r.u) || 0) + (Number(r.y) || 0)) * this.pointsFor('bossLayer')
       // Vitória do Cerco: todas as camadas dele caíram. O prêmio nasce na
       // barricada (addScore ao vivo) e recomputa daqui — MESMA regra.
-      + ((Number(r.e) || 0) >= Constants.BOSS2_LAYERS.length ? this.pointsFor('boss2') : 0);
+      + ((Number(r.e) || 0) >= Constants.BOSS2_LAYERS.length ? this.pointsFor('boss2') : 0)
+      // v1.8.10, MESMA regra dos dois combates do deserto: Barreira da
+      // Escavação derrubada (u cheio) e Faraó de Bronze derrotado (y cheio)
+      + ((Number(r.u) || 0) >= Constants.CERCO_LAYERS.length ? this.pointsFor('cerco') : 0)
+      + ((Number(r.y) || 0) >= Constants.FARAO_LAYERS.length ? this.pointsFor('farao') : 0);
     return combat + this.endBonus({
       escaped: won || m >= gateM,
       bossLayers: Number(r.b) || 0,
@@ -116,6 +123,7 @@ export class ScoreSystem {
   static breakdown({
     meters = 0, walls = 0, ramps = 0, towers = 0, animals = 0,
     bossLayers = 0, boss2Layers = 0, boss3Layers = 0,
+    cercoLayers = 0, faraoLayers = 0,
     escaped = false, blitz = false, legend = false,
   } = {}) {
     const lines = [];
@@ -130,9 +138,18 @@ export class ScoreSystem {
     add('🎯 Camadas do portão', bossLayers, 'bossLayer');
     add('🕸️ Camadas do Cerco', boss2Layers, 'bossLayer');
     add('🏹 Camadas do Guardião', boss3Layers, 'bossLayer');
+    // v1.8.10 — os dois combates do deserto, mesmo peso bossLayer
+    add('🕸️ Camadas da Barreira', cercoLayers, 'bossLayer');
+    add('🏺 Camadas do Faraó', faraoLayers, 'bossLayer');
     const W = Constants.SCORE_WEIGHTS;
     if ((Number(boss2Layers) || 0) >= Constants.BOSS2_LAYERS.length) {
       lines.push({ label: '🕸️ Cerco vencido', pts: this.pointsFor('boss2') });
+    }
+    if ((Number(cercoLayers) || 0) >= Constants.CERCO_LAYERS.length) {
+      lines.push({ label: '🕸️ Barreira derrubada', pts: this.pointsFor('cerco') });
+    }
+    if ((Number(faraoLayers) || 0) >= Constants.FARAO_LAYERS.length) {
+      lines.push({ label: '🏺 Faraó derrotado', pts: this.pointsFor('farao') });
     }
     if (escaped) lines.push({ label: '🗽 Fuga', pts: Math.floor(W.escape) });
     if (blitz) lines.push({ label: '⚡ Blitz', pts: Math.floor(W.blitz) });

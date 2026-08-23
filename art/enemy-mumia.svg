@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 46 66" width="46" height="66">
+  <!-- FURIOUS RHINO - v1.8.10 E3/E5 (escavacao/necropole). MUMIA em marcha:
+       rasteira LENTA (speed 80) que nasce SEMPRE em PAR (spec.pair) — sai
+       da tumba de dois em dois. Ataduras bege em faixas, bracos esticados
+       a frente (pose classica), UM olho aceso de verde espiando por baixo
+       das faixas, tiras soltas esvoacando atras. Anda para a DIREITA (o
+       jogo espelha). Hitbox do spec: 34x58 offset 6,6 (alta e estreita,
+       molde da tropa).
+       Entre frames (-run-1): pernas e bracos trocam de fase, a tira solta
+       muda; cabeca e tronco identicos. -->
+  <defs>
+    <linearGradient id="muB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e4d7b8"/>
+      <stop offset="1" stop-color="#c2b28c"/>
+    </linearGradient>
+  </defs>
+  <!-- tira solta esvoacando atras (muda entre frames) -->
+  <path d="M10 26 Q3 24 2 18" fill="none" stroke="#c2b28c" stroke-width="3" stroke-linecap="round"/>
+  <path d="M10 42 Q4 44 3 50" fill="none" stroke="#c2b28c" stroke-width="2.6" stroke-linecap="round"/>
+  <!-- perna de tras (fase A: atras) -->
+  <path d="M18 48 Q14 55 10 60" fill="none" stroke="#17171b" stroke-width="7.5" stroke-linecap="round"/>
+  <path d="M18 48 Q14 55 10 60" fill="none" stroke="#c2b28c" stroke-width="4.6" stroke-linecap="round"/>
+  <path d="M8 58 Q6 61 8.5 63 L14 63 Q14 60 12 58.6" fill="#d4c49e" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- tronco enfaixado -->
+  <path d="M12 22 Q10 40 14 52 L30 52 Q34 40 32 22 Z" fill="url(#muB)" stroke="#17171b" stroke-width="2.4" stroke-linejoin="round"/>
+  <!-- faixas do tronco (diagonais alternadas) -->
+  <path d="M12.5 27 L32 24 M12 33 L32.5 30 M12.5 39 L32.5 36 M13 45 L32 42 M14 50 L30.5 47.5" fill="none" stroke="#a08e64" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M14 24 L31 27.5 M13 30 L32 33.5 M13 36 L32 39.5 M13.5 42 L31.5 45" fill="none" stroke="#a08e64" stroke-width="1" stroke-linecap="round" opacity="0.6"/>
+  <!-- amuleto escaravelho no peito -->
+  <ellipse cx="22" cy="31" rx="4" ry="3" fill="#2e8a80" stroke="#17171b" stroke-width="1.3"/>
+  <path d="M22 28.4 v5.2 M19 31 h6" fill="none" stroke="#17171b" stroke-width="0.8"/>
+  <!-- perna da frente (fase A: dando o passo) -->
+  <path d="M26 50 Q30 55 34 58" fill="none" stroke="#17171b" stroke-width="7.5" stroke-linecap="round"/>
+  <path d="M26 50 Q30 55 34 58" fill="none" stroke="#d4c49e" stroke-width="4.6" stroke-linecap="round"/>
+  <path d="M33 56 Q36 57 37.5 60 L33 62.5 Q30.5 60.5 30.6 58" fill="#d4c49e" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- braco de tras esticado a frente (mais escuro) -->
+  <path d="M28 27 Q36 26 42 27.5" fill="none" stroke="#17171b" stroke-width="7" stroke-linecap="round"/>
+  <path d="M28 27 Q36 26 42 27.5" fill="none" stroke="#a89870" stroke-width="4.2" stroke-linecap="round"/>
+  <path d="M41 25.5 q3 0.5 3.4 2.6 q-2 1.6 -4 0.8" fill="#a89870" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- braco da frente esticado (mais claro, um pouco mais baixo) -->
+  <path d="M26 32 Q35 31.5 43 33.5" fill="none" stroke="#17171b" stroke-width="7" stroke-linecap="round"/>
+  <path d="M26 32 Q35 31.5 43 33.5" fill="none" stroke="#d4c49e" stroke-width="4.2" stroke-linecap="round"/>
+  <path d="M42 31.5 q3.2 0.6 3.6 2.8 q-2.2 1.6 -4.2 0.7" fill="#d4c49e" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M30 30.6 l0 3 M35 30.8 l0 3.2" fill="none" stroke="#a08e64" stroke-width="1" stroke-linecap="round"/>
+  <!-- cabeca enfaixada -->
+  <circle cx="22" cy="13" r="10.5" fill="url(#muB)" stroke="#17171b" stroke-width="2.4"/>
+  <path d="M12.5 10.5 Q22 7.5 31.5 10.5 M12 15 Q22 12.5 32 15 M13.5 19.5 Q22 17.5 30.5 19.5" fill="none" stroke="#a08e64" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- a fresta das faixas com o olho ACESO e o outro apagado -->
+  <path d="M13 12.2 Q22 9.6 31 12.2 L31 16.8 Q22 14.4 13 16.8 Z" fill="#3a2f20" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+  <circle cx="26.5" cy="14" r="2.6" fill="#7be0a0"/>
+  <circle cx="26.5" cy="14" r="1.2" fill="#17171b"/>
+  <path d="M17 14.6 l3.4 -0.6" fill="none" stroke="#7be0a0" stroke-width="1.3" stroke-linecap="round"/>
+  <!-- pontinha de faixa solta na cabeca -->
+  <path d="M14 6 Q10 4 9 1" fill="none" stroke="#c2b28c" stroke-width="2.6" stroke-linecap="round"/>
+</svg>

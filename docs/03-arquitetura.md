@@ -1,6 +1,6 @@
 # Furious Rhino — Arquitetura
 
-> Documentação da versão **1.8.7** · atualizada em 21/08/2026
+> Documentação da versão **1.8.10** · atualizada em 23/08/2026
 > Visão técnica intermediária: como o projeto é organizado, os principais componentes e como eles conversam. Pressupõe noções de programação, mas explica os termos específicos do projeto.
 
 ## 1. Filosofia
@@ -21,16 +21,18 @@ index.html ─── HUD, telas e modais em DOM + CSS (~1300 linhas), carrega Ph
          │    ├── scenes/GameScene.js ──── A CENA ÚNICA: loop, colisões, terreno, biomas,
          │    │                            clima, portão, morte, telas, pausa (~2000 linhas)
          │    ├── entities/ ────────────── Rhino, Animal, CrackedWall, Spike, TranqTower,
-         │    │                            TranqDart, Ramp, HunterSniper (o atirador dos
-         │    │                            bosses — paramétrico desde a v1.8.5)
+         │    │                            TranqDart, Ramp, TimedHazard (armadilhas
+         │    │                            temporizadas da cidade, v1.8.7), HunterSniper
+         │    │                            (o atirador dos bosses — paramétrico)
          │    ├── systems/
          │    │    ├── TextureFactory ──── toda a arte procedural (24 geradores)
          │    │    ├── SpawnManager ────── sorteio e reciclagem de obstáculos (pools)
          │    │    ├── FurySystem ───────── fúria = CARGA por distância → velocidade, tint,
          │    │    │                        fumaça; e o modo FÚRIA TOTAL (rampage)
          │    │    ├── BossFight ────────── luta de chefe PARAMÉTRICA (v1.8.5): uma `def`
-         │    │    │                        por boss — portão (1000m), Cerco (2000m) e
-         │    │    │                        Guardião do Fim (9995m) são 3 instâncias
+         │    │    │                        por boss — portão (1000m), Muralha (2000m,
+         │    │    │                        v1.8.7) e Guardião do Fim (9995m); o Cerco
+         │    │    │                        ficou DECLARADO para o deserto, sem wiring
          │    │    ├── AudioSystem ──────── SFX + música generativa (Web Audio)
          │    │    ├── SkinSystem ───────── skins (v1.8): lógica de acesso (4 tipos com
          │    │    │                        condições declarativas), resolução da equipada
@@ -50,16 +52,30 @@ index.html ─── HUD, telas e modais em DOM + CSS (~1300 linhas), carrega Ph
          │    │    ├── NotifySystem ─────── pushes ntfy do administrador
          │    │    └── TuningPanel ──────── painel de debug (?debug=1, lil-gui via CDN)
          │    └── utils/
-         │         ├── Constants.js ─────── TODO o tuning numérico (fonte única)
-         │         └── StorageManager.js ── tudo que persiste no aparelho (localStorage)
+         │         ├── Constants.js ─────── TODO o tuning numérico (fonte única). No fim do
+         │         │                        arquivo, o MERGE da calibração do dono: aplica
+         │         │                        art/SpriteParams.js por cima das tabelas
+         │         ├── StorageManager.js ── tudo que persiste no aparelho (localStorage)
+         │         └── ../art/SpriteParams.js ─ DADOS de calibração de sprites (v1.8.9):
+         │                                  overrides por espécie + espécies NOVAS criadas
+         │                                  pela aba Sprites (JSON estrito, machine-owned)
          ├── [PAINEL /?stats]
          │    ├── stats/StatsDashboard.js ─ baixa as coleções, agrega no cliente, 6 abas
          │    ├── stats/Charts.js ───────── primitivas de gráfico em SVG, zero dependência
-         │    └── stats/MyStats.js ──────── modal "Minhas estatísticas" (também usado no jogo)
-         └── [ESTÚDIO /?setup=chave]
-              └── setup/SetupPage.js ────── estúdio de skins do dono: wizard de criação +
-                                            lista com editar/esconder/remover (fala com o
-                                            servidor local do gerador na porta 3210)
+         │    ├── stats/MyStats.js ──────── modal "Minhas estatísticas" (também usado no jogo)
+         │    └── stats/RadiografiaCore.js  o agregador PURO da radiografia (v1.8.7): recebe
+         │                                  as coleções decodificadas e devolve métricas +
+         │                                  motor de insights + markdown — roda no navegador
+         │                                  (aba 📊 do estúdio) e no node (npm run radiografia)
+         └── [ESTÚDIO /?setup=chave] — três abas, carregadas sob demanda
+              ├── setup/SetupPage.js ────── moldura + aba 🎨 Skins (wizard de criação, lista
+              │                             com editar/esconder/remover) + card Servidores
+              ├── setup/SetupSprites.js ─── aba 🖼️ Sprites (v1.8.9): catálogo animado das
+              │                             espécies, editor de parâmetros, gerador de
+              │                             inimigo e a atribuição (substituir arte /
+              │                             criar espécie nova)
+              └── setup/SetupAnalytics.js ─ aba 📊 Radiografia (v1.8.7): fetch público +
+                                            render dos insights (usa o RadiografiaCore)
 ```
 
 Fora do runtime: `sw.js` (service worker do PWA), `firestore.rules` (versionadas aqui, publicadas à mão no console), `tools/*.mjs` (testes e utilitários Node), `.github/workflows/daily-digest.yml` (resumo diário via cron) e `gerador-de-sprites/` (ferramenta local de conversão de arte raster em skins — ver §12).
@@ -188,14 +204,21 @@ O **resumo diário** é outro caminho: `tools/daily-digest.mjs` roda num cron do
 | `npm run test-special` | 25 asserts e2e: sorteio por bioma, o ciclo completo da FÚRIA TOTAL (carga, ativação, destruição, drenagem) e o desabamento do topo da parede (crop, tombo, limpeza do pool) |
 | `npm run test-e2e-skins` | 15 asserts e2e (v1.8): preview e sprite vestem a skin, pódio dinâmico (destronado → default sem regravar), hub não inicia corrida, persistência após reload, fúria com `firePrefix` próprio (registry canônico injetado com arte do núcleo) |
 | `npm run test-e2e-stats` | e2e da telemetria real contra o Firestore (com id de sonda `claude-*`), painel, resiliência, e prova de que a suíte **não sujou a produção** |
+| `npm run test-score` | 83 asserts puro Node da pontuação composta: pesos, teto do bônus, recomputação de `runs[]` idêntica à soma ao vivo, formatação pt-BR |
+| `npm run test-challenge` | 77 asserts puro Node da Arena: janelas, papéis, validação de criação, sanitização do doc, **cancelamento** (rules do `cancelledAt`) |
+| `npm run test-integrate` | 49 asserts puro Node do integrador do estúdio: round-trip byte-estável do registry, upsert/remove, patch dos blocos gerenciados do `sw.js` |
+| `npm run test-sprites` | 31 asserts puro Node da camada de sprites (v1.8.9): contrato do `SpriteParams` (JSON estrito, zero imports), merge no Constants, paridade `art/` ↔ manifesto ↔ `sw.js`, **w/h do manifesto == viewBox de cada SVG**, invariantes de spawn (todo elenco com ≥1 terrestre; floresta sem voador; jaulas sem par). É o **portão** das gravações da aba Sprites |
+| `npm run test-radiografia` | 62 asserts puro Node da radiografia (v1.8.7): fixture sintética, letras completas, conferência com o `buildDigest`, determinismo byte a byte, higiene dos fetchers (zero writes) |
+| `npm run test-e2e-setup` | 26 asserts e2e do estúdio: gate da chave, as três abas (Skins no load, Sprites/Radiografia sob demanda), catálogo com ≥38 espécies, zero requisição espontânea |
+| `npm run radiografia` | Roda a **radiografia completa** contra a produção (leitura pública, zero writes) e imprime o markdown pronto para o banco de ideias |
 | `npm run digest` | Monta o resumo diário contra dados de produção **sem enviar** |
-| `npm run sprite-gen` | Sobe o **Gerador de Sprites** (ferramenta local, ver §12) |
+| `npm run sprite-gen` | Sobe o **servidor unificado do estúdio** (jogo na 3000 + gerador na 3210, ver §12) |
 
-Os e2e exigem o jogo servido em `localhost:3000` (`python -m http.server 3000`).
+Os e2e exigem o jogo servido em `localhost:3000` — `python -m http.server 3000` **ou** o servidor unificado (`npm run sprite-gen` / `iniciar-estudio.bat`), que cede a porta ao python com aviso se ela estiver ocupada.
 
 ## 11. Pipeline de arte
 
-`art/*.svg` (fonte da verdade, editável em qualquer editor SVG — 95 sprites na v1.8) → `js/art/ArtManifest.js` (lista de sprites e dimensões, hoje **mantida à mão**) → `BootScene` rasteriza cada SVG a **2×** o tamanho e o jogo exibe a 1/2 escala (nitidez em telas de alta densidade). A regra dos frames de animação: **entre frames, só os membros mudam** — origem e hitbox nunca deslocam. A pasta `art2/` guarda as propostas de arte já aprovadas e integradas (registro histórico do fluxo "arte primeiro": propor lá, aprovar no `preview-biomes.html`, copiar para `art/`). O portão blindado do boss é a exceção do fluxo: é procedural (`TextureFactory`), para casar pixel a pixel com o portão normal que ele substitui.
+`art/*.svg` (fonte da verdade, editável em qualquer editor SVG — 127 arquivos na v1.8.9) → `js/art/ArtManifest.js` (lista de sprites e dimensões, hoje **mantida à mão**; o `test-sprites` garante que cada `w/h` bate com o `viewBox` do SVG) → `BootScene` rasteriza cada SVG a **2×** o tamanho e o jogo exibe a 1/2 escala (nitidez em telas de alta densidade). Espécies **criadas pela aba Sprites** ficam fora do manifesto: o BootScene as carrega de `Constants.SPRITE_NEW` (mesmo racional das skins — um lugar só de edição), e os SVGs delas entram no `sw.js` pelo bloco gerenciado `@setup:sprites`. A regra dos frames de animação: **entre frames, só os membros mudam** — origem e hitbox nunca deslocam. A pasta `art2/` guarda as propostas de arte já aprovadas e integradas (registro histórico do fluxo "arte primeiro": propor lá, aprovar no `preview-biomes.html`, copiar para `art/`). O portão blindado do boss é a exceção do fluxo: é procedural (`TextureFactory`), para casar pixel a pixel com o portão normal que ele substitui.
 
 **Skins (v1.8)** seguem o mesmo rig do rinoceronte: 3 frames de corrida em viewBox 96×64, pés na base, narina em (89,38) — porque a hitbox (definida no construtor do `Rhino`, nunca na textura) e a âncora da fumaça são globais. Os **dados** vivem em `SkinRegistry.js` (JSON estrito dentro de um módulo ES, *machine-owned*: o estúdio `/?setup` o reescreve inteiro por texto); a **lógica** vive no `SkinSystem`, que o importa e re-exporta. Quatro tipos de acesso: `default` (grátis), `rank` (pódio exato, dinâmico), `achievement` (façanha numa corrida) e `total` (agregados de vida) — os dois últimos com **condições declarativas** (`condition: { meters, towersDowned, bossLayers, escaped | attempts, wins, animals }`, semântica E, número = "pelo menos N") avaliadas por `conditionMet`; o texto do cadeado no hub é **gerado da condição** (`requirementText`). Cada skin pode ainda ter `pending` (arte não entregue) e `hidden` (tirada do ar pelo dono — some do hub, quem vestia cai no default sem perder a escolha). `resolveEquipped()` decide a skin efetiva **na leitura**, sem regravar — é o que faz pódio e flag "voltarem sozinhos". A Fúria Total troca para a arte de fogo compartilhada, salvo skins com `firePrefix` próprio (a Catisquick vira o "Rino Vulcão"). O rank é revalidado no boot e ao abrir o hub via `fetchMyRank` (cache `last_rank` vale offline — honestidade razoável, não segurança: tudo é client-side).
 
@@ -203,4 +226,4 @@ Os e2e exigem o jogo servido em `localhost:3000` (`python -m http.server 3000`).
 
 ## 12. Gerador de Sprites (`gerador-de-sprites/`, dev-only)
 
-Ferramenta local que transforma folhas raster (JPG/PNG/SVG, geradas por IA) em skins vetorizadas no rig do jogo. **Não faz parte do runtime** — nada dela entra no `sw.js`. Quatro peças: `lib.mjs` (o motor: fatiamento por projeção de tinta ou grade fixa; remoção de fundo por flood-fill; maior componente conexo; paleta sugerida por k-means; quantização + filtro de maioria; **composição corpo-mestre** — o corpo do frame de apoio é idêntico nos 3 frames e só as pernas de cada pose entram por baixo, com costura anatômica pelo perfil da barriga; um traço potrace por camada de cor; encaixe final em **95×63** do canvas 96×64, o mesmo porte da arte original), `integrate.mjs` (a **integração no jogo como funções puras de texto**: parse/render do `SkinRegistry.js`, upsert/remove, patch do bloco `@setup:skins` no `sw.js`, validação — testável sem tocar no repositório), `server.mjs` (`node:http` puro na porta 3210, com *takeover* — ao subir, derruba qualquer instância antiga; além de status/shutdown/slice/generate/apply, os endpoints do estúdio: `GET /api/skins`, `POST /api/integrate`, `/api/skin/update`, `/api/skin/remove` — **toda gravação roda `test-skins` e faz rollback se reprovar**; `generate` aceita `variant: fire` para a fúria própria) e `index.html` (a página avulsa original do gerador; o front-end de verdade do dono é o **estúdio `/?setup`** dentro do próprio jogo, que consome esses endpoints). Dois níveis de proteção (v3): `LOCKED_IDS` (só o `default` — nem edita, nem remove) e `BUILTIN_IDS` (as 7 originais — id reservado e arte manuscrita no `sw.js` fora do bloco gerenciado; desde 15/08 **também removíveis**: `stripSwArtLines` apaga as linhas manuscritas do `sw.js` junto, senão o `cache.addAll` pediria SVG inexistente e o PWA não instalaria — e a suíte-portão tem a rede de segurança "nenhuma sobra no ASSETS" exatamente para isso). Se os corpos dos frames diferirem demais (IoU < 0,80), a composição corpo-mestre é desligada automaticamente com aviso. Os CLIs `art2/skins/slice-sheets.mjs` e `vectorize-skins.mjs` são wrappers do mesmo motor, com os configs das skins aprovadas como registro reprodutível.
+Ferramenta local que transforma folhas raster (JPG/PNG/SVG, geradas por IA) em skins **e sprites de inimigo** vetorizados. **Não faz parte do runtime** — nada dela entra no `sw.js`. Desde a v1.8.8 o `server.mjs` é o **servidor unificado do estúdio**: além da API na porta 3210, serve os arquivos estáticos do jogo inteiro e escuta **também na 3000** (se ela estiver ocupada — ex.: o `python` do dono — avisa no console e segue só na 3210). O `iniciar-estudio.bat` na raiz sobe tudo com um duplo-clique e abre o `/?setup` no endereço certo; a página avulsa antiga do gerador foi **removida** (o front é o estúdio dentro do jogo). Quatro peças: `lib.mjs` (o motor: fatiamento por projeção de tinta ou grade fixa; remoção de fundo por flood-fill; maior componente conexo; paleta sugerida por k-means; quantização + filtro de maioria; **composição corpo-mestre** — o corpo do frame de apoio é idêntico nos 3 frames e só as pernas de cada pose entram por baixo, com costura anatômica pelo perfil da barriga; um traço potrace por camada de cor; **rig paramétrico desde a v1.8.9** — o encaixe, o piso das pernas e a janela da cabeça viram frações de um alvo `targetW×targetH` livre, com o rig 96×64 do rinoceronte como default byte-compatível), `integrate.mjs` (a **integração no jogo como funções puras de texto**: parse/render do `SkinRegistry.js` E do `SpriteParams.js` — os dois round-trips são byte-estáveis —, upsert/remove, `patchManagedBlock` genérico para os blocos `@setup:skins` e `@setup:sprites` do `sw.js`, validações) e `server.mjs` (com *takeover* — ao subir, derruba qualquer instância antiga; além de status/shutdown/slice/generate/apply e dos endpoints de skin, os da aba Sprites: `GET/POST /api/sprite-params` (calibração por espécie), `POST /api/sprite/generate` (inimigo de 1-2 frames com **hitbox sugerida medida da máscara**, gravado no estoque `output/enemies/` + índice), `GET /api/sprites/pending`, `POST /api/sprite/assign` (substituir arte de espécie existente OU criar espécie nova — art/ + SpriteParams + bloco do sw numa gravação só) e `/api/sprite/remove-pending`. **Toda gravação passa pelo `writeAndValidateFiles`**: snapshot dos bytes, escreve tudo, roda o portão (`test-sprites` + `test-skins`) e REVERTE tudo se reprovar — cada suíte roda num processo node novo, então o portão enxerga o merge fresco do `SpriteParams`). Dois níveis de proteção (v3): `LOCKED_IDS` (só o `default` — nem edita, nem remove) e `BUILTIN_IDS` (as 7 originais — id reservado e arte manuscrita no `sw.js` fora do bloco gerenciado; desde 15/08 **também removíveis**: `stripSwArtLines` apaga as linhas manuscritas do `sw.js` junto, senão o `cache.addAll` pediria SVG inexistente e o PWA não instalaria — e a suíte-portão tem a rede de segurança "nenhuma sobra no ASSETS" exatamente para isso). Se os corpos dos frames diferirem demais (IoU < 0,80), a composição corpo-mestre é desligada automaticamente com aviso. Os CLIs `art2/skins/slice-sheets.mjs` e `vectorize-skins.mjs` são wrappers do mesmo motor, com os configs das skins aprovadas como registro reprodutível.

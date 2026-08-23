@@ -357,11 +357,13 @@ export class StorageManager {
 
   // Mortes por tier (t1..t6; t5/t6 = modo infinito) e por causa
   // (wall/spike/animal/dart/tower/boss/fall). 'boss' (v1.7) = rifle do
-  // caçador do portão; 'boss2'/'boss3' (v1.8.5) = Capturador do Cerco e
-  // Caçador-Mor do fim do mundo — 15 chaves; as rules aceitam até 15
-  // (bump publicado JUNTO desta release, antes do deploy).
+  // caçador do portão; 'boss2'/'boss3' (v1.8.5) = boss dos 2000m e
+  // Caçador-Mor do fim do mundo; 'cerco'/'farao' (v1.8.10) = Barreira da
+  // Escavação (3650m) e Faraó de Bronze (4700m) — 17 chaves; as rules
+  // aceitam até 17 (bump do agente B, REPUBLICADO no console antes do
+  // deploy, senão o write é negado em silêncio).
   static getDeaths() {
-    const empty = { t1: 0, t2: 0, t3: 0, t4: 0, t5: 0, t6: 0, wall: 0, spike: 0, animal: 0, dart: 0, tower: 0, boss: 0, boss2: 0, boss3: 0, fall: 0 };
+    const empty = { t1: 0, t2: 0, t3: 0, t4: 0, t5: 0, t6: 0, wall: 0, spike: 0, animal: 0, dart: 0, tower: 0, boss: 0, boss2: 0, boss3: 0, fall: 0, cerco: 0, farao: 0 };
     try {
       return { ...empty, ...(JSON.parse(localStorage.getItem(this.DEATHS_KEY)) || {}) };
     } catch (e) {
@@ -443,9 +445,13 @@ export class StorageManager {
     // v1.8.5 — os bosses do deserto (orçamento de letras: sobram i u y).
     // `q` segue EXCLUSIVO do portão: misturar quiques dos três poluiria a
     // baseline de 48 lutas que calibrou a v1.8.
-    e: 'boss2LayersBroken', // camadas do Cerco (2000m) quebradas (0-4)
-    h: 'boss2FightS',   // segundos de luta contra o Cerco
+    e: 'boss2LayersBroken', // camadas do boss dos 2000m quebradas (0-4; hoje a Muralha)
+    h: 'boss2FightS',   // segundos de luta contra o boss dos 2000m
     l: 'boss3LayersBroken', // camadas do Guardião do Fim (9995m) quebradas (0-5)
+    // v1.8.10 "As Areias do Tempo" — os dois combates do deserto (orçamento
+    // de letras: sobra só `i`). Sem letras de segundos, precedente do boss3.
+    u: 'cercoLayersBroken', // camadas da Barreira da Escavação (3650m) quebradas (0-4)
+    y: 'faraoLayersBroken', // camadas do Faraó de Bronze (4700m) quebradas (0-5)
   };
 
   // Até a v1.6.1 a fúria não entrava aqui por ser posicional (contida no

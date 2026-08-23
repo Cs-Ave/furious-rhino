@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 64" width="52" height="64">
+  <!-- FURIOUS RHINO - v1.8.10. Frame -alt do arqueiro: o TELEGRAPH do tiro
+       (300ms antes da flecha) — ARCO TENSO com a corda puxada ate a
+       bochecha, flecha encaixada apontando a frente, olho fechado de mira;
+       pernas, saiote, nemes e aljava IDENTICOS (par: enemy-arqueiro.svg).
+       A flecha REAL do jogo e o arrow-projectile do pool de dardos. -->
+  <defs>
+    <radialGradient id="aqS2" cx="0.42" cy="0.38" r="0.75">
+      <stop offset="0" stop-color="#e0a878"/>
+      <stop offset="1" stop-color="#c08850"/>
+    </radialGradient>
+  </defs>
+  <!-- perna de tras -->
+  <path d="M22 48 Q19 54 15 58" fill="none" stroke="#17171b" stroke-width="6" stroke-linecap="round"/>
+  <path d="M22 48 Q19 54 15 58" fill="none" stroke="#b57e48" stroke-width="3.6" stroke-linecap="round"/>
+  <path d="M12.5 57 L18 57 L18 60.5 L11 60.5 Z" fill="#8a5a33" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- perna da frente FIRMADA no tiro -->
+  <path d="M28 48 Q32 52 36 54" fill="none" stroke="#17171b" stroke-width="6" stroke-linecap="round"/>
+  <path d="M28 48 Q32 52 36 54" fill="none" stroke="#d09860" stroke-width="3.6" stroke-linecap="round"/>
+  <path d="M34 52.5 L40.5 53.5 L40 57 L32.5 56.5 Z" fill="#8a5a33" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- saiote branco com barra dourada -->
+  <path d="M17 38 L33 38 L36 50 L14 50 Z" fill="#f4efe0" stroke="#17171b" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M15 47 L35.5 47" fill="none" stroke="#d9a441" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M25 38.5 L25 49" fill="none" stroke="#c9b98e" stroke-width="1.4" stroke-linecap="round"/>
+  <!-- tronco com peitoral de bronze -->
+  <ellipse cx="25" cy="32" rx="10.5" ry="9" fill="url(#aqS2)" stroke="#17171b" stroke-width="2.4"/>
+  <path d="M17 27.5 Q25 24 33 27.5 L33 32 Q25 29 17 32 Z" fill="#d9a441" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <circle cx="25" cy="29.5" r="2" fill="#1e4b8f" stroke="#17171b" stroke-width="1"/>
+  <!-- cinto -->
+  <rect x="16.5" y="37" width="17" height="3.6" rx="1.4" fill="#8a5a33" stroke="#17171b" stroke-width="1.5"/>
+  <!-- aljava nas costas -->
+  <path d="M12 24 L17 40 L11.5 41 L7.5 26 Z" fill="#8a5a33" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M10 24 l-2 -5 M13 23.5 l-1 -5.5" fill="none" stroke="#6b4326" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M8 19 l-1.6 -2.4 l3 0.6 Z M12 18 l-1 -2.8 l2.8 1 Z" fill="#d6453c" stroke="#17171b" stroke-width="0.9" stroke-linejoin="round"/>
+  <!-- ARCO TENSO: hastes vergadas + corda puxada em V ate a bochecha -->
+  <path d="M40 14 Q52 33 40 52" fill="none" stroke="#17171b" stroke-width="4" stroke-linecap="round"/>
+  <path d="M40 14 Q52 33 40 52" fill="none" stroke="#8a5a33" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M40 14 L26 32 L40 52" fill="none" stroke="#e8ddc2" stroke-width="1.4" stroke-linejoin="round"/>
+  <!-- a flecha encaixada, apontando a FRENTE -->
+  <path d="M26 32 L47 32" fill="none" stroke="#8a5a33" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M47 32 L51 32 L47.5 29.8 L47.5 34.2 Z" fill="#d9a441" stroke="#17171b" stroke-width="1" stroke-linejoin="round"/>
+  <path d="M27 32 l-3 -2.4 M27 32 l-3 2.4" fill="none" stroke="#d6453c" stroke-width="1.6" stroke-linecap="round"/>
+  <!-- braco da frente ESTICADO segurando o arco -->
+  <path d="M31 31 Q37 30.5 43 31" fill="none" stroke="#17171b" stroke-width="5" stroke-linecap="round"/>
+  <path d="M31 31 Q37 30.5 43 31" fill="none" stroke="#d09860" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="44.5" cy="31.4" r="2.6" fill="url(#aqS2)" stroke="#17171b" stroke-width="1.5"/>
+  <!-- braco de tras PUXANDO a corda na bochecha -->
+  <path d="M28 30 Q27.5 30.8 26.5 31.6" fill="none" stroke="#17171b" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="26.2" cy="31.8" r="2.5" fill="url(#aqS2)" stroke="#17171b" stroke-width="1.5"/>
+  <!-- cabeca com NEMES, inclinada sobre a flecha -->
+  <circle cx="27" cy="15" r="9.5" fill="url(#aqS2)" stroke="#17171b" stroke-width="2.4"/>
+  <!-- olho de mira APERTADO + o outro fechado (linha) -->
+  <circle cx="31" cy="14.5" r="2.6" fill="#ffffff" stroke="#17171b" stroke-width="0.9"/>
+  <circle cx="31.8" cy="14.8" r="1.5" fill="#17171b"/>
+  <path d="M24.5 13.8 L28 14.2" fill="none" stroke="#17171b" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M28 11 L34.5 12.2" fill="none" stroke="#17171b" stroke-width="1.6" stroke-linecap="round"/>
+  <!-- boca comprimida na concentracao -->
+  <path d="M32 20.6 q1.8 0.4 3 -0.2" fill="none" stroke="#17171b" stroke-width="1.3" stroke-linecap="round"/>
+  <!-- NEMES listrado -->
+  <path d="M17.5 12 Q18 3.5 27 3 Q36 3.5 36.5 12 Q27 8.5 17.5 12 Z" fill="#1e4b8f" stroke="#17171b" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M17.5 12 Q14.5 20 15 28 L22 26 Q19.5 19 20.5 12.5 Z" fill="#1e4b8f" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M20 6.8 Q27 4.6 34 6.8 M18.5 9.6 Q27 7 35.5 9.6" fill="none" stroke="#d9a441" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M17.6 16 q3 -1 4.4 -0.6 M16.6 20.5 q3 -1 4.6 -0.6 M15.8 24.8 q3 -1 4.8 -0.6" fill="none" stroke="#d9a441" stroke-width="1.6" stroke-linecap="round"/>
+  <!-- uraeus na testa -->
+  <path d="M27 3 Q26 0.5 28.5 0.5 Q30 1.5 29 3.4 Z" fill="#ffd24a" stroke="#17171b" stroke-width="1.1" stroke-linejoin="round"/>
+</svg>

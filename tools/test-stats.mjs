@@ -68,8 +68,8 @@ localStorage.removeItem(StorageManager.DEATHS_KEY);
 StorageManager.addDeath(4, 'boss'); // rifle do caçador na reta do portão
 const db = StorageManager.getDeaths();
 eq('boss: morte pelo rifle conta em deaths.boss e no tier', [db.boss, db.t5], [1, 1]);
-eq('boss: mapa de mortes segue no teto das rules (15 <= 15)',
-  Object.keys(db).length <= 15, true);
+eq('boss: mapa de mortes segue no teto das rules (17 <= 17)',
+  Object.keys(db).length <= 17, true);
 
 localStorage.removeItem(StorageManager.BOSS_SEEN_KEY);
 StorageManager.addBossEncounter();
@@ -84,8 +84,8 @@ StorageManager.addDeath(5, 'boss2');
 StorageManager.addDeath(5, 'boss3');
 const db2 = StorageManager.getDeaths();
 eq('bosses novos: boss2/boss3 contam nas chaves próprias', [db2.boss2, db2.boss3], [1, 1]);
-eq('bosses novos: mapa de mortes segue no teto das rules (<= 15)',
-  Object.keys(db2).length <= 15, true);
+eq('bosses novos: mapa de mortes segue no teto das rules (<= 17)',
+  Object.keys(db2).length <= 17, true);
 
 // Últimas execuções: janela deslizante de 50 (v1.5.0; era 10)
 localStorage.removeItem(StorageManager.RUNS_KEY);
@@ -215,8 +215,8 @@ const rules = readFileSync(
 // Esquema aninhado: as rules validam o MAPA deaths (não cada causa) com um
 // teto de chaves — o storage precisa caber nesse teto
 eq('rules aceitam o mapa deaths', rules.includes("'deaths'"), true);
-eq('mapa de mortes cabe no teto das rules (size <= 15)',
-  Object.keys(StorageManager.getDeaths()).length <= 15, true);
+eq('mapa de mortes cabe no teto das rules (size <= 17)',
+  Object.keys(StorageManager.getDeaths()).length <= 17, true);
 
 // v1.5.0: history é UM mapa (orçamento de avaliação) e runs vai até 50
 eq('rules aceitam o mapa history', rules.includes("'history'"), true);
@@ -313,16 +313,22 @@ eq('fugas somadas', agg.wins, 2);
 eq('tempo total somado', agg.playTimeS, 210);
 eq('mortes por etapa [t1..t6]', agg.deathsTier, [2, 2, 1, 0, 1, 0]);
 eq('mortes por causa (objeto)', agg.causes,
-  { wall: 1, spike: 0, animal: 1, dart: 1, tower: 1, boss: 0, boss2: 0, boss3: 0, fall: 1 });
-// Funil dinâmico: degraus de 200m. v1.8.7 (ideia H): o teto mínimo é 2200
-// (fim da fase da cidade) — os marcos novos existem antes de alguém chegar.
-eq('funil: nº de degraus (200..2200 — teto mínimo da fase da cidade)', agg.funnelSteps.length, 11);
-eq('funil: contagens por degrau', agg.funnelSteps.map(([, v]) => v), [2, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0]);
+  { wall: 1, spike: 0, animal: 1, dart: 1, tower: 1, boss: 0, boss2: 0, boss3: 0, cerco: 0, farao: 0, fall: 1 });
+// Funil dinâmico: degraus de 200m. v1.8.10 (Areias do Tempo): o teto mínimo
+// subiu para 4800 (fim do deserto) — os marcos existem antes de alguém chegar.
+eq('funil: nº de degraus (200..4800 — teto mínimo do deserto)', agg.funnelSteps.length, 24);
+eq('funil: contagens por degrau', agg.funnelSteps.map(([, v]) => v),
+  [2, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 eq('funil: degrau do portão destacado', agg.funnelSteps[4][0].includes('1000m 🗽'), true);
 eq('funil: marcos da cidade rotulados (viaduto/checkpoint/Muralha/rodovia)',
   [agg.funnelSteps[6][0].includes('1400m 🚦'), agg.funnelSteps[8][0].includes('1800m 🚨'),
     agg.funnelSteps[9][0].includes('2000m 🧱'), agg.funnelSteps[10][0].includes('2200m 🛣')],
   [true, true, true, true]);
+eq('funil: marcos do deserto rotulados (oásis/escavação/Barreira/necrópole/Faraó/fim)',
+  [agg.funnelSteps[13][0].includes('2800m 🌴'), agg.funnelSteps[15][0].includes('3200m ⛏️'),
+    agg.funnelSteps[17][0].includes('3600m 🕸'), agg.funnelSteps[20][0].includes('4200m ⚰️'),
+    agg.funnelSteps[22][0].includes('4600m 🏺'), agg.funnelSteps[23][0].includes('4800m 🏜')],
+  [true, true, true, true, true, true]);
 eq('funil: escaparam (cruzaram o portão)', agg.escaped, 2);
 eq('PWA instalado', agg.standalone, 1);
 eq('cidade formatada com região', agg.city.get('Rio de Janeiro (Rio de Janeiro)'), 1);

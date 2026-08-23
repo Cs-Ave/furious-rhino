@@ -59,6 +59,9 @@ export async function initTuningPanel(scene) {
     // sem export até ele reabrir no deserto.
     muralha: Constants.BOSS_MURALHA,
     rifle3: Constants.BOSS3_RIFLE,
+    // v1.8.10: os combates do deserto — o Cerco enfim ligado + o Faraó
+    cerco: Constants.CERCO_NET,
+    farao: Constants.BOSS_FARAO,
     // v1.8.7: pesos por distrito da cidade (só os números exportam)
     districts: Constants.CITY_DISTRICTS,
   }));
@@ -203,6 +206,32 @@ export async function initTuningPanel(scene) {
 
   boss2.add({ ir: () => pularParaBoss(Constants.BOSS2_ANCHOR_PX) }, 'ir')
     .name('⚔️ Pular p/ 50m antes');
+  boss2.close();
+
+  // v1.8.10: os dois combates do deserto (Areias do Tempo)
+  const cercoF = bosses.addFolder('Barreira da Escavação (3650m)');
+  for (const layers of [4, 3, 2, 1]) {
+    cercoF.add(Constants.CERCO_NET[layers], 'intervalMs', 400, 4000, 50)
+      .name(`rede: cadência ${layers} camada${layers > 1 ? 's' : ''}`);
+  }
+  cercoF.add({ ir: () => pularParaBoss(Constants.CERCO_ANCHOR_PX) }, 'ir')
+    .name('⚔️ Pular p/ 50m antes');
+  cercoF.close();
+
+  const faraoF = bosses.addFolder('Faraó de Bronze (4700m)');
+  for (const layers of [5, 4, 3, 2, 1]) {
+    faraoF.add(Constants.BOSS_FARAO[layers], 'intervalMs', 400, 4000, 50)
+      .name(`arsenal: cadência ${layers} camada${layers > 1 ? 's' : ''}`);
+  }
+  faraoF.add(Constants, 'FARAO_ENRAGE_MS', 0, 120000, 1000)
+    .name('enrage: ms de luta')
+    .onChange((v) => {
+      const f = (scene.bossFights || []).find((b) => b.def.anchorX === Constants.FARAO_ANCHOR_PX);
+      if (f) f.def.enrageMs = v;
+    });
+  faraoF.add({ ir: () => pularParaBoss(Constants.FARAO_ANCHOR_PX) }, 'ir')
+    .name('⚔️ Pular p/ 50m antes');
+  faraoF.close();
   const boss3 = bosses.addFolder('Guardião (fim do mundo)');
   for (const layers of [5, 4, 3, 2, 1]) {
     boss3.add(Constants.BOSS3_RIFLE[layers], 'intervalMs', 400, 4000, 50)
@@ -301,7 +330,7 @@ const ROOT_KEYS = [
   'MIN_SAFE_GAP', 'SPAWN_LOOKAHEAD_PX', 'FURY_FULL_DISTANCE_PX',
   'SPECIAL_DURATION_MS', 'SPECIAL_SPEED_MULT',
   'BOSS_KNOCKBACK_VX', 'BOSS_KNOCKBACK_VY', 'BOSS_KNOCKBACK_MS', 'BOSS_SHOT_SPEED',
-  'MURALHA_ENRAGE_MS',
+  'MURALHA_ENRAGE_MS', 'FARAO_ENRAGE_MS',
   'ANIMAL_KB_VX_MIN', 'ANIMAL_KB_VX_MAX', 'ANIMAL_KB_VY_MIN', 'ANIMAL_KB_VY_MAX',
 ];
 
@@ -349,6 +378,21 @@ function exportTuning(baseline) {
     for (const [k, v] of Object.entries(pattern)) {
       if (typeof v === 'number' && v !== baseline.muralha[layers][k]) {
         lines.push(`${pad(`BOSS_MURALHA[${layers}].${k}: ${v},`)}// era ${baseline.muralha[layers][k]} — objeto BOSS_MURALHA, chave ${layers}`);
+      }
+    }
+  }
+  // v1.8.10: arsenais do deserto, mesmo padrão
+  for (const [layers, pattern] of Object.entries(Constants.CERCO_NET)) {
+    for (const [k, v] of Object.entries(pattern)) {
+      if (typeof v === 'number' && v !== baseline.cerco[layers][k]) {
+        lines.push(`${pad(`CERCO_NET[${layers}].${k}: ${v},`)}// era ${baseline.cerco[layers][k]} — objeto CERCO_NET, chave ${layers}`);
+      }
+    }
+  }
+  for (const [layers, pattern] of Object.entries(Constants.BOSS_FARAO)) {
+    for (const [k, v] of Object.entries(pattern)) {
+      if (typeof v === 'number' && v !== baseline.farao[layers][k]) {
+        lines.push(`${pad(`BOSS_FARAO[${layers}].${k}: ${v},`)}// era ${baseline.farao[layers][k]} — objeto BOSS_FARAO, chave ${layers}`);
       }
     }
   }

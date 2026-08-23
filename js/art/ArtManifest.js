@@ -113,4 +113,28 @@ export const ART_MANIFEST = {
   // v1.8.7 — o Comandante da Muralha (mesmo rig 64x72 dos caçadores)
   'muralha-hunter': { w: 64, h: 72 },
   'muralha-hunter-aim': { w: 64, h: 72 },
+  // v1.8.10 — "As Areias do Tempo": o elenco do deserto (dimensões 1:1 com
+  // os ANIMAL_SPECS do Constants — o contrato é o spec, não a arte)
+  'enemy-camelo': { w: 90, h: 78 },
+  'enemy-camelo-run-1': { w: 90, h: 78 },
+  'enemy-abutre': { w: 66, h: 40 },
+  'enemy-abutre-flap': { w: 66, h: 40 },
+  'enemy-naja': { w: 64, h: 46 },
+  'enemy-naja-alt': { w: 64, h: 46 },
+  'enemy-flamingo': { w: 78, h: 40 },
+  'enemy-flamingo-flap': { w: 78, h: 40 },
+  'enemy-mumia': { w: 46, h: 66 },
+  'enemy-mumia-run-1': { w: 46, h: 66 },
+  'enemy-escaravelho': { w: 52, h: 32 },
+  'enemy-escaravelho-run-1': { w: 52, h: 32 },
+  'enemy-chacal': { w: 68, h: 46 },
+  'enemy-chacal-air': { w: 68, h: 46 },
+  'enemy-falcao': { w: 62, h: 36 },
+  'enemy-falcao-alt': { w: 62, h: 36 },
+  'enemy-arqueiro': { w: 52, h: 64 },
+  'enemy-arqueiro-alt': { w: 52, h: 64 },
+  // v1.8.10 — o Faraó de Bronze (mesmo rig 64x72 dos caçadores; a "arma"
+  // é o cajado-uás — a luz do Espelho de Rá sai da mira em (5,30))
+  'farao-hunter': { w: 64, h: 72 },
+  'farao-hunter-aim': { w: 64, h: 72 },
 };
