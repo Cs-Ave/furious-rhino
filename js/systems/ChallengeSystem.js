@@ -267,7 +267,7 @@ export class ChallengeSystem {
   // 16..40 das rules). O criador já nasce em `accepted` (quem desafia está
   // dentro por definição). Guardas locais ANTES de qualquer rede — cada
   // reason vira uma mensagem específica na UI.
-  // -> { ok: true, id } | { ok: false, reason: 'name'|'cap'|'offline'|'invalid' }
+  // -> { ok: true, id } | { ok: false, reason: 'name'|'cap'|'local'|'offline'|'invalid' }
   static async create({ participants, names, days } = {}) {
     try {
       const myId = StorageManager.getOrCreatePlayerId();
@@ -284,7 +284,11 @@ export class ChallengeSystem {
         activeCreated: this.activeCreatedCount(nowS),
       });
       if (reason) return { ok: false, reason };
-      if (!StorageManager.allowsRemoteWrite()) return { ok: false, reason: 'offline' };
+      // v1.8.7-fix2: bloqueio de AMBIENTE (localhost sem opt-in) tem razão
+      // própria — "sem conexão" era mentira e confundia o teste local. O
+      // opt-in é o mesmo dos e2e (furious_rhino_allow_local_write), ligável
+      // no ?debug=1.
+      if (!StorageManager.allowsRemoteWrite()) return { ok: false, reason: 'local' };
 
       // `names` para render sem read extra: só apelidos de quem participa,
       // no teto de 12 chars do ranking; o meu entra sempre por cima

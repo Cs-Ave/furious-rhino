@@ -244,6 +244,18 @@ export async function initTuningPanel(scene) {
 
   // Baixa um .txt SÓ com o que mudou, no formato do Constants.js e com
   // instruções de onde aplicar — colar direto no VS Code
+  // v1.8.7-fix2: opt-in de escrita local (o MESMO dos e2e) — permite testar
+  // envio/aceite de desafio no localhost. Vale para writes de Firestore em
+  // geral (stats/scores/challenges); desligue depois do teste.
+  const writeState = { escritaLocal: false };
+  try { writeState.escritaLocal = localStorage.getItem('furious_rhino_allow_local_write') === '1'; } catch (e) { /* privado */ }
+  debug.add(writeState, 'escritaLocal').name('📡 Escrita local (Firestore)').onChange((on) => {
+    try {
+      if (on) localStorage.setItem('furious_rhino_allow_local_write', '1');
+      else localStorage.removeItem('furious_rhino_allow_local_write');
+    } catch (e) { /* privado */ }
+  });
+
   debug.add({ exportar: () => exportTuning(baseline) }, 'exportar').name('💾 Exportar ajustes');
 
   debug.add({ reiniciar: () => location.reload() }, 'reiniciar').name('Reiniciar (?debug=1)');

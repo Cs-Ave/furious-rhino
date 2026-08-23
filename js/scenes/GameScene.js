@@ -305,6 +305,8 @@ export class GameScene extends Phaser.Scene {
 
     this.setupIdentityUI();
     this.setupPwaPrompt();
+    this.alignInstallHint();
+    window.addEventListener('resize', () => this.alignInstallHint());
 
     // v1.8.6 — Arena de Desafios: card na home (cache primeiro, rede
     // fire-and-forget — padrão do pódio) e o popup de convite. O convite vem
@@ -478,6 +480,17 @@ export class GameScene extends Phaser.Scene {
   // Alerta de instalação: 1x por SESSÃO (o "Jogar Novamente" recarrega a
   // página — mostrar a cada morte afastaria o jogador). Nunca bloqueia:
   // "Continuar sem instalar" fecha e o jogo segue.
+  // v1.8.7-fix2: o #install-hint fica fora do fluxo (absoluto, esquerda da
+  // tela) — alinha o topo dele com a fileira de botoes da Campanha, no mesmo
+  // espirito do alignHudButtons (fallback de CSS so vale ate aqui rodar)
+  alignInstallHint() {
+    const hint = document.getElementById('install-hint');
+    const row = document.querySelector('.home-col-camp .home-headrow');
+    if (!hint || !row) return;
+    const r = row.getBoundingClientRect();
+    if (r.height > 0) hint.style.top = `${Math.round(r.top)}px`;
+  }
+
   setupPwaPrompt() {
     const modal = document.getElementById('pwa-modal');
     if (!modal) return;
@@ -1228,9 +1241,11 @@ export class GameScene extends Phaser.Scene {
     }
     err.textContent = reason === 'cap'
       ? `Você já tem ${Constants.CHALLENGE_MAX_ACTIVE_CREATED || 3} desafios ativos.`
-      : reason === 'offline'
-        ? 'Sem conexão — tente de novo.'
-        : 'Não deu para criar o desafio — tente de novo.';
+      : reason === 'local'
+        ? 'Ambiente local não envia desafios (proteção de teste). Para testar de verdade: ?debug=1 → Debug → "📡 Escrita local".'
+        : reason === 'offline'
+          ? 'Sem conexão — tente de novo.'
+          : 'Não deu para criar o desafio — tente de novo.';
   }
 
   // 1 popup por boot, sempre DEPOIS do PWA: se qualquer modal já está aberto
