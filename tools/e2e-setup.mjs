@@ -162,7 +162,7 @@ async function boot(query) {
   }));
   ok('3o. nenhum POST espontâneo à API local', apiPosts.length === 0, apiPosts.join(' | '));
 
-  // v1.8.14 (aba 🆘 Recuperação): monta no clique; leituras do Firestore só
+  // v1.9.0 (aba 🆘 Recuperação): monta no clique; leituras do Firestore só
   // no Conferir (o navegador não toca googleapis na montagem) e NUNCA
   // autorizar/concluir aqui — escrever par de verdade é ato do dono
   await page.click('#su-tab-btn-reassign');

@@ -3,7 +3,7 @@ import { NewsSystem } from './NewsSystem.js';
 import { NotifySystem } from './NotifySystem.js';
 import { LeaderboardSystem, getDb } from './LeaderboardSystem.js';
 
-// Recuperação de identidade (v1.8.14) — o caso "Teco": desinstalar o PWA
+// Recuperação de identidade (v1.9.0) — o caso "Teco": desinstalar o PWA
 // apaga o localStorage e o aparelho renasce com outro UUID; o doc antigo em
 // `scores/` vira um órfão que BLOQUEIA o próprio dono do apelido (checkName
 // exclui "meu doc" pelo id). Sem login não há como provar posse — a

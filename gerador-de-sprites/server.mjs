@@ -105,7 +105,7 @@ function integrationSnippets(name) {
   ].join('\n');
 }
 
-// -------------------------------------- recuperação de identidade (v1.8.14)
+// -------------------------------------- recuperação de identidade (v1.9.0)
 // A aba 🆘 do /?setup autoriza o "reassign" (o caso Teco): o par
 // {idNovo: idAntigo} vai para o doc `config/reassign`, que os clientes só
 // LEEM (rules: config/* é write:false) — a escrita privilegiada acontece
@@ -794,7 +794,7 @@ const handler = async (req, res) => {
       return send(res, 200, { ok: true, removed: id });
     }
 
-    // --------------------------------- recuperação de identidade (v1.8.14)
+    // --------------------------------- recuperação de identidade (v1.9.0)
     if (path === '/api/reassign/state' && req.method === 'GET') {
       const pairs = await readReassignPairs();
       const sp = fbConfigstorePath();

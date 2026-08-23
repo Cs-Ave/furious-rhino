@@ -146,7 +146,7 @@ export async function render() {
     skins: { btn: btnSkins, painel: tabSkins },
     sprites: { btn: btnSprites, painel: tabSprites, modulo: './SetupSprites.js' },
     radiografia: { btn: btnRadio, painel: tabRadio, modulo: './SetupAnalytics.js' },
-    // v1.8.14 — recuperação de identidade (o caso Teco): atendimento do 🆘
+    // v1.9.0 — recuperação de identidade (o caso Teco): atendimento do 🆘
     reassign: { btn: btnReassign, painel: tabReassign, modulo: './SetupReassign.js' },
   };
   const selecionar = (qual) => {

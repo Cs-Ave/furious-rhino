@@ -25,7 +25,7 @@ export const notifyConfig = {
   onStart: true,          // 1ª corrida de cada sessão
   onSessionEnd: true,     // resumo quando a sessão encerra (ou no tempo abaixo)
   onWorldRecord: true,    // alguém passou o líder mundial
-  // v1.8.14 — recuperação de identidade (estar AQUI é o que permite ligar/
+  // v1.9.0 — recuperação de identidade (estar AQUI é o que permite ligar/
   // desligar pelo doc config/notify: o merge só copia chaves conhecidas)
   onClaim: true,          // jogador pediu a recuperação de um apelido (🆘)
   onReassignDone: true,   // a migração completou no aparelho do jogador

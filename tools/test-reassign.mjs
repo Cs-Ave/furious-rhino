@@ -1,4 +1,4 @@
-// Grupo de testes da recuperação de identidade (v1.8.14 — o caso "Teco").
+// Grupo de testes da recuperação de identidade (v1.9.0 — o caso "Teco").
 //   npm run test-reassign
 // Sem navegador e SEM rede: valida o mergeIdentity puro (a invariante da
 // monotonia das rules de stats: totais somados são sempre >= servidor), a
@@ -175,7 +175,7 @@ eq('toMillis: lixo vira 0', [ReassignSystem.toMillis(null), ReassignSystem.toMil
 
 // ---------- 8. History: fusão e tetos ----------
 const hLocal = {
-  clients: { 'iPhone · Safari': 2 }, geos: {}, versions: { '1.8.14': 2 },
+  clients: { 'iPhone · Safari': 2 }, geos: {}, versions: { '1.9.0': 2 },
   days: { '2026-08-10': { r: 1, s: 1, b: 400 }, '2026-08-22': { r: 2, s: 1, b: 900 } },
   firstSeenS: 1754800000,
 };

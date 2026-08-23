@@ -1,7 +1,7 @@
 import { decode } from '../stats/RadiografiaCore.js';
 import { firebaseConfig } from '../firebase-config.js';
 
-// Aba 🆘 RECUPERAÇÃO do /?setup (v1.8.14) — o atendimento do caso "Teco":
+// Aba 🆘 RECUPERAÇÃO do /?setup (v1.9.0) — o atendimento do caso "Teco":
 // o jogador reinstalou o PWA, perdeu o player_id e o próprio doc órfão
 // bloqueia o apelido dele. O push 🆘 do jogo traz o ID NOVO; aqui o dono
 // confere a reivindicação (assinatura de aparelho/local dos dois lados,

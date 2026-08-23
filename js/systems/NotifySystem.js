@@ -347,7 +347,7 @@ export class NotifySystem {
     }
   }
 
-  // v1.8.14 — pedido de recuperação de identidade (o caso "Teco"): o jogador
+  // v1.9.0 — pedido de recuperação de identidade (o caso "Teco"): o jogador
   // tocou 🆘 no erro de "apelido já está em uso". O push leva tudo que o
   // ADMIN precisa para mediar: o id NOVO (a chave do par em config/reassign)
   // e a assinatura do aparelho/local, para comparar com o history do doc
@@ -384,7 +384,7 @@ export class NotifySystem {
     }
   }
 
-  // v1.8.14 — a migração completou no aparelho do jogador. É o sinal para o
+  // v1.9.0 — a migração completou no aparelho do jogador. É o sinal para o
   // admin limpar o par do config/reassign e apagar os docs órfãos do id
   // provisório (aba 🆘 Recuperação do /?setup, botão "Concluído").
   static async reassignDone({ from, to, name } = {}) {
