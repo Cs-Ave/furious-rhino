@@ -39,6 +39,10 @@ function el(tag, className = null, text = null) {
 // ------------------------------------------------------------------ estado
 let serverUp = false;
 let gameByUnified = false; // quem serve esta página é o próprio gerador?
+let genUptimeS = null; // uptime do unificado — a linha do JOGO o herda
+
+const fmtUptime = (s) => `${Math.floor(s / 60)}min ${s % 60}s`;
+const API_HOST = API.replace(/^https?:\/\//, ''); // 'localhost:3210'
 let sessionId = null;
 let selection = [];
 let lastB64 = null;
@@ -153,13 +157,18 @@ export async function render() {
 // v1.8.8: DUAS linhas de status — o JOGO (quem serve esta página: o estúdio
 // unificado, o python, produção, ou o cache do PWA) e o GERADOR (:3210).
 // A linha do gerador é contrato congelado do e2e-setup (#su-dot,
-// #su-server-text com 'executando'/'parado' EXATOS, #su-uptime,
+// #su-server-text com 'estúdio no ar'/'parado' EXATOS, #su-uptime,
 // #su-server-help hidden⇔no ar) — ids e strings intocados; o que é novo
 // (linha do jogo, botão Parar) tem id novo.
 function buildServerCard() {
   const card = el('div', 'su-card');
   card.append(el('h2', null, 'Servidores locais'));
 
+  // Linha do JOGO — com o uptime (herdado do unificado, é o mesmo processo)
+  // e o botão ⏻: a página nunca pôde LIGAR um servidor (sandbox), mas
+  // desligar pode — o /api/shutdown responde antes de morrer e o polling
+  // pinta o resto sozinho. O aviso muda se quem serve esta página é o
+  // próprio servidor que vai cair.
   const rowGame = el('div');
   rowGame.style.cssText = 'display:flex;align-items:center;gap:12px;flex-wrap:wrap';
   const gameDot = el('span', null, '⚪');
@@ -169,21 +178,6 @@ function buildServerCard() {
   gameText.id = 'su-game-text';
   const gameSrc = el('span', 'su-muted', '');
   gameSrc.id = 'su-game-src';
-  rowGame.append(gameDot, gameText, gameSrc);
-
-  const row = el('div');
-  row.style.cssText = 'display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px';
-  const dot = el('span', null, '⚪');
-  dot.id = 'su-dot';
-  dot.style.fontSize = '20px';
-  const text = el('b', null, 'verificando…');
-  text.id = 'su-server-text';
-  const uptime = el('span', 'su-muted', '');
-  uptime.id = 'su-uptime';
-  // ⏻ Parar: a página nunca pôde LIGAR o servidor (sandbox), mas desligar
-  // pode — o /api/shutdown responde antes de morrer e o polling pinta o
-  // resto sozinho. O aviso muda se quem serve esta página é o próprio
-  // servidor que vai cair.
   const stopBtn = el('button', 'su-danger', '⏻ Parar servidor');
   stopBtn.id = 'su-btn-stop';
   stopBtn.hidden = true;
@@ -198,7 +192,20 @@ function buildServerCard() {
       await fetch(API + '/api/shutdown', { method: 'POST' });
     } catch (e) { /* já caiu — o polling confirma */ }
   });
-  row.append(dot, text, uptime, stopBtn);
+  rowGame.append(gameDot, gameText, gameSrc, stopBtn);
+
+  // Linha do ESTÚDIO (gerador :3210) — DOM contrato do e2e (#su-dot,
+  // #su-server-text 'estúdio no ar'/'parado', #su-uptime, #su-server-help)
+  const row = el('div');
+  row.style.cssText = 'display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px';
+  const dot = el('span', null, '⚪');
+  dot.id = 'su-dot';
+  dot.style.fontSize = '20px';
+  const text = el('b', null, 'verificando…');
+  text.id = 'su-server-text';
+  const uptime = el('span', 'su-muted', '');
+  uptime.id = 'su-uptime';
+  row.append(dot, text, uptime);
 
   const help = el('div');
   help.id = 'su-server-help';
@@ -243,11 +250,14 @@ async function pollStatus() {
   } catch (e) { /* parado */ }
   const wasUp = serverUp;
   serverUp = up;
+  genUptimeS = up && uptimeS != null ? uptimeS : null;
   if ($('su-dot')) {
     $('su-dot').textContent = up ? '🟢' : '🔴';
-    $('su-server-text').textContent = up ? 'executando' : 'parado';
-    $('su-uptime').textContent = up && uptimeS != null
-      ? `há ${Math.floor(uptimeS / 60)}min ${uptimeS % 60}s` : '';
+    $('su-server-text').textContent = up ? 'estúdio no ar' : 'parado';
+    $('su-uptime').textContent = up
+      ? [API_HOST, uptimeS != null ? `há ${fmtUptime(uptimeS)}` : '',
+        'quem grava as skins (art/, registry, sw.js)'].filter(Boolean).join(' · ')
+      : '';
     $('su-server-help').hidden = up;
     if ($('su-btn-stop')) $('su-btn-stop').hidden = !up;
   }
@@ -289,8 +299,14 @@ async function pollGameServer() {
   gameByUnified = unified;
   $('su-game-dot').textContent = alive ? '🟢' : '🔴';
   $('su-game-text').textContent = alive ? 'jogo no ar' : 'jogo fora do ar';
+  // Infos da linha: uptime (só faz sentido no unificado — é o mesmo
+  // processo do gerador), endereço:porta e quem está servindo
+  const infos = [];
+  if (unified && genUptimeS != null) infos.push(`há ${fmtUptime(genUptimeS)}`);
+  infos.push(location.host);
+  infos.push(unified ? 'servido pelo estúdio unificado' : 'outro servidor (ex.: python)');
   $('su-game-src').textContent = alive
-    ? `${location.host} · ${unified ? 'servido pelo estúdio unificado' : 'outro servidor (ex.: python)'}`
+    ? infos.join(' · ')
     : 'esta página veio do cache do PWA — suba um servidor para gravar';
 }
 

@@ -163,7 +163,7 @@ async function boot(query) {
     ok('4b3. [gerador no ar] badge de visibilidade em toda linha', badges === rows,
       `badges=${badges}/${rows}`);
     ok('4c. [gerador no ar] status verde no painel',
-      (await page.textContent('#su-server-text')) === 'executando');
+      (await page.textContent('#su-server-text')) === 'estúdio no ar');
   } else {
     ok('4. [gerador parado] instruções de subida visíveis',
       await page.evaluate(() => !document.getElementById('su-server-help').hidden));
