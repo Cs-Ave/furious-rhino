@@ -242,6 +242,15 @@ function linhaEspecie(t) {
   if (ajustes > 0) chips.append(el('span', 'sp-chip sp-ajustes', `● ${ajustes} ajuste${ajustes > 1 ? 's' : ''}`));
   meta.append(chips);
   row.append(meta);
+
+  // Editor de parâmetros (S3) — espécies criadas pela aba se editam pela
+  // própria ficha de criação (S5), não por override
+  if (!Constants.SPRITE_NEW.some((n) => n.id === t)) {
+    const btn = el('button', 'sp-edit-btn', '✏️');
+    btn.title = 'editar parâmetros desta espécie';
+    btn.addEventListener('click', () => alternarEditor(row, t));
+    row.append(btn);
+  }
   return row;
 }
 
@@ -355,5 +364,316 @@ function montarHud(cont) {
     meta.append(chips);
     row.append(meta);
     cont.append(row);
+  }
+}
+
+// ============================================== ✏️ editor de parâmetros (S3)
+// Painel inline sob a linha (um aberto por vez). O diff é sempre contra o
+// DESIGN (SPRITE_BASE): valor igual ao design não vira override; chave de
+// design desligada vira null (apagar). Salvar = POST /api/sprite-params —
+// o servidor grava o SpriteParams, roda o portão (test-sprites+test-skins)
+// e REVERTE tudo se reprovar; o stdout do portão aparece cru aqui.
+const API = 'http://localhost:3210';
+const LIMITES = {
+  specs: { bodyW: [8, 200], bodyH: [8, 160], offX: [0, 160], offY: [0, 120], scale: [0.5, 2] },
+  behavior: { speed: [10, 600], jumpV: [-1200, -100], jumpIntervalMs: [100, 3000], bobVy: [0, 120] },
+};
+let editorAberto = null;
+
+function alternarEditor(row, t) {
+  const jaEra = editorAberto && editorAberto.t === t;
+  if (editorAberto) {
+    editorAberto.painel.remove();
+    if (editorAberto.overlay) editorAberto.overlay.remove();
+    editorAberto = null;
+  }
+  if (jaEra) return;
+  const { painel, overlay } = construirEditor(row, t);
+  row.after(painel);
+  editorAberto = { painel, overlay, t };
+}
+
+function construirEditor(row, t) {
+  const spec = Constants.ANIMAL_SPECS[t];
+  const b = Constants.ANIMAL_BEHAVIOR[t];
+  const baseS = Constants.SPRITE_BASE.specs[t] || {};
+  const baseB = Constants.SPRITE_BASE.behavior[t] || {};
+
+  const painel = el('div', 'sp-editor');
+  const inputs = {};
+  const flags = {};
+  const num = (chave) => {
+    const i = inputs[chave];
+    return !i || i.value === '' ? undefined : Number(i.value);
+  };
+
+  // Overlay de hitbox sobre a thumb da linha. O offX gravado já vem
+  // ESPELHADO para o setFlipX do jogo — a arte olha para a direita, então
+  // aqui o retângulo é des-espelhado: left = w − offX − bodyW.
+  const thumb = row.querySelector('.sp-thumb');
+  const overlay = el('div', 'sp-hitwrap');
+  const rect = el('div', 'sp-hitbox');
+  overlay.append(rect);
+  if (thumb) thumb.append(overlay);
+  const atualizarOverlay = () => {
+    const bw = num('specs.bodyW') || 0;
+    const bh = num('specs.bodyH') || 0;
+    const ox = num('specs.offX') || 0;
+    const oy = num('specs.offY') || 0;
+    rect.style.left = `${((spec.w - ox - bw) / spec.w) * 100}%`;
+    rect.style.top = `${(oy / spec.h) * 100}%`;
+    rect.style.width = `${(bw / spec.w) * 100}%`;
+    rect.style.height = `${(bh / spec.h) * 100}%`;
+  };
+
+  const campo = (grupo, chave, rotulo, valor, faixa, step = 1, onInput = null) => {
+    const l = el('label', 'sp-campo', `${rotulo} `);
+    const i = document.createElement('input');
+    i.type = 'number';
+    [i.min, i.max] = faixa;
+    i.step = step;
+    if (valor !== undefined && valor !== null) i.value = valor;
+    if (onInput) i.addEventListener('input', onInput);
+    l.append(i);
+    inputs[`${grupo}.${chave}`] = i;
+    return l;
+  };
+  const grupoCampos = (titulo) => {
+    const d = el('div', 'sp-campos');
+    if (titulo) d.append(el('b', 'sp-campos-titulo', titulo));
+    return d;
+  };
+
+  const gHit = grupoCampos('Hitbox');
+  gHit.append(
+    campo('specs', 'bodyW', 'largura', spec.bodyW, LIMITES.specs.bodyW, 1, atualizarOverlay),
+    campo('specs', 'bodyH', 'altura', spec.bodyH, LIMITES.specs.bodyH, 1, atualizarOverlay),
+    campo('specs', 'offX', 'offX (espelhado)', spec.offX, LIMITES.specs.offX, 1, atualizarOverlay),
+    campo('specs', 'offY', 'offY', spec.offY, LIMITES.specs.offY, 1, atualizarOverlay),
+    campo('specs', 'scale', 'escala', spec.scale || Constants.ANIMAL_SCALE, LIMITES.specs.scale, 0.05));
+  painel.append(gHit);
+  atualizarOverlay();
+
+  const gBeh = grupoCampos('Comportamento');
+  gBeh.append(campo('behavior', 'speed', 'velocidade', b.speed, LIMITES.behavior.speed, 5));
+  gBeh.append(campo('behavior', 'bobVy', 'ondulação (vazio = sem)', b.bobVy, LIMITES.behavior.bobVy, 5));
+  if (baseB.jumpV !== undefined || b.jumpV !== undefined) {
+    gBeh.append(campo('behavior', 'jumpV', 'impulso do pulo', b.jumpV, LIMITES.behavior.jumpV, 10));
+    gBeh.append(campo('behavior', 'jumpIntervalMs', 'intervalo do pulo (ms)', b.jumpIntervalMs, LIMITES.behavior.jumpIntervalMs, 50));
+  }
+  painel.append(gBeh);
+
+  // Fieldsets com checkbox-mestre — fly/zig mudam a CLASSIFICAÇÃO de spawn
+  const fieldsetFlag = (nome, rotulo, ativo, mudaClasse, montarCorpo) => {
+    const fs = el('div', 'sp-fieldset');
+    const head = el('label', null, ` ${rotulo}`);
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.checked = ativo;
+    head.prepend(chk);
+    fs.append(head);
+    const corpo = el('div', 'sp-campos');
+    montarCorpo(corpo);
+    corpo.hidden = !ativo;
+    fs.append(corpo);
+    chk.addEventListener('change', () => {
+      if (mudaClasse) {
+        const txt = chk.checked
+          ? `Ligar "${rotulo}" muda a CLASSIFICAÇÃO de spawn (${t} passa a voador). O portão de testes valida os invariantes por bioma e REVERTE se quebrar. Continuar?`
+          : `Desligar "${rotulo}" devolve ${t} ao chão. O portão valida. Continuar?`;
+        if (!confirm(txt)) { chk.checked = !chk.checked; return; }
+      }
+      corpo.hidden = !chk.checked;
+    });
+    flags[nome] = chk;
+    return fs;
+  };
+  const fly0 = b.fly || [440, 520];
+  painel.append(fieldsetFlag('fly', '🪽 voo (banda y)', Boolean(b.fly), true, (c) => {
+    c.append(campo('fly', 'min', 'y mín', fly0[0], [300, 600], 5),
+      campo('fly', 'max', 'y máx', fly0[1], [300, 600], 5));
+  }));
+  const zig0 = b.zig || { vy: 260, band: [400, 545] };
+  painel.append(fieldsetFlag('zig', '⚡ zig-zag', Boolean(b.zig), true, (c) => {
+    c.append(campo('zig', 'vy', 'vy', zig0.vy, [50, 600], 10),
+      campo('zig', 'bandMin', 'banda mín', zig0.band[0], [300, 600], 5),
+      campo('zig', 'bandMax', 'banda máx', zig0.band[1], [300, 600], 5));
+  }));
+  const sh0 = b.shoot || { telegraphMs: 300, dartSpeed: 620 };
+  painel.append(fieldsetFlag('shoot', '🎯 atirador', Boolean(b.shoot), false, (c) => {
+    c.append(campo('shoot', 'telegraphMs', 'telegraph (ms)', sh0.telegraphMs, [150, 2000], 10),
+      campo('shoot', 'dartSpeed', 'vel. do dardo', sh0.dartSpeed, [100, 1200], 10),
+      campo('shoot', 'intervalMs', 'intervalo (ms)', sh0.intervalMs, [300, 5000], 100),
+      campo('shoot', 'rangeMin', 'alcance mín', sh0.range && sh0.range[0], [200, 1500], 10),
+      campo('shoot', 'rangeMax', 'alcance máx', sh0.range && sh0.range[1], [200, 1500], 10),
+      campo('shoot', 'cap', 'máx em tela', sh0.cap, [1, 5], 1));
+    const aim = el('label', 'sp-campo', ' mirado ');
+    const ai = document.createElement('input');
+    ai.type = 'checkbox';
+    ai.checked = Boolean(sh0.aimed);
+    aim.prepend(ai);
+    inputs['shoot.aimed'] = ai;
+    const sen = el('label', 'sp-campo', ' conta como torre (sentinela) ');
+    const se = document.createElement('input');
+    se.type = 'checkbox';
+    se.checked = Boolean(b.sentinel);
+    sen.prepend(se);
+    inputs['behavior.sentinel'] = se;
+    c.append(aim, sen);
+  }));
+
+  // Diff contra o DESIGN — só o que difere vira override; o que o design
+  // tinha e foi desligado vira null (apagar)
+  const diffDe = () => {
+    const oSpecs = {};
+    const oBeh = {};
+    for (const k of ['bodyW', 'bodyH', 'offX', 'offY', 'scale']) {
+      const v = num(`specs.${k}`);
+      if (v === undefined) continue;
+      const baseV = baseS[k];
+      if (JSON.stringify(v) !== JSON.stringify(baseV)) {
+        if (!(k === 'scale' && baseV === undefined && v === Constants.ANIMAL_SCALE)) oSpecs[k] = v;
+      }
+    }
+    const escalar = (chave, baseV) => {
+      const v = num(`behavior.${chave}`);
+      if (v === undefined) { if (baseV !== undefined) oBeh[chave] = null; }
+      else if (v !== baseV) oBeh[chave] = v;
+    };
+    escalar('speed', baseB.speed);
+    escalar('bobVy', baseB.bobVy);
+    if (inputs['behavior.jumpV']) {
+      escalar('jumpV', baseB.jumpV);
+      escalar('jumpIntervalMs', baseB.jumpIntervalMs);
+    }
+    if (flags.fly.checked && flags.zig.checked) return { erro: 'fly e zig não podem coexistir' };
+    if (flags.fly.checked) {
+      const v = [num('fly.min'), num('fly.max')];
+      if (v.some((x) => x === undefined)) return { erro: 'preencha a banda de voo' };
+      if (JSON.stringify(v) !== JSON.stringify(baseB.fly)) oBeh.fly = v;
+    } else if (baseB.fly) oBeh.fly = null;
+    if (flags.zig.checked) {
+      const v = { vy: num('zig.vy'), band: [num('zig.bandMin'), num('zig.bandMax')] };
+      if (v.vy === undefined || v.band.some((x) => x === undefined)) return { erro: 'preencha o zig-zag' };
+      if (JSON.stringify(v) !== JSON.stringify(baseB.zig)) oBeh.zig = v;
+    } else if (baseB.zig) oBeh.zig = null;
+    if (flags.shoot.checked) {
+      const v = { telegraphMs: num('shoot.telegraphMs'), dartSpeed: num('shoot.dartSpeed') };
+      if (v.telegraphMs === undefined || v.dartSpeed === undefined) {
+        return { erro: 'atirador exige telegraph e vel. do dardo' };
+      }
+      const iv = num('shoot.intervalMs');
+      if (iv !== undefined) v.intervalMs = iv;
+      const rMin = num('shoot.rangeMin');
+      const rMax = num('shoot.rangeMax');
+      if (rMin !== undefined && rMax !== undefined) v.range = [rMin, rMax];
+      const cap = num('shoot.cap');
+      if (cap !== undefined) v.cap = cap;
+      if (inputs['shoot.aimed'].checked) v.aimed = true;
+      if (JSON.stringify(v) !== JSON.stringify(baseB.shoot)) oBeh.shoot = v;
+      const sent = inputs['behavior.sentinel'].checked;
+      if (sent !== Boolean(baseB.sentinel)) oBeh.sentinel = sent || null;
+    } else {
+      if (baseB.shoot) oBeh.shoot = null;
+      if (baseB.sentinel) oBeh.sentinel = null;
+    }
+    return { specs: oSpecs, behavior: oBeh };
+  };
+
+  const acoes = el('div', 'sp-acoes');
+  const btnSalvar = el('button', 'su-primary', '💾 Salvar espécie');
+  const btnReverter = el('button', 'su-danger', '↩ Reverter ao design');
+  const status = el('span', 'su-muted', '');
+  acoes.append(btnSalvar, btnReverter, status);
+  painel.append(acoes);
+  const out = document.createElement('pre');
+  out.hidden = true;
+  painel.append(out);
+  const banner = el('p', 'su-ok', '');
+  banner.hidden = true;
+  painel.append(banner);
+
+  const enviar = async (payload, rotuloOk) => {
+    btnSalvar.disabled = true;
+    btnReverter.disabled = true;
+    out.hidden = true;
+    banner.hidden = true;
+    status.className = 'su-muted';
+    status.textContent = 'gravando + rodando o portão de testes…';
+    try {
+      const r = await fetch(`${API}/api/sprite-params`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: t, ...payload }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        status.className = 'su-err';
+        status.textContent = j.error || `erro ${r.status}`;
+        if (j.testOutput) { out.textContent = j.testOutput; out.hidden = false; }
+        return;
+      }
+      const salvo = (j.params.overrides || {})[t] || null;
+      reaplicarLocal(t, salvo);
+      status.className = 'su-ok';
+      status.textContent = rotuloOk;
+      banner.textContent = '✔ Aplicado na árvore de trabalho. F5 na aba do jogo '
+        + '(localhost:3000) para ver — o site ao vivo só muda na release.';
+      banner.hidden = false;
+      const nova = linhaEspecie(t);
+      row.replaceWith(nova);
+      observar(nova);
+      row = nova;
+    } catch (e) {
+      status.className = 'su-err';
+      status.textContent = 'gerador parado — suba pelo iniciar-estudio.bat (ou npm run sprite-gen) e tente de novo';
+    } finally {
+      btnSalvar.disabled = false;
+      btnReverter.disabled = false;
+    }
+  };
+
+  btnSalvar.addEventListener('click', () => {
+    const d = diffDe();
+    if (d.erro) {
+      status.className = 'su-err';
+      status.textContent = d.erro;
+      return;
+    }
+    if (!Object.keys(d.specs).length && !Object.keys(d.behavior).length) {
+      if (contarAjustes(t) > 0) { enviar({ reset: true }, 'ajustes limpos — de volta ao design'); return; }
+      status.className = 'su-muted';
+      status.textContent = 'nada mudou em relação ao design';
+      return;
+    }
+    enviar({ specs: d.specs, behavior: d.behavior }, 'salvo com o portão verde');
+  });
+  btnReverter.addEventListener('click', () => {
+    if (contarAjustes(t) === 0) {
+      status.className = 'su-muted';
+      status.textContent = 'esta espécie já está no design';
+      return;
+    }
+    if (!confirm(`Descartar TODOS os ajustes de ${t} e voltar ao design?`)) return;
+    enviar({ reset: true }, 'revertida ao design');
+  });
+
+  return { painel, overlay };
+}
+
+// Reaplica localmente o estado salvo (a página não recarrega módulos):
+// espécie volta ao design e recebe o override novo — mesmo merge do Constants
+function reaplicarLocal(t, override) {
+  const base = Constants.SPRITE_BASE;
+  if (!base.specs[t]) return; // criada pela aba: fora do fluxo de override
+  Constants.ANIMAL_SPECS[t] = JSON.parse(JSON.stringify(base.specs[t]));
+  Constants.ANIMAL_BEHAVIOR[t] = JSON.parse(JSON.stringify(base.behavior[t]));
+  for (const [src, dst] of [[override && override.specs, Constants.ANIMAL_SPECS[t]],
+    [override && override.behavior, Constants.ANIMAL_BEHAVIOR[t]]]) {
+    if (!src) continue;
+    for (const [k, v] of Object.entries(src)) {
+      if (v === null) delete dst[k];
+      else dst[k] = v;
+    }
   }
 }

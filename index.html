@@ -1761,6 +1761,26 @@
         #setup-page .sp-thumb.sp-live3 img:nth-child(2) { animation: sp-p1 0.34s steps(1) infinite; }
         #setup-page .sp-thumb.sp-live3 img:nth-child(3) { animation: sp-p2 0.34s steps(1) infinite; }
         #setup-page .sp-thumb.sp-3:not(.sp-live3) img:first-child { opacity: 1; }
+        /* editor de parâmetros (S3) */
+        #setup-page .sp-edit-btn { margin-left: auto; }
+        #setup-page .sp-editor {
+            margin: 0 0 10px 24px; padding: 10px 12px; border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 210, 63, 0.25);
+        }
+        #setup-page .sp-campos { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 6px 0; }
+        #setup-page .sp-campos-titulo { flex-basis: 100%; color: #ffd23f; }
+        #setup-page .sp-campo { font-size: 13px; color: rgba(255, 255, 255, 0.8); }
+        #setup-page .sp-campo input[type=number] { width: 78px; }
+        #setup-page .sp-fieldset {
+            border: 1px dashed rgba(255, 255, 255, 0.18); border-radius: 6px;
+            padding: 6px 10px; margin: 8px 0;
+        }
+        #setup-page .sp-acoes { display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+        #setup-page .sp-hitwrap { position: absolute; inset: 4px; pointer-events: none; }
+        #setup-page .sp-hitbox {
+            position: absolute; border: 2px solid rgba(255, 60, 60, 0.85);
+            background: rgba(255, 60, 60, 0.12);
+        }
         @keyframes sp-p0 { 0%, 24.9% { opacity: 1; } 25%, 100% { opacity: 0; } }
         @keyframes sp-p1 { 0%, 24.9% { opacity: 0; } 25%, 49.9% { opacity: 1; } 50%, 74.9% { opacity: 0; } 75%, 100% { opacity: 1; } }
         @keyframes sp-p2 { 0%, 49.9% { opacity: 0; } 50%, 74.9% { opacity: 1; } 75%, 100% { opacity: 0; } }

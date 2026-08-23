@@ -218,3 +218,127 @@ export function patchSwAssets(swSrc, skins) {
   const middle = lines.length ? `${lines.join('\n')}\n` : '';
   return swSrc.slice(0, startLineEnd + 1) + middle + swSrc.slice(endLineStart);
 }
+
+// ==================================================== aba 🖼️ Sprites (v1.8.9)
+// Round-trip textual do js/art/SpriteParams.js — mesmo racional do registry:
+// JSON estrito, header fixo reimpresso, byte-estável ("salvar de novo" é
+// no-op verificável). O header abaixo TEM de bater com o do arquivo real
+// (o test-sprites confere o round-trip inteiro).
+
+const SPRITE_PARAMS_HEADER = `// ATENÇÃO: arquivo de DADOS, gerado e reescrito pela aba 🖼️ Sprites do
+// /?setup (via gerador-de-sprites/server.mjs). O miolo é JSON ESTRITO — o
+// servidor faz o round-trip por TEXTO (sem import(): o cache de módulo do
+// node devolveria versão velha), fatiando do primeiro '{' após a declaração
+// (a linha do export) até o último '}' do arquivo.
+//
+// REGRAS (tools/test-sprites.mjs as vigia; violar = gravação revertida):
+//  - NENHUM import aqui (o Constants importa este arquivo — ciclo mata o boot);
+//  - nada de código depois do objeto;
+//  - "overrides": { "especie": { "specs": {...}, "behavior": {...} } } —
+//    merge raso por chave; sub-objetos (zig/shoot/fly) substituem INTEIRO;
+//    valor null APAGA a chave; w/h/tex/anim/pair proibidos aqui;
+//  - "novas": espécies criadas pela aba — specs completos + behavior +
+//    "anim" ({"sufixo","fps"} | {"sufixo":"air"} | null) +
+//    "casts" ({"biomas":[...], "distritos":[...]}).
+`;
+
+// Ordem canônica das chaves (diff estável entre gravações)
+const SPRITE_SPEC_ORDER = ['w', 'h', 'bodyW', 'bodyH', 'offX', 'offY', 'tex', 'scale', 'pair'];
+const SPRITE_BEHAVIOR_ORDER = ['speed', 'anim', 'jumpV', 'jumpIntervalMs', 'airTexture', 'bobVy', 'fly', 'zig', 'shoot', 'sentinel'];
+// O que um OVERRIDE pode tocar (novas usam as ordens completas acima)
+export const SPRITE_OVERRIDE_SPECS = ['bodyW', 'bodyH', 'offX', 'offY', 'scale'];
+export const SPRITE_OVERRIDE_BEHAVIOR = ['speed', 'jumpV', 'jumpIntervalMs', 'bobVy', 'fly', 'zig', 'shoot', 'sentinel'];
+
+const ordenado = (obj, ordem) => {
+  const out = {};
+  for (const k of ordem) if (obj[k] !== undefined) out[k] = obj[k]; // null SOBREVIVE (= apagar)
+  return out;
+};
+
+export function parseSpriteParams(src) {
+  const marker = 'export const SPRITE_PARAMS =';
+  const at = src.indexOf(marker);
+  if (at < 0) throw new Error('SpriteParams.js sem "export const SPRITE_PARAMS =" — arquivo corrompido?');
+  const start = src.indexOf('{', at);
+  const end = src.lastIndexOf('}');
+  if (start < 0 || end <= start) throw new Error('SpriteParams.js sem o objeto de parâmetros');
+  let params;
+  try {
+    params = JSON.parse(src.slice(start, end + 1));
+  } catch (e) {
+    throw new Error(`o miolo do SpriteParams.js não é JSON estrito: ${e.message}`);
+  }
+  if (params.version !== 1) throw new Error(`SpriteParams.js com version ${params.version} (esperado 1)`);
+  return { version: 1, overrides: params.overrides || {}, novas: params.novas || [] };
+}
+
+export function renderSpriteParams(p) {
+  const out = { version: 1, overrides: {}, novas: [] };
+  for (const t of Object.keys(p.overrides || {}).sort()) {
+    const o = p.overrides[t] || {};
+    const bloco = {};
+    if (o.specs && Object.keys(o.specs).length) bloco.specs = ordenado(o.specs, SPRITE_SPEC_ORDER);
+    if (o.behavior && Object.keys(o.behavior).length) bloco.behavior = ordenado(o.behavior, SPRITE_BEHAVIOR_ORDER);
+    if (Object.keys(bloco).length) out.overrides[t] = bloco;
+  }
+  for (const n of p.novas || []) {
+    out.novas.push({
+      id: n.id,
+      specs: ordenado(n.specs || {}, SPRITE_SPEC_ORDER),
+      behavior: ordenado(n.behavior || {}, SPRITE_BEHAVIOR_ORDER),
+      anim: n.anim ? ordenado(n.anim, ['sufixo', 'fps']) : null,
+      casts: {
+        biomas: [...((n.casts && n.casts.biomas) || [])],
+        distritos: [...((n.casts && n.casts.distritos) || [])],
+      },
+    });
+  }
+  return `${SPRITE_PARAMS_HEADER}export const SPRITE_PARAMS = ${JSON.stringify(out, null, 2)};\n`;
+}
+
+// Validação de FORMA/faixa de um override (a coerência profunda — bandas no
+// resultado, bioma sem terrestre, pares — é do portão test-sprites, que roda
+// num processo NOVO e enxerga o merge fresco; aqui é o 400 amigável)
+const NUM_RANGES = {
+  specs: { bodyW: [8, 200], bodyH: [8, 160], offX: [0, 160], offY: [0, 120], scale: [0.5, 2] },
+  behavior: { speed: [10, 600], jumpV: [-1200, -100], jumpIntervalMs: [100, 3000], bobVy: [0, 120] },
+};
+const numOk = (v, [a, b]) => typeof v === 'number' && isFinite(v) && v >= a && v <= b;
+const bandOk = (v) => Array.isArray(v) && v.length === 2 && numOk(v[0], [300, 600])
+  && numOk(v[1], [300, 600]) && v[0] < v[1];
+
+export function validateSpriteOverride({ specs, behavior } = {}) {
+  const errors = [];
+  for (const [k, v] of Object.entries(specs || {})) {
+    if (!SPRITE_OVERRIDE_SPECS.includes(k)) errors.push(`specs.${k} não é editável por override`);
+    else if (v === null) errors.push(`specs.${k} não aceita null (hitbox sempre existe)`);
+    else if (!numOk(v, NUM_RANGES.specs[k])) errors.push(`specs.${k} fora da faixa ${NUM_RANGES.specs[k].join('..')}`);
+  }
+  for (const [k, v] of Object.entries(behavior || {})) {
+    if (!SPRITE_OVERRIDE_BEHAVIOR.includes(k)) { errors.push(`behavior.${k} não é editável por override`); continue; }
+    if (v === null) { if (k === 'speed') errors.push('speed não aceita null'); continue; }
+    if (k in NUM_RANGES.behavior) {
+      if (!numOk(v, NUM_RANGES.behavior[k])) errors.push(`behavior.${k} fora da faixa ${NUM_RANGES.behavior[k].join('..')}`);
+    } else if (k === 'fly') {
+      if (!bandOk(v)) errors.push('fly deve ser [yMin,yMax] com 300 ≤ a < b ≤ 600');
+    } else if (k === 'zig') {
+      if (!v || !numOk(v.vy, [50, 600]) || !bandOk(v.band)) errors.push('zig deve ser {vy 50..600, band [300..600, a<b]}');
+    } else if (k === 'shoot') {
+      if (!v || !numOk(v.telegraphMs, [150, 2000]) || !numOk(v.dartSpeed, [100, 1200])) {
+        errors.push('shoot exige telegraphMs 150..2000 e dartSpeed 100..1200');
+      } else {
+        if (v.range !== undefined && !(Array.isArray(v.range) && v.range.length === 2
+          && numOk(v.range[0], [200, 1500]) && numOk(v.range[1], [200, 1500]) && v.range[0] < v.range[1])) {
+          errors.push('shoot.range deve ser [min,max] em 200..1500');
+        }
+        if (v.intervalMs !== undefined && !numOk(v.intervalMs, [300, 5000])) errors.push('shoot.intervalMs 300..5000');
+        if (v.cap !== undefined && !numOk(v.cap, [1, 5])) errors.push('shoot.cap 1..5');
+        if (v.aimed !== undefined && typeof v.aimed !== 'boolean') errors.push('shoot.aimed é booleano');
+      }
+    } else if (k === 'sentinel' && typeof v !== 'boolean') {
+      errors.push('sentinel é booleano');
+    }
+  }
+  if (behavior && behavior.fly && behavior.zig) errors.push('fly e zig não podem coexistir');
+  return errors;
+}

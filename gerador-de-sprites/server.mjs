@@ -21,6 +21,7 @@ import { sliceSheet, sliceGrid, samplePalette, vectorizeFrames, buildPreviewHtml
 import {
   LOCKED_IDS, BUILTIN_IDS, parseRegistry, renderRegistry, validateEntry, validateAccess,
   upsertSkin, removeSkin, patchSwAssets, stripSwArtLines,
+  parseSpriteParams, renderSpriteParams, validateSpriteOverride,
 } from './integrate.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -138,6 +139,47 @@ async function writeAndValidate(newRegistry, snapshot, extraRollback = null, swB
     return { ok: false, test };
   }
   return { ok: true, test, skins };
+}
+
+// ------------------------------------------------- aba 🖼️ Sprites (v1.8.9)
+const SPRITE_PARAMS_PATH = join(ROOT, 'js', 'art', 'SpriteParams.js');
+// O portão das gravações de sprite: test-sprites (a camada nova) +
+// test-skins (o sw.js é compartilhado pelos dois blocos gerenciados).
+// Sempre node-only — cada execução é um processo NOVO, então o import do
+// Constants lá dentro enxerga o SpriteParams recém-escrito (merge fresco).
+const SPRITE_GATE = [join('tools', 'test-sprites.mjs'), join('tools', 'test-skins.mjs')];
+
+// Generalização do runSkinTests: roda as suítes EM SÉRIE e para na primeira
+// vermelha (a saída acumulada vai crua para a página — é o diagnóstico)
+function runTests(scripts) {
+  return scripts.reduce(async (prev, s) => {
+    const acc = await prev;
+    if (!acc.ok) return acc;
+    const r = await new Promise((resolve) => {
+      execFile('node', [s], { cwd: ROOT, timeout: 60000 }, (err, stdout, stderr) =>
+        resolve({ ok: !err, output: `${stdout || ''}${stderr ? `\n${stderr}` : ''}`.trim() }));
+    });
+    return { ok: r.ok, output: `${acc.output}\n\n=== ${s} ===\n${r.output}`.trim() };
+  }, Promise.resolve({ ok: true, output: '' }));
+}
+
+// Generalização do writeAndValidate para N arquivos: snapshot de bytes,
+// escreve tudo, roda o portão, e REVERTE TUDO (+extraRollback) se reprovar.
+async function writeAndValidateFiles(writes, tests, extraRollback = null) {
+  const snapshot = writes.map(({ path }) => ({
+    path, bytes: existsSync(path) ? readFileSync(path) : null,
+  }));
+  for (const { path, content } of writes) writeFileSync(path, content);
+  const test = await runTests(tests);
+  if (!test.ok) {
+    for (const s of snapshot) {
+      if (s.bytes === null) { try { unlinkSync(s.path); } catch (e) { /* já não existia */ } }
+      else writeFileSync(s.path, s.bytes);
+    }
+    if (extraRollback) extraRollback();
+    return { ok: false, test };
+  }
+  return { ok: true, test };
 }
 
 // Um handler só, dois servidores (3210 = API+jogo · 3000 = o mesmo, para o
@@ -368,6 +410,41 @@ const handler = async (req, res) => {
         deleted: artFiles.map(({ file }) => `art/${file.split(/[\\/]/).pop()}`),
         testOutput: result.test.output,
       });
+    }
+
+    // -------------------------------------------- aba 🖼️ Sprites (v1.8.9)
+    if (path === '/api/sprite-params' && req.method === 'GET') {
+      // Sempre pelo TEXTO fresco (import() cachearia a versão velha)
+      const params = parseSpriteParams(readFileSync(SPRITE_PARAMS_PATH, 'utf8'));
+      return send(res, 200, { ok: true, params });
+    }
+    if (path === '/api/sprite-params' && req.method === 'POST') {
+      const { type, specs, behavior, reset } = JSON.parse((await readBody(req)).toString());
+      if (!type || typeof type !== 'string') return send(res, 400, { error: 'espécie (type) obrigatória' });
+      const params = parseSpriteParams(readFileSync(SPRITE_PARAMS_PATH, 'utf8'));
+      if (reset) {
+        if (!params.overrides[type]) return send(res, 404, { error: `nenhum ajuste salvo para "${type}"` });
+        delete params.overrides[type];
+      } else {
+        const errors = validateSpriteOverride({ specs, behavior });
+        if (errors.length) return send(res, 400, { error: errors.join(' · ') });
+        const bloco = {};
+        if (specs && Object.keys(specs).length) bloco.specs = specs;
+        if (behavior && Object.keys(behavior).length) bloco.behavior = behavior;
+        if (!Object.keys(bloco).length) return send(res, 400, { error: 'nada a salvar' });
+        params.overrides[type] = bloco;
+      }
+      // Espécie inexistente/coerência profunda: o PORTÃO decide (processo
+      // novo importa o Constants já mesclado) e o rollback desfaz tudo
+      const novo = renderSpriteParams(params);
+      const r = await writeAndValidateFiles([{ path: SPRITE_PARAMS_PATH, content: novo }], SPRITE_GATE);
+      if (!r.ok) {
+        return send(res, 422, {
+          error: 'o portão de testes reprovou — NADA foi alterado (rollback automático)',
+          testOutput: r.test.output,
+        });
+      }
+      return send(res, 200, { ok: true, params: parseSpriteParams(novo), testOutput: r.test.output });
     }
 
     // --------------------------------------------------- estáticos

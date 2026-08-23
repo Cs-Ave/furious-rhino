@@ -68,8 +68,8 @@ ok('2b. SPRITE_NEW é array', Array.isArray(Constants.SPRITE_NEW));
   ok('2f. fly e zig nunca coexistem numa espécie',
     tipos.every((t) => !(Constants.ANIMAL_BEHAVIOR[t].fly && Constants.ANIMAL_BEHAVIOR[t].zig)));
 }
-// Overrides no-op = lixo acumulado do painel (aviso que reprova de propósito:
-// o servidor limpa antes de gravar)
+// Overrides no-op = lixo acumulado do painel. AVISO, não falha (a UI evita
+// gravá-los, mas um valor igual ao design não pode travar o portão)
 {
   let noop = 0;
   for (const [t, o] of Object.entries(SPRITE_PARAMS.overrides || {})) {
@@ -80,7 +80,29 @@ ok('2b. SPRITE_NEW é array', Array.isArray(Constants.SPRITE_NEW));
       }
     }
   }
-  eq('2g. nenhum override no-op (valor igual ao design)', noop, 0);
+  if (noop > 0) console.log(`⚠️  ${noop} override(s) no-op (valor igual ao design) — limpeza recomendada`);
+  ok('2g. hitbox cabe no canvas (offX+bodyW ≤ w, offY+bodyH ≤ h)',
+    Constants.ANIMAL_TYPES.every((t) => {
+      const s = Constants.ANIMAL_SPECS[t];
+      return s.offX + s.bodyW <= s.w && s.offY + s.bodyH <= s.h;
+    }));
+}
+// Overrides: só espécies existentes e chaves da whitelist (pega tanto POST
+// torto quanto edição manual do arquivo)
+{
+  const OK_SPECS = ['bodyW', 'bodyH', 'offX', 'offY', 'scale'];
+  const OK_BEHAVIOR = ['speed', 'jumpV', 'jumpIntervalMs', 'bobVy', 'fly', 'zig', 'shoot', 'sentinel'];
+  const problemas = [];
+  for (const [t, o] of Object.entries(SPRITE_PARAMS.overrides || {})) {
+    if (!Constants.ANIMAL_TYPES.includes(t)) problemas.push(`espécie desconhecida: ${t}`);
+    for (const k of Object.keys((o && o.specs) || {})) {
+      if (!OK_SPECS.includes(k)) problemas.push(`${t}.specs.${k} proibido em override`);
+    }
+    for (const k of Object.keys((o && o.behavior) || {})) {
+      if (!OK_BEHAVIOR.includes(k)) problemas.push(`${t}.behavior.${k} proibido em override`);
+    }
+  }
+  eq('2h. overrides: só espécies existentes e chaves permitidas', problemas, []);
 }
 
 // ---------- 3. Paridade art/ ↔ manifesto ↔ sw.js ----------

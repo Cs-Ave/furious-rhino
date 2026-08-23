@@ -769,6 +769,23 @@ export const Constants = {
 Constants.SPRITE_BASE = JSON.parse(JSON.stringify({
   specs: Constants.ANIMAL_SPECS, behavior: Constants.ANIMAL_BEHAVIOR,
 }));
+// 1º as espécies criadas pela aba (entram nas 5 tabelas como se fossem de
+// design) — ANTES dos overrides, para que um ajuste salvo numa espécie
+// criada também se aplique
+Constants.SPRITE_NEW = SPRITE_PARAMS.novas || [];
+for (const n of Constants.SPRITE_NEW) {
+  Constants.ANIMAL_SPECS[n.id] = JSON.parse(JSON.stringify(n.specs));
+  Constants.ANIMAL_BEHAVIOR[n.id] = JSON.parse(JSON.stringify(n.behavior));
+  Constants.ANIMAL_TYPES.push(n.id);
+  for (const b of (n.casts && n.casts.biomas) || []) {
+    if (Constants.BIOME_ANIMALS[b]) Constants.BIOME_ANIMALS[b].push(n.id);
+  }
+  for (const d of (n.casts && n.casts.distritos) || []) {
+    const area = Constants.CITY_DISTRICTS.find((x) => x.key === d);
+    if (area && area.cast) area.cast.push(n.id);
+  }
+}
+// 2º os overrides (calibração por cima do design E das criadas)
 for (const [type, o] of Object.entries(SPRITE_PARAMS.overrides || {})) {
   for (const [src, dst] of [[o.specs, Constants.ANIMAL_SPECS[type]],
     [o.behavior, Constants.ANIMAL_BEHAVIOR[type]]]) {
@@ -777,19 +794,5 @@ for (const [type, o] of Object.entries(SPRITE_PARAMS.overrides || {})) {
       if (v === null) delete dst[k];
       else dst[k] = v;
     }
-  }
-}
-// Espécies criadas pela aba entram nas 5 tabelas como se fossem de design
-Constants.SPRITE_NEW = SPRITE_PARAMS.novas || [];
-for (const n of Constants.SPRITE_NEW) {
-  Constants.ANIMAL_SPECS[n.id] = n.specs;
-  Constants.ANIMAL_BEHAVIOR[n.id] = n.behavior;
-  Constants.ANIMAL_TYPES.push(n.id);
-  for (const b of (n.casts && n.casts.biomas) || []) {
-    if (Constants.BIOME_ANIMALS[b]) Constants.BIOME_ANIMALS[b].push(n.id);
-  }
-  for (const d of (n.casts && n.casts.distritos) || []) {
-    const area = Constants.CITY_DISTRICTS.find((x) => x.key === d);
-    if (area && area.cast) area.cast.push(n.id);
   }
 }
