@@ -815,6 +815,13 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
           names: { 'claude-e2e-ramp-home': 'Cris', 'rival-dois-000000000': 'Funkeiro' },
           startAt: agoraS - 3600, endAt: agoraS + 86400,
           accepted: { 'rival-dois-000000000': agoraS - 3600 } },
+        // v1.8.7-fix4: desafio que EU tinha aceitado e o criador cancelou —
+        // o card vira aviso clicável até eu dispensar
+        { id: 'chal-e2e-cancel-000', from: { id: 'rival-tres-00000000', name: 'Zeca' },
+          participants: ['claude-e2e-ramp-home', 'rival-tres-00000000'],
+          names: { 'claude-e2e-ramp-home': 'Cris', 'rival-tres-00000000': 'Zeca' },
+          startAt: agoraS - 7200, endAt: agoraS + 86400, cancelledAt: agoraS - 600,
+          accepted: { 'rival-tres-00000000': agoraS - 7200, 'claude-e2e-ramp-home': agoraS - 7000 } },
       ],
     }));
     localStorage.setItem('furious_rhino_chal_standings', JSON.stringify({
@@ -877,12 +884,21 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
       modalAberto,
       conviteTexto: (document.getElementById('challenge-invite-text') || {}).textContent || '',
       temNovo: !!document.getElementById('challenge-new'),
+      campanhaOculta: getComputedStyle(document.querySelector('.camp-card')).display === 'none',
+      cards: document.querySelectorAll('#challenge-card .chal-card').length,
+      cancelTexto: (document.querySelector('#challenge-card .chal-card.cancelled') || {}).textContent || '',
     };
   });
   ok('26d. home: card do desafio com countdown, líder e minha linha',
     !!chal.cardTexto && /termina em/.test(chal.cardTexto) && /Zebrão/.test(chal.cardTexto) &&
     /1\.842 pts/.test(chal.cardTexto) && chal.temNovo,
     `card="${(chal.cardTexto || '').slice(0, 120)}"`);
+  ok('26d2. home: com desafios, a Campanha sai e os cards empilham no lugar',
+    chal.campanhaOculta && chal.cards >= 2,
+    `campanhaOculta=${chal.campanhaOculta} cards=${chal.cards}`);
+  ok('26d3. desafio cancelado vira aviso clicável ("toque para dispensar")',
+    /Zeca cancelou o desafio/.test(chal.cancelTexto) && /dispensar/.test(chal.cancelTexto),
+    `"${chal.cancelTexto.slice(0, 80)}"`);
   ok('26e. home: convite não visto abre o popup do desafio',
     chal.modalAberto && /Funkeiro/.test(chal.conviteTexto),
     `aberto=${chal.modalAberto} texto="${chal.conviteTexto.slice(0, 80)}"`);
@@ -898,6 +914,17 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
       modalOpen: document.body.classList.contains('modal-open'),
     };
   });
+  // dispensa o aviso de cancelamento tocando no card
+  await p6.click('#challenge-card .chal-card.cancelled');
+  await p6.waitForTimeout(300);
+  const aposDispensa = await p6.evaluate(() => ({
+    aindaTemCancel: !!document.querySelector('#challenge-card .chal-card.cancelled'),
+    campanhaVolta: getComputedStyle(document.querySelector('.camp-card')).display !== 'none',
+    cards: document.querySelectorAll('#challenge-card .chal-card').length,
+  }));
+  ok('26f2. tocar no aviso cancelado dispensa (e a Campanha só volta sem cards)',
+    !aposDispensa.aindaTemCancel && (aposDispensa.cards > 0 ? !aposDispensa.campanhaVolta : aposDispensa.campanhaVolta),
+    `cancel=${aposDispensa.aindaTemCancel} cards=${aposDispensa.cards} campanhaVolta=${aposDispensa.campanhaVolta}`);
   ok('26f. recusar fecha o popup, marca localmente e libera o overlay',
     aposRecusa.fechado && /chal-e2e-convite-000/.test(aposRecusa.seen) && !aposRecusa.modalOpen,
     `fechado=${aposRecusa.fechado} seen=${aposRecusa.seen.slice(0, 60)} modalOpen=${aposRecusa.modalOpen}`);

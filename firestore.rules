@@ -173,9 +173,18 @@ service cloud.firestore {
       // O diff().affectedKeys() obriga todos os OUTROS campos a baterem byte
       // a byte com o resource.data — regravar o doc relido passa; qualquer
       // adulteração de janela/participantes é negada.
-      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['accepted'])
+      // v1.8.7-fix4: segundo update possível — o CANCELAMENTO. Grava só o
+      // cancelledAt (epoch s), uma única vez; sem auth, qualquer cliente
+      // poderia cancelar qualquer desafio — mesmo modelo de confiança do
+      // aceite. O doc continua indeletável: cancelado é ESTADO, não sumiço
+      // (o aviso ao desafiado vive até ele dispensar ou o prazo vencer).
+      allow update: if (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['accepted'])
         && request.resource.data.accepted.keys().hasAll(resource.data.accepted.keys())
-        && request.resource.data.accepted.size() <= 8;
+        && request.resource.data.accepted.size() <= 8)
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cancelledAt'])
+        && !('cancelledAt' in resource.data)
+        && request.resource.data.cancelledAt is int
+        && request.resource.data.cancelledAt > 0);
       allow delete: if false;
     }
   }

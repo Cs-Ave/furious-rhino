@@ -76,11 +76,18 @@ export class ChallengeSystem {
   // desafio já encerrou (o countdownText diz 'encerrado' no mesmo instante),
   // mas uma corrida cravada em t == endAt ainda conta no bestInWindow — o
   // desafio dura [startAt, endAt] inteiro, fechado dos dois lados.
+  // v1.8.7-fix4: desafio cancelado pelo criador — o doc fica (delete é
+  // proibido), o ESTADO muda. Cancelado nunca é ativo, nunca convida, nunca
+  // pontua; o card vira aviso até o desafiado dispensar ou o prazo vencer.
+  static isCancelled(ch) {
+    return Number(ch && ch.cancelledAt) > 0;
+  }
+
   static isActive(ch, nowS = Math.floor(Date.now() / 1000)) {
     const c = ch || {};
     const s = Math.floor(Number(c.startAt) || 0);
     const e = Math.floor(Number(c.endAt) || 0);
-    return s > 0 && s <= nowS && nowS < e;
+    return !this.isCancelled(ch) && (s > 0 && s <= nowS && nowS < e);
   }
 
   // Papel do jogador num desafio: 'creator' | 'accepted' | 'invited' | 'out'.
@@ -253,14 +260,45 @@ export class ChallengeSystem {
     }
   }
 
-  // Quantos desafios ATIVOS este jogador criou, contando no cache — sem auth
-  // as rules não têm como impor o teto, então ele é honrado no cliente.
+  // v1.8.7-fix4: o teto de 3 vale para desafios ATIVOS em que estou DENTRO
+  // (criador ou aceito) — é o mesmo limite do que a home mostra empilhado.
+  // Sem auth as rules não impõem teto; ele é honrado no cliente.
   static activeCreatedCount(nowS = Math.floor(Date.now() / 1000)) {
     const cached = this.cached();
     const myId = StorageManager.getOrCreatePlayerId();
-    return ((cached && cached.list) || []).filter(
-      (ch) => ch && ch.from && String(ch.from.id) === myId && this.isActive(ch, nowS)
-    ).length;
+    return ((cached && cached.list) || []).filter((ch) => {
+      if (!ch || !this.isActive(ch, nowS)) return false;
+      const st = this.statusOf(ch, myId);
+      return st === 'creator' || st === 'accepted';
+    }).length;
+  }
+
+  // v1.8.7-fix4: cancela um desafio MEU — regrava o doc relido com
+  // cancelledAt (as rules só deixam esse campo mudar, uma vez). Vale para
+  // todos os competidores na próxima leitura de cada um (TTL 1h do cache).
+  // -> { ok: true } | { ok: false, reason: 'notmine'|'local'|'offline' }
+  static async cancel(id) {
+    try {
+      const myId = StorageManager.getOrCreatePlayerId();
+      const cached = this.cached();
+      const ch = ((cached && cached.list) || []).find((c) => c && c.id === id);
+      if (!ch || !ch.from || String(ch.from.id) !== myId) return { ok: false, reason: 'notmine' };
+      if (!StorageManager.allowsRemoteWrite()) return { ok: false, reason: 'local' };
+      const { fs, db } = await getDb();
+      const snap = await fs.getDoc(fs.doc(db, 'challenges', id));
+      if (!snap.exists()) return { ok: false, reason: 'offline' };
+      const data = snap.data();
+      await fs.setDoc(fs.doc(db, 'challenges', id), {
+        ...data,
+        cancelledAt: Math.floor(Date.now() / 1000),
+      });
+      // espelha no cache local na hora (o dono não espera o TTL)
+      ch.cancelledAt = Math.floor(Date.now() / 1000);
+      this.saveCache((cached && cached.list) || [], cached ? cached.at : Date.now());
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, reason: 'offline' }; // rede/regra (rules antigas?)
+    }
   }
 
   // Cria o desafio: 1 setDoc, id = crypto.randomUUID() (36 chars — dentro do
@@ -392,12 +430,31 @@ export class ChallengeSystem {
     } catch (e) { /* quota cheia: no pior caso o convite reaparece */ }
   }
 
+  static markSeenAs(id, flag) {
+    try {
+      const map = this.seenMap();
+      map[id] = { at: Date.now(), d: flag };
+      localStorage.setItem(SEEN_KEY, JSON.stringify(map));
+    } catch (e) { /* sem espaço: aceitável */ }
+  }
+
   static markSeen(id) {
     const map = this.seenMap();
     const key = String(id || '');
     if (!key) return;
     map[key] = { ...(map[key] || {}), at: Date.now() };
     this.saveSeen(map);
+  }
+
+  // O desafiado toca no card cancelado para dispensar o aviso (d:2). Sem
+  // toque, o aviso morre sozinho no endAt original do desafio.
+  static dismissLocal(id) {
+    this.markSeenAs(id, 2);
+  }
+
+  static isDismissed(id) {
+    const map = this.seenMap();
+    return !!(map[id] && map[id].d === 2);
   }
 
   static declineLocal(id) {
@@ -410,6 +467,7 @@ export class ChallengeSystem {
 
   // Convites que merecem badge: ativos + sou participante + não aceitei +
   // nunca vistos/recusados. Só cache, síncrono — roda no boot da tela.
+  // (cancelado não convida — filtrado abaixo via isActive, que já o exclui)
   static unseenInvites(nowS = Math.floor(Date.now() / 1000)) {
     const cached = this.cached();
     if (!cached) return [];

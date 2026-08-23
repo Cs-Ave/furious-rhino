@@ -281,5 +281,31 @@ eq('o create (validChallenge) exige createdAt == request.time',
 eq('validChallenge é usada SÓ no create (1 chamada além da definição)',
   (chalBlock.match(/validChallenge\(\)/g) || []).length, 2);
 
+
+// ---------- v1.8.7-fix4: cancelamento ----------
+const chAtivo = { id: 'c1', from: { id: 'a', name: 'A' }, participants: ['a', 'b'],
+  names: { a: 'A', b: 'B' }, startAt: 1000, endAt: 9000, accepted: { a: 1000 } };
+eq('desafio sem cancelledAt não está cancelado', ChallengeSystem.isCancelled(chAtivo), false);
+eq('cancelledAt > 0 marca cancelado', ChallengeSystem.isCancelled({ ...chAtivo, cancelledAt: 5000 }), true);
+eq('cancelado NUNCA é ativo (mesmo dentro da janela)',
+  ChallengeSystem.isActive({ ...chAtivo, cancelledAt: 5000 }, 2000), false);
+eq('não-cancelado dentro da janela segue ativo', ChallengeSystem.isActive(chAtivo, 2000), true);
+eq('dismissLocal marca e isDismissed lê',
+  (() => { ChallengeSystem.dismissLocal('c1'); return ChallengeSystem.isDismissed('c1'); })(), true);
+eq('dismiss não contamina outro id', ChallengeSystem.isDismissed('c2'), false);
+
+// rules: a cláusula do cancelamento existe e é de uma vez só
+{
+  const { readFileSync } = await import('node:fs');
+  const { dirname, join } = await import('node:path');
+  const { fileURLToPath } = await import('node:url');
+  const rules = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'firestore.rules'), 'utf8');
+  eq('rules: update aceita o ramo do cancelledAt', /hasOnly\(\['cancelledAt'\]\)/.test(rules), true);
+  eq('rules: cancelamento é de UMA vez (não re-cancela)',
+    /!\('cancelledAt' in resource\.data\)/.test(rules), true);
+  eq('rules: cancelledAt é int positivo',
+    /cancelledAt is int\s*&&\s*request\.resource\.data\.cancelledAt > 0/.test(rules), true);
+}
+
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

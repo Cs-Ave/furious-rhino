@@ -1240,7 +1240,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     err.textContent = reason === 'cap'
-      ? `Você já tem ${Constants.CHALLENGE_MAX_ACTIVE_CREATED || 3} desafios ativos.`
+      ? `Limite de ${Constants.CHALLENGE_MAX_ACTIVE_CREATED || 3} desafios ativos atingido — encerre ou exclua um para incluir um novo.`
       : reason === 'local'
         ? 'Ambiente local não envia desafios (proteção de teste). Para testar de verdade: ?debug=1 → Debug → "📡 Escrita local".'
         : reason === 'offline'
@@ -1289,15 +1289,26 @@ export class GameScene extends Phaser.Scene {
       const st = ChallengeSystem.statusOf(ch, myId);
       return st === 'creator' || st === 'accepted';
     });
+    // v1.8.7-fix4: cancelado vira AVISO para o desafiado (até dispensar ou o
+    // prazo vencer); para o próprio criador ele some na hora
+    const cancelled = mine.filter((ch) => ChallengeSystem.isCancelled(ch)
+      && nowS < ch.endAt
+      && !(ch.from && String(ch.from.id) === myId)
+      && !ChallengeSystem.isDismissed(ch.id));
     // Encerrados há <24h viram card de RESULTADO; depois somem sozinhos
-    const ended = mine.filter((ch) => nowS >= ch.endAt && nowS - ch.endAt < 24 * 3600);
+    const ended = mine.filter((ch) => !ChallengeSystem.isCancelled(ch)
+      && nowS >= ch.endAt && nowS - ch.endAt < 24 * 3600);
     const active = mine.filter((ch) => ChallengeSystem.isActive(ch, nowS));
-    const show = [...ended, ...active];
+    const show = [...active, ...cancelled, ...ended];
 
     box.textContent = '';
     box.hidden = show.length === 0;
+    // v1.8.7-fix4 (pedido do dono): com desafios na tela, o box Campanha sai
+    // de cena e os cards ocupam o lugar dele, um abaixo do outro (máx 3)
+    const camp = document.querySelector('.camp-card');
+    if (camp) camp.style.display = show.length ? 'none' : '';
     if (!show.length) return;
-    const MAX = 2;
+    const MAX = 3;
     for (const ch of show.slice(0, MAX)) {
       box.appendChild(this.buildChallengeCard(ch, myId, nowS >= ch.endAt));
     }
@@ -1322,10 +1333,59 @@ export class GameScene extends Phaser.Scene {
     cd.className = 'chal-count';
     cd.textContent = ChallengeSystem.countdownText(ch.endAt, Date.now());
     head.append(title, cd);
+
+    // v1.8.7-fix4: desafio CANCELADO — o card é o próprio aviso; toque
+    // dispensa (ou ele morre sozinho no endAt original). Nada de placar.
+    if (ChallengeSystem.isCancelled(ch)) {
+      card.classList.add('cancelled');
+      title.textContent = `❌ ${(ch.from && ch.from.name) || '?'} cancelou o desafio`;
+      cd.textContent = 'toque para dispensar';
+      card.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        ChallengeSystem.dismissLocal(ch.id);
+        this.renderChallenges();
+      });
+      card.append(head);
+      return card;
+    }
+
     const rowsBox = document.createElement('div');
     rowsBox.className = 'chal-rows';
     rowsBox.textContent = '…'; // o placar chega quando standings resolver
     card.append(head, rowsBox);
+
+    // v1.8.7-fix4: o CRIADOR pode encerrar o desafio ativo — dois toques
+    // (o segundo confirma) para não cancelar por engano
+    if (!ended && ch.from && ch.from.id === myId) {
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'chal-del';
+      del.textContent = '🗑 Encerrar';
+      let armado = 0;
+      del.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+      del.addEventListener('click', async (ev) => {
+        ev.stopPropagation();
+        if (Date.now() - armado > 3000) {
+          armado = Date.now();
+          del.textContent = 'confirmar?';
+          setTimeout(() => { del.textContent = '🗑 Encerrar'; }, 3000);
+          return;
+        }
+        del.disabled = true;
+        const r = await ChallengeSystem.cancel(ch.id);
+        if (r.ok) {
+          this.showHomeToast('🗑 Desafio encerrado.');
+          this.renderChallenges();
+        } else {
+          del.disabled = false;
+          del.textContent = '🗑 Encerrar';
+          this.showHomeToast(r.reason === 'local'
+            ? 'Ambiente local não encerra desafios — ligue "📡 Escrita local" no ?debug=1.'
+            : 'Não deu para encerrar — confira a internet (e se as rules novas foram publicadas).');
+        }
+      });
+      card.append(del);
+    }
 
     // standings tem TTL de 30min e nunca lança — mas o card já está no ar
     this.safeTelemetry(() => ChallengeSystem.standings(ch).then((rows) => {

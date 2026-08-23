@@ -21,6 +21,26 @@ export async function initTuningPanel(scene) {
   Object.assign(gui.domElement.style, { top: '140px', left: '10px', right: 'auto', zIndex: 600 });
   gui.domElement.addEventListener('pointerdown', (ev) => ev.stopPropagation());
 
+  // v1.8.7-fix3: com pastas abertas o conteúdo passava da tela e o fim do
+  // menu (Debug, exportar, escrita local) ficava inalcançável — o lil-gui
+  // rola no `.children` INTERNO (não no root) e esconde a barra. Aqui:
+  // altura presa à janela + barra PERMANENTE e visível (pedido do dono).
+  gui.domElement.style.maxHeight = 'calc(100vh - 150px)';
+  const scroller = gui.domElement.querySelector(':scope > .children');
+  Object.assign(scroller.style, {
+    maxHeight: 'calc(100vh - 180px)', // janela menos top(140) + título(~28)
+    overflowY: 'scroll',
+    overscrollBehavior: 'contain', // a roda do mouse não vaza para o jogo
+  });
+  const scrollCss = document.createElement('style');
+  scrollCss.textContent = `
+    .lil-gui.root > .children::-webkit-scrollbar { width: 9px; }
+    .lil-gui.root > .children::-webkit-scrollbar-track { background: rgba(255,255,255,0.06); }
+    .lil-gui.root > .children::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.35); border-radius: 5px; }
+    .lil-gui.root > .children { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.35) rgba(255,255,255,0.06); }
+  `;
+  document.head.appendChild(scrollCss);
+
   // Foto dos valores iniciais — base do exportador de ajustes.
   // ⚠️ Toda coleção com slider TEM de estar aqui E no exportTuning: o
   // BOSS_RIFLE ganhou sliders na v1.7 e ficou de fora das duas listas, então

@@ -377,6 +377,13 @@
             text-align: center;
         }
 
+        /* v1.8.8-fix (design do dono): a coluna da Campanha ancora no TOPO —
+           os botões (Chamar galera/Desafiar) sobem para a linha do botão
+           Instalar (que se alinha a eles via alignInstallHint), e os cards
+           de desafio ganham espaço para crescer PARA BAIXO sem quebrar o
+           layout. O pódio segue ancorado embaixo (linha de base dos degraus). */
+        .home-col-camp { align-self: start; }
+
         .home-headrow {
             display: flex;
             align-items: center;
@@ -669,6 +676,27 @@
 
         /* --- ⚔️ Arena de Desafios (v1.8.6) --- */
         /* Botão "Desafiar" da home, ao lado do "Chamar galera" */
+        .chal-card.cancelled {
+            cursor: pointer;
+            border: 1px dashed rgba(255, 90, 90, 0.6);
+            opacity: 0.9;
+        }
+
+        .chal-del {
+            margin-top: 6px;
+            align-self: flex-end;
+            background: transparent;
+            border: 1px solid rgba(255, 90, 90, 0.5);
+            color: #ff8a8a;
+            border-radius: 8px;
+            padding: 3px 10px;
+            font-family: inherit;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .chal-del:disabled { opacity: 0.5; cursor: default; }
+
         #challenge-search {
             width: 100%;
             box-sizing: border-box;
