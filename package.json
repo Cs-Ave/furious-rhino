@@ -19,6 +19,8 @@
     "test-e2e-skins": "node tools/e2e-skins.mjs",
     "test-integrate": "node tools/test-integrate.mjs",
     "test-e2e-setup": "node tools/e2e-setup.mjs",
+    "radiografia": "node tools/radiografia.mjs",
+    "test-radiografia": "node tools/test-radiografia.mjs",
     "digest": "node tools/daily-digest.mjs --dry-run",
     "sprite-gen": "node gerador-de-sprites/server.mjs"
   },

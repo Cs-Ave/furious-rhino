@@ -32,6 +32,8 @@ npm run test-stats           # 69 asserts, sem navegador
 npm run test-ramp            # 30 asserts e2e (Chromium)
 npm run test-e2e-stats       # 69 asserts e2e (Chromium, escreve com sonda claude-*)
 npm run digest               # resumo diário sem enviar
+npm run radiografia          # análise de usabilidade completa (leitura pública, zero writes) — markdown p/ IDEIAS-FUTURAS
+npm run test-radiografia     # 62 asserts do núcleo/CLI/aba, sem rede
 ```
 
 URLs úteis: `/?debug=1` (painel de tuning), `/?stats` (painel público, chave `0929` para o detalhado), `/?setup=0929` (estúdio de skins do dono — upload/desbloqueio/aplicar; a escrita exige `npm run sprite-gen` no ar), `/?ntfy=test|off|on`.

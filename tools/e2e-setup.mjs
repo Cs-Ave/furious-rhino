@@ -33,6 +33,8 @@ async function boot(query) {
     localStorage.setItem('furious_rhino_notify_off', '1');
   });
   const page = await context.newPage();
+  const googleReqs = []; // v1.8.7: a aba Radiografia só pode tocar o Firestore no ▶
+  page.on('request', (r) => { if (r.url().includes('firestore.googleapis.com')) googleReqs.push(r.url()); });
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => {
     if (m.type() === 'error' && !/Failed to load resource|net::ERR_/.test(m.text())) {
@@ -41,7 +43,7 @@ async function boot(query) {
   });
   await page.goto(`${BASE}/${query}`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(800);
-  return { context, page };
+  return { context, page, googleReqs };
 }
 
 // ---------- 1. Sem chave / chave errada: acesso restrito ----------
@@ -68,7 +70,7 @@ async function boot(query) {
 
 // ---------- 2. Chave certa: estúdio completo ----------
 {
-  const { context, page } = await boot('?setup=0929');
+  const { context, page, googleReqs } = await boot('?setup=0929');
   const text = await page.textContent('#setup-page');
   ok('3. chave 0929: estúdio montado', text.includes('Estúdio de skins')
     && !text.includes('Acesso restrito'));
@@ -104,6 +106,25 @@ async function boot(query) {
   await page.waitForTimeout(100);
   ok('3f. nome livre limpa a crítica',
     !(await page.textContent('#su-name-hint')).includes('skin original'));
+
+  // v1.8.7 (ideia K): a aba 📊 Radiografia existe, monta no clique — e NÃO
+  // toca a rede sozinha (análise só roda quando o dono aperta o ▶)
+  ok('3g. abas montadas: Skins ativa por padrão, Radiografia presente e oculta',
+    await page.evaluate(() => Boolean(
+      document.getElementById('su-tabs')
+      && document.getElementById('su-tab-skins').hidden === false
+      && document.getElementById('su-tab-radiografia')
+      && document.getElementById('su-tab-radiografia').hidden === true)));
+  await page.click('#su-tab-btn-radiografia');
+  await page.waitForTimeout(400); // import dinâmico do módulo da aba
+  ok('3h. clicar na aba monta o card da análise (sem rodar nada)',
+    await page.evaluate(() => Boolean(
+      document.getElementById('su-card-radiografia')
+      && document.getElementById('su-radio-run')
+      && document.getElementById('su-tab-skins').hidden === true)));
+  await page.click('#su-tab-btn-skins'); // o cenário 4 depende da lista visível
+  ok('3i. nenhuma requisição ao Firestore antes do ▶',
+    googleReqs.length === 0, googleReqs.join(' | '));
 
   await page.waitForTimeout(2500); // um ciclo de polling do servidor
   if (generatorUp) {

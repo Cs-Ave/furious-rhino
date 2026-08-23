@@ -14,6 +14,7 @@
 **Última atualização:** 21/08/2026 — criação a partir do levantamento de 16/08; a **ideia A saiu na v1.8.4** no mesmo dia, e as **ideias B, C e D saíram juntas na v1.8.5**, também no mesmo dia.
 **22/08/2026** — entra a ideia **I. Arena de Desafios** (desafios 1v1 e em grupo), desenhada com o dono — **e entregue na v1.8.6 no mesmo dia**.
 **22/08/2026** — entra também a ideia **J. Estado de Alerta** (a cidade em três distritos, boss novo aos 2000 m), desenhada com o dono em sessão de painel criativo.
+**22/08/2026** — entra a ideia **K. Radiografia viva** (análise permanente de usabilidade) — **desenhada e entregue no mesmo dia (v1.8.7)**, com a medição de 22/08 colada ao lado do §2.
 
 ---
 
@@ -183,7 +184,201 @@ skin não-default.
 
 ---
 
+## Radiografia dos dados — 2026-08-22
+
+> Gerada por `tools/radiografia.mjs` / aba 📊 do `/?setup` (leitura pública,
+> zero writes; sondas `claude-*` filtradas na busca). Baseline de comparação:
+> a fotografia de 2026-08-16 (§2). Conferência: os totais abaixo usam as
+> mesmas somas do `npm run digest` do dia.
+
+### Resumo executivo
+
+1. Base: **58 jogadores** (+7 vs 16/08) · **1.996 execuções** (+186) · **120 fugas** (+2) · 27,4 h.
+2. Retenção: **61% um dia só** (era 69%) · 39% voltaram (era 31%) · 4,3 corridas/sessão.
+3. Funil: **5 aparelhos ≥ 2000 m** (era 5) · mediana pós-portão **1.240 m** (era 1.224) · recorde 5.185 m.
+4. 🟢 Retorno ao segundo dia: 39% voltaram ao menos um segundo dia (baseline 31%; Δ +8 p.p.).
+5. 🟠 Ritmo de jogo (últimos 7 dias vs 7 anteriores): 201 execuções nos últimos 7 dias vs 638 nos 7 anteriores (32%).
+
+### Totais (vitalícios, por aparelho)
+
+| | Agora | 16/08 | Δ |
+|---|---|---|---|
+| Jogadores (`stats/`) | 58 | 51 | +7 |
+| Execuções | 1.996 | 1.810 | +186 |
+| Fugas | 120 | 118 | +2 |
+| Horas jogadas | 27,4 | 25,2 | — |
+| Ranking (com apelido) | 51 | 45 | +6 |
+| Corridas na janela | 981 | 895 | +86 |
+| Docs com `history.days` | 38/58 | 34/51 | — |
+
+Recorde do ranking: **5.185 m** (Ícaroo brabo, 5.185 pts) · maior `bestM`: 5.185 m.
+
+### Funil de distância
+
+| Marca | Jogadores (bestM ≥) | 16/08 | Corridas (m ≥) | 16/08 |
+|---|---|---|---|---|
+| 100 m | 53 | 46 | 873 | 785 |
+| 200 m | 45 | 41 | 673 | 634 |
+| 300 m | 39 | 34 | 500 | 490 |
+| 500 m | 36 | 33 | 319 | 323 |
+| 800 m | 23 | 22 | 128 | 129 |
+| 1.000 m | 17 | 17 | 56 | 61 |
+| 1.400 m | 7 | 7 | 23 | 23 |
+| 2.000 m | 5 | 5 | 11 | 10 |
+| 3.000 m | 4 | 3 | 4 | 3 |
+| 5.000 m | 1 | 1 | 1 | 1 |
+| 10.000 m | 0 | 0 | 0 | 0 |
+
+Pós-portão: **56** corridas · mediana 1.240 m · p90 2.589 m · máx 5.185 m (16/08: 61 · 1.224 · 2.336 · 5.185).
+
+Top 5 `bestM`: 5.185 m (Ícaroo brabo) · 4.606 m (Thomas) · 3.468 m (Caio Lindão) · 3.304 m (Funku Pópi) · 2.226 m (THÉO BEBE).
+
+### Aquisição × atividade
+
+| Semana de | Novos |
+|---|---|
+| 2026-07-27 | 1 |
+| 2026-08-03 | 31 |
+| 2026-08-10 | 17 |
+| 2026-08-17 | 4 |
+| (sem data visível) | 5 |
+
+| Dia | Execuções | Jogadores |
+|---|---|---|
+| 2026-08-09 | 168 | 11 |
+| 2026-08-10 | 144 | 9 |
+| 2026-08-11 | 106 | 12 |
+| 2026-08-12 | 95 | 12 |
+| 2026-08-13 | 73 | 9 |
+| 2026-08-14 | 39 | 6 |
+| 2026-08-15 | 13 | 3 |
+| 2026-08-16 | 56 | 10 |
+| 2026-08-17 | 25 | 5 |
+| 2026-08-18 | 11 | 4 |
+| 2026-08-19 | 20 | 3 |
+| 2026-08-20 | 35 | 5 |
+| 2026-08-21 | 13 | 2 |
+| 2026-08-22 | 41 | 4 |
+
+ℹ️ 1 dia(s) usaram o fallback da janela de 50 para docs pré-1.6.1 (subestima quem fez > 50 corridas no dia).
+
+### Retenção
+
+Dias distintos com corrida (38 mensuráveis): **1 dia: 23 (61%)** · 2–3: 4 · 4–7: 7 · 8–14: 4 · 15+: 0 → **39% voltaram ao menos um segundo dia** (16/08: 31%). Corridas por sessão: 4,3 (16/08: 4,6).
+
+Coortes por semana do primeiro acesso (D1/D7/D30 em dias de calendário; D30 só para coortes de 30–60 dias — o `history.days` poda aos 60):
+
+| Coorte (semana) | n | D1 | D7 | D30 |
+|---|---|---|---|---|
+| 2026-08-03 | 17 | 12% (2/17) | 71% (12/17) | ⚪ |
+| 2026-08-10 | 17 | 12% (2/17) | 15% (2/13) | ⚪ |
+| 2026-08-17 | 4 | 33% (1/3) | ⚪ | ⚪ |
+
+⚪ = menos de 3 elegíveis na célula — existência sim, taxa não.
+
+### Curva de aprendizado (mediana de metros por nº da tentativa)
+
+Separada por ERA (§2.10): era A = abertura universal (≤ 1.8.3), era B = roleta cheia aos 60 m da 3ª tentativa (≥ 1.8.4). **Não comparar entre eras** além das tentativas 1–3.
+
+| Tentativa | Era A: n / mediana / p90 | Era B: n / mediana / p90 |
+|---|---|---|
+| 1–5 | 112 / 180 m / 592 m | 0 / 0 m / 0 m |
+| 6–15 | 106 / 242 m / 602 m | 0 / 0 m / 0 m |
+| 16–30 | 133 / 286 m / 707 m | 0 / 0 m / 0 m |
+| 31–50 | 159 / 366 m / 856 m | 0 / 0 m / 0 m |
+| 51–100 | 278 / 334 m / 862 m | 0 / 0 m / 0 m |
+| 101+ | 193 / 434 m / 1.005 m | 0 / 0 m / 0 m |
+
+Onboarding comparável (tentativas 1–3, era B): n=0 · mediana 0 m · p90 0 m. Corridas de era indeterminada: 0.
+
+### Mecânicas por corrida (média por corrida; por 100 m entre parênteses)
+
+| Faixa | n | paredes | rampas | torres | animais | pulos | investidas | inv. negadas |
+|---|---|---|---|---|---|---|---|---|
+| 0–200 m | 308 | 0,1 (0,1) | 0,1 (0,1) | 0,0 (0,0) | 0,0 (0,0) | 6,6 (5,8) | 1,9 (1,7) | 2,5 (2,2) |
+| 200–500 m | 354 | 1,6 (0,5) | 0,3 (0,1) | 0,1 (0,0) | 0,2 (0,0) | 24,7 (7,6) | 5,2 (1,6) | 3,5 (1,1) |
+| 500–1000 m | 263 | 4,1 (0,6) | 0,6 (0,1) | 0,2 (0,0) | 0,3 (0,0) | 67,1 (9,6) | 9,3 (1,3) | 5,7 (0,8) |
+| 1000–2000 m | 45 | 7,2 (0,6) | 1,3 (0,1) | 0,5 (0,0) | 0,4 (0,0) | 164,9 (12,7) | 15,1 (1,2) | 5,5 (0,4) |
+| 2000+ m | 11 | 22,8 (0,8) | 4,4 (0,1) | 0,6 (0,0) | 2,2 (0,1) | 658,5 (21,9) | 39,3 (1,3) | 11,5 (0,4) |
+
+### Precisão e atrito de investida
+
+Corridas com investida: 543/981. Acertos/investida (PROXY — fúria e multi-quebra superestimam; a letra livre `i` é a correção definitiva): p10 7,3% · mediana 50,0% · p90 100,0% (16/08: mediana 50%).
+
+Atrito do cooldown: **3.891 negadas** vs 5.992 disparadas (**39%** dos toques; 16/08: 39%). Pausas: 67 corridas com pausa (letra `p`, lida pela primeira vez).
+
+### Bosses
+
+**Portão (1000 m):** 47 lutas na janela · fugas na janela: 56 · camadas (0/1/2/3): 5 / 1 / 3 / 38 · mediana 4 s · mortes por `boss`: 12 (16/08: 48 lutas, 41 full, 4 s, 6 mortes).
+
+**Boss dos 2000 m (letras `e`/`h`, lidas pela primeira vez):** 11 chegadas · camadas (0/1/2/3/4): 11 / 0 / 0 / 0 / 0 · mediana 0 s · mortes por `boss2`: 0.
+
+**Guardião do Fim (letra `l`):** 0 corridas com camada quebrada · mortes: 0 · LENDAS: 0 — existência, nunca taxa (recorde 5.185 m).
+
+Fúria Total usada em 40 corridas · fúria negada em arena (`n`): **2** (16/08: 0 — sempre citar).
+
+### Pontuação composta em campo (v1.8.4)
+
+Adoção: 0/51 docs do ranking com `scoreM` (marca cravada por cliente ≥ 1.8.4 — adoção baixa é esperada, a base é majoritariamente antiga).
+
+Bônus recomputado na janela (`ScoreSystem.runBonus`, corridas v ≥ 1.7, n=561): mediana 4,5% · p95 14,0% (simulação de 16/08: mediana 0% · p95 13,7%; alvos: mediana 8–15% · p95 ≤ 25%). Spearman metros × total: 0,999 (alvo ≥ 0,9; simulado 0,993). Teto `bonus ≤ m` agiu em 0 corrida(s) (simulação: 0).
+
+### Skins (letra `g`; ausente = default)
+
+`robot` 112 · `party` 14 · `catisqui` 5 · `bronze-2` 2 · `pratagra` 2 → **12 de 52 jogadores** com corrida de skin não-default (16/08: 5/51). No pódio (`scores.skin`): `robot` 3 · `1-gold` 1 · `bronze-2` 1 · `pratagrande` 1.
+
+### Arena de Desafios (v1.8.6, coleção `challenges`)
+
+Nenhum desafio criado ainda.
+
+### Mortes (vitalícias, mapa `deaths`)
+
+Por tier: t1 743 · t2 427 · t3 295 · t4 230 · t5 114 · t6 82.
+Por causa: `wall` 1.094 · `animal` 299 · `dart` 227 · `spike` 225 · `tower` 34 · `boss` 12 · `boss2` 0 · `boss3` 0 · `fall` 0.
+
+### Contexto da base
+
+Última versão vista: 1.8.3×21 · 1.7.2×14 · 1.5.0×12 · 1.3.1×4 · 1.7.1×3 · 1.6.0×1 · 1.7.0×1 · 1.8.0×1 · 1.8.2×1.
+Aparelhos: mobile×42 · desktop×11 · tablet×5 · PWA instalado (standalone): 28 · corridas com teclado: 39.
+Países: BR×57 (geo tem TTL de 12 h e pode estar velho).
+Ativos (por `updatedAt`): 23 nos últimos 7 dias · 58 nos últimos 30.
+
+### Ressalvas de leitura (sem elas as tabelas mentem)
+
+- `runs[]` é a **janela das últimas 50** por jogador (veterano tem passado truncado) e `history.days` poda aos 60 dias — deltas de métricas de janela podem ser só rotação.
+- Totais vitalícios são **por aparelho** (1 doc = 1 aparelho, não 1 pessoa).
+- Cobertura por letra (corridas com a letra > 0): `w` 467 · `r` 225 · `o` 61 · `a` 114 · `j` 535 · `d` 543 · `x` 353 · `p` 67 · `f` 40 · `n` 2 · `b` 42 · `q` 8 · `z` 47 · `e` 0 · `h` 0 · `l` 0.
+- Com ~58 jogadores, o IC95 de proporções por jogador é ≈ ±14 p.p.: deltas menores são SINAL, não prova. Por corrida (n≈981) o IC95 é ≈ ±3 p.p.
+- NÃO concluir daqui: causalidade (curva de aprendizado mistura sobrevivência com aprendizado); comparações de densidade entre eras A/B; taxas sobre subgrupos com n < 15 (existência sim, taxa não); "retenção de pessoas" (é de aparelhos).
+- Fora de escopo declarado: coleção `config/` (conteúdo editorial do dono — news/notify —, não telemetria de jogador).
+
+### Insights automáticos (motor de regras, molde do §4)
+
+- 🟠 **[R-04] Ritmo de jogo (últimos 7 dias vs 7 anteriores)** — 201 execuções nos últimos 7 dias vs 638 nos 7 anteriores (32%). A base ativa esfriou à metade — atenção à janela de 50: parte pode ser rotação, o history.days aqui é contagem exata. **Sugestão:** Se não houver release recente para reengajar, é o momento de puxar uma ideia de retenção (E/F).
+- 🟠 **[R-05] O deserto depois dos 2000 m** — 11 corridas (1,1%) passaram dos 2000 m; mediana pós-portão 1.240 m (baseline 1.224 m). O deserto do §4.3 segue intacto: quem vence o portão não tem próximo objetivo alcançável. **Sugestão:** As ideias J (cidade em 3 distritos) e H (funil fino no /?stats) atacam exatamente isto.
+- 🟡 **[R-01] Retenção: jogadores de um dia só** — 23 de 38 mensuráveis (61%) jogaram um único dia — baseline 69%. Crônico e conhecido desde 16/08 (§4.1) — segue sendo o problema nº 1, sem piora mensurável. **Sugestão:** As alavancas desenhadas são E (campanha), F (streaks) e I (arena, já no ar) — medir se I moveu este número antes de puxar as outras.
+- 🟡 **[R-08] Atrito do cooldown da investida** — 3.891 investidas negadas vs 5.992 disparadas (39%; baseline 39%). A única fricção presente em TODAS as faixas de distância (§4.5) — não é defeito por si (o cooldown dá peso à investida), mas subiu. **Sugestão:** Antes de mexer no cooldown, medir a precisão exata (a letra livre `i` é a correção definitiva do proxy).
+- 🟡 **[R-11] Versões velhas na base** — 58 de 58 aparelhos (100%) na última visita rodavam < 1.8.4 (gravam score sem scoreM); 17 ainda < 1.6.1 (sem letras). Clientes que talvez nunca atualizem (§4.7): qualquer mudança de contrato de dados tem de continuar aceitando a forma velha. **Sugestão:** Manter a regra da casa: retrocompatibilidade sem migração (versão corrente: 1.8.7).
+- 🟡 **[R-15] Fúria negada na arena de boss (letra n)** — 2 ativações de fúria negadas dentro de arena (baseline: 0). Jogadores voltaram a tentar o truque antigo de estourar a fúria no boss. **Sugestão:** Se crescer, reforçar o feedback visual de "fúria bloqueada aqui".
+- 🟢 **[R-02] Retorno ao segundo dia** — 39% voltaram ao menos um segundo dia (baseline 31%; Δ +8 p.p.). Movimento na direção certa — mas com n≈50 é sinal, não prova (IC95 ±14 p.p.). **Sugestão:** Cruzar com a data das releases; repetir a leitura em 2 semanas antes de reagir.
+- 🟢 **[R-03] Aquisição de jogadores novos** — 17 novos na última semana cheia (2026-08-10). A aquisição, parada desde §4.2, voltou a respirar. **Sugestão:** Descobrir a origem (convite? desafio por link G?) e alimentar o canal.
+- 🟢 **[R-10] Adoção de skins** — 12 de 52 jogadores com corrida de skin não-default (23%; baseline ≈10%). A adoção dobrou desde a baseline. **Sugestão:** Manter a esteira de skins de façanha.
+- 🟢 **[R-12] Pontuação composta em campo** — Bônus/total: mediana 4,5% · p95 14,0% (alvos: mediana 8–15%, p95 ≤ 25%) · Spearman 0,999. O campo confirmou a simulação de 16/08 no p95. Nota crônica: a mediana simulada já nascera em 0%, fora do alvo 8–15% — o bônus só existe onde há combate. **Sugestão:** A parcela adiada (eficiência de investida, §5-A) é o caminho registrado para subir a mediana com segurança.
+- ⚪ **[R-07] Boss dos 2000 m (letras e/h)** — n=11 (mínimo 15) — sem base para afirmar; o motivo do silêncio fica registrado.
+- ⚪ **[R-14] Arena de Desafios (v1.8.6)** — n=0 (mínimo 5) — sem base para afirmar; o motivo do silêncio fica registrado.
+- ⚪ **[R-16] Onboarding (tentativas 1–3, era ≥1.8.4)** — n=0 (mínimo 40) — sem base para afirmar; o motivo do silêncio fica registrado.
+
+*Gerado em 2026-08-22 · script v1.0.0 · jogo v1.8.7 · origem: cli.*
+
+---
+
 ## 3. Como reproduzir a radiografia
+
+> **22/08/2026 — este § virou histórico.** A ideia **K** entregou o script
+> titular e mantido: **`npm run radiografia`** (`tools/radiografia.mjs` +
+> núcleo `js/stats/RadiografiaCore.js`, testado por `npm run test-radiografia`)
+> e a aba **📊 Radiografia** no `/?setup`. Não é mais preciso recriar nada —
+> a especificação abaixo fica como registro de como era.
 
 O script que gerou o §2 (`tools/analyze-v2.mjs`) **foi apagado de propósito** ao
 fim da sessão de 16/08 — não ficou lixo no repositório. Recriar leva minutos
@@ -864,6 +1059,112 @@ com slider entram em `baseline` E `exportTuning` — contrato escrito).
 6. Re-batismo das medalhas dissonantes (`dist_1200`, `dist_1600`): nomes
    finais com o dono.
 
+### K. Radiografia viva — análise permanente de usabilidade ✅ **v1.8.7**
+
+> ✅ **ENTREGUE em 22/08/2026 (v1.8.7)** — desenhada e implementada no mesmo
+> dia (processo: 2 exploradores → analista estatístico + arquiteto → crítico
+> de cobertura). A **primeira medição real está colada acima** ("Radiografia
+> dos dados — 2026-08-22", ao lado do §2) e o **§3 virou histórico**: o
+> script agora é titular e mantido. O texto abaixo registra o desenho.
+
+**O que é.** A radiografia deixa de ser um evento (script descartável + §3
+como receita de recriação) e vira **ferramenta permanente em três peças**:
+
+1. **`js/stats/RadiografiaCore.js`** — núcleo PURO (sem fetch/DOM/node/
+   localStorage; imports só `Constants` e `ScoreSystem`): recebe as coleções
+   decodificadas e devolve `{meta, metricas, insights, markdown}`. Roda
+   idêntico no node e no navegador; `nowS` injetado + ordenação estável =
+   **duas execuções sobre o mesmo dado geram o mesmo markdown byte a byte**.
+2. **`tools/radiografia.mjs`** — a CLI mantida: **`npm run radiografia`**
+   (markdown no stdout, pronto para colar aqui como seção datada; `--json`
+   para máquina). REST GET público paginado no molde do `daily-digest`,
+   filtro `^claude-`, **zero writes**, e linha de conferência com os mesmos
+   Σ do `npm run digest` (a letra do §3, agora automática).
+3. **Aba 📊 Radiografia no `/?setup`** — o estúdio ganhou **barra de abas**
+   ("🎨 Skins | 📊 Radiografia"; a de Skins montada por padrão — os asserts
+   do `e2e-setup` seguem valendo). A aba carrega por import dinâmico no
+   clique, roda a análise no navegador com o MESMO núcleo, mostra resumo +
+   insights coloridos + relatório completo, com "📋 copiar markdown" e
+   "⬇ baixar JSON". **Nenhuma requisição ao Firestore antes do ▶** (assert
+   de e2e trava isso). Funciona sem o servidor local do gerador; erro de
+   rede vira aviso com "tentar de novo" — a página nunca quebra.
+
+**O dado que motiva.** Três dívidas juntas: (a) o §3 mandava **recriar o
+script do zero** a cada leitura — atrito que fazia a análise não acontecer;
+(b) as letras `e h l p g v` de `runs[]` eram **gravadas sem nenhum leitor**
+(pendência registrada no rodapé do §7 desde a v1.8.5); (c) toda decisão da
+casa é orientada por dados, mas o dado vivia como fotografia estática de
+16/08, sem coluna Δ e sem quem gritasse quando algo mudasse.
+
+**O catálogo.** Todas as métricas do §2 (funil de `bestM` e de corridas nas
+MESMAS marcas, aquisição/semana, execuções/dia com fallback contado, coortes
+de dias, curva de aprendizado, mecânicas por faixa e por 100 m, precisão
+proxy e atrito, baseline de boss, skins, contexto) **mais** o que nasceu
+depois: retenção por coorte de `firstSeenS` (D1/D7/D30), curva separada por
+**era** (A = abertura universal ≤1.8.3 · B = veterania ≥1.8.4; comparável só
+nas tentativas 1–3), bosses dos 2000 m e do fim (`e/h/l` — primeira tela a
+ler essas letras), pausas (`p`, idem), **pontuação composta em campo**
+(adoção de `scoreM`, bônus recomputado via `ScoreSystem.runBonus`, Spearman,
+teto em ação), Arena de Desafios (aceite descontando o criador; recusa não é
+gravada — dito no relatório), mortes por tier×causa, versões/aparelhos/geo,
+e a **cobertura por letra** (o "sempre citar o `n`" do §2.10, automatizado).
+Fora de escopo declarado: `config/` (conteúdo editorial, não telemetria).
+
+**O motor de insights.** 17 regras determinísticas no molde do §4, cada uma
+com **gatilho numérico, amostra mínima e severidade** (🔴🟠🟡🟢; abaixo da
+amostra sai **⚪ "amostra insuficiente (n=X, mín Y)" — nunca silêncio**).
+Texto em 3 partes: o dado → o problema (ou a vitória) → a sugestão apontando
+a ideia do banco que ataca aquilo. A fotografia de 16/08 vive **congelada**
+no núcleo (`BASELINE_20260816`) — todo relatório nasce com Δ; a aba ainda
+grava um resumo local (`furious_rhino_radiografia_base`) e ganha a regra
+R-17 ("o que mudou desde a última vez que olhei"). Regras cientes das
+armadilhas: R-01 é marcada **crônica** (69% já disparava na baseline — só
+escala em piora, para não dessensibilizar), R-12 usa os alvos documentados
+do §5-A (p95 ≤ 25%, Spearman ≥ 0,9), comparação de versão é **semver
+numérico** (nunca string), e todo delta de métrica de janela carrega a
+ressalva de rotação (runs[] FIFO 50, `history.days` poda 60).
+
+**A primeira medição já pagou a ferramenta (22/08):** base 58 aparelhos
+(+7), **39% voltam a um 2º dia (+8 p.p. — sinal, não prova)**, skins
+**dobraram** (12/52), Spearman em campo **0,999** e p95 do bônus **14,0%**
+(a simulação de 13,7% confirmou), fúria negada saiu de 0 para 2, mortes por
+`boss` dobraram (6→12) — e o achado operacional: **100% da base rodava
+< 1.8.4**, ou seja, as releases v1.8.4–1.8.6 ainda não tinham chegado aos
+jogadores (deploy pendente) — nenhum outro painel teria mostrado isso.
+
+**Custo** M (núcleo ~700 l + CLI XS + aba S + teste S: 62 asserts) ·
+**Impacto** alto e transversal — toda ideia futura nasce com régua de
+antes/depois · **Depende de** nada · **Quebra:** nada — rules intocadas,
+`StatsDashboard` intocado, zero letra/campo novo; `sw.js` +2 ASSETS dentro
+do bump v187 já pendente; `e2e-setup` ganhou 3 asserts (20/20).
+
+**Armadilhas:**
+- **n≈58 ⇒ IC95 ±14 p.p.** em proporções por jogador: os textos dizem
+  "sinal, não prova" — não deixar o 🟢/🟠 virar veredito.
+- **Rotação de janela**: queda em métrica de `runs[]`/`days` pode ser só a
+  janela girando; os totais vitalícios são a régua monotônica.
+- **Teto de paginação** (300×40 = 12k docs/coleção) com aviso impresso —
+  subir o laço quando a base crescer; `challenges` nunca é apagada (série
+  cumulativa por construção).
+- **PWA offline** pode servir um `/?setup` antigo sem a aba até o SW trocar
+  de versão; os DADOS nunca vêm de cache (bypass de googleapis no `sw.js`).
+- Bloqueadores de conteúdo que derrubam o `/?stats` derrubam a aba igual —
+  o estado de erro cobre; em `http://` de LAN o `/?setup` nem abre
+  (`crypto.subtle`, limitação herdada).
+- O teste trava o contrato vivo: **letra nova em `RUN_COUNTERS` sem leitor
+  no núcleo = `test-radiografia` vermelho** — o gap que motivou (b) não
+  volta.
+
+**Decisões em aberto (para a hora de puxar):**
+1. Gráficos ricos na aba (funil/série com o `Charts.js`) — hoje o visual é
+   resumo + insights + relatório; o markdown já carrega tudo.
+2. Unificar o `decode` quadruplicado (digest/cleanup/delete-player/núcleo)
+   importando do núcleo — fora do escopo desta entrega, registrado.
+3. Letra livre `i` (acertos exatos de investida) para aposentar o proxy
+   `(w+r+o+a)/d` — mesma pendência da ideia A.
+4. Arquivar fotografias automaticamente (`--json` → pasta versionada) se a
+   cadência de medição virar rotina.
+
 ### Descartadas / adiadas (com o motivo, para não voltarem por engano)
 
 | Ideia | Por que não |
@@ -926,6 +1227,7 @@ levantamento recomendou (barato e destravante primeiro):
 | ~~8~~ | ~~**C** — boss "Guardião do Fim"~~ | — | ✅ **entregue na v1.8.5** |
 | ~~9~~ | ~~**I** — Arena de Desafios~~ | — | ✅ **entregue na v1.8.6** |
 | 10 | **J** — Estado de Alerta (cidade em 3 distritos) | G (fatiável em 3×M) | conteúdo: preenche o §4.3 exatamente onde a mediana pós-fuga morre |
+| ~~11~~ | ~~**K** — Radiografia viva~~ | — | ✅ **entregue na v1.8.7** (medição de 22/08 colada ao lado do §2) |
 
 Nada obriga a essa ordem — A e G são independentes de tudo e podem furar a fila
 a qualquer momento.

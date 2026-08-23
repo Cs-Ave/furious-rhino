@@ -86,18 +86,63 @@ export async function render() {
     return;
   }
 
+  // O h1 mantém "Estúdio de skins" (o e2e-setup assere esse texto no load);
+  // a Radiografia mora numa ABA — v1.8.8, ideia K.
   root.append(el('h1', null, '🎨 Estúdio de skins'));
-  root.append(el('p', 'su-muted',
+
+  const tabs = el('div', 'su-variant-tabs');
+  tabs.id = 'su-tabs';
+  const btnSkins = el('button', 'su-active', '🎨 Skins');
+  btnSkins.id = 'su-tab-btn-skins';
+  const btnRadio = el('button', null, '📊 Radiografia');
+  btnRadio.id = 'su-tab-btn-radiografia';
+  tabs.append(btnSkins, btnRadio);
+  root.append(tabs);
+
+  // Aba Skins montada POR PADRÃO: os ids que o e2e-setup exige no load
+  // (su-server-text/su-drop/su-card-unlock/su-skin-list) continuam no DOM.
+  const tabSkins = el('div');
+  tabSkins.id = 'su-tab-skins';
+  tabSkins.append(el('p', 'su-muted',
     'Folha de sprites → skin no jogo, de ponta a ponta e sem editar código. '
     + 'Tudo é gravado na árvore de trabalho do jogo no seu PC — nada vai ao ar sem a release.'));
+  tabSkins.append(buildServerCard());
+  tabSkins.append(buildSkinListCard());
+  tabSkins.append(buildUploadCard());
+  tabSkins.append(buildFramesCard());
+  tabSkins.append(buildOptionsCard());
+  tabSkins.append(buildResultCard());
+  tabSkins.append(buildUnlockCard());
+  root.append(tabSkins);
 
-  root.append(buildServerCard());
-  root.append(buildSkinListCard());
-  root.append(buildUploadCard());
-  root.append(buildFramesCard());
-  root.append(buildOptionsCard());
-  root.append(buildResultCard());
-  root.append(buildUnlockCard());
+  // Aba Radiografia: vazia até o PRIMEIRO clique — o import dinâmico mantém
+  // o /?setup abrindo instantâneo, e nenhuma rede é tocada antes do clique
+  // (o e2e assere isso: análise só roda por vontade do dono).
+  const tabRadio = el('div');
+  tabRadio.id = 'su-tab-radiografia';
+  tabRadio.hidden = true;
+  root.append(tabRadio);
+
+  let radioCarregada = false;
+  const selecionar = (qual) => {
+    tabSkins.hidden = qual !== 'skins';
+    tabRadio.hidden = qual !== 'radiografia';
+    btnSkins.classList.toggle('su-active', qual === 'skins');
+    btnRadio.classList.toggle('su-active', qual === 'radiografia');
+  };
+  btnSkins.addEventListener('click', () => selecionar('skins'));
+  btnRadio.addEventListener('click', async () => {
+    selecionar('radiografia');
+    if (radioCarregada) return;
+    radioCarregada = true;
+    try {
+      const mod = await import('./SetupAnalytics.js');
+      mod.mount(tabRadio);
+    } catch (e) {
+      radioCarregada = false; // próxima tentativa recarrega
+      tabRadio.append(el('p', 'su-err', `Não deu para carregar a análise: ${e.message}`));
+    }
+  });
 
   pollStatus();
   setInterval(pollStatus, 2000);
