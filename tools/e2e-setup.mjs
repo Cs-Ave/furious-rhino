@@ -35,6 +35,10 @@ async function boot(query) {
   const page = await context.newPage();
   const googleReqs = []; // v1.8.7: a aba Radiografia só pode tocar o Firestore no ▶
   page.on('request', (r) => { if (r.url().includes('firestore.googleapis.com')) googleReqs.push(r.url()); });
+  const apiPosts = []; // v1.8.9: nenhum POST espontâneo à API local (só GETs de status)
+  page.on('request', (r) => {
+    if (r.method() === 'POST' && r.url().includes('localhost:3210')) apiPosts.push(r.url());
+  });
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => {
     if (m.type() === 'error' && !/Failed to load resource|net::ERR_/.test(m.text())) {
@@ -43,7 +47,7 @@ async function boot(query) {
   });
   await page.goto(`${BASE}/${query}`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(800);
-  return { context, page, googleReqs };
+  return { context, page, googleReqs, apiPosts };
 }
 
 // ---------- 1. Sem chave / chave errada: acesso restrito ----------
@@ -70,7 +74,7 @@ async function boot(query) {
 
 // ---------- 2. Chave certa: estúdio completo ----------
 {
-  const { context, page, googleReqs } = await boot('?setup=0929');
+  const { context, page, googleReqs, apiPosts } = await boot('?setup=0929');
   const text = await page.textContent('#setup-page');
   ok('3. chave 0929: estúdio montado', text.includes('Estúdio de skins')
     && !text.includes('Acesso restrito'));
@@ -139,6 +143,25 @@ async function boot(query) {
       const b = document.getElementById('su-btn-stop');
       return Boolean(b) && b.hidden === !genUp;
     }, generatorUp));
+
+  // v1.8.9 (aba 🖼️ Sprites): catálogo monta dos módulos ES, sem rede, e o
+  // e2e NUNCA clica em Salvar/Excluir/Atribuir (escrita é dos gates node)
+  await page.click('#su-tab-btn-sprites');
+  await page.waitForTimeout(400); // import dinâmico do módulo da aba
+  ok('3l. aba Sprites monta o catálogo (sub-views + card)',
+    await page.evaluate(() => Boolean(
+      document.getElementById('sp-subtabs') && document.getElementById('sp-catalogo'))));
+  ok('3m. catálogo lista as espécies (≥ 38 linhas)',
+    (await page.locator('#sp-catalogo .sp-row').count()) >= 38);
+  ok('3n. órfão sinalizado (boss2-hunter, grupo Bosses)', await page.evaluate(() => {
+    const grupos = [...document.querySelectorAll('#sp-catalogo details')];
+    const bosses = grupos.find((g) => g.querySelector('summary').textContent.includes('Bosses'));
+    bosses.open = true; // dispara a montagem preguiçosa
+    return new Promise((res) => setTimeout(() =>
+      res(bosses.textContent.includes('órfão')), 100));
+  }));
+  ok('3o. nenhum POST espontâneo à API local', apiPosts.length === 0, apiPosts.join(' | '));
+  await page.click('#su-tab-btn-skins'); // o cenário 4 depende da lista visível
 
   if (generatorUp) {
     const rows = await page.locator('.su-skin-row').count();

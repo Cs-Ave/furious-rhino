@@ -8,10 +8,11 @@ import { SKINS } from '../systems/SkinSystem.js';
 // 📥 área de "não atribuídos" (gerados, ainda fora do jogo).
 //
 // Carregada sob demanda pelo SetupPage (import dinâmico no 1º clique) — o
-// /?setup abre instantâneo e nada aqui roda antes da vontade do dono. Os
-// dados de design vêm dos módulos ES do próprio jogo (Constants já mesclado
-// com SpriteParams + SPRITE_BASE pré-merge); o que é volátil (overrides
-// frescos, índice de não atribuídos) vem da API local do estúdio.
+// /?setup abre instantâneo e NADA aqui toca a rede sozinho (o e2e assere).
+// Os dados de design vêm dos módulos ES do próprio jogo (Constants já
+// mesclado com SpriteParams; SPRITE_BASE é o pré-merge); os SVGs chegam por
+// <img src="art/..."> servidos pela mesma origem — catálogo funciona
+// inteiro mesmo com o gerador parado.
 
 // Mesmo helper do SetupPage (duplicado de propósito — cada página estática é
 // autossuficiente). textContent sempre: nada de innerHTML com dado de fora.
@@ -22,8 +23,23 @@ function el(tag, className = null, text = null) {
   return node;
 }
 
+// Um observador só para a página: anima apenas as thumbs visíveis (254
+// animações simultâneas seria desperdício de compositor)
+const io = new IntersectionObserver((entries) => {
+  for (const e of entries) {
+    const cls = e.target.dataset.live3 ? 'sp-live3' : 'sp-live';
+    e.target.classList.toggle(cls, e.isIntersecting);
+  }
+});
+const observar = (root) => {
+  for (const t of root.querySelectorAll('[data-live], [data-live3]')) io.observe(t);
+};
+
+// fps/sufixo por espécie (a tabela subiu para Constants na v1.8.9)
+const ANIMS_MAP = Object.fromEntries(
+  Constants.ENEMY_ANIMS.map(([t, s, f]) => [t, { sufixo: s, fps: f }]));
+
 export function mount(root) {
-  // Sub-views da aba: segmented control no mesmo estilo das abas da página
   const sub = el('div', 'su-variant-tabs');
   sub.id = 'sp-subtabs';
   const defs = [
@@ -54,25 +70,290 @@ export function mount(root) {
 
   montarCatalogo(views.catalogo.painel);
   views.gerador.painel.append(el('p', 'su-muted',
-    'O gerador de sprites de inimigo chega na fatia S4 — por ora, use a aba 🎨 Skins como referência do fluxo.'));
+    'O gerador de sprites de inimigo chega na fatia S4.'));
   views.orfaos.painel.append(el('p', 'su-muted',
     'A área de sprites não atribuídos chega junto com o gerador (S4).'));
 }
 
-// ------------------------------------------------------------- 📚 catálogo
-// S1: esqueleto com o inventário contado (prova que os módulos ES chegam);
-// a S2 troca isto pelo catálogo completo (grupos, thumbs animadas, locais,
-// parâmetros).
+// ================================================================ 📚 catálogo
 function montarCatalogo(root) {
   const card = el('div', 'su-card');
   card.id = 'sp-catalogo';
   card.append(el('h2', null, '📚 Catálogo de sprites'));
-  const nManifesto = Object.keys(ART_MANIFEST).length;
-  const nEspecies = Constants.ANIMAL_TYPES.length;
-  const nSkins = SKINS.filter((s) => s.prefix).length;
   card.append(el('p', 'su-muted',
-    `${nManifesto} texturas no manifesto · ${nEspecies} espécies · ${nSkins} skins com arte própria · `
-    + `${Constants.SPRITE_NEW.length} espécie(s) criada(s) pela aba.`));
-  card.append(el('p', 'su-muted', 'O catálogo completo (animado, com locais e parâmetros) chega na fatia S2.'));
+    `${Object.keys(ART_MANIFEST).length} texturas no manifesto · `
+    + `${Constants.ANIMAL_TYPES.length} espécies · `
+    + `${SKINS.filter((s) => s.prefix).length} skins com arte própria · `
+    + `${Constants.SPRITE_NEW.length} criada(s) pela aba. `
+    + 'Cenário (paredes, rampas, fundos) é procedural — fora deste catálogo.'));
+
+  card.append(grupoEspecies());
+  card.append(grupo('🏹 Bosses (4 atiradores)', false, montarBosses));
+  card.append(grupo(`🦏 Rino & Skins (${SKINS.filter((s) => s.prefix).length + 2} conjuntos)`, false, montarSkins));
+  card.append(grupo('🎛️ HUD (4 ícones)', false, montarHud));
   root.append(card);
+}
+
+// `<details>` com montagem preguiçosa: grupo fechado nem cria as <img>
+function grupo(titulo, aberto, montar) {
+  const d = document.createElement('details');
+  d.className = 'sp-grupo';
+  if (aberto) d.open = true;
+  const s = document.createElement('summary');
+  s.textContent = titulo;
+  d.append(s);
+  const cont = el('div');
+  d.append(cont);
+  let montado = false;
+  const monta = () => {
+    if (montado) return;
+    montado = true;
+    montar(cont);
+    observar(cont);
+  };
+  if (aberto) monta();
+  else d.addEventListener('toggle', () => { if (d.open) monta(); });
+  return d;
+}
+
+// ------------------------------------------------------------- espécies (38+)
+function grupoEspecies() {
+  const d = document.createElement('details');
+  d.className = 'sp-grupo';
+  d.open = true;
+  const s = document.createElement('summary');
+  s.textContent = `🐾 Espécies (${Constants.ANIMAL_TYPES.length})`;
+  // Toggle tamanho natural × tamanho de jogo (w × scale — é como o elenco
+  // aparece de verdade: raster 2x exibido a scale/2, Animal.setType)
+  const lbl = el('label', 'su-muted', ' tamanho de jogo ');
+  lbl.style.cssText = 'float:right;font-weight:400;cursor:pointer';
+  const chk = document.createElement('input');
+  chk.type = 'checkbox';
+  chk.id = 'sp-size-toggle';
+  lbl.prepend(chk);
+  s.append(lbl);
+  d.append(s);
+  const cont = el('div');
+  d.append(cont);
+  for (const t of Constants.ANIMAL_TYPES) cont.append(linhaEspecie(t));
+  observar(cont);
+  chk.addEventListener('click', (e) => e.stopPropagation());
+  chk.addEventListener('change', () => {
+    for (const th of cont.querySelectorAll('.sp-thumb')) {
+      const w = chk.checked ? th.dataset.wJogo : th.dataset.wNatural;
+      if (w) th.style.setProperty('--w', `${w}px`);
+    }
+  });
+  return d;
+}
+
+// Frame 2 e modo de animação de uma espécie, pelo MESMO contrato do jogo
+// (ENEMY_ANIMS → loop; airTexture → troca por estado; zig → telegraph -alt)
+function infoAnim(t) {
+  const spec = Constants.ANIMAL_SPECS[t];
+  const b = Constants.ANIMAL_BEHAVIOR[t];
+  const base = spec.tex || `animal-${t}`;
+  const nova = Constants.SPRITE_NEW.find((n) => n.id === t);
+  if (nova) {
+    if (!nova.anim) return { base, modo: 'estatico' };
+    const f2 = `${base}-${nova.anim.sufixo}`;
+    if (nova.anim.sufixo === 'air') return { base, f2, modo: 'estado' };
+    if (!nova.anim.fps) return { base, f2, modo: 'telegraph' };
+    return { base, f2, modo: 'loop', fps: nova.anim.fps };
+  }
+  if (ANIMS_MAP[t]) return { base, f2: `${base}-${ANIMS_MAP[t].sufixo}`, modo: 'loop', fps: ANIMS_MAP[t].fps };
+  if (t === 'lion' || t === 'giraffe') return { base, f2: `${base}-run-1`, modo: 'loop', fps: t === 'lion' ? 10 : 8 };
+  if (b.airTexture) return { base, f2: b.airTexture, modo: 'estado' };
+  if (b.zig) return { base, f2: `${base}-alt`, modo: 'telegraph' };
+  return { base, modo: 'estatico' };
+}
+
+// Onde a espécie aparece, em chips humanos (biomas + distritos da cidade)
+function ondeChips(t) {
+  const chips = [];
+  for (const [bioma, cast] of Object.entries(Constants.BIOME_ANIMALS)) {
+    if (cast.includes(t)) chips.push(Constants.BIOME_LABELS[bioma] || bioma);
+  }
+  for (const dist of Constants.CITY_DISTRICTS) {
+    if (Array.isArray(dist.cast) && dist.cast.includes(t)) chips.push(dist.label || dist.key);
+  }
+  if (!chips.length) chips.push('⚠️ fora de rotação');
+  return chips;
+}
+
+function badgesDe(t) {
+  const b = Constants.ANIMAL_BEHAVIOR[t];
+  const spec = Constants.ANIMAL_SPECS[t];
+  const out = [];
+  if (t === 'bird' || b.fly) out.push('🪽 voa');
+  if (b.zig) out.push('⚡ zig-zag');
+  if (b.jumpV) out.push('🦘 pula');
+  if (b.shoot) out.push('🎯 atira');
+  if (b.sentinel) out.push('📡 sentinela');
+  if (spec.pair) out.push('👥 par');
+  return out;
+}
+
+// Nº de chaves que diferem do design (SPRITE_BASE) — o "● N ajustes"
+function contarAjustes(t) {
+  const base = Constants.SPRITE_BASE;
+  if (!base.specs[t]) return 0; // criada pela aba: não é ajuste, é origem
+  let n = 0;
+  for (const [tabela, atual] of [[base.specs[t], Constants.ANIMAL_SPECS[t]],
+    [base.behavior[t], Constants.ANIMAL_BEHAVIOR[t]]]) {
+    const chaves = new Set([...Object.keys(tabela), ...Object.keys(atual)]);
+    for (const k of chaves) {
+      if (JSON.stringify(tabela[k]) !== JSON.stringify(atual[k])) n++;
+    }
+  }
+  return n;
+}
+
+function linhaEspecie(t) {
+  const spec = Constants.ANIMAL_SPECS[t];
+  const row = el('div', 'sp-row');
+  row.dataset.especie = t;
+
+  if (t === 'bird') {
+    // 1 linha, 5 plumagens (o jogo sorteia a espécie visual no spawn)
+    for (const sp of Constants.BIRD_SPECIES) {
+      row.append(thumb2(`animal-bird-${sp}`, `animal-bird-${sp}-flap`,
+        { modo: 'loop', fps: 8, spec }));
+    }
+  } else {
+    const info = infoAnim(t);
+    row.append(thumb2(info.base, info.f2 || null, { ...info, spec }));
+  }
+
+  const meta = el('div', 'sp-meta');
+  const nome = el('b', null, t);
+  meta.append(nome);
+  const info = t === 'bird' ? { base: 'animal-bird-*', modo: 'loop', fps: 8 } : infoAnim(t);
+  const detalhes = [`${spec.w}×${spec.h}`,
+    info.modo === 'loop' ? `${info.fps} fps` : { estado: 'troca por estado', telegraph: 'telegraph', estatico: 'estático' }[info.modo],
+    `escala ${spec.scale || Constants.ANIMAL_SCALE}`];
+  if (t === 'camionete') detalhes.push('arte compartilhada com pickup');
+  if (Constants.SPRITE_NEW.some((n) => n.id === t)) detalhes.push('criada pela aba');
+  meta.append(el('span', 'su-muted', ` ${detalhes.join(' · ')}`));
+  const chips = el('div');
+  for (const c of ondeChips(t)) chips.append(el('span', 'sp-chip', c));
+  for (const b of badgesDe(t)) chips.append(el('span', 'sp-chip sp-badge', b));
+  const ajustes = contarAjustes(t);
+  if (ajustes > 0) chips.append(el('span', 'sp-chip sp-ajustes', `● ${ajustes} ajuste${ajustes > 1 ? 's' : ''}`));
+  meta.append(chips);
+  row.append(meta);
+  return row;
+}
+
+// Thumb de 2 frames: loop (opacidade por keyframe único, --dur = 2/fps),
+// estado/telegraph (2º frame no hover) ou estática
+function thumb2(baseKey, frame2Key, { modo, fps, spec }) {
+  const size = ART_MANIFEST[baseKey] || { w: (spec && spec.w) || 64, h: (spec && spec.h) || 64 };
+  const box = el('div', 'sp-thumb');
+  box.dataset.wNatural = size.w;
+  if (spec) box.dataset.wJogo = Math.round(size.w * (spec.scale || Constants.ANIMAL_SCALE));
+  box.style.setProperty('--w', `${size.w}px`);
+  const img1 = document.createElement('img');
+  img1.loading = 'lazy';
+  img1.src = `art/${baseKey}.svg`;
+  img1.alt = baseKey;
+  box.append(img1);
+  if (frame2Key) {
+    const img2 = document.createElement('img');
+    img2.loading = 'lazy';
+    img2.src = `art/${frame2Key}.svg`;
+    img2.alt = frame2Key;
+    box.append(img2);
+    if (modo === 'loop') {
+      box.style.setProperty('--dur', `${(2 / (fps || 8)).toFixed(3)}s`);
+      box.dataset.live = '1';
+    } else {
+      box.classList.add('sp-state');
+      box.title = 'passe o mouse: 2º estado';
+    }
+  }
+  return box;
+}
+
+// Thumb de 3 frames (rino/skins): ciclo ping-pong 0-1-2-1 a 12fps via CSS
+function thumb3(prefix) {
+  const box = el('div', 'sp-thumb sp-3');
+  box.dataset.wNatural = 96;
+  box.style.setProperty('--w', '96px');
+  box.dataset.live3 = '1';
+  for (let f = 0; f < 3; f++) {
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.src = `art/${prefix}-${f}.svg`;
+    img.alt = `${prefix}-${f}`;
+    box.append(img);
+  }
+  return box;
+}
+
+// ------------------------------------------------------------------- bosses
+function montarBosses(cont) {
+  const BOSSES = [
+    ['boss-hunter', 'Caçador do rifle', 'portão do zoo · 1000 m', null],
+    ['muralha-hunter', 'Comandante da Muralha', 'A Muralha · 2000 m', null],
+    ['boss3-hunter', 'Caçador-Mor', 'fim do mundo · 9995 m', null],
+    ['boss2-hunter', 'Capturador do Cerco', 'realocado para o deserto (sem wiring)', 'órfão — carregado e nunca usado'],
+  ];
+  for (const [key, nome, local, aviso] of BOSSES) {
+    const row = el('div', 'sp-row');
+    row.append(thumb2(key, `${key}-aim`, { modo: 'estado' }));
+    const meta = el('div', 'sp-meta');
+    meta.append(el('b', null, nome));
+    meta.append(el('span', 'su-muted', ` ${key} · pose de mira no hover`));
+    const chips = el('div');
+    chips.append(el('span', 'sp-chip', local));
+    if (aviso) chips.append(el('span', 'sp-chip su-warn', `⚠️ ${aviso}`));
+    meta.append(chips);
+    row.append(meta);
+    cont.append(row);
+  }
+}
+
+// -------------------------------------------------------------- rino & skins
+function montarSkins(cont) {
+  const nota = el('p', 'su-muted',
+    'Catálogo-somente: criação, desbloqueio e edição de skins moram na aba 🎨 Skins.');
+  cont.append(nota);
+  const linhas = [
+    ['rhino-run', 'Furious Rhino (base)', 'o jogador'],
+    ['rhino-fire-run', 'Fúria Total', 'rampage (compartilhada por todas as skins)'],
+    ...SKINS.filter((s) => s.prefix).map((s) => [s.prefix, s.name, `skin · ${s.access.type}${s.hidden ? ' · oculta' : ''}`]),
+  ];
+  for (const [prefix, nome, local] of linhas) {
+    const row = el('div', 'sp-row');
+    row.append(thumb3(prefix));
+    const meta = el('div', 'sp-meta');
+    meta.append(el('b', null, nome));
+    meta.append(el('span', 'su-muted', ` ${prefix}-{0,1,2} · 12 fps ping-pong`));
+    const chips = el('div');
+    chips.append(el('span', 'sp-chip', local));
+    meta.append(chips);
+    row.append(meta);
+    cont.append(row);
+  }
+}
+
+// ---------------------------------------------------------------------- HUD
+function montarHud(cont) {
+  const HUD = [
+    ['rhino-face-full', 'rhino-face-empty', 'Ícone da investida', 'HUD · cheio/vazio no hover'],
+    ['fury-fire-full', 'fury-fire-empty', 'Ícone da Fúria Total', 'HUD · cheio/vazio no hover'],
+  ];
+  for (const [a, b, nome, local] of HUD) {
+    const row = el('div', 'sp-row');
+    row.append(thumb2(a, b, { modo: 'estado' }));
+    const meta = el('div', 'sp-meta');
+    meta.append(el('b', null, nome));
+    meta.append(el('span', 'su-muted', ` ${a} / ${b}`));
+    const chips = el('div');
+    chips.append(el('span', 'sp-chip', local));
+    meta.append(chips);
+    row.append(meta);
+    cont.append(row);
+  }
 }
