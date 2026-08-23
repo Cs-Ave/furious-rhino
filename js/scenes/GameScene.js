@@ -1441,7 +1441,9 @@ export class GameScene extends Phaser.Scene {
         del.disabled = true;
         const r = await ChallengeSystem.cancel(ch.id);
         if (r.ok) {
-          this.showHomeToast('🗑 Desafio encerrado.');
+          this.showHomeToast(r.ghost
+            ? '🗑 Esse desafio já não existia — removido da lista.'
+            : '🗑 Desafio encerrado.');
           this.renderChallenges();
         } else {
           del.disabled = false;

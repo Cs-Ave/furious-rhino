@@ -154,38 +154,46 @@
             border-radius: 2px;
         }
 
+        /* v1.8.10-fix (pedido do dono): overlay MENOR e mais compacto — o
+           translate(-50%,-50%) ja centra; a altura menor e o que devolve o
+           equilibrio vertical. Vao entre o Recorde e os botoes apertado. */
         #game-over {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             background: rgba(0, 0, 0, 0.95);
-            padding: 40px;
+            padding: 22px 30px;
             border-radius: 10px;
             color: white;
             text-align: center;
             z-index: 200;
             display: none;
-            min-width: 300px;
+            min-width: 280px;
+            max-height: 88vh;
+            overflow-y: auto;
         }
 
         #game-over h1 {
-            font-size: 32px;
-            margin-bottom: 20px;
+            font-size: 26px;
+            margin-bottom: 10px;
             color: #ff6b6b;
         }
 
         #game-over p {
-            font-size: 18px;
-            margin: 10px 0;
+            font-size: 15px;
+            margin: 5px 0;
         }
 
         #game-over .final-score {
             color: #4ecdc4;
-            font-size: 24px;
-            margin: 15px 0;
+            font-size: 20px;
+            margin: 6px 0;
             font-weight: bold;
         }
+
+        #game-over #record-message { margin-bottom: 2px; }
+        #game-over .btn-row { margin-top: 8px; }
 
         #game-over .record-beat {
             color: #ffcc00;
@@ -287,7 +295,10 @@
             z-index: 300;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            /* v1.8.10-fix: empilha do TOPO (era space-between, que espalhava e
+               deixava o meio crescer por cima do rodapé); o .home-bottom leva
+               margin-top:auto e continua colado embaixo */
+            justify-content: flex-start;
             align-items: stretch;
             gap: 6px;
             padding: 10px calc(28px + env(safe-area-inset-left, 0px)) 30px;
@@ -373,26 +384,26 @@
             display: grid;
             grid-template-columns: 1fr calc((100% - 28px) / 3);
             gap: 14px;
-            align-items: end;
+            /* v1.8.10-fix (design do dono): AS DUAS colunas ancoram no TOPO —
+               o Pódio Mundial sobe para a linha do botão Desafiar e toda a
+               estrutura abaixo (Diário, instruções) sobe junto. Antes o pódio
+               ficava preso embaixo (align-items:end) e, em tela baixa de
+               celular, invadia o Diário e o rodapé. */
+            align-items: start;
             text-align: center;
         }
 
-        /* v1.8.8-fix (design do dono): a coluna da Campanha ancora no TOPO —
-           os botões (Chamar galera/Desafiar) sobem para a linha do botão
-           Instalar (que se alinha a eles via alignInstallHint), e os cards
-           de desafio ganham espaço para crescer PARA BAIXO sem quebrar o
-           layout. O pódio segue ancorado embaixo (linha de base dos degraus). */
         .home-col-camp { align-self: start; }
 
         .home-headrow {
             display: flex;
             align-items: center;
             justify-content: center;
-            /* v1.8.7-fix: com PWA nao instalado a fileira tem TRES pilulas
-               (Chamar galera + Desafiar + instalar) — sem wrap, a primeira
-               transbordava para fora da coluna e "sumia" */
-            flex-wrap: wrap;
-            gap: 6px 12px;
+            /* v1.8.10-fix: o instalar saiu da fileira (absoluto a esquerda),
+               sobraram DOIS botoes — lado a lado SEMPRE (pedido do dono),
+               com fonte/padding menores para caber em qualquer tela */
+            flex-wrap: nowrap;
+            gap: 8px;
             margin-bottom: 8px;
             font-size: 13px;
             letter-spacing: 3px;
@@ -625,7 +636,7 @@
             font-weight: 800;
             border: none;
             border-radius: 999px;
-            padding: 6px 16px;
+            padding: 5px 12px;
             font-size: 14px;
             cursor: pointer;
             box-shadow: 0 3px 0 #128C4A;
@@ -752,6 +763,9 @@
             font-size: 13px;
         }
 
+        /* v1.8.10-fix: os dois botões nunca quebram em duas linhas */
+        #invite-btn, #challenge-new { white-space: nowrap; }
+
         #challenge-new {
             font-family: inherit;
             background: #2b2c33;
@@ -760,7 +774,7 @@
             border: 1px solid rgba(255, 154, 108, 0.45);
             border-radius: 999px;
             padding: 6px 14px;
-            font-size: 13px;
+            font-size: 12px;
             cursor: pointer;
             white-space: nowrap;
         }
@@ -890,15 +904,22 @@
         /* --- rodapé: instruções em texto + CTA pulsante --- */
         .home-bottom {
             flex: 0 0 auto;
+            margin-top: auto; /* v1.8.10-fix: encosta no fim do espaço livre */
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 34px;
+            /* v1.8.10-fix2 (pedido do dono): PULO e DASH juntinhos do CTA —
+               o trio vira um bloco central e as beiradas ficam livres. 20px é
+               o mínimo: o CTA pulsa até scale(1.1) e encostaria no PULO. */
+            gap: 20px;
         }
 
-        .home-hint { min-width: 220px; }
-        .home-hint .hside { display: block; font-size: 11px; color: rgba(255, 255, 255, 0.55); letter-spacing: 1px; }
-        .home-hint .haction { display: block; font-size: 16px; font-weight: 900; letter-spacing: 1px; }
+        .home-hint { min-width: 0; }
+        /* v1.8.10-fix: a acao na MESMA linha do atalho (pedido do dono):
+           "← ESQUERDA / ESPACO PULO" · "→ DIREITA / ENTER DASH" */
+        .home-hint .hside { display: inline; font-size: 11px; color: rgba(255, 255, 255, 0.55); letter-spacing: 1px; }
+        .home-hint .haction { display: inline; font-size: 15px; font-weight: 900; letter-spacing: 1px; margin-left: 6px; }
+        .home-hint .hdetail { display: block; }
         .home-hint .haction.jump { color: #4ecdc4; }
         .home-hint .haction.dash { color: #ff9944; }
         .home-hint .hdetail { display: block; font-size: 11px; color: rgba(255, 255, 255, 0.7); }
@@ -1179,8 +1200,19 @@
         }
 
         /* Celular paisagem (~360px de altura CSS): compactar para caber tudo */
-        @media (max-height: 430px) {
-            #start-screen { gap: 3px; padding-top: 4px; padding-bottom: 24px; }
+        /* v1.8.10-fix2: era 430px e a tela do dono (~445px uteis) ficava de
+           FORA — o rodape absoluto acabava por cima do PULO/DASH. 500px cobre
+           os celulares deitados de verdade. */
+        @media (max-height: 500px) {
+            /* v1.8.10-fix: o rodapé é ABSOLUTO (bottom:8px) — sem faixa
+               reservada ele passava POR CIMA das instruções no celular.
+               E, por pedido do dono, embaixo fica só instrução + designed by
+               + versão: a linha de estatísticas sai da tela baixa. */
+            #start-screen { gap: 3px; padding-top: 4px; padding-bottom: 30px; }
+            .footer-center { display: none; }
+            .start-footer { font-size: 10px; bottom: calc(5px + env(safe-area-inset-bottom, 0px)); }
+            .home-bottom { gap: 14px; }
+            .home-hint { min-width: 0; }
 
             /* HUD: a linha de pontos maior + a dos metros custam ~18px de
                altura, que num celular deitado (~360px) fazem falta */
@@ -1207,7 +1239,17 @@
             .step.you .youlabel { font-size: 14px; letter-spacing: 2px; }
             .step.you .you-base { width: 106px; font-size: 11px; height: 20px; }
             #skins-btn { font-size: 11px; padding: 4px 10px; }
-            #podium-gap { font-size: 10px; min-height: 12px; }
+            /* v1.8.10-fix: em tela baixa o texto do degrau VOCÊ era mais
+               largo que o degrau e vazava POR CIMA do 3º lugar */
+            #podium-gap { font-size: 9.5px; min-height: 11px; max-width: 116px; margin-left: auto; margin-right: auto; }
+            .step.you .you-base {
+                font-size: 9px;
+                width: 118px;
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+            }
+            .step.you { max-width: 124px; }
             #skin-notice { display: none; }
 
             .camp-card { padding: 6px 10px; }
@@ -1232,11 +1274,11 @@
             .news-cols .news-item:nth-child(n+3) { display: none; }
             .news-cols { grid-template-columns: repeat(2, 1fr); }
 
-            .home-hint { min-width: 150px; }
+            .home-hint { min-width: 0; }
             .home-hint .hdetail { display: none; }
             .home-hint .hside { font-size: 9.5px; }
             .home-hint .haction { font-size: 13px; }
-            .start-cta { font-size: 17px; }
+            .start-cta { font-size: 10px; }
             .start-footer { font-size: 11px; }
             /* o aviso do /?stats disputa a linha do CTA em 360px de altura */
             .footer-center { display: none; }
@@ -1287,7 +1329,7 @@
 
         /* v1.8.1: CTA pulsando em escala + brilho (pedido do dono) */
         .start-cta {
-            font-size: 24px;
+            font-size: 13.5px; /* v1.8.10-fix2: -20% sobre os 17 (que ja eram -30% dos 24) */
             font-weight: 900;
             letter-spacing: 2px;
             color: #ffd23f;
@@ -1302,8 +1344,10 @@
         .start-footer {
             position: absolute;
             bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-            font-size: 15px;
-            font-weight: 700;
+            /* v1.8.10-fix2: mesmo corpo do atalho da esquerda (.hside, 11px),
+               em negrito — rodape discreto que nao disputa com o PULO/DASH */
+            font-size: 11px;
+            font-weight: 800;
             color: rgba(255, 255, 255, 0.7);
             letter-spacing: 0.5px;
         }
@@ -2221,6 +2265,33 @@
             cursor: pointer;
         }
 
+        /* v1.8.10-fix: celulares MUITO baixos (deitado com barra do sistema,
+           ~320px úteis). O pódio inteiro não cabe junto do Diário — e a
+           prioridade do dono embaixo é: instrução de jogo + designed by +
+           versão. O Diário sai (a informação segue na Campanha/notícias ao
+           abrir) e os degraus encolhem mais um degrau. */
+        @media (max-height: 380px) {
+            .podium-anim { width: 64px; height: 44px; }
+            .step.first .podium-anim { width: 78px; height: 52px; }
+            .rhino-anim { width: 70px; height: 48px; }
+            .step .base { width: 76px; font-size: 14px; }
+            .step.first .base { height: 40px; width: 92px; }
+            .step.second .base { height: 26px; }
+            .step.third .base { height: 18px; }
+            .step.you .you-base { width: 88px; height: 16px; font-size: 10px; }
+            .step.you .youarrow { display: none; }
+            .step .pname { font-size: 10px; }
+            .step .pscore { font-size: 9px; }
+            .home-hint .hdetail { display: none; }
+            .start-cta { font-size: 9px; }
+        }
+
+        /* Abaixo de 340px o Diário é o primeiro a sair: embaixo fica só o
+           essencial pedido pelo dono (instrução + designed by + versão) */
+        @media (max-height: 340px) {
+            .home-diario { display: none; }
+        }
+
         @media (max-width: 560px) {
             .bar-row { grid-template-columns: 110px 1fr 48px; }
         }
@@ -2289,7 +2360,7 @@
         </div>
         <div class="touch-guide">
             <div>DIREITA →</div>
-            <div>Investida</div>
+            <div>Dash</div>
         </div>
     </div>
 
@@ -2380,10 +2451,10 @@
                 <span class="haction jump">PULO</span>
                 <span class="hdetail">segure para subir mais alto</span>
             </div>
-            <p class="start-cta">TOQUE PARA COMEÇAR</p>
+            <p class="start-cta">TOQUE PARA INICIAR</p>
             <div class="home-hint">
                 <span class="hside">→ DIREITA / ENTER</span>
-                <span class="haction dash">INVESTIDA</span>
+                <span class="haction dash">DASH</span>
                 <span class="hdetail">quebra paredes trincadas</span>
             </div>
         </div>
@@ -2394,7 +2465,7 @@
              com "Chamar galera"/"Desafiar" -->
         <div id="install-hint"></div>
 
-        <span class="start-footer footer-left">Designed by Thomas Avelino</span>
+        <span class="start-footer footer-left">by Thomas Avelino</span>
         <span class="start-footer footer-center">Estatísticas anônimas são coletadas · <a href="./?stats">/?stats</a></span>
         <span class="start-footer footer-right" id="game-version">v1.8.10</span>
     </div>

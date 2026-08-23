@@ -286,7 +286,16 @@ export class ChallengeSystem {
       if (!StorageManager.allowsRemoteWrite()) return { ok: false, reason: 'local' };
       const { fs, db } = await getDb();
       const snap = await fs.getDoc(fs.doc(db, 'challenges', id));
-      if (!snap.exists()) return { ok: false, reason: 'offline' };
+      if (!snap.exists()) {
+        // v1.8.10-fix: doc que NÃO existe não é "sem internet" — é um
+        // FANTASMA do cache (desafio de teste apagado pelo admin, TTL de 1h
+        // ainda segurando). Já encerrado por definição: limpa do cache e a
+        // UI segue sem drama. (Aconteceu de verdade: o cleanup-challenges de
+        // 22/08 apagou docs que o cache do dono ainda mostrava.)
+        const lista = ((cached && cached.list) || []).filter((c) => c && c.id !== id);
+        this.saveCache(lista, cached ? cached.at : Date.now());
+        return { ok: true, ghost: true };
+      }
       const data = snap.data();
       await fs.setDoc(fs.doc(db, 'challenges', id), {
         ...data,
