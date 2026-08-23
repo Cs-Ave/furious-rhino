@@ -1,3 +1,5 @@
+import { SPRITE_PARAMS } from '../art/SpriteParams.js';
+
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
@@ -502,6 +504,26 @@ export const Constants = {
       shoot: { intervalMs: 1400, telegraphMs: 320, dartSpeed: 700, aimed: true } },
   },
 
+  // Animações de 2 frames do elenco (enemy-<tipo> → enemy-<tipo>-<sufixo>).
+  // Morava dentro do BootScene.createAnimations; subiu para cá na v1.8.9
+  // para a aba 🖼️ Sprites (que roda SEM Phaser) e o test-sprites lerem o
+  // fps sem regex. O sufixo diz o tipo de movimento (run-1 passada, flap
+  // asa, alt parte móvel). Ficam FORA por design: os saltadores de -air
+  // (zebra/monkey/manedwolf/gatobeco/k9 — trocam textura por estado) e
+  // pipa/dronezig (o -alt deles é telegraph de zig, não frame de corrida).
+  ENEMY_ANIMS: [
+    ['zookeeper', 'run-1', 8], ['peacock', 'run-1', 8], ['ostrich', 'run-1', 10],
+    ['hyena', 'run-1', 10], ['buffalo', 'run-1', 8], ['jaguar', 'run-1', 10],
+    ['hippo', 'run-1', 8], ['capybara', 'run-1', 8], ['person', 'run-1', 8],
+    ['suit', 'run-1', 8],
+    ['eagle', 'flap', 8], ['bluebird', 'flap', 8], ['jabiru', 'flap', 8],
+    ['snake', 'alt', 4], ['croc', 'alt', 4], ['car', 'alt', 8],
+    ['police', 'alt', 4], ['plane', 'alt', 10], ['drone', 'alt', 8],
+    ['pickup', 'alt', 6], ['scooter', 'alt', 8],
+    ['viralata', 'run-1', 10], ['pombo', 'flap', 8], ['reporter', 'run-1', 8],
+    ['helinews', 'alt', 10], ['tropa', 'run-1', 6], ['dronesent', 'alt', 8],
+  ],
+
   // 6 tiers de dificuldade, um a cada 200m (8000px de mundo). Objetos
   // mutáveis lidos a cada spawn/frame — o TuningPanel liga sliders direto
   // aqui. wallW/spikeW/towerW/rampW: frações da roleta de spawn (sobra =
@@ -731,3 +753,43 @@ export const Constants = {
   // Animal.preUpdate lê — animais já em tela aceleram na troca de tier
   TIER_STATE: { animalSpeedMult: 1 },
 };
+
+// ------------------------------------------------------- aba 🖼️ Sprites
+// Calibração do dono POR CIMA dos valores de design (js/art/SpriteParams.js,
+// gravado pela aba Sprites do /?setup com portão de teste e rollback).
+// REESCREVER este arquivo pelo servidor é PROIBIDO — os comentários acima
+// são a memória de design do projeto; o dado do dono vive no SpriteParams.
+// ⚠️ Consequência assumida: chave com override ativo torna a edição manual
+// do valor correspondente AQUI silenciosamente inócua — a aba mostra o
+// badge "override" e o test-sprites avisa overrides no-op.
+//
+// SPRITE_BASE = clone PRÉ-merge (a UI distingue design × override por ele).
+// O merge MUTA os objetos existentes (nunca substitui referências —
+// TuningPanel, e2e e TIER_STATE seguram referências vivas).
+Constants.SPRITE_BASE = JSON.parse(JSON.stringify({
+  specs: Constants.ANIMAL_SPECS, behavior: Constants.ANIMAL_BEHAVIOR,
+}));
+for (const [type, o] of Object.entries(SPRITE_PARAMS.overrides || {})) {
+  for (const [src, dst] of [[o.specs, Constants.ANIMAL_SPECS[type]],
+    [o.behavior, Constants.ANIMAL_BEHAVIOR[type]]]) {
+    if (!src || !dst) continue;
+    for (const [k, v] of Object.entries(src)) {
+      if (v === null) delete dst[k];
+      else dst[k] = v;
+    }
+  }
+}
+// Espécies criadas pela aba entram nas 5 tabelas como se fossem de design
+Constants.SPRITE_NEW = SPRITE_PARAMS.novas || [];
+for (const n of Constants.SPRITE_NEW) {
+  Constants.ANIMAL_SPECS[n.id] = n.specs;
+  Constants.ANIMAL_BEHAVIOR[n.id] = n.behavior;
+  Constants.ANIMAL_TYPES.push(n.id);
+  for (const b of (n.casts && n.casts.biomas) || []) {
+    if (Constants.BIOME_ANIMALS[b]) Constants.BIOME_ANIMALS[b].push(n.id);
+  }
+  for (const d of (n.casts && n.casts.distritos) || []) {
+    const area = Constants.CITY_DISTRICTS.find((x) => x.key === d);
+    if (area && area.cast) area.cast.push(n.id);
+  }
+}

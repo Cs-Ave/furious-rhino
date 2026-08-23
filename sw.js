@@ -15,6 +15,7 @@ const ASSETS = [
   './js/utils/Constants.js',
   './js/utils/StorageManager.js',
   './js/art/ArtManifest.js',
+  './js/art/SpriteParams.js',
   './art/rhino-run-0.svg',
   './art/rhino-run-1.svg',
   './art/rhino-run-2.svg',
@@ -139,6 +140,8 @@ const ASSETS = [
   './art/enemy-viralata-run-1.svg',
   './art/enemy-viralata.svg',
   './art/muralha-hunter-aim.svg',
+  // @setup:sprites — bloco gerado pela aba Sprites do /?setup (não editar à mão)
+  // @setup:sprites:fim
   './art/muralha-hunter.svg',
   './art/boss-hunter-aim.svg',
   './art/boss2-hunter.svg',

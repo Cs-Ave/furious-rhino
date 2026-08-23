@@ -29,6 +29,18 @@ export class BootScene extends Phaser.Scene {
         }
       }
     }
+
+    // Espécies criadas pela aba 🖼️ Sprites (v1.8.9): frames derivados de
+    // SPRITE_NEW (js/art/SpriteParams.js), fora do manifesto — mesmo
+    // racional das skins acima: um lugar só de edição.
+    for (const n of Constants.SPRITE_NEW) {
+      const spec = Constants.ANIMAL_SPECS[n.id];
+      const sufs = [''].concat(n.anim ? [`-${n.anim.sufixo}`] : []);
+      for (const suf of sufs) {
+        this.load.svg(`enemy-${n.id}${suf}`, `art/enemy-${n.id}${suf}.svg`,
+          { width: spec.w * S, height: spec.h * S });
+      }
+    }
   }
 
   create() {
@@ -118,24 +130,15 @@ export class BootScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    // Elenco v1.7 por bioma: pares de 2 frames como o leão/girafa. O sufixo
-    // diz o tipo de movimento (run-1 passada, flap asa, alt parte móvel);
-    // o lobo-guará fica de fora — troca textura por estado, como a zebra.
-    const ENEMY_ANIMS = [
-      ['zookeeper', 'run-1', 8], ['peacock', 'run-1', 8], ['ostrich', 'run-1', 10],
-      ['hyena', 'run-1', 10], ['buffalo', 'run-1', 8], ['jaguar', 'run-1', 10],
-      ['hippo', 'run-1', 8], ['capybara', 'run-1', 8], ['person', 'run-1', 8],
-      ['suit', 'run-1', 8],
-      ['eagle', 'flap', 8], ['bluebird', 'flap', 8], ['jabiru', 'flap', 8],
-      ['snake', 'alt', 4], ['croc', 'alt', 4], ['car', 'alt', 8],
-      ['police', 'alt', 4], ['plane', 'alt', 10], ['drone', 'alt', 8],
-      ['pickup', 'alt', 6], ['scooter', 'alt', 8],
-      // v1.8.7 — o elenco dos distritos (pipa/dronezig ficam fora: o -alt
-      // deles é telegraph de zig, não frame de corrida)
-      ['viralata', 'run-1', 10], ['pombo', 'flap', 8], ['reporter', 'run-1', 8],
-      ['helinews', 'alt', 10], ['tropa', 'run-1', 6], ['dronesent', 'alt', 8],
-    ];
-    for (const [type, suffix, fps] of ENEMY_ANIMS) {
+    // Elenco por bioma: pares de 2 frames como o leão/girafa. A tabela subiu
+    // para Constants.ENEMY_ANIMS na v1.8.9 (a aba 🖼️ Sprites e o
+    // test-sprites a leem sem Phaser); espécies criadas pela aba entram pelo
+    // SPRITE_NEW quando têm anim com fps (sufixo air/alt-telegraph fica de
+    // fora, como pipa/dronezig).
+    const extra = Constants.SPRITE_NEW
+      .filter((n) => n.anim && n.anim.fps)
+      .map((n) => [n.id, n.anim.sufixo, n.anim.fps]);
+    for (const [type, suffix, fps] of [...Constants.ENEMY_ANIMS, ...extra]) {
       this.anims.create({
         key: `${type}-run`,
         frames: [

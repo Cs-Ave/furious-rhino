@@ -22,7 +22,8 @@
     "radiografia": "node tools/radiografia.mjs",
     "test-radiografia": "node tools/test-radiografia.mjs",
     "digest": "node tools/daily-digest.mjs --dry-run",
-    "sprite-gen": "node gerador-de-sprites/server.mjs"
+    "sprite-gen": "node gerador-de-sprites/server.mjs",
+    "test-sprites": "node tools/test-sprites.mjs"
   },
   "repository": {
     "type": "git",

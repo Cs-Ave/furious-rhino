@@ -99,9 +99,11 @@ export async function render() {
   tabs.id = 'su-tabs';
   const btnSkins = el('button', 'su-active', '🎨 Skins');
   btnSkins.id = 'su-tab-btn-skins';
+  const btnSprites = el('button', null, '🖼️ Sprites');
+  btnSprites.id = 'su-tab-btn-sprites';
   const btnRadio = el('button', null, '📊 Radiografia');
   btnRadio.id = 'su-tab-btn-radiografia';
-  tabs.append(btnSkins, btnRadio);
+  tabs.append(btnSkins, btnSprites, btnRadio);
   root.append(tabs);
 
   // Aba Skins montada POR PADRÃO: os ids que o e2e-setup exige no load
@@ -120,34 +122,45 @@ export async function render() {
   tabSkins.append(buildUnlockCard());
   root.append(tabSkins);
 
-  // Aba Radiografia: vazia até o PRIMEIRO clique — o import dinâmico mantém
-  // o /?setup abrindo instantâneo, e nenhuma rede é tocada antes do clique
-  // (o e2e assere isso: análise só roda por vontade do dono).
+  // Abas preguiçosas (Sprites e Radiografia): vazias até o PRIMEIRO clique —
+  // o import dinâmico mantém o /?setup abrindo instantâneo, e nenhuma rede é
+  // tocada antes do clique (o e2e assere isso).
+  const tabSprites = el('div');
+  tabSprites.id = 'su-tab-sprites';
+  tabSprites.hidden = true;
+  root.append(tabSprites);
   const tabRadio = el('div');
   tabRadio.id = 'su-tab-radiografia';
   tabRadio.hidden = true;
   root.append(tabRadio);
 
-  let radioCarregada = false;
-  const selecionar = (qual) => {
-    tabSkins.hidden = qual !== 'skins';
-    tabRadio.hidden = qual !== 'radiografia';
-    btnSkins.classList.toggle('su-active', qual === 'skins');
-    btnRadio.classList.toggle('su-active', qual === 'radiografia');
+  // v1.8.9: tabela declarativa — aba nova = uma linha aqui (o par de
+  // ternários binário não escalava para 3 abas)
+  const abas = {
+    skins: { btn: btnSkins, painel: tabSkins },
+    sprites: { btn: btnSprites, painel: tabSprites, modulo: './SetupSprites.js' },
+    radiografia: { btn: btnRadio, painel: tabRadio, modulo: './SetupAnalytics.js' },
   };
-  btnSkins.addEventListener('click', () => selecionar('skins'));
-  btnRadio.addEventListener('click', async () => {
-    selecionar('radiografia');
-    if (radioCarregada) return;
-    radioCarregada = true;
-    try {
-      const mod = await import('./SetupAnalytics.js');
-      mod.mount(tabRadio);
-    } catch (e) {
-      radioCarregada = false; // próxima tentativa recarrega
-      tabRadio.append(el('p', 'su-err', `Não deu para carregar a análise: ${e.message}`));
+  const selecionar = (qual) => {
+    for (const [k, a] of Object.entries(abas)) {
+      a.painel.hidden = k !== qual;
+      a.btn.classList.toggle('su-active', k === qual);
     }
-  });
+  };
+  for (const [nome, aba] of Object.entries(abas)) {
+    aba.btn.addEventListener('click', async () => {
+      selecionar(nome);
+      if (!aba.modulo || aba.montada) return;
+      aba.montada = true;
+      try {
+        const mod = await import(aba.modulo);
+        mod.mount(aba.painel);
+      } catch (e) {
+        aba.montada = false; // próxima tentativa recarrega
+        aba.painel.append(el('p', 'su-err', `Não deu para carregar a aba: ${e.message}`));
+      }
+    });
+  }
 
   pollStatus();
   setInterval(pollStatus, 2000);
