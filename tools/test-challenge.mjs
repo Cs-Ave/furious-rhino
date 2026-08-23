@@ -231,9 +231,35 @@ eq('durações oficiais: 1, 3 e 7 dias', Constants.CHALLENGE_DURATIONS_D, [1, 3,
 eq('teto de participantes bate com o das rules (8)',
   Constants.CHALLENGE_MAX_PARTICIPANTS, 8);
 eq('teto de desafios ativos criados', Constants.CHALLENGE_MAX_ACTIVE_CREATED, 3);
-eq('TTLs do cache (1h) e do standings (30min)',
-  [Constants.CHALLENGE_CACHE_TTL_MS, Constants.CHALLENGE_STANDINGS_TTL_MS],
-  [3600000, 1800000]);
+eq('TTLs do cache (10min normal, 45s com aceite pendente) e do standings (30min)',
+  [Constants.CHALLENGE_CACHE_TTL_MS, Constants.CHALLENGE_CACHE_TTL_PENDING_MS,
+    Constants.CHALLENGE_STANDINGS_TTL_MS], [600000, 45000, 1800000]);
+
+// v1.8.12: o TTL da lista é ADAPTATIVO — quem espera alguém aceitar relê em
+// 45s (bug do dono: o criador ficava até 1h vendo "aguardando fulano" com o
+// convite JÁ aceito do outro lado)
+{
+  const eu = StorageManager.getOrCreatePlayerId();
+  const agoraS = Math.floor(Date.now() / 1000);
+  const base = { id: 'k1', from: { id: eu, name: 'Eu' }, participants: [eu, 'outro'],
+    names: { [eu]: 'Eu', outro: 'Outro' }, startAt: agoraS - 60, endAt: agoraS + 86400 };
+  eq('TTL curto enquanto o convidado não aceitou',
+    ChallengeSystem.cacheTtlMs([{ ...base, accepted: { [eu]: agoraS } }]),
+    Constants.CHALLENGE_CACHE_TTL_PENDING_MS);
+  eq('TTL normal quando todos já aceitaram',
+    ChallengeSystem.cacheTtlMs([{ ...base, accepted: { [eu]: agoraS, outro: agoraS } }]),
+    Constants.CHALLENGE_CACHE_TTL_MS);
+  eq('TTL normal sem desafio nenhum', ChallengeSystem.cacheTtlMs([]), Constants.CHALLENGE_CACHE_TTL_MS);
+  eq('desafio ENCERRADO com pendência não encurta o TTL',
+    ChallengeSystem.cacheTtlMs([{ ...base, endAt: agoraS - 10, accepted: { [eu]: agoraS } }]),
+    Constants.CHALLENGE_CACHE_TTL_MS);
+  // Convite que EU ainda não aceitei NÃO encurta: ele aparece como popup, não
+  // como card com placar — não há nada meu para atualizar depressa ali
+  eq('convite pendente meu não encurta o TTL (é popup, não placar)',
+    ChallengeSystem.cacheTtlMs([{ ...base, from: { id: 'outro', name: 'Outro' },
+      accepted: { outro: agoraS } }]),
+    Constants.CHALLENGE_CACHE_TTL_MS);
+}
 eq('a maior duração cabe na janela máxima das rules (7d = 604800s)',
   Math.max(...Constants.CHALLENGE_DURATIONS_D) * 86400, 604800);
 

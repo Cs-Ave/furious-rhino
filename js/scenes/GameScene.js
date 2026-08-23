@@ -381,6 +381,12 @@ export class GameScene extends Phaser.Scene {
     // maybeShowChallengeInvite vê o modal-open e adia para o próximo boot
     // (sem markSeen — o convite não se perde).
     this.setupChallengeUI();
+    // v1.8.12: voltar para a aba/app é o momento natural de reler — quem
+    // convidou fica olhando a home esperando o "aceitou"
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible' || document.body.classList.contains('started')) return;
+      this.safeTelemetry(() => ChallengeSystem.refresh().then(() => this.renderChallenges()));
+    });
     this.renderChallenges();
     this.maybeShowChallengeInvite();
 
@@ -3775,6 +3781,9 @@ export class GameScene extends Phaser.Scene {
     // pode ter mudado o meu lugar (e o do adversário, quando o stats dele
     // subir). Sem isto o card ficava até 30 min preso em "ainda não correu".
     this.safeTelemetry(() => ChallengeSystem.invalidateStandings());
+    // v1.8.12: e relê a LISTA — enquanto eu jogava, o convidado pode ter
+    // aceitado (o card ficava em "aguardando fulano" até o TTL vencer)
+    this.safeTelemetry(() => ChallengeSystem.refresh(true).then(() => this.renderChallenges()));
     this.safeTelemetry(() => StatsSystem.recordRun(distance).then(() => StatsSystem.send()));
     // Acumula no resumo da sessão (o push sai na saída ou no tempo configurado)
     this.safeTelemetry(() => NotifySystem.noteRun({

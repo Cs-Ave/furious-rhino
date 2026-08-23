@@ -3,7 +3,7 @@ import { SPRITE_PARAMS } from '../art/SpriteParams.js';
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
-  VERSION: '1.8.11',
+  VERSION: '1.8.12',
 
   // Rótulo humano de cada desfecho de corrida. Fonte única para o painel, o
   // resumo do jogador e os pushes — os três diziam a mesma coisa com palavras
@@ -241,7 +241,11 @@ export const Constants = {
   // da própria query) — sem auth as rules não sabem quem cria; o teto existe
   // para conter spam de convite e reads do placar no plano gratuito.
   CHALLENGE_MAX_ACTIVE_CREATED: 3,
-  CHALLENGE_CACHE_TTL_MS: 60 * 60 * 1000,      // 1 query de desafios/h por navegador (free tier)
+  CHALLENGE_CACHE_TTL_MS: 10 * 60 * 1000,      // lista de desafios: 1 query/10min por navegador
+  // v1.8.12: enquanto EU espero alguém aceitar (ou entrar no placar), a lista
+  // rele em 45s — sem isso o criador ficava até 1h vendo "aguardando fulano"
+  // depois de o convidado JÁ ter aceitado (relato do dono: Fernanda x Teco).
+  CHALLENGE_CACHE_TTL_PENDING_MS: 45 * 1000,
   CHALLENGE_STANDINGS_TTL_MS: 30 * 60 * 1000,  // stats dos aceitos: 1 getDoc por participante a cada 30min
 
   // v1.8.4: a abertura-lição (OPENING_SCRIPT) existe porque, antes da v1.6,

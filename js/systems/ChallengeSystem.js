@@ -237,9 +237,12 @@ export class ChallengeSystem {
   // Guarda ativos + encerrados há < 24h (o card de "resultado" precisa do
   // desafio recém-encerrado). LEITURA nunca é bloqueada por allowsRemoteWrite
   // — o guard de localhost vale só para writes (create/accept).
-  static async refresh() {
+  // v1.8.12: `force` ignora o TTL (usado ao voltar para a home e no fim da
+  // corrida). Sem force, o TTL é ADAPTATIVO: 45s enquanto houver alguém que
+  // ainda não aceitou um desafio meu, 10min quando todo mundo já entrou.
+  static async refresh(force = false) {
     const cached = this.cached();
-    if (cached && Date.now() - cached.at < Constants.CHALLENGE_CACHE_TTL_MS) {
+    if (!force && cached && Date.now() - cached.at < this.cacheTtlMs(cached.list)) {
       return cached.list;
     }
     try {
@@ -258,6 +261,24 @@ export class ChallengeSystem {
     } catch (e) {
       return cached ? cached.list : []; // offline/regra: o cache velho vale
     }
+  }
+
+  // Quanto tempo a lista pode envelhecer: se algum desafio ATIVO meu tem
+  // convidado sem resposta, a espera é do jogador — vale reler quase já.
+  static cacheTtlMs(list) {
+    const nowS = Math.floor(Date.now() / 1000);
+    const myId = StorageManager.getOrCreatePlayerId();
+    const esperando = ((Array.isArray(list) ? list : [])).some((ch) => {
+      if (!ch || !this.isActive(ch, nowS)) return false;
+      const st = this.statusOf(ch, myId);
+      if (st !== 'creator' && st !== 'accepted') return false;
+      const aceitos = ch.accepted && typeof ch.accepted === 'object' ? ch.accepted : {};
+      const partes = Array.isArray(ch.participants) ? ch.participants : [];
+      return partes.some((id) => !(String(id) in aceitos));
+    });
+    return esperando
+      ? (Constants.CHALLENGE_CACHE_TTL_PENDING_MS || 45000)
+      : Constants.CHALLENGE_CACHE_TTL_MS;
   }
 
   // v1.8.7-fix4: o teto de 3 vale para desafios ATIVOS em que estou DENTRO
