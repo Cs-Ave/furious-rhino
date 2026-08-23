@@ -167,6 +167,13 @@ export class ChallengeSystem {
       startAt: Math.floor(Number(d.startAt) || 0),
       endAt: Math.floor(Number(d.endAt) || 0),
       accepted,
+      // v1.8.13 (BUG DE PRODUÇÃO): o cancelamento vive NO SERVIDOR, e este
+      // normalize o descartava — toda releitura ressuscitava o desafio para
+      // todo mundo. O criador via o card voltar (e as rules negam o segundo
+      // cancelledAt, virando "confira a internet"); o desafiado nunca ficava
+      // sabendo. Em 23/08 os 6 docs de challenges em produção estavam TODOS
+      // cancelados e ainda apareciam ativos nos aparelhos.
+      cancelledAt: Math.max(0, Math.floor(Number(d.cancelledAt) || 0)),
     };
   }
 
@@ -296,8 +303,9 @@ export class ChallengeSystem {
 
   // v1.8.7-fix4: cancela um desafio MEU — regrava o doc relido com
   // cancelledAt (as rules só deixam esse campo mudar, uma vez). Vale para
-  // todos os competidores na próxima leitura de cada um (TTL 1h do cache).
-  // -> { ok: true } | { ok: false, reason: 'notmine'|'local'|'offline' }
+  // todos os competidores na próxima leitura de cada um (TTL do cache).
+  // -> { ok: true } | { ok: true, ghost } | { ok: true, already }
+  //  | { ok: false, reason: 'notmine'|'local'|'offline' }
   static async cancel(id) {
     try {
       const myId = StorageManager.getOrCreatePlayerId();
@@ -318,6 +326,16 @@ export class ChallengeSystem {
         return { ok: true, ghost: true };
       }
       const data = snap.data();
+      // v1.8.13: doc JÁ cancelado no servidor — as rules só deixam gravar
+      // cancelledAt uma vez (`!('cancelledAt' in resource.data)`), então
+      // insistir seria negado e o jogador leria "confira a internet" com a
+      // internet ótima. Encerrado é encerrado: espelha no cache e segue.
+      const jaCancelado = Math.floor(Number(data && data.cancelledAt) || 0);
+      if (jaCancelado > 0) {
+        ch.cancelledAt = jaCancelado;
+        this.saveCache((cached && cached.list) || [], cached ? cached.at : Date.now());
+        return { ok: true, already: true };
+      }
       await fs.setDoc(fs.doc(db, 'challenges', id), {
         ...data,
         cancelledAt: Math.floor(Date.now() / 1000),

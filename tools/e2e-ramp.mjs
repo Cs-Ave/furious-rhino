@@ -822,6 +822,15 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
           names: { 'claude-e2e-ramp-home': 'Cris', 'rival-tres-00000000': 'Zeca' },
           startAt: agoraS - 7200, endAt: agoraS + 86400, cancelledAt: agoraS - 600,
           accepted: { 'rival-tres-00000000': agoraS - 7200, 'claude-e2e-ramp-home': agoraS - 7000 } },
+        // v1.8.13: desafio MEU que EU encerrei — depois da releitura o
+        // cancelledAt volta do servidor (o normalize o descartava, e o card
+        // ressuscitava zumbi: sem placar e impossível de encerrar de novo).
+        // Para o criador ele tem de sumir e NÃO ocupar vaga no teto de 3.
+        { id: 'chal-e2e-zumbi-0000', from: { id: 'claude-e2e-ramp-home', name: 'Cris' },
+          participants: ['claude-e2e-ramp-home', 'rival-quatro-0000000'],
+          names: { 'claude-e2e-ramp-home': 'Cris', 'rival-quatro-0000000': 'Teco' },
+          startAt: agoraS - 7200, endAt: agoraS + 86400, cancelledAt: agoraS - 300,
+          accepted: { 'claude-e2e-ramp-home': agoraS - 7200, 'rival-quatro-0000000': agoraS - 7000 } },
       ],
     }));
     // v1.8.10-fix3: o cache do desafio ativo nasce ENVENENADO (best null p/
@@ -908,6 +917,9 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
   ok('26d4. placar: a MINHA linha vem das runs locais mesmo com cache velho',
     /Cris\s*6\d\d pts/.test(chal.cardTexto) && !/Cris\s*ainda não correu/.test(chal.cardTexto),
     `card="${(chal.cardTexto || '').slice(0, 140)}"`);
+  ok('26d5. desafio que EU encerrei não ressuscita no meu painel (nem no teto)',
+    !/Teco/.test(chal.cardTexto) && chal.cards === 2,
+    `cards=${chal.cards} card="${(chal.cardTexto || '').slice(0, 140)}"`);
   ok('26e. home: convite não visto abre o popup do desafio',
     chal.modalAberto && /Funkeiro/.test(chal.conviteTexto),
     `aberto=${chal.modalAberto} texto="${chal.conviteTexto.slice(0, 80)}"`);

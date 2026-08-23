@@ -381,5 +381,49 @@ eq('dismiss não contamina outro id', ChallengeSystem.isDismissed('c2'), false);
   localStorage.removeItem('furious_rhino_runs');
 }
 
+
+// ---------- v1.8.13: o cancelamento não pode morrer no normalize ----------
+// BUG DE PRODUÇÃO (23/08): cancelar sumia o card do criador (cache local),
+// mas o normalize DESCARTAVA cancelledAt — na releitura seguinte o desafio
+// ressuscitava para todo mundo. O criador tentava encerrar de novo e as
+// rules negavam (cancelledAt é de uma vez só), virando "confira a internet";
+// o desafiado nunca via o cancelamento. Os 6 docs de challenges em produção
+// estavam TODOS cancelados e ainda apareciam ativos nos aparelhos.
+{
+  // doc REAL de produção (de2e4827, Fernanda-PC x Teco), cancelado no servidor
+  const docReal = {
+    from: { id: 'fernanda-id', name: 'Fernanda-PC' },
+    participants: ['fernanda-id', 'teco-id'],
+    names: { 'fernanda-id': 'Fernanda-PC', 'teco-id': 'Teco' },
+    accepted: { 'fernanda-id': 1787417000, 'teco-id': 1787500000 },
+    startAt: 1787417000, endAt: 1787754720, cancelledAt: 1787504123,
+  };
+  const n = ChallengeSystem.normalize('de2e4827', docReal);
+  eq('normalize PRESERVA o cancelledAt do servidor', n.cancelledAt, 1787504123);
+  eq('...e o desafio relido continua cancelado', ChallengeSystem.isCancelled(n), true);
+  eq('...e NÃO ressuscita como ativo', ChallengeSystem.isActive(n, 1787510000), false);
+
+  const vivo = ChallengeSystem.normalize('vivo', { ...docReal, cancelledAt: undefined });
+  eq('doc sem cancelledAt normaliza para 0 (não cancelado)',
+    [vivo.cancelledAt, ChallengeSystem.isCancelled(vivo)], [0, false]);
+  eq('...e segue ativo dentro da janela', ChallengeSystem.isActive(vivo, 1787510000), true);
+
+  // dado de TERCEIROS: qualquer cliente pode ter escrito lixo nesse campo
+  for (const lixo of ['pizza', -5, null, {}, NaN]) {
+    eq(`cancelledAt lixo (${JSON.stringify(lixo)}) vira 0, não cancela por engano`,
+      ChallengeSystem.normalize('x', { ...docReal, cancelledAt: lixo }).cancelledAt, 0);
+  }
+  eq('cancelledAt em string numérica ainda conta (Firestore REST devolve string)',
+    ChallengeSystem.normalize('x', { ...docReal, cancelledAt: '1787504123' }).cancelledAt, 1787504123);
+
+  // o teto de ativos criados parava de contar fantasma cancelado
+  localStorage.setItem('furious_rhino_chal_cache', JSON.stringify({ at: Date.now(),
+    list: [ChallengeSystem.normalize('c1', { ...docReal, from: { id: StorageManager.getOrCreatePlayerId(), name: 'Eu' },
+      participants: [StorageManager.getOrCreatePlayerId(), 'teco-id'] })] }));
+  eq('desafio cancelado não ocupa vaga no teto de ativos criados',
+    ChallengeSystem.activeCreatedCount(1787510000), 0);
+  localStorage.removeItem('furious_rhino_chal_cache');
+}
+
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

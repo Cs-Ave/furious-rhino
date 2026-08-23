@@ -1447,9 +1447,12 @@ export class GameScene extends Phaser.Scene {
         del.disabled = true;
         const r = await ChallengeSystem.cancel(ch.id);
         if (r.ok) {
-          this.showHomeToast(r.ghost
-            ? '🗑 Esse desafio já não existia — removido da lista.'
-            : '🗑 Desafio encerrado.');
+          let msg = '🗑 Desafio encerrado.';
+          if (r.ghost) msg = '🗑 Esse desafio já não existia — removido da lista.';
+          // v1.8.13: encerrado antes (por este ou outro aparelho meu) não é
+          // erro de rede — era o que a mensagem dizia
+          else if (r.already) msg = '🗑 Esse desafio já estava encerrado.';
+          this.showHomeToast(msg);
           this.renderChallenges();
         } else {
           del.disabled = false;
