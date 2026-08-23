@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 44" width="60" height="44">
+  <!-- FURIOUS RHINO - v1.8.7 D3. Drone-Sentinela, frame ALT: helices no
+       angulo oposto com borrao e o holofote ventral PULSANDO mais forte;
+       resto identico ao enemy-dronesent.svg. -->
+  <g transform="translate(2 3)">
+  <path d="M22 18.5 L8 12.5" fill="none" stroke="#17171b" stroke-width="4.6" stroke-linecap="round"/>
+  <path d="M22 18.5 L8 12.5" fill="none" stroke="#2b2e33" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M34 18.5 L48 12.5" fill="none" stroke="#17171b" stroke-width="4.6" stroke-linecap="round"/>
+  <path d="M34 18.5 L48 12.5" fill="none" stroke="#2b2e33" stroke-width="2.2" stroke-linecap="round"/>
+  <rect x="4.5" y="9" width="7" height="5.4" rx="2.2" fill="#33363c" stroke="#17171b" stroke-width="1.8"/>
+  <rect x="44.5" y="9" width="7" height="5.4" rx="2.2" fill="#33363c" stroke="#17171b" stroke-width="1.8"/>
+  <circle cx="4.2" cy="15.2" r="1.1" fill="#4ad1ff" stroke="#17171b" stroke-width="0.9"/>
+  <circle cx="51.8" cy="15.2" r="1.1" fill="#4ad1ff" stroke="#17171b" stroke-width="0.9"/>
+  <ellipse cx="8" cy="7.8" rx="8" ry="1" fill="#cfd3db" opacity="0.35"/>
+  <g transform="rotate(-34 8 7.8)">
+    <ellipse cx="8" cy="7.8" rx="7.4" ry="1.4" fill="#101216" stroke="#17171b" stroke-width="1.2"/>
+  </g>
+  <ellipse cx="48" cy="7.8" rx="7.8" ry="1" fill="#cfd3db" opacity="0.35"/>
+  <g transform="rotate(30 48 7.8)">
+    <ellipse cx="48" cy="7.8" rx="7.4" ry="1.4" fill="#101216" stroke="#17171b" stroke-width="1.2"/>
+  </g>
+  <circle cx="8" cy="7.8" r="1.5" fill="#55585e" stroke="#17171b" stroke-width="1.1"/>
+  <circle cx="48" cy="7.8" r="1.5" fill="#55585e" stroke="#17171b" stroke-width="1.1"/>
+  <path d="M24.5 13 L23.5 8.8 M30 12.5 L31 8.4" fill="none" stroke="#17171b" stroke-width="1.6" stroke-linecap="round"/>
+  <circle cx="23.3" cy="7.9" r="1.2" fill="#ff4a5e" stroke="#17171b" stroke-width="1"/>
+  <circle cx="31.2" cy="7.5" r="1.2" fill="#4ad1ff" stroke="#17171b" stroke-width="1"/>
+  <ellipse cx="28" cy="19" rx="12.5" ry="7" fill="#22262d" stroke="#17171b" stroke-width="2.2"/>
+  <path d="M18 17.5 Q28 13.5 38 17.5" fill="none" stroke="#4ad1ff" stroke-width="1.8" stroke-linecap="round" opacity="0.9"/>
+  <!-- holofote pulsando -->
+  <rect x="23" y="24.5" width="10" height="5" rx="2" fill="#33363c" stroke="#17171b" stroke-width="1.6"/>
+  <path d="M25 29.5 L19 36 L37 36 L31 29.5 Z" fill="#fff3c4" fill-opacity="0.5"/>
+  <ellipse cx="28" cy="35.2" rx="9.5" ry="1.9" fill="#fff3c4" fill-opacity="0.65"/>
+  <circle cx="28" cy="28" r="2.6" fill="#ffffff"/>
+  <path d="M34.5 21.5 L38 23.5" fill="none" stroke="#17171b" stroke-width="3.2" stroke-linecap="round"/>
+  <circle cx="40" cy="24" r="4.2" fill="#33363c" stroke="#17171b" stroke-width="2"/>
+  <circle cx="40.4" cy="24.4" r="2.6" fill="#123a4a"/>
+  <circle cx="40.9" cy="24.9" r="1.2" fill="#4ad1ff"/>
+  <circle cx="39.3" cy="23.2" r="0.8" fill="#ffffff"/>
+  </g>
+</svg>

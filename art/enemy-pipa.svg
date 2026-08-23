@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" width="56" height="56">
+  <!-- FURIOUS RHINO - v1.8.7 D2 (vidro). PIPA CORTANTE: losango vermelho com
+       varetas, rabiola de lacos e linha com cerol. O voador ZIG-ZAG do
+       distrito — barata e memoravel (decisao de painel). "Frente" = DIREITA.
+       Hitbox (spec do A): 36x36 com offset 10,6 (rabiola FORA da colisao).
+       Par: enemy-pipa-alt.svg — a rabiola GIRA para o outro lado: e o
+       telegraph diegetico da inversao do zigue-zague. -->
+  <!-- linha com cerol subindo -->
+  <path d="M28 40 L48 56" fill="none" stroke="#e8e9ec" stroke-width="1.3" stroke-linecap="round" opacity="0.8"/>
+  <!-- RABIOLA caida para a esquerda-baixo -->
+  <path d="M28 41 Q20 47 13 50 Q8 52 6 56" fill="none" stroke="#f6f4ef" stroke-width="1.8" stroke-linecap="round"/>
+  <g stroke="#17171b" stroke-width="1.1">
+    <path d="M20 46 L14 43 L18 50 Z" fill="#ffd24a"/>
+    <path d="M11 52 L5 49 L9 56 Z" fill="#4ad1ff"/>
+  </g>
+  <!-- losango vermelho -->
+  <path d="M28 2 L50 21 L28 40 L6 21 Z" fill="#d6453c" stroke="#17171b" stroke-width="2.4" stroke-linejoin="round"/>
+  <!-- gomo superior mais claro (sol batendo) -->
+  <path d="M28 2 L50 21 L28 21 Z" fill="#e8695c"/>
+  <!-- varetas -->
+  <path d="M28 2 L28 40 M6 21 L50 21" fill="none" stroke="#17171b" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M28 2 L28 40 M6 21 L50 21" fill="none" stroke="#8a5a2e" stroke-width="0.9" stroke-linecap="round"/>
+  <!-- CARA de valentona da pipa: olhos rasgados -->
+  <path d="M19 16.5 L25 18.5" fill="none" stroke="#17171b" stroke-width="2" stroke-linecap="round"/>
+  <path d="M37 16.5 L31 18.5" fill="none" stroke="#17171b" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="23.5" cy="21.5" r="2" fill="#17171b"/>
+  <circle cx="32.5" cy="21.5" r="2" fill="#17171b"/>
+  <circle cx="24.1" cy="20.9" r="0.6" fill="#ffffff"/>
+  <circle cx="33.1" cy="20.9" r="0.6" fill="#ffffff"/>
+  <path d="M23.5 27 Q28 29.6 32.5 27" fill="none" stroke="#17171b" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- brilho de CORTE na quina direita (o "cortante") -->
+  <path d="M45 16 L50 21 L45 26" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" opacity="0.85"/>
+</svg>

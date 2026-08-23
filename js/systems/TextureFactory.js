@@ -22,6 +22,9 @@ export class TextureFactory {
     this.generateCars(scene);
     this.generateForeground(scene);
     this.generateBiomeArch(scene);
+    this.generatePortals(scene);
+    this.generateHazards(scene);
+    this.generateK9Projectile(scene);
     this.generateTrackFlag(scene);
     this.generateWeather(scene);
     this.generateLeaf(scene);
@@ -34,15 +37,16 @@ export class TextureFactory {
 
   // ---------------------------------------------------------------- walls
 
-  // Dois SKINS da mesma parede: tijolo no zoológico e fachada de prédio
-  // depois do portão. Canvas, banda da fresta e mecânica são idênticos —
-  // muda só o material. 12 chaves: cracked-<altura>[-city][-broken].
+  // Skins da mesma parede: tijolo no zoológico e QUATRO famílias de fachada
+  // urbana (v1.8.7 — uma por distrito do Estado de Alerta). Canvas, banda da
+  // fresta e mecânica são idênticos — muda só o material.
+  // 30 chaves: cracked-<altura>[-skin][-broken].
   static generateWalls(scene) {
     const H = Constants.CRACK_HEIGHTS;
     const heights = [[H.GROUND, 'ground'], [H.MID, 'mid'], [H.HIGH, 'high']];
 
     for (const [pos, name] of heights) {
-      for (const skin of ['', '-city']) {
+      for (const skin of ['', '-city', '-suburbio', '-vidro', '-contencao']) {
         this.generateCrackedWallVariant(scene, `cracked-${name}${skin}`, pos, skin, name);
         this.generateBrokenWallVariant(scene, `cracked-${name}${skin}-broken`, pos, skin, name);
       }
@@ -80,11 +84,58 @@ export class TextureFactory {
     bandLine: 0x39424f,   // juntas e rachaduras sobre o concreto claro
   };
 
-  // Onde a fachada arrebentou: blocos de concreto claro expostos, mesma
+  // v1.8.7 — as três famílias de fachada dos distritos, como PALETAS do
+  // mesmo pintor (drawFacade paramétrico). Os nomes de campo são PAPÉIS no
+  // desenho; `style` liga os floreios próprios de cada família. A banda da
+  // fresta continua CLARA sobre corpo escuro em todas (âmbar/claro =
+  // passagem, a regra de design das paredes).
+  static FACADES = {
+    '-suburbio': {
+      // Subúrbio sonolento: sobrado de tijolo com toldos de zinco, janelas
+      // quase todas APAGADAS (a cidade ainda dorme) e um neon de padaria
+      style: 'suburbio',
+      body: 0x6e4a3a, slab: 0x8a939f, slabShade: 0x4e3325,
+      pillar: 0x543628, pillarLight: 0x8a6a52,
+      winOn: 0xffb066, winOff: 0x2e2620, frame: 0x241a12,
+      metal: 0x8a939f, metalDark: 0x59616b,
+      band: 0xc9a06a, bandLight: 0xe0bd8a, bandLine: 0x3d2b1e,
+    },
+    '-vidro': {
+      // Torre de vidro do Despertar: panos de vidro em dois tons, LED
+      // vermelho/ciano e uma faixa de telão "PROCURADO" atravessando o corpo
+      style: 'vidro',
+      body: 0x55617a, glass: 0x7a8ba8, glassDark: 0x475369,
+      slab: 0x8a96ad, slabShade: 0x2b3342,
+      pillar: 0x39424f, pillarLight: 0x8a96ad,
+      winOn: 0x7a8ba8, winOff: 0x475369, frame: 0x1f2531,
+      ledA: 0xff4a5e, ledB: 0x4ad1ff,
+      metal: 0x8a939f, metalDark: 0x59616b,
+      band: 0x9aa4b5, bandLight: 0xb9c2d1, bandLine: 0x39424f,
+    },
+    '-contencao': {
+      // Bloco de Contenção: concreto de prédio público, tapumes nas janelas
+      // e tarja de perigo amarelo/preto — a cidade que te estudou
+      style: 'contencao',
+      body: 0x59616b, slab: 0x6e7681, slabShade: 0x3d444c,
+      pillar: 0x454c55, pillarLight: 0x8a939f,
+      winOn: 0xffd24a, winOff: 0x272d34, frame: 0x1f2531,
+      hazardA: 0xffd24a, hazardB: 0x1f2531, tapume: 0x8a6a3c, tapumeDark: 0x6b4f2a,
+      metal: 0x8a939f, metalDark: 0x3d444c,
+      band: 0xb2a98f, bandLight: 0xd0c7ab, bandLine: 0x3a3a32,
+    },
+  };
+
+  // A paleta de um skin de parede urbano ('-city' usa o dicionário CITY
+  // original, pixel-a-pixel intacto — regra da casa para a família clássica)
+  static facadePalette(skin) {
+    return this.FACADES[skin] || this.CITY;
+  }
+
+  // Onde a fachada arrebentou: blocos de material claro expostos, mesma
   // geometria escalonada da banda de tijolos (o jogador já aprendeu que a
-  // faixa de material diferente = passagem — só o material muda de cidade)
-  static drawConcreteBand(g, x0, y0, w, h) {
-    const C = this.CITY;
+  // faixa de material diferente = passagem — só o material muda de família)
+  static drawConcreteBand(g, x0, y0, w, h, P = this.CITY) {
+    const C = P;
     const courseH = 24, blockW = 50;
     for (let y = y0; y < y0 + h; y += courseH) {
       const offset = (Math.floor(y / courseH) % 2) * (blockW / 2);
@@ -104,36 +155,131 @@ export class TextureFactory {
     }
   }
 
-  static drawFacade(g, x0, y0, w, h, inBand) {
-    if (inBand) { this.drawConcreteBand(g, x0, y0, w, h); return; }
-    const C = this.CITY;
+  // v1.8.7: paramétrico por paleta — um pintor só gera as quatro famílias de
+  // fachada. Sem paleta é a fachada clássica da cidade, byte a byte.
+  // TODO fillRect aqui tem largura FIXA positiva (regra do drawBricks: uma
+  // largura negativa corrompe o batch WebGL e apaga o resto da textura).
+  static drawFacade(g, x0, y0, w, h, inBand, P = this.CITY) {
+    if (inBand) { this.drawConcreteBand(g, x0, y0, w, h, P); return; }
+    const C = P;
+    const style = P.style || 'city';
 
     const floorH = 60;
     g.fillStyle(C.body, 1);
     g.fillRect(x0, y0, w, h);
 
     for (let y = Math.floor(y0 / floorH) * floorH; y < y0 + h; y += floorH) {
+      const floor = Math.floor(y / floorH);
       // Laje entre andares
       const slabY = Math.max(y, y0);
       const slabH = Math.min(10, y0 + h - slabY);
       if (slabH > 0) {
-        g.fillStyle(C.slab, 1);
+        g.fillStyle(C.slab, style === 'vidro' ? 0.9 : 1);
         g.fillRect(x0, slabY, w, slabH);
         g.fillStyle(C.slabShade, 0.6);
         g.fillRect(x0, slabY + slabH - 3, w, 3);
       }
-      // Duas janelas RETRATO por andar (o cityBlock do fundo usa 11x13; a
-      // proporção casa, a escala não — este é o primeiro plano)
+
+      if (style === 'vidro') {
+        // Pano de VIDRO inteiro por andar: 4 colunas alternando os dois tons
+        // (curtain wall), montante escuro entre elas
+        const wy = y + 12;
+        if (wy >= y0 && wy + 42 <= y0 + h) {
+          for (let i = 0; i < 4; i++) {
+            g.fillStyle((i + floor) % 2 ? C.glass : C.glassDark, 1);
+            g.fillRect(x0 + 12 + i * 20, wy, 17, 42);
+          }
+          g.fillStyle(C.frame, 0.7);
+          for (let i = 1; i < 4; i++) g.fillRect(x0 + 9 + i * 20, wy, 3, 42);
+          // reflexo rasante no topo do pano (retângulo alpha, nunca gradiente)
+          g.fillStyle(0xffffff, 0.14);
+          g.fillRect(x0 + 12, wy, 76, 5);
+        }
+        continue;
+      }
+
+      // Duas janelas RETRATO por andar (mesma geometria da família clássica)
       [16, 62].forEach((dx, i) => {
         const wy = y + 16;
         if (wy < y0 || wy + 32 > y0 + h) return;
-        const on = ((Math.floor(y / floorH) * 3 + i * 7) % 5) < 2;
+        const roll = (floor * 3 + i * 7) % (style === 'suburbio' ? 7 : 5);
+        // Subúrbio de madrugada: quase tudo apagado (1 acesa em 7)
+        const on = roll < (style === 'suburbio' ? 1 : 2);
+        // Contenção: parte das janelas foi TAPADA com tapume de madeira
+        if (style === 'contencao' && (floor + i) % 3 === 0) {
+          g.fillStyle(C.tapume, 1);
+          g.fillRect(x0 + dx, wy, 22, 32);
+          g.fillStyle(C.tapumeDark, 1);
+          g.fillRect(x0 + dx, wy + 9, 22, 4);
+          g.fillRect(x0 + dx, wy + 20, 22, 4);
+          g.fillStyle(C.frame, 0.55);
+          g.fillRect(x0 + dx, wy, 22, 2);
+          return;
+        }
         g.fillStyle(on ? C.winOn : C.winOff, 1);
         g.fillRect(x0 + dx, wy, 22, 32);
         g.fillStyle(C.frame, 0.55);               // caixilho
         g.fillRect(x0 + dx, wy + 15, 22, 3);
         g.fillRect(x0 + dx + 10, wy, 3, 32);
+        // Toldo de zinco sobre as janelas do subúrbio (comércio de bairro)
+        if (style === 'suburbio' && floor % 2 === 1) {
+          g.fillStyle(C.slab, 1);
+          g.fillRect(x0 + dx - 3, wy - 7, 28, 5);
+          g.fillStyle(C.slabShade, 0.7);
+          g.fillRect(x0 + dx - 3, wy - 3, 28, 2);
+        }
       });
+    }
+
+    // ---- floreios por família, em Y ABSOLUTO do canvas (o chamador pinta
+    // corpo inteiro e depois a banda por cima; segmentos do broken passam
+    // pelas guardas de dentro-do-trecho) ----
+    if (style === 'vidro') {
+      // Faixa de TELÃO atravessando o corpo: moldura escura + pixels de
+      // noticiário e a silhueta "PROCURADO" do rino em vermelho
+      const ty = 138;
+      if (ty >= y0 && ty + 46 <= y0 + h) {
+        g.fillStyle(C.frame, 1);
+        g.fillRect(x0 + 6, ty, 88, 46);
+        g.fillStyle(0x101720, 1);
+        g.fillRect(x0 + 10, ty + 4, 80, 38);
+        g.fillStyle(C.ledA, 0.9);                 // silhueta procurada
+        g.fillRect(x0 + 18, ty + 18, 26, 16);
+        g.fillTriangle(x0 + 44, ty + 22, x0 + 52, ty + 22, x0 + 44, ty + 30);
+        g.fillStyle(C.ledB, 0.9);                 // linhas do noticiário
+        g.fillRect(x0 + 56, ty + 10, 28, 4);
+        g.fillRect(x0 + 56, ty + 20, 22, 4);
+        g.fillRect(x0 + 56, ty + 30, 26, 4);
+        g.fillStyle(C.ledA, 1);                   // tarja "AO VIVO"
+        g.fillRect(x0 + 12, ty + 6, 18, 6);
+      }
+    }
+    if (style === 'suburbio') {
+      // Neon de PADARIA aceso no térreo (a única luz do quarteirão)
+      const ny = 636;
+      if (ny >= y0 && ny + 22 <= y0 + h) {
+        g.fillStyle(0x241a12, 1);
+        g.fillRect(x0 + 14, ny, 72, 22);
+        g.fillStyle(C.winOn, 1);
+        for (let i = 0; i < 5; i++) g.fillRect(x0 + 20 + i * 13, ny + 5, 7, 12);
+        g.fillStyle(C.winOn, 0.22);               // halo do neon
+        g.fillRect(x0 + 10, ny - 4, 80, 30);
+      }
+    }
+    if (style === 'contencao') {
+      // Tarja de perigo amarelo/preto na base (a leitura de barricada)
+      const zy = 596;
+      if (zy >= y0 && zy + 18 <= y0 + h) {
+        g.fillStyle(C.hazardA, 1);
+        g.fillRect(x0 + 4, zy, 92, 18);
+        g.fillStyle(C.hazardB, 1);
+        for (let i = 0; i < 6; i++) {
+          const sx = x0 + 6 + i * 15;
+          g.fillTriangle(sx, zy + 18, sx + 8, zy + 18, sx + 16, zy);
+        }
+        g.fillStyle(C.hazardA, 1);                // apara o excedente
+        g.fillRect(x0 + 92, zy, 4, 18);
+      }
     }
 
     // Pilares de canto — dão a leitura de "prédio" mesmo em tira de 100px
@@ -142,6 +288,17 @@ export class TextureFactory {
     g.fillRect(x0 + w - 9, y0, 9, h);
     g.fillStyle(C.pillarLight, 0.6);
     g.fillRect(x0 + 6, y0, 3, h);
+
+    // LEDs de fachada da torre de vidro, POR CIMA dos pilares (é neles que
+    // os LEDs vivem; desenhados antes, o pilar os cobriria)
+    if (style === 'vidro') {
+      for (let ly = 130; ly < 700; ly += 48) {
+        if (ly < y0 + 4 || ly + 10 > y0 + h) continue;
+        g.fillStyle((ly / 48) % 2 < 1 ? C.ledA : C.ledB, 0.9);
+        g.fillRect(x0 + 2, ly, 5, 10);
+        g.fillRect(x0 + w - 7, ly, 5, 10);
+      }
+    }
   }
 
   // ------------------------------------------------- coroamento do prédio
@@ -151,8 +308,14 @@ export class TextureFactory {
   // o corpo de física é o canvas inteiro, então alargar mudaria a hitbox.
   //
   // Um coroamento por altura de fresta: como a altura é sorteada a cada
-  // spawn, o skyline da cidade nunca se repete.
-  static drawCityCrown(g, kind, w) {
+  // spawn, o skyline da cidade nunca se repete. v1.8.7: cada família de
+  // fachada tem o seu trio de coroas (skin despacha; '-city' é o clássico).
+  // opts.lit: usado pelo letreiro PADARIA do subúrbio, que ACENDE no estado
+  // broken (a quebra acorda o quarteirão — barato: só 2 fills mudam).
+  static drawCityCrown(g, kind, w, skin = '-city', opts = {}) {
+    if (skin === '-suburbio') { this.drawSuburbioCrown(g, kind, w, opts); return; }
+    if (skin === '-vidro') { this.drawVidroCrown(g, kind, w); return; }
+    if (skin === '-contencao') { this.drawContencaoCrown(g, kind, w); return; }
     const C = this.CITY;
     const cx = w / 2;
 
@@ -222,6 +385,183 @@ export class TextureFactory {
     g.fillRect(68, 84, 6, 10);
   }
 
+  // Coroas do SUBÚRBIO: caixa-d'água (ground), letreiro PADARIA (mid — acende
+  // com opts.lit no broken), antena de TV (high). Faixa y 0..100, x 0..100.
+  static drawSuburbioCrown(g, kind, w, opts = {}) {
+    const P = this.FACADES['-suburbio'];
+    const cx = w / 2;
+
+    if (kind === 'ground') {
+      // Caixa-d'água de zinco sobre pernas de madeira
+      g.fillStyle(P.pillar, 1);                    // pernas
+      g.fillRect(28, 58, 7, 42);
+      g.fillRect(65, 58, 7, 42);
+      g.fillRect(24, 76, 52, 5);                   // travessa
+      g.fillStyle(P.metal, 1);                     // tambor
+      g.fillRect(22, 26, 56, 34);
+      g.fillStyle(P.metalDark, 1);
+      g.fillRect(64, 26, 14, 34);                  // lado em sombra
+      g.fillRect(22, 36, 56, 3);                   // cintas
+      g.fillRect(22, 50, 56, 3);
+      g.fillStyle(P.metalDark, 1);                 // tampa cônica
+      g.fillTriangle(18, 26, 82, 26, cx, 8);
+      g.fillStyle(P.metal, 1);
+      g.fillTriangle(24, 26, 76, 26, cx, 13);
+      return;
+    }
+
+    if (kind === 'mid') {
+      // Letreiro PADARIA: caixa com "letras" em barras de neon; aceso só
+      // quando a quebra acorda o quarteirão (opts.lit)
+      const on = Boolean(opts.lit);
+      g.fillStyle(P.pillar, 1);                    // suportes
+      g.fillRect(20, 72, 6, 28);
+      g.fillRect(74, 72, 6, 28);
+      g.fillStyle(0x241a12, 1);                    // caixa do letreiro
+      g.fillRect(8, 40, 84, 34);
+      g.fillStyle(P.winOn, on ? 0.28 : 0);         // halo (só aceso)
+      if (on) g.fillRect(4, 34, 92, 46);
+      g.fillStyle(on ? P.winOn : 0x6b4f3a, 1);     // as 7 barras-letra
+      for (let i = 0; i < 7; i++) g.fillRect(14 + i * 11, 47, 6, 20);
+      g.fillStyle(on ? 0xffe0b8 : 0x8a6a52, 1);    // croissant da placa
+      g.fillCircle(50, 34, 7);
+      g.fillStyle(0x241a12, 1);
+      g.fillCircle(50, 37, 6);
+      return;
+    }
+
+    // Antena de TV de telhado: mastro fino com travessas em espinha
+    g.fillStyle(P.metalDark, 1);
+    g.fillRect(cx - 2, 12, 4, 88);
+    g.fillStyle(P.metal, 1);
+    [[20, 34], [34, 26], [48, 18]].forEach(([y, half]) => {
+      g.fillRect(cx - half, y, half * 2, 3);
+      g.fillRect(cx - half, y - 5, 3, 5);          // pontas viradas
+      g.fillRect(cx + half - 3, y - 5, 3, 5);
+    });
+    g.fillStyle(0xff6b5e, 1);                      // luzinha no topo
+    g.fillCircle(cx, 10, 3);
+  }
+
+  // Coroas da TORRE DE VIDRO: telão (ground), antena dupla (mid),
+  // heliponto (high). Faixa y 0..100, x 0..100.
+  static drawVidroCrown(g, kind, w) {
+    const P = this.FACADES['-vidro'];
+    const cx = w / 2;
+
+    if (kind === 'ground') {
+      // Telão de topo: moldura + pixels de noticiário e tarja vermelha
+      g.fillStyle(P.pillar, 1);
+      g.fillRect(30, 76, 8, 24);
+      g.fillRect(62, 76, 8, 24);
+      g.fillStyle(P.frame, 1);
+      g.fillRect(6, 26, 88, 52);
+      g.fillStyle(0x101720, 1);
+      g.fillRect(10, 30, 80, 44);
+      g.fillStyle(P.ledA, 1);                      // tarja superior
+      g.fillRect(14, 34, 30, 7);
+      g.fillStyle(P.ledB, 0.9);                    // linhas de texto
+      g.fillRect(14, 46, 62, 5);
+      g.fillRect(14, 56, 48, 5);
+      g.fillRect(14, 66, 56, 4);
+      g.fillStyle(P.ledA, 0.9);                    // a silhueta procurada
+      g.fillRect(60, 32, 22, 11);
+      return;
+    }
+
+    if (kind === 'mid') {
+      // Antena dupla com luzes de obstáculo
+      for (const ax of [30, 70]) {
+        g.fillStyle(P.metalDark, 1);
+        g.fillRect(ax - 2, 18, 4, 82);
+        g.fillStyle(P.metal, 1);
+        g.fillRect(ax - 8, 44, 16, 4);
+        g.fillRect(ax - 6, 70, 12, 4);
+        g.fillStyle(P.ledA, 1);
+        g.fillCircle(ax, 15, 3.5);
+      }
+      g.fillStyle(P.metalDark, 1);                 // travessa entre as duas
+      g.fillRect(30, 58, 40, 3);
+      return;
+    }
+
+    // Heliponto: plataforma em balanço com o "H" e luzes de borda
+    g.fillStyle(P.pillar, 1);                      // haste de sustentação
+    g.fillRect(cx - 5, 58, 10, 42);
+    g.fillTriangle(cx - 26, 58, cx + 26, 58, cx, 84);
+    g.fillStyle(P.slab, 1);                        // prato
+    g.fillEllipse(cx, 52, 92, 26);
+    g.fillStyle(0x39424f, 1);
+    g.fillEllipse(cx, 50, 84, 21);
+    g.fillStyle(0xf4f7fa, 1);                      // o H
+    g.fillRect(cx - 14, 40, 5, 20);
+    g.fillRect(cx + 9, 40, 5, 20);
+    g.fillRect(cx - 10, 48, 20, 5);
+    g.fillStyle(P.ledB, 1);                        // luzes de borda
+    [[10, 52], [90, 52], [28, 60], [72, 60]].forEach(([x, y]) => g.fillCircle(x, y, 2.5));
+    return;
+  }
+
+  // Coroas da CONTENÇÃO: holofote aceso (ground), ninho de vigia (mid),
+  // mastro de alerta (high). Faixa y 0..100, x 0..100.
+  static drawContencaoCrown(g, kind, w) {
+    const P = this.FACADES['-contencao'];
+    const cx = w / 2;
+
+    if (kind === 'ground') {
+      // Holofote ACESO varrendo para a esquerda (de onde o rino vem):
+      // feixe = triângulo de alpha baixo, jamais gradiente
+      g.fillStyle(P.pillar, 1);                    // tripé
+      g.fillRect(cx - 4, 56, 8, 44);
+      g.fillTriangle(cx - 22, 100, cx + 22, 100, cx, 66);
+      g.fillStyle(P.metalDark, 1);                 // corpo do canhão de luz
+      g.fillRect(30, 34, 40, 24);
+      g.fillStyle(P.metal, 1);
+      g.fillRect(30, 34, 40, 5);
+      g.fillStyle(0xfff3c4, 1);                    // lente
+      g.fillRect(24, 36, 8, 20);
+      g.fillStyle(0xfff3c4, 0.18);                 // o feixe
+      g.fillTriangle(26, 38, 26, 54, 0, 0);
+      g.fillStyle(0xfff3c4, 0.1);
+      g.fillTriangle(26, 36, 26, 56, 0, 22);
+      return;
+    }
+
+    if (kind === 'mid') {
+      // Ninho de vigia: plataforma com sacos de areia e telhadinho
+      g.fillStyle(P.pillar, 1);                    // mãos-francesas
+      g.fillTriangle(20, 100, 44, 74, 20, 74);
+      g.fillTriangle(80, 100, 56, 74, 80, 74);
+      g.fillStyle(P.slab, 1);                      // laje do ninho
+      g.fillRect(10, 68, 80, 8);
+      g.fillStyle(0x8a7a58, 1);                    // sacos de areia
+      [[18, 58], [34, 58], [50, 58], [66, 58], [26, 48], [42, 48], [58, 48]]
+        .forEach(([x, y]) => g.fillEllipse(x + 6, y + 5, 17, 10));
+      g.fillStyle(P.metalDark, 1);                 // postes do telhadinho
+      g.fillRect(14, 22, 4, 28);
+      g.fillRect(82, 22, 4, 28);
+      g.fillStyle(P.hazardB, 1);                   // telhadinho
+      g.fillRect(8, 14, 84, 8);
+      g.fillStyle(P.hazardA, 1);
+      for (let i = 0; i < 6; i++) g.fillRect(12 + i * 14, 14, 7, 8);
+      return;
+    }
+
+    // Mastro de alerta: sirene dupla + luz vermelha girando (glow estático)
+    g.fillStyle(P.metalDark, 1);
+    g.fillRect(cx - 3, 18, 6, 82);
+    g.fillStyle(P.metal, 1);                       // cornetas
+    g.fillTriangle(cx - 4, 40, cx - 4, 54, cx - 26, 47);
+    g.fillTriangle(cx + 4, 40, cx + 4, 54, cx + 26, 47);
+    g.fillStyle(P.pillar, 1);
+    g.fillRect(cx - 7, 44, 14, 7);
+    g.fillStyle(0xff4a5e, 0.25);                   // halo da luz de alerta
+    g.fillCircle(cx, 14, 11);
+    g.fillStyle(0xff4a5e, 1);
+    g.fillCircle(cx, 14, 5);
+    return;
+  }
+
   // Staggered brick courses; band recolored amber exactly at
   // crackPos*720 +- CRACK_BAND_HALF so the visual IS the gameplay window.
   static drawBricks(g, x0, y0, w, h, inBand) {
@@ -259,7 +599,12 @@ export class TextureFactory {
     const w = 100, h = 720;
     const C = Constants.COLORS;
     const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const paint = skin === '-city' ? this.drawFacade.bind(this) : this.drawBricks.bind(this);
+    // v1.8.7: qualquer skin não-vazio é fachada urbana — muda só a PALETA
+    const urban = skin !== '';
+    const P = this.facadePalette(skin);
+    const paint = urban
+      ? (gg, x0, y0, ww, hh, inBand) => this.drawFacade(gg, x0, y0, ww, hh, inBand, P)
+      : this.drawBricks.bind(this);
 
     const bandTop = crackPos * h - Constants.CRACK_BAND_HALF;
     const bandBottom = crackPos * h + Constants.CRACK_BAND_HALF;
@@ -267,13 +612,13 @@ export class TextureFactory {
     // Cidade: a fachada TERMINA em y=100 e a faixa 0..100 fica transparente
     // só com a torre do coroamento — antes o prédio subia até o topo do
     // canvas e a torre era desenhada por cima, lendo como sobreposição
-    const topY = skin === '-city' ? 100 : 0;
+    const topY = urban ? 100 : 0;
     paint(g, 0, topY, w, h - topY, false);
     paint(g, 0, bandTop, w, bandBottom - bandTop, true);
 
     // jagged cracks crossing the band (plus short tips past the edges);
-    // na cidade a rachadura é escura sobre o concreto claro
-    g.lineStyle(3, skin === '-city' ? this.CITY.bandLine : C.wallCrackLine, 1);
+    // na cidade a rachadura é escura sobre o material claro da banda
+    g.lineStyle(3, urban ? P.bandLine : C.wallCrackLine, 1);
     const cy = crackPos * h;
     g.strokePoints([
       { x: 8, y: cy - 50 }, { x: 30, y: cy - 20 }, { x: 22, y: cy + 5 },
@@ -283,18 +628,18 @@ export class TextureFactory {
       { x: 60, y: cy - 55 }, { x: 74, y: cy - 25 }, { x: 66, y: cy },
       { x: 88, y: cy + 25 }, { x: 80, y: cy + 52 },
     ], false);
-    g.lineStyle(2, skin === '-city' ? this.CITY.bandLine : C.wallCrackLine, 0.6);
+    g.lineStyle(2, urban ? P.bandLine : C.wallCrackLine, 0.6);
     g.lineBetween(30, bandTop - 14, 24, bandTop + 4);
     g.lineBetween(70, bandBottom - 4, 76, bandBottom + 14);
 
-    // pillar edges (o skin de cidade já tem os seus pilares de concreto)
-    if (skin !== '-city') {
+    // pillar edges (os skins de cidade já têm os seus pilares de concreto)
+    if (!urban) {
       g.fillStyle(C.wallMortar, 0.8);
       g.fillRect(0, 0, 3, h);
       g.fillRect(w - 3, 0, 3, h);
     } else {
       // POR ÚLTIMO: desenhado antes, a fachada o cobriria
-      this.drawCityCrown(g, crown, w);
+      this.drawCityCrown(g, crown, w, skin);
     }
 
     g.generateTexture(key, w, h);
@@ -307,21 +652,25 @@ export class TextureFactory {
     const w = 100, h = 720;
     const C = Constants.COLORS;
     const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const paint = skin === '-city' ? this.drawFacade.bind(this) : this.drawBricks.bind(this);
+    const urban = skin !== '';
+    const P = this.facadePalette(skin);
+    const paint = urban
+      ? (gg, x0, y0, ww, hh, inBand) => this.drawFacade(gg, x0, y0, ww, hh, inBand, P)
+      : this.drawBricks.bind(this);
 
     const cy = crackPos * h;
     const holeTop = cy - 70;
     const holeBottom = cy + 70;
 
     // Cidade: mesmo corte do variant inteiro — topo transparente, só a torre
-    const topY = skin === '-city' ? 100 : 0;
+    const topY = urban ? 100 : 0;
     if (holeTop > topY) paint(g, 0, topY, w, holeTop - topY, false);
     if (holeBottom < h) paint(g, 0, holeBottom, w, h - holeBottom, false);
 
-    // Lascas e entulho na cor do material local: âmbar no zoo, concreto
-    // claro na cidade (pedido do dono: a trinca combina com o prédio)
-    const chunkFill = skin === '-city' ? this.CITY.band : C.wallCrack;
-    const chunkLine = skin === '-city' ? this.CITY.bandLine : C.wallCrackLine;
+    // Lascas e entulho na cor do material local: âmbar no zoo, o material
+    // claro da banda na cidade (pedido do dono: a trinca combina com o prédio)
+    const chunkFill = urban ? P.band : C.wallCrack;
+    const chunkLine = urban ? P.bandLine : C.wallCrackLine;
 
     // jagged edges biting into the segments
     g.fillStyle(chunkFill, 1);
@@ -344,11 +693,11 @@ export class TextureFactory {
     });
 
     // debris pile at the bottom lip of the hole
-    g.fillStyle(skin === '-city' ? this.CITY.slab : C.wallOrangeDark, 1);
+    g.fillStyle(urban ? P.slab : C.wallOrangeDark, 1);
     g.fillTriangle(4, holeBottom, 50, holeBottom, 26, holeBottom - 18);
     g.fillTriangle(40, holeBottom, 96, holeBottom, 70, holeBottom - 14);
 
-    if (skin !== '-city') {
+    if (!urban) {
       g.fillStyle(C.wallMortar, 0.8);
       if (holeTop > 0) g.fillRect(0, 0, 3, holeTop);
       if (holeBottom < h) g.fillRect(0, holeBottom, 3, h - holeBottom);
@@ -356,7 +705,9 @@ export class TextureFactory {
       // Sem isto a parede perderia a torre no frame da explosão. As três
       // alturas passam (o buraco mais alto começa em y=110); a guarda existe
       // para uma altura de fresta futura não desenhar coroa dentro do buraco.
-      this.drawCityCrown(g, crown, w);
+      // lit: no subúrbio a quebra ACENDE o letreiro da padaria (barato — a
+      // coroa é a mesma, só o neon muda de cor)
+      this.drawCityCrown(g, crown, w, skin, { lit: true });
     }
 
     g.generateTexture(key, w, h);
@@ -617,10 +968,17 @@ export class TextureFactory {
   // (5 camadas) — a repetição é o que faz a luta durar mais sem aumentar a
   // altura da cerca. Cada set ganha também o seu estado destruído.
   static generateBossGates(scene) {
+    // O Cerco fica DECLARADO (texturas vivas, wiring desligado — precedente
+    // da casa): a ordem de quebra dele é a literal antiga, não BOSS2_LAYERS
     this.generateArmoredSet(scene, 'boss2-gate', ['mid', 'ground', 'high', 'mid'], { palette: 'urban' });
     this.generateArmoredBroken(scene, 'boss2-gate', ['mid', 'ground', 'high', 'mid'], { palette: 'urban' });
     this.generateArmoredSet(scene, 'boss3-gate', ['ground', 'mid', 'high', 'mid', 'ground'], { palette: 'dark' });
     this.generateArmoredBroken(scene, 'boss3-gate', ['ground', 'mid', 'high', 'mid', 'ground'], { palette: 'dark' });
+    // v1.8.7 — A MURALHA (boss dos 2000m): viaturas empilhadas + torre de
+    // holofote; a ordem de quebra vem de Constants.BOSS2_LAYERS (abre no ALTO
+    // — o exame da lição do D3)
+    this.generateArmoredSet(scene, 'muralha-gate', Constants.BOSS2_LAYERS, { palette: 'muralha' });
+    this.generateArmoredBroken(scene, 'muralha-gate', Constants.BOSS2_LAYERS, { palette: 'muralha' });
   }
 
   // v1.8.5: o portão virou PARAMÉTRICO — os bosses seguintes reusam a mesma
@@ -668,6 +1026,22 @@ export class TextureFactory {
         pillar: concrete, pillarEdge: concreteLight, rivet: concreteDark,
         deck: concreteLight, deckLip: concreteDark, rail: 0x3b3b3e,
         hazardA: 0xf2c033, hazardB: 0x1f1f22, hazardPlate: true,
+      };
+    }
+    if (name === 'muralha') {
+      // v1.8.7 — Operação Muralha: pilha de VIATURAS atravessando o viaduto.
+      // Azul-viatura no vão, concreto nos pilares, strobe vermelho/ciano.
+      // cars: cada camada selada é desenhada como uma viatura da pilha;
+      // searchlight: torre de holofote integrada à plataforma do Comandante.
+      const car = 0x2e4a6b, carDark = 0x223a55, concrete = 0x59616b;
+      return {
+        plate: carDark, seam: 0x16283c, truss: car,
+        beam: concrete, face: car, frame: 0x16283c,
+        lock: 0x1f2531, lockShine: 0x8fb3dc, bolt: 0x8a939f,
+        pillar: concrete, pillarEdge: 0x8a939f, rivet: 0xff4a5e,
+        deck: 0x8a939f, deckLip: 0x3d444c, rail: 0x1f2531,
+        hazardA: 0xffd24a, hazardB: 0x1f2531, hazardPlate: false,
+        cars: true, searchlight: true,
       };
     }
     if (name === 'dark') {
@@ -793,6 +1167,27 @@ export class TextureFactory {
             g.fillStyle(P.hazardB, 1);
             for (let x = 48; x < 192; x += 26) g.fillRect(x, top + h / 2 - 9, 13, 18);
           }
+          if (P.cars) {
+            // Muralha: cada camada selada É uma viatura da pilha — vidros,
+            // rodas espremidas e giroflex vermelho/ciano por cima da placa
+            g.fillStyle(0x9ad7ef, 0.85);              // vidros
+            for (const wx of [56, 98, 140]) g.fillRect(wx, top + 10, 28, 14);
+            g.fillStyle(P.frame, 0.9);                // montantes dos vidros
+            for (const wx of [84, 126]) g.fillRect(wx, top + 10, 6, 14);
+            g.fillStyle(0x1f2531, 1);                 // rodas na pilha
+            g.fillCircle(72, top + h - 12, 10);
+            g.fillCircle(168, top + h - 12, 10);
+            g.fillStyle(0x59616b, 1);
+            g.fillCircle(72, top + h - 12, 4);
+            g.fillCircle(168, top + h - 12, 4);
+            g.fillStyle(0xff4a5e, 1);                 // giroflex
+            g.fillRect(100, top + 2, 16, 6);
+            g.fillStyle(0x4ad1ff, 1);
+            g.fillRect(118, top + 2, 16, 6);
+            g.fillStyle(0xffffff, 0.5);               // brilho do strobe
+            g.fillRect(104, top + 2, 4, 6);
+            g.fillRect(122, top + 2, 4, 6);
+          }
           g.lineStyle(8, P.lock, 1);
           g.lineBetween(48, top + 6, 192, top + h - 6);
           g.lineBetween(48, top + h - 6, 192, top + 6);
@@ -839,6 +1234,38 @@ export class TextureFactory {
     g.lineStyle(4, P.rail, 1);
     g.lineBetween(8, 58, 232, 58);
     for (let x = 16; x <= 224; x += 52) g.lineBetween(x, 58, x, 82);
+
+    if (P.searchlight) {
+      // v1.8.7 — torre de HOLOFOTE integrada à plataforma (a Muralha): os
+      // feixes do D3 convergem para cá — este é o landmark que eles anunciam.
+      // Aceso enquanto o portão está de pé; apagado e torto no wrecked.
+      g.fillStyle(P.rail, 1);
+      g.fillRect(198, 24, 8, 58);                  // mastro na ponta direita
+      g.fillRect(190, 44, 24, 4);                  // travessa de reforço
+      g.fillStyle(P.deckLip, 1);
+      g.fillRect(188, 20, 32, 8);                  // berço do canhão de luz
+      if (opts.wrecked) {
+        g.save(); g.translateCanvas(202, 18); g.rotateCanvas(0.5);
+        g.fillStyle(0x3d444c, 1);
+        g.fillRect(-16, -12, 34, 16);              // canhão tombado, apagado
+        g.fillStyle(0x272d34, 1);
+        g.fillRect(-20, -10, 6, 12);
+        g.restore();
+      } else {
+        g.fillStyle(0x59616b, 1);
+        g.fillRect(186, 4, 34, 18);                // corpo do canhão de luz
+        g.fillStyle(0x8a939f, 1);
+        g.fillRect(186, 4, 34, 4);
+        g.fillStyle(0xfff3c4, 1);
+        g.fillRect(180, 6, 8, 14);                 // lente (aponta p/ o rino)
+        g.fillStyle(0xfff3c4, 0.16);               // feixe varrendo a arena
+        g.fillTriangle(182, 8, 182, 18, 60, 96);
+        g.fillStyle(0xfff3c4, 0.09);
+        g.fillTriangle(182, 6, 182, 20, 20, 80);
+        g.fillStyle(0xff4a5e, 1);                  // luz de obstáculo
+        g.fillCircle(203, 2.5, 2.5);
+      }
+    }
 
     if (opts.wrecked) {
       // Entulho amontoado na boca do vão + fumaça subindo (marco visual de
@@ -2111,6 +2538,248 @@ export class TextureFactory {
       g.fillRoundedRect(400, 190, 34, 48, 5);
       g.fillRect(396, 184, 42, 8);
     });
+
+    // ========== v1.8.7 — Estado de Alerta: um par far/near por distrito =====
+
+    // ---------- props compartilhados dos distritos ----------
+    // Lixeira do near da cidade, virada em prop reutilizável
+    const trashCan = (g, x, y = 190) => {
+      g.fillStyle(0x6b7078, 1);
+      g.fillRoundedRect(x, y, 34, 48, 5);
+      g.fillRect(x - 4, y - 6, 42, 8);
+    };
+    // Silhueta FUGINDO (inclinada para a frente — o rush em pânico do D2)
+    const runner = (g, x, c, s = 1) => {
+      g.fillStyle(c, 0.92);
+      g.fillCircle(x + 10 * s, 178, 8 * s);
+      g.save();
+      g.translateCanvas(x, 186);
+      g.rotateCanvas(0.3);
+      g.fillRoundedRect(0, 0, 18 * s, 38 * s, 6 * s);
+      g.restore();
+      g.lineStyle(6 * s, c, 0.92);
+      g.lineBetween(x + 2 * s, 222, x - 12 * s, 250);   // perna esticada atrás
+      g.lineBetween(x + 8 * s, 222, x + 24 * s, 244);   // perna à frente
+      g.lineBetween(x + 6 * s, 196, x + 26 * s, 184);   // braço lançado
+    };
+
+    // ============ 1001–1400m: SUBÚRBIO SONOLENTO — a cidade dorme ===========
+    makeFar('suburbio', (g) => {
+      // Sobrados baixos de telhado de zinco, quase tudo apagado (uma janela
+      // acesa é EXCEÇÃO — a régua do distrito é a madrugada)
+      [[0, 268, 84, 0], [96, 282, 70, 1], [178, 258, 90, 0], [282, 288, 64, 1],
+       [356, 270, 84, 0], [452, 284, 74, 1], [552, 262, 88, 0]]
+        .forEach(([x, y, w2, k]) => {
+          g.fillStyle(k ? 0x4a3a30 : 0x554238, 1);
+          g.fillRect(x, y, w2, 420 - y);
+          g.fillStyle(0x77808a, 1);              // telhado de zinco
+          g.fillTriangle(x - 6, y, x + w2 + 6, y, x + w2 / 2, y - 24);
+          g.fillStyle(0x59616b, 1);              // água em sombra
+          g.fillTriangle(x + w2 / 2, y - 24, x + w2 + 6, y, x + w2 / 2 + 10, y);
+          for (let wy = y + 12; wy < 400; wy += 26) {
+            for (let wx = x + 10; wx + 10 < x + w2 - 6; wx += 22) {
+              const on = ((wx * 5 + wy * 11) % 19) < 2;
+              g.fillStyle(on ? 0xffb066 : 0x2e2620, on ? 1 : 0.85);
+              g.fillRect(wx, wy, 10, 14);
+            }
+          }
+        });
+      // Uma padaria ACESA no meio do quarteirão morto (o farol do distrito)
+      g.fillStyle(0xffb066, 0.16);
+      g.fillRect(180, 330, 86, 60);
+      g.fillStyle(0xffb066, 1);
+      g.fillRect(190, 338, 66, 12);
+      g.fillStyle(0x241a12, 1);
+      for (let i = 0; i < 4; i++) g.fillRect(196 + i * 15, 340, 4, 8);
+      // Fiação: postes a cada 160px (divide 640 — emenda) + fios com barriga
+      g.fillStyle(0x3a332c, 1);
+      for (let px = 40; px < 640; px += 160) {
+        g.fillRect(px - 3, 186, 6, 150);
+        g.fillRect(px - 16, 194, 32, 4);
+      }
+      g.lineStyle(2, 0x2a251f, 0.9);
+      for (let px = -120; px < 640; px += 160) {
+        g.lineBetween(px, 198, px + 80, 212);
+        g.lineBetween(px + 80, 212, px + 160, 198);
+        g.lineBetween(px, 210, px + 80, 222);
+        g.lineBetween(px + 80, 222, px + 160, 210);
+      }
+      g.fillStyle(0x2f3b4d, 1);                  // faixa de asfalto ao fundo
+      g.fillRect(0, 404, 640, 16);
+    });
+    makeNear('suburbio', (g) => {
+      sidewalk(g);
+      // Banca de jornal FECHADA: porta de enrolar riscada + telhadinho
+      const banca = (x) => {
+        g.fillStyle(0x4a5058, 1);
+        g.fillRect(x, 148, 96, 88);
+        g.fillStyle(0x39404a, 1);                // porta de enrolar
+        g.fillRect(x + 8, 162, 80, 74);
+        g.fillStyle(0x59616b, 0.9);
+        for (let yy = 166; yy < 234; yy += 8) g.fillRect(x + 8, yy, 80, 3);
+        g.fillStyle(0x8a5a2e, 1);                // telhadinho
+        g.fillTriangle(x - 10, 150, x + 106, 150, x + 48, 124);
+        g.fillStyle(0xd6453c, 1);                // listras do toldo
+        for (let i = 0; i < 4; i++) g.fillRect(x - 6 + i * 27, 144, 14, 8);
+        g.fillStyle(0xf3e2b8, 1);
+        for (let i = 0; i < 4; i++) g.fillRect(x + 8 + i * 27, 144, 13, 8);
+      };
+      banca(70);
+      banca(420);
+      // Orelhão: concha acrílica num poste
+      const orelhao = (x) => {
+        g.fillStyle(0x8a939f, 1);
+        g.fillRect(x + 16, 168, 8, 68);
+        g.fillStyle(0x3f7ad6, 1);                // concha
+        g.beginPath();
+        g.arc(x + 20, 152, 26, Math.PI * 0.9, Math.PI * 2.1);
+        g.fillPath();
+        g.fillStyle(0x22303e, 1);
+        g.beginPath();
+        g.arc(x + 20, 154, 18, Math.PI * 0.95, Math.PI * 2.05);
+        g.fillPath();
+        g.fillStyle(0x1a1d21, 1);                // aparelho
+        g.fillRect(x + 14, 150, 12, 18);
+      };
+      orelhao(250);
+      trashCan(g, 330);
+      trashCan(g, 372);
+      streetLamp(g, 560);
+    });
+
+    // ============ 1401–1800m: O DESPERTAR — torres de vidro e telões ========
+    makeFar('vidro', (g) => {
+      // Skyline mais alto e mais denso que o da cidade genérica
+      [[0, 150, 80, 0], [92, 118, 66, 1], [170, 168, 74, 0], [256, 96, 84, 1],
+       [352, 140, 70, 0], [434, 110, 78, 1], [524, 158, 52, 0], [576, 132, 64, 1]]
+        .forEach(([x, y, w2, k]) =>
+          cityBlock(g, x, y, w2, 420 - y, k ? 0x55617a : 0x475369, 0xffd98a));
+      crane(g, 200);
+      // Telões "PROCURADO" acesos em duas torres (o distrito te viu)
+      const telao = (x, y) => {
+        g.fillStyle(0x1f2531, 1);
+        g.fillRect(x, y, 64, 42);
+        g.fillStyle(0x101720, 1);
+        g.fillRect(x + 3, y + 3, 58, 36);
+        g.fillStyle(0xff4a5e, 0.95);            // a silhueta do rino
+        g.fillRect(x + 8, y + 16, 22, 14);
+        g.fillTriangle(x + 30, y + 20, x + 37, y + 20, x + 30, y + 27);
+        g.fillStyle(0xff4a5e, 1);               // tarja "PROCURADO"
+        g.fillRect(x + 8, y + 7, 30, 5);
+        g.fillStyle(0x4ad1ff, 0.9);             // legenda
+        g.fillRect(x + 40, y + 18, 16, 3);
+        g.fillRect(x + 40, y + 25, 13, 3);
+        g.fillStyle(0xffffff, 0.08);            // brilho do vidro do telão
+        g.fillRect(x + 3, y + 3, 10, 36);
+      };
+      telao(276, 130);
+      telao(450, 180);
+      haze(g);
+      g.fillStyle(0x2f3b4d, 1);
+      g.fillRect(0, 404, 640, 16);
+    });
+    makeNear('vidro', (g) => {
+      sidewalk(g);
+      // Fachada contínua de lojas com vitrines acesas (passo 80 divide 640)
+      g.fillStyle(0x39424f, 1);
+      g.fillRect(0, 100, 640, 136);
+      for (let x = 0; x < 640; x += 80) {
+        g.fillStyle(0x9ad7ef, 0.45);            // vidro
+        g.fillRect(x + 8, 122, 60, 114);
+        g.fillStyle(0xffe9a8, 0.3);             // luz acesa lá dentro
+        g.fillRect(x + 12, 128, 20, 104);
+        g.fillStyle(0x1f2531, 1);               // pilastra
+        g.fillRect(x + 72, 116, 8, 120);
+        g.fillStyle(0x4ad1ff, 0.9);             // letreiro de LED
+        g.fillRect(x + 14, 108, 44, 6);
+      }
+      // Multidão em silhueta FUGINDO (todos para a direita — para longe
+      // do rino, que vem da esquerda)
+      runner(g, 120, 0x232c38, 1);
+      runner(g, 168, 0x2c2434, 0.9);
+      runner(g, 320, 0x1f3038, 1.05);
+      runner(g, 372, 0x232c38, 0.85);
+      runner(g, 540, 0x2c2434, 1);
+      trashCan(g, 470, 196);
+    });
+
+    // ============ 1801–2200m: ZONA DE CONTENÇÃO — blecaute e holofotes ======
+    makeFar('contencao', (g) => {
+      // Skyline APAGADO: blecaute tático, prédios como massas escuras
+      [[0, 160, 82, 0], [94, 130, 68, 1], [176, 178, 76, 0], [264, 108, 84, 1],
+       [360, 150, 72, 0], [444, 122, 76, 1], [532, 168, 108, 0]]
+        .forEach(([x, y, w2, k]) => {
+          g.fillStyle(k ? 0x222b38 : 0x1b2330, 1);
+          g.fillRect(x, y, w2, 420 - y);
+          // pouquíssimas janelas de emergência (vermelho fraco)
+          for (let wy = y + 16; wy < 380; wy += 46) {
+            for (let wx = x + 10; wx + 8 < x + w2 - 6; wx += 34) {
+              if (((wx * 7 + wy * 13) % 23) < 2) {
+                g.fillStyle(0xff4a5e, 0.5);
+                g.fillRect(wx, wy, 8, 10);
+              }
+            }
+          }
+        });
+      // FEIXES DE HOLOFOTE varrendo — estáticos, alpha baixo, todos os
+      // vértices dentro do tile (emenda limpa); os apexes PENDEM para a
+      // direita: convergem para a barricada da Muralha, o landmark à frente
+      const beam = (bx, half, tipX, a) => {
+        g.fillStyle(0xcfe3ff, a);
+        g.fillTriangle(bx - half, 420, bx + half, 420, tipX, -30);
+      };
+      beam(90, 20, 250, 0.07);
+      beam(240, 26, 420, 0.09);
+      beam(430, 18, 560, 0.06);
+      beam(560, 24, 640, 0.08);
+      g.fillStyle(0x232b36, 1);
+      g.fillRect(0, 404, 640, 16);
+    });
+    makeNear('contencao', (g) => {
+      sidewalk(g);
+      // Barreiras jersey de concreto com tarja de perigo
+      const jersey = (x) => {
+        g.fillStyle(0x6e7681, 1);
+        g.fillPoints([
+          { x, y: 236 }, { x: x + 12, y: 192 }, { x: x + 52, y: 192 }, { x: x + 64, y: 236 },
+        ], true);
+        g.fillStyle(0x59616b, 1);
+        g.fillRect(x + 12, 192, 40, 5);
+        g.fillStyle(0xffd24a, 1);               // tarja
+        g.fillRect(x + 8, 210, 48, 12);
+        g.fillStyle(0x1f2531, 1);
+        for (let i = 0; i < 3; i++) g.fillTriangle(x + 10 + i * 16, 222, x + 18 + i * 16, 222, x + 26 + i * 16, 210);
+      };
+      jersey(50);
+      jersey(126);
+      jersey(430);
+      // Cones de trânsito
+      const cone = (x) => {
+        g.fillStyle(0xf27b3c, 1);
+        g.fillTriangle(x, 236, x + 22, 236, x + 11, 200);
+        g.fillStyle(0xf6f4ef, 1);
+        g.fillRect(x + 4, 220, 14, 6);
+        g.fillStyle(0xd8622b, 1);
+        g.fillRect(x - 4, 234, 30, 5);
+      };
+      cone(230);
+      cone(290);
+      cone(560);
+      // Holofote portátil no tripé, aceso para o alto
+      g.fillStyle(0x3d444c, 1);
+      g.fillRect(342, 176, 6, 60);
+      g.fillTriangle(322, 236, 368, 236, 345, 196);
+      g.fillStyle(0x59616b, 1);
+      g.fillRect(330, 158, 30, 20);
+      g.fillStyle(0xfff3c4, 1);
+      g.fillRect(334, 152, 22, 8);
+      g.fillStyle(0xfff3c4, 0.14);
+      g.fillTriangle(334, 152, 356, 152, 384, 0);
+      g.fillStyle(0xff4a5e, 0.9);               // strobe na base
+      g.fillRect(336, 180, 8, 5);
+      g.fillStyle(0x4ad1ff, 0.9);
+      g.fillRect(346, 180, 8, 5);
+    });
   }
 
   // Faixa de tráfego da cidade: passa entre o fundo e o plano médio, com
@@ -2255,6 +2924,432 @@ export class TextureFactory {
     });
 
     g.generateTexture('biome-arch', w, h);
+    g.destroy();
+  }
+
+  // ------------------------------------------------- portais dos distritos
+  // v1.8.7: os três marcos físicos do Estado de Alerta — no espírito do
+  // biome-arch (um objeto que ATRAVESSA a tela, origin (0.5,1) no chão),
+  // mas cada um é ÚNICO: viaduto de concreto, checkpoint de viaturas
+  // empilhadas e o pórtico "KM 0" da rodovia. Sem física — só cenário.
+  static generatePortals(scene) {
+    this.generatePortalViaduto(scene);
+    this.generatePortalCheckpoint(scene);
+    this.generatePortalRodovia(scene);
+  }
+
+  // 1400m — VIADUTO DO CENTRO: dois pilares de concreto + tabuleiro com
+  // guarda-corpo e um semáforo pendurado (fechado: a cidade mandou parar).
+  static generatePortalViaduto(scene) {
+    const w = 420, h = 320;
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    const conc = 0x6d7683, concDark = 0x5a626d, concLight = 0x8a939f;
+
+    // pilares
+    for (const px of [36, w - 96]) {
+      g.fillStyle(conc, 1);
+      g.fillRect(px, 78, 60, h - 78);
+      g.fillStyle(concDark, 1);
+      g.fillRect(px + 46, 78, 14, h - 78);          // lado em sombra
+      g.fillStyle(concDark, 0.8);                   // juntas de fôrma
+      for (let y = 108; y < h; y += 44) g.fillRect(px, y, 60, 3);
+      g.fillStyle(concLight, 1);                    // sapata
+      g.fillRect(px - 8, h - 14, 76, 14);
+    }
+
+    // tabuleiro do viaduto
+    g.fillStyle(concDark, 1);
+    g.fillRect(0, 54, w, 34);
+    g.fillStyle(conc, 1);
+    g.fillRect(0, 54, w, 10);
+    g.fillStyle(0x2f353c, 1);                       // sombra sob a laje
+    g.fillRect(0, 84, w, 6);
+    // guarda-corpo
+    g.fillStyle(concLight, 1);
+    g.fillRect(0, 30, w, 8);
+    for (let x = 12; x < w; x += 42) g.fillRect(x, 38, 6, 16);
+    // pichação no pilar esquerdo (a cidade de verdade)
+    g.fillStyle(0x4ecdc4, 0.85);
+    g.fillRect(46, 210, 34, 8);
+    g.fillTriangle(46, 204, 46, 226, 38, 215);
+    g.fillStyle(0xf25f5c, 0.85);
+    g.fillRect(58, 236, 26, 7);
+
+    // SEMÁFORO pendurado no meio do vão, no VERMELHO (fecha na passagem)
+    g.fillStyle(0x1f2531, 1);
+    g.fillRect(206, 88, 6, 26);                     // haste
+    g.fillRect(196, 112, 26, 62);                   // caixa
+    g.fillStyle(0x14181d, 1);
+    g.fillRect(199, 116, 20, 54);
+    g.fillStyle(0xff4a5e, 1);                       // vermelho ACESO
+    g.fillCircle(209, 126, 7);
+    g.fillStyle(0xff4a5e, 0.25);                    // halo
+    g.fillCircle(209, 126, 12);
+    g.fillStyle(0x5a4a20, 1);                       // âmbar apagado
+    g.fillCircle(209, 143, 7);
+    g.fillStyle(0x1f3a28, 1);                       // verde apagado
+    g.fillCircle(209, 160, 7);
+
+    g.generateTexture('portal-viaduto', w, h);
+    g.destroy();
+  }
+
+  // 1800m — CHECKPOINT DA CONTENÇÃO: pilha de 2 viaturas de um lado,
+  // bloco de concreto do outro, e o X de holofotes cruzados por cima.
+  static generatePortalCheckpoint(scene) {
+    const w = 420, h = 300;
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    const car = 0x2e4a6b, carDark = 0x223a55;
+
+    // X de HOLOFOTES cruzados (alpha baixo — atmosfera, nunca gameplay)
+    g.fillStyle(0xcfe3ff, 0.1);
+    g.fillTriangle(58, 156, 96, 172, 400, 0);
+    g.fillTriangle(340, 150, 372, 168, 20, 0);
+    g.fillStyle(0xcfe3ff, 0.07);
+    g.fillTriangle(50, 160, 104, 178, 420, 20);
+    g.fillTriangle(330, 154, 380, 174, 0, 24);
+
+    // uma VIATURA (desenho local, reusado nas duas da pilha)
+    const viatura = (x, y, tilt) => {
+      g.save();
+      g.translateCanvas(x, y);
+      g.rotateCanvas(tilt);
+      g.fillStyle(car, 1);
+      g.fillRoundedRect(0, 22, 150, 40, 8);         // carroceria
+      g.fillRoundedRect(28, 0, 84, 30, 8);          // cabine
+      g.fillStyle(0x9ad7ef, 0.9);                   // vidros
+      g.fillRect(36, 6, 30, 18);
+      g.fillRect(72, 6, 30, 18);
+      g.fillStyle(0xf6f4ef, 1);                     // faixa "POLÍCIA"
+      g.fillRect(6, 34, 138, 12);
+      g.fillStyle(carDark, 1);
+      for (let i = 0; i < 5; i++) g.fillRect(14 + i * 27, 37, 16, 6);
+      g.fillStyle(0x1f2531, 1);                     // rodas
+      g.fillCircle(34, 62, 13);
+      g.fillCircle(116, 62, 13);
+      g.fillStyle(0x59616b, 1);
+      g.fillCircle(34, 62, 5);
+      g.fillCircle(116, 62, 5);
+      g.fillStyle(0xff4a5e, 1);                     // giroflex
+      g.fillRect(56, -8, 16, 9);
+      g.fillStyle(0x4ad1ff, 1);
+      g.fillRect(74, -8, 16, 9);
+      g.restore();
+    };
+    // pilha: a de baixo firme, a de cima atravessada
+    viatura(20, 216, 0);
+    viatura(30, 140, -0.08);
+    // halo do strobe da viatura de cima
+    g.fillStyle(0xff4a5e, 0.18);
+    g.fillCircle(92, 128, 22);
+    g.fillStyle(0x4ad1ff, 0.18);
+    g.fillCircle(116, 126, 22);
+
+    // bloco de concreto + placa PARE do lado direito
+    g.fillStyle(0x6e7681, 1);
+    g.fillRect(320, 200, 80, 100);
+    g.fillStyle(0x59616b, 1);
+    g.fillRect(320, 200, 80, 8);
+    g.fillRect(386, 200, 14, 100);
+    g.fillStyle(0xffd24a, 1);                       // tarja
+    g.fillRect(316, 246, 88, 16);
+    g.fillStyle(0x1f2531, 1);
+    for (let i = 0; i < 5; i++) g.fillTriangle(320 + i * 17, 262, 328 + i * 17, 262, 337 + i * 17, 246);
+    g.fillStyle(0x8a939f, 1);                       // poste da placa
+    g.fillRect(352, 130, 8, 70);
+    g.fillStyle(0xd6453c, 1);                       // octógono PARE
+    g.fillPoints([
+      { x: 336, y: 102 }, { x: 348, y: 90 }, { x: 364, y: 90 }, { x: 376, y: 102 },
+      { x: 376, y: 118 }, { x: 364, y: 130 }, { x: 348, y: 130 }, { x: 336, y: 118 },
+    ], true);
+    g.fillStyle(0xf6f4ef, 1);                       // "texto" em barra
+    g.fillRect(342, 106, 28, 8);
+
+    g.generateTexture('portal-checkpoint', w, h);
+    g.destroy();
+  }
+
+  // 2200m — PÓRTICO DA RODOVIA "KM 0": gantry de treliça com a placa verde
+  // de estrada. É a fronteira conceitual do deserto — a saída triunfal.
+  static generatePortalRodovia(scene) {
+    const w = 460, h = 320;
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    const steel = 0x8a939f, steelDark = 0x59616b;
+
+    // postes de treliça
+    for (const px of [22, w - 60]) {
+      g.fillStyle(steelDark, 1);
+      g.fillRect(px, 26, 10, h - 26);
+      g.fillRect(px + 28, 26, 10, h - 26);
+      g.fillStyle(steel, 0.9);                      // travessas em X
+      for (let y = 40; y < h - 24; y += 34) {
+        g.fillTriangle(px + 10, y, px + 14, y, px + 28, y + 30);
+        g.fillTriangle(px + 24, y, px + 28, y, px + 10, y + 30);
+      }
+      g.fillStyle(steelDark, 1);                    // sapata
+      g.fillRect(px - 8, h - 12, 54, 12);
+    }
+
+    // travessa de treliça
+    g.fillStyle(steelDark, 1);
+    g.fillRect(0, 26, w, 10);
+    g.fillRect(0, 62, w, 10);
+    g.fillStyle(steel, 0.9);
+    for (let x = 8; x < w - 10; x += 30) {
+      g.fillTriangle(x, 36, x + 4, 36, x + 26, 62);
+      g.fillTriangle(x + 22, 36, x + 26, 36, x, 62);
+    }
+
+    // placa verde de rodovia com "KM 0" em barras (sem fonte: geometria)
+    g.fillStyle(0xf6f4ef, 1);
+    g.fillRect(136, 46, 188, 92);                   // borda branca
+    g.fillStyle(0x2c7a39, 1);
+    g.fillRect(142, 52, 176, 80);
+    g.fillStyle(0xf6f4ef, 1);
+    // K
+    g.fillRect(160, 68, 10, 48);
+    g.fillTriangle(172, 68, 186, 68, 172, 92);
+    g.fillTriangle(172, 92, 186, 116, 172, 116);
+    // M
+    g.fillRect(196, 68, 9, 48);
+    g.fillRect(221, 68, 9, 48);
+    g.fillTriangle(205, 68, 213, 92, 205, 92);
+    g.fillTriangle(221, 68, 213, 92, 221, 92);
+    // 0
+    g.fillRect(248, 68, 34, 48);
+    g.fillStyle(0x2c7a39, 1);
+    g.fillRect(258, 78, 14, 28);
+    // seta branca apontando adiante (a liberdade fica sempre à direita)
+    g.fillStyle(0xf6f4ef, 1);
+    g.fillRect(292, 86, 14, 8);
+    g.fillTriangle(306, 78, 306, 102, 318, 90);
+
+    g.generateTexture('portal-rodovia', w, h);
+    g.destroy();
+  }
+
+  // -------------------------------------------------- hazards dos distritos
+  // v1.8.7: as texturas do TimedHazard (a entidade é do BossFight/agente B).
+  // Caçamba 100x64 (smashável — par -rubble no MESMO canvas, regra da casa);
+  // hidrante 48x220 (coluna d'água só no -on); arco voltaico 220x260 (o arco
+  // elétrico só no -on). Origin (0.5,1) no chão — o topo dos canvases altos
+  // fica transparente até o pulso acender.
+  static generateHazards(scene) {
+    this.generateHazardCacamba(scene);
+    this.generateHazardHidrante(scene);
+    this.generateHazardArco(scene);
+  }
+
+  static generateHazardCacamba(scene) {
+    const w = 100, h = 64;
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    const body = 0x3f6b4f, bodyDark = 0x2f5039, rust = 0x8a5a2e;
+
+    // entulho espiando por cima da borda
+    g.fillStyle(0x6e7681, 1);
+    g.fillTriangle(18, 14, 46, 14, 32, 2);
+    g.fillTriangle(50, 14, 84, 14, 68, 4);
+    g.fillStyle(0x8a6a3c, 1);
+    g.fillRect(38, 4, 22, 10);
+
+    // caçamba trapezoidal
+    g.fillStyle(body, 1);
+    g.fillPoints([
+      { x: 4, y: 12 }, { x: 96, y: 12 }, { x: 88, y: 58 }, { x: 12, y: 58 },
+    ], true);
+    g.fillStyle(bodyDark, 1);
+    g.fillRect(4, 12, 92, 7);                       // borda superior
+    g.fillPoints([                                   // lado em sombra
+      { x: 78, y: 19 }, { x: 96, y: 12 }, { x: 88, y: 58 }, { x: 74, y: 58 },
+    ], true);
+    // nervuras verticais
+    g.fillStyle(bodyDark, 0.8);
+    for (const x of [24, 44, 64]) g.fillRect(x, 20, 5, 38);
+    // ferrugem e tarja de perigo
+    g.fillStyle(rust, 0.8);
+    g.fillCircle(18, 50, 5);
+    g.fillCircle(70, 24, 4);
+    g.fillStyle(0xffd24a, 1);
+    g.fillRect(10, 30, 80, 10);
+    g.fillStyle(0x1f2531, 1);
+    for (let i = 0; i < 5; i++) g.fillTriangle(12 + i * 16, 40, 20 + i * 16, 40, 28 + i * 16, 30);
+    g.fillStyle(0xffd24a, 1);
+    g.fillRect(86, 30, 4, 10);
+    // pés/rodinhas
+    g.fillStyle(0x1f2531, 1);
+    g.fillRect(14, 58, 14, 6);
+    g.fillRect(72, 58, 14, 6);
+
+    g.generateTexture('hazard-cacamba', w, h);
+    g.destroy();
+
+    // -rubble: MESMO canvas (origin (0,?) do TimedHazard não pode saltar) —
+    // painéis tombados + monte de entulho derramado
+    const r = scene.make.graphics({ x: 0, y: 0, add: false });
+    r.fillStyle(0x6e7681, 1);
+    r.fillTriangle(2, 64, 52, 64, 28, 40);
+    r.fillTriangle(44, 64, 98, 64, 72, 44);
+    r.fillStyle(0x8a6a3c, 1);
+    r.fillTriangle(30, 64, 70, 64, 50, 48);
+    r.save(); r.translateCanvas(10, 50); r.rotateCanvas(0.35);
+    r.fillStyle(body, 1); r.fillRect(0, 0, 42, 12);
+    r.fillStyle(0xffd24a, 1); r.fillRect(4, 3, 34, 5);
+    r.restore();
+    r.save(); r.translateCanvas(58, 56); r.rotateCanvas(-0.28);
+    r.fillStyle(bodyDark, 1); r.fillRect(0, 0, 38, 10);
+    r.restore();
+    r.fillStyle(rust, 1);
+    [[24, 58, 7], [48, 60, 6], [80, 58, 8]].forEach(([x, y, s]) => r.fillRect(x, y, s, s * 0.7));
+    r.generateTexture('hazard-cacamba-rubble', w, h);
+    r.destroy();
+  }
+
+  static generateHazardHidrante(scene) {
+    const w = 48, h = 220;
+    // OFF: hidrante rompido borbulhando na base (o telegraph é do B — aqui
+    // só o respingo constante que diz "isto está vivo")
+    const draw = (on) => {
+      const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+      if (on) {
+        // coluna d'água até o topo do canvas: núcleo claro + espuma
+        g.fillStyle(0x9ad7ef, 0.75);
+        g.fillRect(14, 0, 20, 176);
+        g.fillStyle(0xdff1fb, 0.95);
+        g.fillRect(19, 0, 10, 176);
+        g.fillStyle(0xffffff, 0.85);                // gomos de espuma
+        for (let y = 8; y < 170; y += 26) {
+          g.fillCircle(16, y, 5);
+          g.fillCircle(32, y + 13, 5);
+        }
+        g.fillCircle(24, 4, 10);                     // coroa no topo
+        g.fillCircle(12, 10, 6);
+        g.fillCircle(36, 10, 6);
+      }
+
+      // poça e respingos na base
+      g.fillStyle(0x9ad7ef, on ? 0.7 : 0.5);
+      g.fillEllipse(24, 216, on ? 46 : 30, 8);
+      g.fillStyle(0xdff1fb, 0.9);
+      g.fillCircle(10, on ? 196 : 206, on ? 4 : 2.5);
+      g.fillCircle(38, on ? 200 : 208, on ? 3.5 : 2);
+
+      // o hidrante: corpo vermelho, tampas amarelas, flange
+      g.fillStyle(0xb03a2e, 1);
+      g.fillRect(16, 214, 16, 6);                   // flange no chão
+      g.fillRoundedRect(14, 178, 20, 38, 6);        // corpo
+      g.fillStyle(0xd6453c, 1);
+      g.fillRect(16, 182, 6, 30);                   // luz do lado esquerdo
+      g.fillStyle(0xffd24a, 1);
+      g.fillCircle(24, 176, 9);                     // cúpula (rompida)
+      g.fillStyle(0xb03a2e, 1);
+      g.fillRect(6, 190, 8, 9);                     // bocais laterais
+      g.fillRect(34, 190, 8, 9);
+      g.fillStyle(0xffd24a, 1);
+      g.fillCircle(9, 194.5, 4);
+      g.fillCircle(39, 194.5, 4);
+      g.fillStyle(0x8a2a22, 1);                     // parafusos
+      g.fillCircle(20, 208, 1.8);
+      g.fillCircle(28, 208, 1.8);
+
+      g.generateTexture(on ? 'hazard-hidrante-on' : 'hazard-hidrante', w, h);
+      g.destroy();
+    };
+    draw(false);
+    draw(true);
+  }
+
+  static generateHazardArco(scene) {
+    const w = 220, h = 260;
+    // Dois postes de aço com isoladores; o arco elétrico na faixa AÉREA só
+    // existe no -on (o chão fica LIVRE — armadilha anti-pulo do D3)
+    const draw = (on) => {
+      const g = scene.make.graphics({ x: 0, y: 0, add: false });
+      const steel = 0x59616b, steelDark = 0x3d444c;
+
+      for (const px of [40, 180]) {
+        g.fillStyle(steelDark, 1);                  // sapata
+        g.fillRect(px - 16, 250, 32, 10);
+        g.fillStyle(steel, 1);                      // poste
+        g.fillRect(px - 5, 40, 10, 210);
+        g.fillStyle(steelDark, 1);
+        g.fillRect(px + 1, 40, 4, 210);             // lado em sombra
+        g.fillStyle(0xffd24a, 1);                   // tarja no poste
+        g.fillRect(px - 6, 200, 12, 22);
+        g.fillStyle(0x1f2531, 1);
+        g.fillRect(px - 6, 207, 12, 4);
+        g.fillRect(px - 6, 216, 12, 4);
+        // isolador apontando para DENTRO do vão
+        const dir = px < w / 2 ? 1 : -1;
+        g.fillStyle(steelDark, 1);
+        g.fillRect(px + (dir > 0 ? 4 : -18), 44, 14, 8);
+        g.fillStyle(0x8a6a3c, 1);                   // cerâmica
+        g.fillCircle(px + dir * 20, 48, 6);
+        g.fillStyle(0xffd24a, 1);                   // placa de raio
+        g.fillRect(px - 8, 120, 16, 18);
+        g.fillStyle(0x1f2531, 1);
+        g.fillTriangle(px - 2, 123, px + 4, 123, px - 1, 130);
+        g.fillTriangle(px + 1, 128, px - 4, 135, px + 3, 135);
+      }
+
+      if (on) {
+        // O ARCO: zigue-zague grosso de glow + núcleo fino brilhante
+        const jag = (yBase, amp, seed) => {
+          const pts = [];
+          for (let i = 0; i <= 10; i++) {
+            const x = 60 + i * 10;
+            const dy = (((i * 7 + seed) % 5) - 2) * amp;
+            pts.push({ x, y: yBase + dy });
+          }
+          return pts;
+        };
+        g.lineStyle(9, 0x4ad1ff, 0.28);
+        g.strokePoints(jag(48, 4, 1), false);
+        g.lineStyle(4, 0x4ad1ff, 0.8);
+        g.strokePoints(jag(48, 4, 3), false);
+        g.lineStyle(2, 0xdff6ff, 1);
+        g.strokePoints(jag(48, 3, 5), false);
+        // faíscas nos isoladores
+        g.fillStyle(0xdff6ff, 1);
+        g.fillCircle(60, 48, 5);
+        g.fillCircle(160, 48, 5);
+        g.fillStyle(0x4ad1ff, 0.35);
+        g.fillCircle(60, 48, 11);
+        g.fillCircle(160, 48, 11);
+      } else {
+        // desligado: um estalo residual nos isoladores (leitura de perigo)
+        g.fillStyle(0x4ad1ff, 0.5);
+        g.fillCircle(60, 48, 3);
+        g.fillCircle(160, 48, 3);
+      }
+
+      g.generateTexture(on ? 'hazard-arco-on' : 'hazard-arco', w, h);
+      g.destroy();
+    };
+    draw(false);
+    draw(true);
+  }
+
+  // Dardo-cão do rasante da Muralha (rasanteStyle 'k9' do B): um vulto de
+  // pastor em disparada, 24x12 — pequeno como o tranq-dart, lido pela
+  // SILHUETA + colete vermelho (voa da direita para a esquerda).
+  static generateK9Projectile(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(0x2b2620, 1);
+    g.fillEllipse(11, 6, 16, 7);                    // corpo esticado
+    g.fillCircle(4, 5, 3.5);                        // cabeça (vai à frente)
+    g.fillTriangle(3, 2, 6, 1, 5, 4);               // orelha
+    g.fillTriangle(18, 5, 24, 2, 22, 8);            // cauda ao vento
+    g.fillStyle(0x2b2620, 1);                       // patas recolhidas
+    g.fillRect(7, 9, 3, 3);
+    g.fillRect(14, 9, 3, 3);
+    g.fillStyle(0xd6453c, 1);                       // colete K9
+    g.fillRect(8, 3, 7, 5);
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(10, 4, 3, 2);                        // "K9" em pixel
+    g.fillStyle(0xffe9a8, 1);                       // olho aceso
+    g.fillCircle(3.5, 4.5, 1);
+    g.generateTexture('k9-projectile', 24, 12);
     g.destroy();
   }
 

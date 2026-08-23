@@ -1,16 +1,18 @@
-// E2E da bossfight do CERCO (v1.8.5, 2000m) num navegador real:
+// E2E da bossfight da MURALHA (v1.8.7, 2000m) num navegador real:
 //   node tools/e2e-boss2.mjs   (requer o jogo servido em localhost:3000)
 //
-// O Cerco é o BossFight paramétrico do portão (tools/e2e-boss.mjs é a
-// suíte-mãe — mesma física: contato por banda de x + clamp posicional +
-// quique via Rhino.beginKnockback). O que ESTA suíte guarda de específico:
-//   - as 4 camadas fora da ordem "de baixo para cima" (MID → GROUND → HIGH
-//     → MID): decorar a sequência do portão não serve, é preciso ler o glow;
-//   - a vitória que NÃO encerra nada (defeatBoss2: sem crossGate, sem
-//     gameOver — a barricada vira boss2-gate-broken, o +150 nasce ao vivo e
-//     o rino segue avenida adentro);
-//   - a causa de morte própria ('boss2', título CAPTURADO) e o enrage de
-//     45s que desce a cadência UM degrau (BOSS2_ENRAGE_MS).
+// v1.8.7: a Muralha ASSUMIU o slot dos 2000m (o Cerco foi realocado para o
+// deserto — CERCO_NET/CERCO_LAYERS seguem declaradas, sem luta ligada). A
+// Muralha usa o mesmo BossFight paramétrico (tools/e2e-boss.mjs é a
+// suíte-mãe). O que ESTA suíte guarda de específico:
+//   - as 4 camadas ABRINDO NO ALTO (HIGH → GROUND → MID → HIGH): o exame da
+//     lição do D3 — é preciso ler o glow, não decorar sequência;
+//   - a vitória que NÃO encerra nada (defeatMuralha: sem crossGate, sem
+//     gameOver — a barricada vira muralha-gate-broken, o +150 nasce ao vivo
+//     e o rino segue para a Brecha);
+//   - a causa de morte herdada ('boss2' — série do funil contínua) e o
+//     enrage de 45s que desce a cadência UM degrau (MURALHA_ENRAGE_MS);
+//   - o startFight SILENCIA atiradores vivos na arena (muzzleHostiles).
 import { chromium } from 'playwright';
 
 const BASE = 'http://localhost:3000';
@@ -52,18 +54,19 @@ await page.waitForTimeout(1500);
   await page.waitForTimeout(600);
 }
 
-// ---------- 1. Texturas e arte do Cerco existem ----------
+// ---------- 1. Texturas da Muralha e do Comandante existem ----------
 {
   const missing = await page.evaluate(() => {
     const s = window.game.scene.keys.GameScene;
     const out = [];
-    ['boss2-gate-4', 'boss2-gate-3', 'boss2-gate-2', 'boss2-gate-1',
-      'boss2-gate-broken', 'boss2-hunter', 'boss2-hunter-aim'].forEach((k) => {
+    ['muralha-gate-4', 'muralha-gate-3', 'muralha-gate-2', 'muralha-gate-1',
+      'muralha-gate-broken', 'muralha-hunter', 'muralha-hunter-aim',
+      'k9-projectile'].forEach((k) => {
       if (!s.textures.exists(k)) out.push(k);
     });
     return out;
   });
-  ok('1. texturas da barricada do Cerco e do Capturador existem',
+  ok('1. texturas da barricada da Muralha e do Comandante existem',
     missing.length === 0, missing.join(', '));
 }
 
@@ -87,6 +90,17 @@ await page.waitForTimeout(1500);
     s.gateReached = true;
     s.escaped = true;
 
+    // v1.8.7: torre VIVA plantada dentro da arena ANTES da luta — o
+    // startFight tem de silenciá-la (muzzleHostiles); antes, ela atirava
+    // por cima dos telegraphs da intro
+    const towerViva = s.spawnManager.getTowersGroup().children.entries[0];
+    towerViva.reset(80000 - 800);
+    const towerAtivaAntes = towerViva.active;
+    // A torre atira DURANTE a aproximação (é o comportamento real que o
+    // muzzle conserta) — invencível até a luta começar, senão o rino morre
+    // por 'dart' antes do gatilho e o teste inteiro desmorona
+    s.invincible = true;
+
     sp.body.reset(80000 - 1400, 620);
     s.cameras.main.setScroll(80000 - 1400 - 440, 0);
 
@@ -98,6 +112,7 @@ await page.waitForTimeout(1500);
       tick();
     });
     const fightStarted = s.boss2Fight.state === 'fight';
+    s.invincible = false; // a partir daqui a física do quique é a de verdade
     const hunterEngaged = s.boss2Fight.hunter.engaged;
     // Isola a física do quique: o canhão de redes fica de fora deste teste
     // (a morte pela rede tem teste próprio, determinístico, no fim)
@@ -138,10 +153,14 @@ await page.waitForTimeout(1500);
       fightStarted, hunterEngaged, camFollowing, scrollX, trace,
       bounces: s.runBoss2Bounces, gameOver: s.gameOver,
       layerIdx: s.boss2Fight.layerIdx, spawnsNaArena,
+      towerAtivaAntes, towerAtivaDepois: towerViva.active,
     };
   });
 
-  ok('2. a luta do Cerco começa e trava a câmera na arena',
+  ok('2b. startFight SILENCIA a torre viva na arena (muzzleHostiles)',
+    r.towerAtivaAntes === true && r.towerAtivaDepois === false,
+    `antes=${r.towerAtivaAntes} depois=${r.towerAtivaDepois}`);
+  ok('2. a luta da Muralha começa e trava a câmera na arena',
     r.fightStarted && r.hunterEngaged && !r.camFollowing &&
     Math.abs(r.scrollX - (ANCHOR - 1040)) < 10,
     `fight=${r.fightStarted} rede=${r.hunterEngaged} follow=${r.camFollowing} scrollX=${r.scrollX.toFixed(0)}`);
@@ -175,7 +194,7 @@ await page.waitForTimeout(1500);
     `camadas=${r.layerIdx} spawns=${JSON.stringify(r.spawnsNaArena)}`);
 }
 
-// ---------- 5b. Fúria negada na arena do Cerco ----------
+// ---------- 5b. Fúria negada na arena da Muralha ----------
 // O FurySystem.isBlocked varre a LISTA scene.bossFights — o bloqueio da v1.8
 // tem de valer em QUALQUER arena, não só na do portão
 {
@@ -194,7 +213,7 @@ await page.waitForTimeout(1500);
       denied: s.runFuryDenied,
     };
   });
-  ok('5b. doSpecial na arena do Cerco é negado: sem rampage, contador n sobe',
+  ok('5b. doSpecial na arena da Muralha é negado: sem rampage, contador n sobe',
     r.state === 'fight' && !r.rampage && r.charge === 1 && r.denied === r.denied0 + 1,
     `state=${r.state} rampage=${r.rampage} charge=${r.charge} denied=${r.denied0}→${r.denied}`);
 }
@@ -205,7 +224,7 @@ await page.waitForTimeout(1500);
     const s = window.game.scene.keys.GameScene;
     const sp = s.rhino.getSprite();
     const faceX = 80000 - 120;
-    // O bônus da corrida ANTES da luta: a vitória do Cerco tem de somar
+    // O bônus da corrida ANTES da luta: a vitória da Muralha tem de somar
     // 4 camadas + o prêmio, ao vivo, exatamente como o breakdown recomputa
     const bonus0 = s.runBonus;
 
@@ -227,12 +246,12 @@ await page.waitForTimeout(1500);
       return { layer: s.boss2Fight.layerIdx, tex: s.boss2Sprite.texture.key };
     };
 
-    // A ordem do Cerco é MID → GROUND → HIGH → MID (não-monotônica: obriga a
-    // ler o glow em vez de decorar o chão → meio → alto do portão)
-    const meio1 = await dashAt(400, 1);  // banda mid (dash aéreo: gravidade off)
+    // A ordem da Muralha é HIGH → GROUND → MID → HIGH (abre NO ALTO — o
+    // exame da lição do D3; ler o glow, nunca decorar sequência)
+    const alto1 = await dashAt(200, 1);  // banda high (dash aéreo)
     const chao = await dashAt(620, 2);   // banda ground (feet no chão)
-    const alto = await dashAt(200, 3);   // banda high
-    const meio2 = await dashAt(400, 4);  // MID de novo — a última camada
+    const meio = await dashAt(400, 3);   // banda mid
+    const alto2 = await dashAt(200, 4);  // HIGH de novo — a última camada
     await new Promise((r2) => setTimeout(r2, 700));
 
     // Pós-vitória o rino tem de voltar a correr SOZINHO (a corrida continua)
@@ -248,7 +267,7 @@ await page.waitForTimeout(1500);
     });
 
     return {
-      meio1, chao, alto, meio2,
+      alto1, chao, meio, alto2,
       state: s.boss2Fight.state,
       gameOver: s.gameOver,
       gateTex: s.boss2Sprite.texture.key,
@@ -260,19 +279,19 @@ await page.waitForTimeout(1500);
     };
   });
 
-  ok('6. investida alinhada quebra na ordem MID → GROUND → HIGH → MID',
-    r.meio1.layer === 1 && r.meio1.tex === 'boss2-gate-3' &&
-    r.chao.layer === 2 && r.chao.tex === 'boss2-gate-2' &&
-    r.alto.layer === 3 && r.alto.tex === 'boss2-gate-1' &&
-    r.meio2.layer === 4,
-    `${r.meio1.layer}/${r.meio1.tex} → ${r.chao.layer}/${r.chao.tex} → ${r.alto.layer}/${r.alto.tex} → ${r.meio2.layer}`);
+  ok('6. investida alinhada quebra na ordem HIGH → GROUND → MID → HIGH',
+    r.alto1.layer === 1 && r.alto1.tex === 'muralha-gate-3' &&
+    r.chao.layer === 2 && r.chao.tex === 'muralha-gate-2' &&
+    r.meio.layer === 3 && r.meio.tex === 'muralha-gate-1' &&
+    r.alto2.layer === 4,
+    `${r.alto1.layer}/${r.alto1.tex} → ${r.chao.layer}/${r.chao.tex} → ${r.meio.layer}/${r.meio.tex} → ${r.alto2.layer}`);
 
   // O CONTRASTE com o portão: a 4ª camada NÃO chama crossGate e NÃO encerra
   // a corrida. O bônus ao vivo sobe 4×25 (camadas, SCORE_WEIGHTS.bossLayer)
   // + 150 (vitória, SCORE_WEIGHTS.boss2) = 250 — a MESMA conta que o
   // runBonus recomputa de e >= 4 (guardada em tools/test-score.mjs).
   ok('7. a 4ª camada derruba a barricada SEM encerrar a corrida (+250 ao vivo)',
-    r.state === 'defeated' && !r.gameOver && r.gateTex === 'boss2-gate-broken' &&
+    r.state === 'defeated' && !r.gameOver && r.gateTex === 'muralha-gate-broken' &&
     r.layers === 4 && r.bonusDelta === 4 * 25 + 150 && r.vxBack >= 250,
     `state=${r.state} over=${r.gameOver} tex=${r.gateTex} e=${r.layers} Δbonus=${r.bonusDelta} vx=${r.vxBack.toFixed(0)}`);
 
@@ -281,7 +300,7 @@ await page.waitForTimeout(1500);
     `rede=${r.hunterEngaged} follow=${r.camFollowing}`);
 }
 
-// ---------- 8b. Derrotado o Cerco, a fúria libera de novo ----------
+// ---------- 8b. Derrotada a Muralha, a fúria libera de novo ----------
 {
   const r = await page.evaluate(async () => {
     const s = window.game.scene.keys.GameScene;
@@ -332,31 +351,31 @@ await page.waitForTimeout(1500);
       boss2Deaths: deaths.boss2 || 0,
     };
   });
-  ok('9. rede do Capturador mata com causa "boss2" e título de capturado',
-    r.gameOver && r.cause === 'boss2' && /CAPTURADO/.test(r.title) && r.boss2Deaths >= 1,
+  ok('9. tiro do Comandante mata com causa "boss2" e título da Muralha',
+    r.gameOver && r.cause === 'boss2' && /DETIDO NA MURALHA/.test(r.title) && r.boss2Deaths >= 1,
     `cause=${r.cause} title="${r.title}" deaths.boss2=${r.boss2Deaths}`);
 }
 
 // ---------- 10. Enrage: luta arrastada desce UM degrau de cadência ----------
 // currentConfig é pura (tabela por camadas restantes + fightMs), então o
 // assert vale mesmo com a luta já encerrada. def.rifle É a MESMA referência
-// de Constants.BOSS2_NET (sliders do ?debug=1 vivos) — comparar por
-// identidade é comparar com Constants.BOSS2_NET[3].
+// de Constants.BOSS_MURALHA (sliders do ?debug=1 vivos) — comparar por
+// identidade é comparar com Constants.BOSS_MURALHA[3].
 {
   const r = await page.evaluate(() => {
     const s = window.game.scene.keys.GameScene;
     const f = s.boss2Fight;
-    f.fightMs = f.def.enrageMs + 5000; // acima de BOSS2_ENRAGE_MS (45s)
+    f.fightMs = f.def.enrageMs + 5000; // acima de MURALHA_ENRAGE_MS (45s)
     const enraged = f.hunter.currentConfig(4, f.fightMs);
     const calm = f.hunter.currentConfig(4, 1000);
     return {
       enrageMs: f.def.enrageMs,
-      enragedIsStepDown: enraged === f.def.rifle[3], // Constants.BOSS2_NET[3]
+      enragedIsStepDown: enraged === f.def.rifle[3], // Constants.BOSS_MURALHA[3]
       calmIsOwnStep: calm === f.def.rifle[4],        // Constants.BOSS2_NET[4]
       interval: enraged.intervalMs,
     };
   });
-  ok('10. enrage acima de BOSS2_ENRAGE_MS desce para o padrão BOSS2_NET[3]',
+  ok('10. enrage acima de MURALHA_ENRAGE_MS desce para o padrão BOSS_MURALHA[3]',
     r.enrageMs === 45000 && r.enragedIsStepDown && r.calmIsOwnStep,
     `enrageMs=${r.enrageMs} degrau=${r.enragedIsStepDown} calmo=${r.calmIsOwnStep} intervalMs=${r.interval}`);
 }

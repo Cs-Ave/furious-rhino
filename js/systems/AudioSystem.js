@@ -428,6 +428,76 @@ export class AudioSystem {
     n.stop(t + 0.9);
   }
 
+  // ------------------------------------------- v1.8.7 — Estado de Alerta
+
+  // Sting de entrada de distrito: 3 notas no molde do playFuryReady, com
+  // caráter próprio por área — subúrbio grave/lento (a cidade dorme), torres
+  // de vidro médio/brilhante (a manhã do rush) e contenção tensa em terça
+  // menor (a caçada). `n` é o índice do distrito (0..2); fora da faixa cai
+  // na variação mais próxima — a Brecha e a Rodovia não chamam isto.
+  playAreaSting(n) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const V = [
+      { type: 'sine',     gap: 0.22, dur: 0.36, peak: 0.26, notes: [147, 175, 196] },
+      { type: 'triangle', gap: 0.09, dur: 0.18, peak: 0.26, notes: [523, 659, 784] },
+      { type: 'sawtooth', gap: 0.14, dur: 0.26, peak: 0.13, notes: [220, 262, 311] },
+    ];
+    const v = V[Math.max(0, Math.min(V.length - 1, n | 0))];
+    v.notes.forEach((freq, i) => {
+      const off = i * v.gap;
+      const g = this.envGain(this.sfxGain);
+      const o = this.osc(v.type, freq, g);
+      g.gain.linearRampToValueAtTime(v.peak, t + off + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.001, t + off + v.dur);
+      o.start(t + off);
+      o.stop(t + off + v.dur + 0.03);
+    });
+  }
+
+  // Sirene curta do Viaduto do Centro (~0,8s, 2 alternâncias hi-lo): um
+  // presságio, não um alerta — mais curta e mais baixa que qualquer SFX de
+  // perigo real. Rampas curtas entre os degraus para soar sirene, não teremim.
+  playSirenShort() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 2400;
+    const g = this.envGain(this.sfxGain);
+    filter.connect(g);
+    const o = this.osc('sawtooth', 660, filter);
+    [[880, 0.06], [880, 0.2], [660, 0.26], [660, 0.4],
+     [880, 0.46], [880, 0.6], [660, 0.66], [660, 0.78]]
+      .forEach(([f, dt]) => o.frequency.linearRampToValueAtTime(f, t + dt));
+    g.gain.linearRampToValueAtTime(0.2, t + 0.04);
+    g.gain.setValueAtTime(0.2, t + 0.64);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.82);
+    o.start(t);
+    o.stop(t + 0.85);
+  }
+
+  // Klaxon do Checkpoint da Contenção: buzina grave DUPLA — duas rajadas de
+  // um par dissonante de sawtooth detunado (o "bééé-bééé" de barreira).
+  playKlaxon() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    for (const off of [0, 0.34]) {
+      for (const freq of [98, 123.5]) {
+        const g = this.envGain(this.sfxGain);
+        for (const detune of [-7, 7]) {
+          const o = this.osc('sawtooth', freq, g);
+          o.detune.value = detune;
+          o.start(t + off);
+          o.stop(t + off + 0.3);
+        }
+        g.gain.linearRampToValueAtTime(0.15, t + off + 0.02);
+        g.gain.setValueAtTime(0.15, t + off + 0.2);
+        g.gain.exponentialRampToValueAtTime(0.001, t + off + 0.28);
+      }
+    }
+  }
+
   // --------------------------------------------------------------- music
   // Lookahead scheduler ("Tale of Two Clocks"): the interval only schedules;
   // audio timing runs on ctx.currentTime so a busy tab never stutters.

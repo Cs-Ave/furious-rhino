@@ -20,9 +20,15 @@ export class CrackedWall extends Phaser.Physics.Arcade.Sprite {
   }
 
   // Definir o skin ANTES de setCrackHeight/reset: são eles que aplicam a
-  // textura (mesmo padrão do setVariant da rampa)
+  // textura (mesmo padrão do setVariant da rampa).
+  // v1.8.7: a parede é a ÚNICA entidade com família por DISTRITO da cidade
+  // (espinho/torre/rampa seguem binárias ''/-city) — a lista fechada aqui é
+  // a mesma dos wallSkin de Constants.CITY_DISTRICTS; valor fora dela cai no
+  // zoológico, nunca numa textura inexistente.
+  static WALL_SKINS = ['-city', '-suburbio', '-vidro', '-contencao'];
+
   setSkin(skin) {
-    this.skin = skin === '-city' ? '-city' : '';
+    this.skin = CrackedWall.WALL_SKINS.includes(skin) ? skin : '';
   }
 
   setCrackHeight(height) {

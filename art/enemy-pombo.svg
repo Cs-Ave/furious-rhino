@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 34" width="48" height="34">
+  <!-- FURIOUS RHINO - v1.8.7 D1 (suburbio). Pombo-de-Praca GORDO em voo:
+       papo estufado, asa em fase BAIXA. Flat: cinza + cinza-escuro + laranja,
+       contorno. Voa para a DIREITA (o jogo espelha com setFlipX).
+       Hitbox sugerida: 32x20 com offset 8,10 (asa e rabo fora).
+       Par: enemy-pombo-flap.svg (asa em fase ALTA). -->
+  <g transform="scale(1 0.9444)">
+  <!-- rabo em leque -->
+  <path d="M9 18 L0 12 L2 19 L0 25 Z" fill="#59616b" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- corpo GORDO -->
+  <ellipse cx="22" cy="20" rx="15" ry="11" fill="#8a939f" stroke="#17171b" stroke-width="2.4"/>
+  <!-- papo estufado (a gordura do pombo de praca) -->
+  <ellipse cx="31" cy="23" rx="8" ry="7.5" fill="#aab2bc"/>
+  <!-- asa em fase BAIXA -->
+  <path d="M12 20 Q20 30 32 27 Q24 24 20 19 Z" fill="#59616b" stroke="#17171b" stroke-width="2" stroke-linejoin="round"/>
+  <!-- cabeca pequena de pombo -->
+  <circle cx="38" cy="12" r="6.5" fill="#8a939f" stroke="#17171b" stroke-width="2.2"/>
+  <!-- reflexo verde do pescoco (1 pincelada so) -->
+  <path d="M33 16 Q36 19 40 18" fill="none" stroke="#4e8c6a" stroke-width="2.6" stroke-linecap="round"/>
+  <!-- bico e olho -->
+  <path d="M43.5 11 L48 12.5 L43.5 14 Z" fill="#f2a33c" stroke="#17171b" stroke-width="1.4" stroke-linejoin="round"/>
+  <circle cx="39.5" cy="10.5" r="1.8" fill="#17171b"/>
+  <circle cx="40.1" cy="9.9" r="0.6" fill="#ffffff"/>
+  <!-- patinhas recolhidas -->
+  <path d="M20 30 L18 34 M24 31 L23 35" fill="none" stroke="#f2a33c" stroke-width="1.8" stroke-linecap="round"/>
+  </g>
+</svg>

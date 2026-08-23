@@ -56,10 +56,14 @@ const biomePicks = await page.evaluate(async () => {
     const x = i * 8000 + 4000; // centro da faixa (cidade: 44000, pós-portão)
     const picks = new Set();
     for (let n = 0; n < 60; n++) picks.add(s.spawnManager.pickBiomeAnimal(x));
+    // v1.8.7: dentro da cidade o elenco é por DISTRITO (cast da área), não
+    // mais a lista única do bioma — 44000 cai no D1 (Subúrbio)
+    const area = Constants.cityAreaFor ? Constants.cityAreaFor(x) : null;
+    const elenco = (area && area.cast) ? area.cast : Constants.BIOME_ANIMALS[biome];
     out[biome] = {
       picks: [...picks],
-      valid: [...picks].every((t) => Constants.BIOME_ANIMALS[biome].includes(t)),
-      variety: picks.size > 1 || Constants.BIOME_ANIMALS[biome].length === 1,
+      valid: [...picks].every((t) => elenco.includes(t)),
+      variety: picks.size > 1 || elenco.length === 1,
     };
   }
   // voador sob demanda: floresta não tem voador próprio → cai no pássaro
@@ -188,25 +192,30 @@ ok('desabamento: reciclagem limpa crop e pedaço (sem vazamento no pool)',
   !collapse.recycled.cropped && collapse.recycled.piece === null && !collapse.recycled.broken,
   JSON.stringify(collapse.recycled));
 
-// Prédio da cidade (pós-portão): mesma família de contrato, sem depender de
-// atravessar a arena do boss — quebra direta na entidade
+// Prédio da cidade (pós-portão): v1.8.7 — cada DISTRITO tem a sua família
+// de fachada; a quebra direta na entidade prova as três + o crop do toco
 const city = await page.evaluate(() => {
   const s = window.game.scene.keys.GameScene;
-  s.spawnManager.spawnWall(50000, 'high');
-  const w = s.spawnManager.getWallsGroup().children.entries
-    .find((e) => e.active && e.x === 50000);
-  const tex = w.texture.key;
-  const skin = w.skin;
-  w.break();
-  const brokenTex = w.texture.key;
-  const cropped = w.isCropped;
-  w.deactivate();
-  return { tex, skin, brokenTex, cropped };
+  const casos = [[50000, '-suburbio'], [60000, '-vidro'], [76000, '-contencao']];
+  return casos.map(([x, esperado]) => {
+    s.spawnManager.spawnWall(x, 'high');
+    const w = s.spawnManager.getWallsGroup().children.entries
+      .find((e) => e.active && e.x === x);
+    if (!w) return { x, esperado, faltou: true };
+    const tex = w.texture.key;
+    const skin = w.skin;
+    w.break();
+    const brokenTex = w.texture.key;
+    const cropped = w.isCropped;
+    w.deactivate();
+    return { x, esperado, tex, skin, brokenTex, cropped };
+  });
 });
-ok('cidade: parede pós-portão é prédio (-city) e o toco cropa igual',
-  city.skin === '-city' && city.tex === 'cracked-high-city' &&
-  city.brokenTex === 'cracked-high-city-broken' && city.cropped,
-  JSON.stringify(city));
+ok('cidade: parede tem a família do DISTRITO (suburbio/vidro/contencao) e o toco cropa',
+  city.every((c) => !c.faltou && c.skin === c.esperado &&
+    c.tex === `cracked-high${c.esperado}` &&
+    c.brokenTex === `cracked-high${c.esperado}-broken` && c.cropped),
+  JSON.stringify(city.map((c) => `${c.x}:${c.skin || 'FALTOU'}`)));
 
 // ---------- 5. Drenagem reverte a transformação ----------
 const drained = await page.evaluate(async () => {

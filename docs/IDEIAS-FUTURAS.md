@@ -13,6 +13,7 @@
 **Origem:** sessão de planejamento de 16/08/2026 (ver §7, Procedência).
 **Última atualização:** 21/08/2026 — criação a partir do levantamento de 16/08; a **ideia A saiu na v1.8.4** no mesmo dia, e as **ideias B, C e D saíram juntas na v1.8.5**, também no mesmo dia.
 **22/08/2026** — entra a ideia **I. Arena de Desafios** (desafios 1v1 e em grupo), desenhada com o dono — **e entregue na v1.8.6 no mesmo dia**.
+**22/08/2026** — entra também a ideia **J. Estado de Alerta** (a cidade em três distritos, boss novo aos 2000 m), desenhada com o dono em sessão de painel criativo.
 
 ---
 
@@ -467,7 +468,7 @@ via WhatsApp — aquisição); a **Arena de Desafios** é entre quem **já joga*
 (retenção). Convivem, e G pode virar a porta de entrada da arena: aceitou o
 desafio por link → cadastrou o apelido → é desafiável na arena.
 
-### H. Faixas novas no funil do `/?stats` 📐 — a mais barata da lista
+### H. Faixas novas no funil do `/?stats` ✅ **v1.8.7** — saiu de carona no Estado de Alerta
 
 Hoje o funil do painel termina em "1000m+" (`StatsDashboard.js:362` e `:533`).
 Parametrizar as faixas e acrescentar 1.400 / 2.000 / 3.000 / 5.000 m.
@@ -587,6 +588,282 @@ estar em produção (a métrica é pontos). Nada mais.
 3. Teto de desafios ativos simultâneos por jogador (sugestão: 3)?
 4. Fuso: `endAt` em epoch UTC resolve; exibição sempre local.
 
+### J. Estado de Alerta — a cidade em três distritos (1001–2200 m) ✅ **v1.8.7**
+
+*(desenhada em 22/08/2026, em sessão de painel criativo com 3 visões concorrentes
+julgadas por 3 lentes + crítico; visão vencedora "A Cidade Acorda" com enxertos
+das demais. Decisões do dono no mesmo dia: boss dos 2000 m é INÉDITO, O Cerco
+será realocado; 2000–2200 é saída triunfal; o deserto nasce depois dos 2200.)*
+
+> ✅ **ENTREGUE em 22/08/2026 (v1.8.7)** — no mesmo dia do desenho. A descrição
+> do que o jogo faz mora no `GAME_DESIGN.md` ("Estado de Alerta"); contrato
+> técnico em `docs/04` §8/§11. Decisões fechadas na implementação: Cerco
+> declarado SEM âncora (CERCO_NET/CERCO_LAYERS aguardam o funil), `e`/`h`
+> herdadas pela Muralha, Pipa sozinha no D2, K9 = projétil reskinado, medalhas
+> re-batizadas ("Sombra do Subúrbio", "Manhã de Pânico" — veto do dono no
+> review). ⚠️ Correção histórica: a linha abaixo sobre "precedente B/C
+> declarados na v1.8.4" NÃO é sustentada pelo git — declaração e wiring dos
+> bosses foram no MESMO commit da v1.8.5; o Cerco realocado é o primeiro caso
+> real de "declarado sem wiring". O texto original segue como registro.
+
+**O que é.** A cidade deixa de ser um skin infinito e vira um antagonista com
+arco: **dorme, acorda, caça**. Três distritos de 400 m (1001–1400, 1401–1800,
+1801–2200) com portais físicos bem marcados (a gramática do zoológico), parede
+de prédio, parallax, armadilha e elenco próprios por distrito — cobrindo os 5
+arquétipos pedidos (rasteiro, voador, pulador, voador em zig-zag, atirador) —,
+um **boss novo aos 2000 m ("A Muralha")**, a **Brecha** (2000–2200, a volta
+olímpica de quem venceu) e o **Pórtico da Rodovia** aos 2200 m, onde
+conceitualmente começa o deserto (esboço no fim desta entrada).
+
+**O dado que motiva.** §4.3: depois do portão a dificuldade é plana e não há
+marco nenhum — e §2.2 mostra que é ali que todo mundo está: das 61 corridas
+pós-portão da janela, a **mediana morre aos 1.224 m** (dentro do 1º distrito),
+o p90 é 2.336 m, só 3% passam de 1.400 m e 1% de 2.000 m. §4.4: o boss do
+portão virou pedágio (41/48 lutas full-clear, mediana 4 s) — o segundo boss
+precisa ser clímax percebido, não outra formalidade. Esta ideia gasta o
+conteúdo exatamente na faixa onde os jogadores reais estão.
+
+**O fio: narrativa escrita com a luz que o jogo JÁ tem.** Zero mudança nas
+âncoras de céu — a aritmética foi conferida no código (`skyPhase`,
+`GameScene.js:1925-1941`: noite fecha aos 1450 m, depois quartos de 150 m):
+
+- **D1 (1001–1400) na noite** — o rino irrompe do portão na tempestade já
+  roteirizada (faixa 5 do `WEATHER_SCRIPT`); o subúrbio dorme.
+- **D2 (1401–1800) amanhece** — o primeiro amanhecer do ciclo cai aos 1450 m:
+  **a cidade acorda literalmente com o sol**, e com ela o pânico (manhã do rush,
+  telões "PROCURADO").
+- **D3 (1801–2200) escurece de novo** — entardecer aos 1750, anoitecer em
+  1900–2050: **a luta contra a Muralha acontece no escuro, sob holofotes**; a
+  Brecha (2050–2200) amanhece na saída. Dramaturgia completa de graça.
+
+**Distrito 1 — 1001–1400 m: 🌙 SUBÚRBIO SONOLENTO.** Comércio fechado,
+madrugada, indiferença — a cidade ainda não sabe quem ele é. Paleta: tijolo
+`0x6e4a3a`, zinco `0x8a939f`, neon de padaria `0xffb066`, asfalto molhado.
+Parede quebrável (família nova `-suburbio`): sobrado de comércio com toldos;
+coroamentos por altura de fresta (mesmo truque das torres atuais): caixa-d'água
+(ground), letreiro "PADARIA" que acende ao quebrar (mid), antena de TV (high).
+Parallax: telhados baixos + fiação no far; bancas fechadas, orelhão e lixeiras
+no near; `bg-cars` quase vazio. Som: latido distante, UMA sirene no fim do
+distrito (presságio). Leitura de perigo: **no chão** (pedagogia abaixo).
+
+**Distrito 2 — 1401–1800 m: 📡 O DESPERTAR.** Manhã do rush em pânico:
+noticiário ao vivo, telões com a silhueta do rino e "PROCURADO", drones de
+plantão. Paleta: vidro `0x55617a`/`0x7a8ba8`, LED vermelho `0xff4a5e` e ciano
+`0x4ad1ff`. Parede: família nova "Torre de Vidro" com faixa de telão — gerada
+pelo `drawFacade` **paramétrico** (abaixo), não um retoque da `-city` atual.
+Parallax: skyline com telões e guindaste; vitrines e multidão em silhueta
+fugindo no near; `bg-cars` engarrafado. Leitura de perigo: **meia altura**.
+
+**Distrito 3 — 1801–2200 m: 🚨 ZONA DE CONTENÇÃO.** A cidade te estudou:
+operação total, na paleta `urban` que o jogo já usa em barricada (concreto
+`0x59616b` + amarelo/preto `0xffd24a`/`0x1f2531`). Parede: "Bloco de Contenção"
+— prédio público com tapumes e faixa de perigo; coroamentos: holofote aceso,
+ninho de vigia, mastro de alerta. Parallax: skyline apagado com **feixes de
+holofote varrendo** (camada atmosférica, jamais gameplay) — eles são o *teaser*
+do boss, visíveis desde 1801 m e convergindo para a barricada na arena
+(enxerto da visão "Cartão-Postal": o boss como landmark que o jogador vê
+chegar). Leitura de perigo: **o céu**.
+
+**A espinha pedagógica (enxerto da visão "Verticalidade").** Cada distrito
+ensina uma banda de leitura — D1 o chão (rasteiros/puladores), D2 a meia altura
+(zig-zag, atirador terrestre), D3 o céu (drones, atirador voador) — e a Muralha
+é o exame: abre a luta com camada `high`. O arco narrativo e a curva de
+aprendizado são a mesma coisa.
+
+**Portais (a transição "bem clara").** Mesmo vocabulário do zoológico
+(`switchBiome` + `createSectorArches` + toast + crossfade de 500 ms + whoosh),
+amplificado com o **kit de identidade por distrito**: flash de tela COLORIDO
+(âmbar/ciano/vermelho em vez do branco fixo) + sting Web Audio de 3 notas com
+variação por área (~30 linhas). Os marcos físicos: **1400 m — "VIADUTO DO
+CENTRO"** (viaduto de concreto, semáforo que fecha na passagem, sirene curta);
+**1800 m — "CHECKPOINT DA CONTENÇÃO"** (duas viaturas empilhadas, holofotes
+cruzados em X, strobe azul/vermelho, klaxon); **2200 m — "PÓRTICO DA RODOVIA —
+KM 0"** (fanfarra curta). Cada portal reserva **±300 px sem spawn**, entrando
+como dado na `inNoSpawnZone()` (a R6 já é tabela). Nota de implementação:
+`createSectorArches` hoje só planta arcos em `i×8000` — generaliza para uma
+tabela de marcos.
+
+**Arquitetura (o ponto que evita a armadilha).** NADA toca `getBiomeIndex` /
+`getTierIndex` / `weatherFor` — a régua de 8000 px continua mandando em tier e
+clima. Entra uma tabela `CITY_DISTRICTS` (`from`, `key`, skins, elenco, pesos)
+com `getCityAreaIndex(x)` puro, consultada só por visual + spawn, e um
+`switchArea` gêmeo do `switchBiome`. Os 4 ternários binários de skin do
+`SpawnManager` (:290/:329/:359/:457) viram um `Constants.skinFor(x)` central —
+o débito de extensão pago uma vez só.
+
+**Elenco por distrito.** Contrato binário intacto: **sem HP** — contato mata o
+rino, dash/fúria mata o inimigo em 1 toque; todos pontuam `animal` (+3) e
+matam pela causa `animal`/`dart` existentes. Dois padrões de movimento novos no
+`Animal`: `zig` (onda triangular: `vy = ±const` com flip por timer e clamp na
+banda — substitui o bob senoidal de ±12 px; **LED/detalhe pisca na inversão** =
+telegraph do zag) e `shoot` (reusa `fireDart`, telegraph e `onDartHit` prontos).
+
+| Inimigo novo | Dist. | Arquétipo | Comportamento (números) | Arte |
+|---|---|---|---|---|
+| Vira-Lata | D1 | rasteiro | speed 170 | caramelo magro, 2 frames |
+| Gato de Beco | D1 | pulador | 140, jumpV −700, intervalo 450 ms, airTexture | preto, olhos amarelos |
+| Pombo-de-Praça | D1 | voador ALTO | 170, bob 50, fly [440,520] — D1 alivia, rasante não entra aqui | pombo gordo, flap |
+| Repórter Afobada | D1–D2 | rasteiro | 150, microfone fora da hitbox | blazer vermelho |
+| Pipa Cortante | D2 | **voador zig-zag** | 170, zig ±260 px/s, banda [400,545]; rabiola gira no frame 2 (telegraph diegético) | losango vermelho + rabiola — barata e memorável (enxerto unânime dos juízes) |
+| Helicóptero de Notícias | D2 | voador alto | 280, bob 25, fly [320,400], scale 1.2 | bolha de vidro + rotor 12 fps |
+| Camionete do Capturador | D2–D3 | **ATIRADOR terrestre** | 210, scale 1.25; 1 dardo quando dist ∈ [700,900] px, telegraph 280 ms (farol pisca), dartSpeed **620** (t6−80); **cap de 1 em tela**; derrubada no dash **devolve o dash** (paridade com torre) | v1: **zero SVG novo** — upgrade do `enemy-pickup` + flash de cano procedural; paga o débito declarado em `Constants.js:385-387` |
+| K9 de Choque | D2–D3 | pulador | 150, jumpV −760, intervalo 400 ms | pastor com colete "K9" |
+| Tropa de Escudos | D3 | rasteiro lento | 90, hitbox 34×56, nasce SEMPRE em par (offset 300) | silhueta de escudo |
+| Drone de Choque | D3 | **voador zig-zag** | 200, zig ±300, banda [370,555] | recolor preto/vermelho de um drone-base |
+| Drone-Sentinela | D3 | **ATIRADOR voador** | 140, paira em fly [360,430]; a cada 1400 ms: laser-telegraph 320 ms → tiro mirado 700 px/s; derrubado = **+15 contabilizado como torre, letra `o`** (`towersDowned` — NUNCA `t`, que é o timestamp de `runs[]`) e devolve o dash | quadricóptero com holofote ventral |
+
+Redistribuição do elenco legado por distrito (conserta o pico injustificado de
+hoje — o `plane` a 580 px/s efetivos servido aos 1050 m, dentro da mediana de
+morte): `person`/`suit`/`scooter` → D1; `car`/`police`/`drone` → D2;
+`plane`/`pickup` → D3. Cobertura dos arquétipos: rasteiro ✓ voador ✓ pulador ✓
+zig-zag ✓ atirador ✓ (terrestre E aéreo).
+
+**Armadilhas novas** (uma entidade só: `TimedHazard` — corpo estático com
+`body.enable` por timer; zero física móvel, zero conflito com o FurySystem):
+
+- **D1 — Caçamba de Entulho:** bloco 100×64 no chão — a primeira barreira
+  BAIXA do jogo: pulável OU destrutível no dash (+5, conta e mata como `wall`).
+  Ensina que nem toda parede é full-height.
+- **D2 — Hidrante Rompido:** coluna d'água 48×220; ciclo 900 ms off / 600 ms
+  on; borbulha no chão 400 ms antes (telegraph). Letal só no ON (causa
+  `spike`); não pontua. Contrajogo: timing puro — respeita os 39% de investidas
+  negadas (§2.6): não exige dash em janela.
+- **D3 — Arco Voltaico:** arco elétrico entre 2 postes na faixa AÉREA
+  (y 400–500, vão 140 px); pulso 600 on / 900 off, brilho crescente 300 ms
+  antes. **O chão fica livre — armadilha anti-pulo**: inverte o reflexo
+  treinado por 1800 m.
+
+**O boss novo dos 2000 m: 🚧 A MURALHA (Operação Muralha).** Decisão do dono:
+inédito, não retema. Barricada de viaturas empilhadas atravessando o viaduto +
+**torre de holofote** com o Comandante no ninho. Usa o `BossFight` paramétrico
+da v1.8.5 (uma `def` nova — âncora herda os 80000 px): **4 camadas abrindo no
+alto** `['high','ground','mid','high']` (o exame da lição do D3; ordem própria,
+diferente do Cerco), tabela de tiro própria `BOSS_MURALHA` com o arsenal da
+cidade: rajadas de dardos (burst), **granada-de-luz em morteiro cujo telegraph
+é o próprio holofote varrendo até a zona de pouso** (diegético — o jogador lê a
+luz, não um glow abstrato) e **K9 rasante** anti-camping (um cão de choque
+cruza a arena rente ao chão — mesma engine do rasante, sprite próprio). Enrage
+suave aos 45 s (filosofia da casa: desce UM degrau de cadência, nunca muro de
+morte). **Vitória:** a barricada desaba para a ESQUERDA (padrão v1.8), os
+holofotes apagam um a um, o helicóptero foge — e a Brecha amanhece pelo ciclo
+de céu vigente (aritmética conferida: anoitecer 1900–2050, amanhecer
+2050–2200). **Derrota:** herda a causa `boss2` (posição dos 2000 m — a série
+histórica do funil continua contínua). Pontos: herda `boss2: 150` +
+`bossLayer` 25/camada (agregado, já é assim). Inegociáveis de boss mantidos +
+um novo: **atiradores vivos são silenciados/despawnados no `startFight`**
+(hoje `inNoSpawnZone` só bloqueia spawn novo — uma camionete nascida aos
+1960 m atiraria durante a intro, sobrepondo telegraphs).
+
+**O destino do Cerco (realocado, decisão do dono).** O Cerco vira **o porteiro
+do deserto**: âncora proposta 120000 px (3000 m), mecânica 100% intacta
+(`BOSS2_NET`, camadas, enrage). A tabela de descartadas já condiciona "3º boss
+aos 3000 m" a **dado que justifique** — a realocação respeita o gatilho: o
+Cerco fica **DECLARADO sem wiring** (precedente da própria casa: B e C ficaram
+declarados na v1.8.4) até o funil novo (ideia H) mostrar massa de corridas
+pós-2000. A medalha `boss2_win` ("Fura-Bloqueio") **segue com o Cerco** — id
+imutável, desc atualizada quando ele reabrir; a Muralha ganha medalha nova
+`city_boss_win` (append-only, permitido).
+
+**A Brecha (2000–2200 m).** O `resumeX` já segura spawns até ~2025 m; de 2025
+a 2200 o pool do distrito vira **só rampas `jump` + pombos** — volta olímpica
+com airtime, o amanhecer nascendo, a cidade ficando para trás. Aos 2200 m, o
+Pórtico da Rodovia fecha a fase.
+
+**Pós-2200: o deserto (esboço 💡 — design detalhado é outra ideia).** O
+pórtico é a fronteira conceitual; **visualmente, o backdrop `cidade` atual
+assume o infinito sem nenhuma arte nova** (é exatamente o que o jogo já faz).
+Quando a ideia do deserto for puxada: paleta de madrugada árida na saída da
+cidade, o Cerco reaberto aos 3000 m como porteiro, e o funil H decidindo os
+marcos. Nada disso é promessa desta entrada.
+
+**Clima.** `WEATHER_SCRIPT` estende de 8 para 11 faixas: 1600–1800 `chuva`
+(chuva do rush, legível), 1800–2000 **`limpo` roteirizado** — no corredor
+pré-boss a neblina sorteada de 34% de alpha por cima de holofotes e telegraphs
+seria ilegível —, 2000–2200 `limpo` (a Brecha).
+
+**Medalhas.** Ids imutáveis, textos mutáveis (precedente registrado da v1.6 no
+próprio `MedalSystem.js`): `dist_1200` "Lenda do Zoológico" e `dist_1600`
+"Fora de Órbita" são **re-batizadas** no vocabulário dos distritos (ex.:
+"Sombra do Subúrbio", "Manhã de Pânico"); entram `dist_1400` e `dist_1800`
+(um marco por portal), `dist_2200` "🛣️ Atravessou a Cidade" e `city_boss_win`.
+
+**Curva de dificuldade e metas.** O tier 6 global não muda; os distritos
+modulam **pesos** (override por área): D1 = consolidação — `towerW 0.24→0.16`
+(a sobra vira rasteiro: mesma pressão, leitura mais baixa e honesta, onde a
+mediana de 1.224 m morre); D2 = lições novas entram ISOLADAS (Pipa sozinha
+antes de combinar; Camionete estreia sem escolta); D3 = teto real (combos de
+3 bandas + atiradores). **Pré-requisito de medição: puxar a ideia H antes**
+(funil 1400/2000/3000/5000). Metas para julgar a fase depois de 4 semanas em
+campo: mediana das corridas pós-portão **1.224 → ≥ 1.500 m**; corridas ≥
+1.400 m **3% → 6%**; chegada ao boss (≥ 2.000 m) **1% → 3%**; mortes por
+`boss2` > 6 (a Muralha não pode ser outro pedágio de 4 s).
+
+**Integração.** *Fúria:* 2ª carga enche ~1900 m — convite a gastar no corredor
+pré-boss; bloqueio na arena mantido; rampage pulveriza drones, camionete e
+hazards. *Rampas:* contrato de terreno intacto; skins por distrito. *Pontuação:*
+**zero letra nova, zero causa nova, zero peso novo** (`i`/`u`/`y` preservadas
+para E/F/G; Drone-Sentinela usa `o`, Muralha herda `boss2`) — Spearman 0,993 e
+asserts do `test-score` ilesos. *Campanha:* os distritos mapeiam 1:1 nos
+capítulos "A Cidade é Sua" da ideia E. *Skins:* nenhuma nova (precedente do
+dono na v1.8.5). *Firestore:* **nenhum campo novo, rules intocadas**.
+
+**Produção (o truque que barateia tudo — enxerto do "Cartão-Postal"):**
+`drawFacade` vira **paramétrico por paleta** — um pintor só gera as 3 famílias
+de fachada (~18 chaves de textura). Conta: 8 rigs SVG novos ×2 frames + 2
+recolors ≈ **18 arquivos** (~⅓ do commit v1.7, que fez 49); backdrops far/near
+×3 distritos + arena; 3 portais; 3 texturas de hazard; arte da Muralha
+(`generateArmoredSet` paramétrico da R7 + torre de holofote + rig do
+Comandante derivado do hunter). Pools **no boot**: `darts 16→24` (torres t6 a
+520 ms + camionete + drone + boss dividem o pool — `fireDart` falha EM
+SILÊNCIO se lotar; risco nº 1) e `animals 16→20` (pares da Tropa). Código:
+`CITY_DISTRICTS`/`getCityAreaIndex`/`switchArea`/`skinFor`, `zig` (~12 l) e
+`shoot` (~30 l) no `Animal`, `TimedHazard` (~120 l), def da Muralha, 3 sons
+novos. **Fatiável em 3 entregas jogáveis:** (1) motor de distritos + D1 +
+portais, (2) D2 + zig/atirador + redistribuição do legado, (3) D3 + Muralha +
+Brecha + Cerco declarado-realocado.
+
+**Custo** G (a régua: elenco v1.7 = G; cada fatia ≈ M) · **Impacto** alto —
+ataca §4.3 na faixa onde 51/61 corridas pós-portão terminam e dá o "próximo
+objetivo" que falta a quem venceu o portão (§4.1) · **Depende de** nada
+(ideia H recomendada ANTES, para calibrar com número em vez de palpite) ·
+**Quebra:** `test-special` (sorteio de espécies), `e2e-boss2` (âncora/def do
+Cerco), `sw.js` (+~18 ASSETS + bump de CACHE), TuningPanel (coleções novas
+com slider entram em `baseline` E `exportTuning` — contrato escrito).
+
+**Armadilhas:**
+- **Pool de dardos é a falha silenciosa nº 1** — orçar por cenário de pico
+  (torre dupla t6 + camionete + drone + boss) antes de fechar números; e
+  `clearTint` obrigatório no reuso (precedente do dardo dourado de boss, §6.7).
+- **Atirador vivo na intro de boss**: `inNoSpawnZone` não limpa a tela —
+  silenciar/despawnar no `startFight` é parte da def, não polish.
+- **Zig-zag e o contrato de spawn**: voadores de escolta/combo nascem em
+  y FIXO 470 — toda banda de zig precisa CONTER o y de spawn (ou o spawn usa o
+  centro da banda), senão o 1º frame é um mergulho não telegrafado. Simular o
+  fechamento (speed×2.0 + 450 do rino) antes de cravar velocidades.
+- **`fillGradientStyle` proibido** (SwiftShader); reflexos/luzes = retângulos
+  alpha; tiles de 640 px com emenda ±640; props acima de `FAR_BASE 336`; tint
+  atmosférico jamais em textura de gameplay; `setScale` multiplica offset de
+  body (offX pré-espelhado nos specs novos).
+- **A régua-mestra continua 200 m**: dentro de um distrito de 400 m o clima
+  pode virar na fronteira interna (1200/1600/2000) — o roteiro estendido cobre;
+  qualquer faixa não roteirizada volta ao hash.
+
+**Decisões em aberto (para a hora de puxar):**
+1. Âncora da realocação do Cerco: 3000 m (recomendado, condicionado ao funil
+   H) ou guardar sem âncora até o dado chegar?
+2. Telemetria da Muralha: herdar `e`/`h` (camadas/segundos do boss dos 2000 m
+   — recomendado: a série do funil continua) ou sacrificá-las e deixar o
+   Cerco realocado com elas?
+3. Causa de morte do Cerco reaberto: nova causa `cerco` (cabe no teto 15 já
+   consolidado no §6) ou compartilhar `boss2` aceitando ambiguidade no mapa
+   `deaths`?
+4. Zig-zag do D2: Pipa Cortante sozinha (recomendado — mais barata e
+   memorável) ou Pipa + Drone do Plantão?
+5. K9 rasante da Muralha: projétil reskinado (recomendado) ou entidade
+   `Animal` reaproveitada?
+6. Re-batismo das medalhas dissonantes (`dist_1200`, `dist_1600`): nomes
+   finais com o dono.
+
 ### Descartadas / adiadas (com o motivo, para não voltarem por engano)
 
 | Ideia | Por que não |
@@ -639,7 +916,7 @@ levantamento recomendou (barato e destravante primeiro):
 
 | Ordem | Ideia | Custo | Impacto |
 |---|---|---|---|
-| 1 | **H** — faixas do funil no `/?stats` | XS | ainda vale: agora mede o Cerco em campo |
+| ~~1~~ | ~~**H** — faixas do funil~~ | — | ✅ **entregue na v1.8.7** (marcos da cidade rotulados) |
 | 2 | **F** — streaks | XS | retenção |
 | ~~3~~ | ~~**D** — refactors do BossFight~~ | — | ✅ **entregue na v1.8.5** |
 | ~~4~~ | ~~**B** — boss "O Cerco"~~ | — | ✅ **entregue na v1.8.5** |
@@ -648,6 +925,7 @@ levantamento recomendou (barato e destravante primeiro):
 | ~~7~~ | ~~**A** — pontuação composta~~ | — | ✅ **entregue na v1.8.4** |
 | ~~8~~ | ~~**C** — boss "Guardião do Fim"~~ | — | ✅ **entregue na v1.8.5** |
 | ~~9~~ | ~~**I** — Arena de Desafios~~ | — | ✅ **entregue na v1.8.6** |
+| 10 | **J** — Estado de Alerta (cidade em 3 distritos) | G (fatiável em 3×M) | conteúdo: preenche o §4.3 exatamente onde a mediana pós-fuga morre |
 
 Nada obriga a essa ordem — A e G são independentes de tudo e podem furar a fila
 a qualquer momento.

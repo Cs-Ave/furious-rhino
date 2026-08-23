@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 48" width="110" height="48">
+  <!-- FURIOUS RHINO - v1.8.7 D2. Helicoptero de noticias, frame 2 do rotor:
+       pa no angulo OPOSTO + borrao translucido de giro, rotor de cauda
+       cruzado e a luz vermelha APAGADA (pisca); resto identico. -->
+  <g transform="scale(0.9167 1)">
+  <circle cx="10" cy="20" r="7" fill="none" stroke="#26262c" stroke-width="2"/>
+  <path d="M5.4 15.4 L14.6 24.6 M5.4 24.6 L14.6 15.4" stroke="#26262c" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M14 22 L58 26 L58 34 L18 28 Z" fill="#2e4a6b" stroke="#17171b" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M16 24 L54 28" fill="none" stroke="#4a6a94" stroke-width="2" stroke-linecap="round"/>
+  <path d="M14 22 L8 12 L18 16 Z" fill="#2e4a6b" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- rotor: borrao + pa no angulo oposto -->
+  <rect x="76" y="8" width="5" height="8" fill="#26262c"/>
+  <ellipse cx="78.5" cy="8" rx="42" ry="2.4" fill="#cfd3db" opacity="0.35"/>
+  <g transform="rotate(-9 78.5 8)">
+    <rect x="38" y="6" width="81" height="4" rx="2" fill="#26262c" stroke="#17171b" stroke-width="1.2"/>
+  </g>
+  <circle cx="78.5" cy="8" r="3" fill="#59616b" stroke="#17171b" stroke-width="1.4"/>
+  <path d="M56 30 Q56 14 76 14 Q98 14 100 26 Q101 38 84 40 Q60 41 56 30 Z" fill="#2e4a6b" stroke="#17171b" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M78 16 Q96 16 98 26 Q98 34 86 36 Q78 36 76 34 Z" fill="#9ad7ef" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M92 18 Q97 21 97 26" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+  <circle cx="84" cy="26" r="4.6" fill="#e0b088" stroke="#17171b" stroke-width="1.4"/>
+  <path d="M79.5 24 Q84 20.5 88.5 24 L88.5 26 Q84 23.5 79.5 26 Z" fill="#26262c" stroke="#17171b" stroke-width="1"/>
+  <circle cx="86" cy="26" r="1.2" fill="#17171b"/>
+  <circle cx="66" cy="27" r="6.5" fill="#d6453c" stroke="#17171b" stroke-width="1.6"/>
+  <path d="M63 24 L63 30 L66 27 L69 30 L69 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="74" y="40" width="4" height="4" fill="#26262c"/>
+  <circle cx="76" cy="46" r="4" fill="#26262c" stroke="#17171b" stroke-width="1.4"/>
+  <circle cx="74.5" cy="46.5" r="1.8" fill="#4ad1ff"/>
+  <path d="M62 38 L62 43 M90 38 L90 43" stroke="#26262c" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M56 43.5 L98 43.5" stroke="#26262c" stroke-width="2.6" stroke-linecap="round"/>
+  <circle cx="99" cy="21" r="2.2" fill="#5a2830"/>
+  </g>
+</svg>

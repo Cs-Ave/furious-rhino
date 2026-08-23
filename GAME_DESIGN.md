@@ -1,6 +1,6 @@
 # FURIOUS RHINO — Documento de Design
 
-> Estado atual do jogo (v1.8.6). Este documento descreve o que **é**, não o que
+> Estado atual do jogo (v1.8.7). Este documento descreve o que **é**, não o que
 > se imaginou no começo — as decisões de v1.1 em diante estão registradas aqui
 > com o motivo, e várias delas foram tomadas a partir dos dados reais de
 > telemetria (ver "Decisões orientadas por dados" no fim).
@@ -283,6 +283,44 @@ linha de código):
 - O contrato técnico da tela não mudou: o overlay inteiro inicia a corrida ao
   toque, e todo botão isola o toque (`stopPropagation`) — trancado por teste.
 
+## 🏙️ Estado de Alerta (v1.8.7) — a cidade em três distritos
+
+A cidade era um skin infinito: depois do portão, dificuldade plana e nenhum
+marco — e é ali que os jogadores estão (mediana pós-portão morria aos 1.224 m).
+Agora ela é um antagonista com arco: **dorme, acorda, caça**.
+
+- **Três distritos de 400 m**, cada um com fachada, paleta, parallax, elenco e
+  armadilha próprios — e uma banda de leitura para ensinar: D1 (Subúrbio
+  Sonolento, 1001–1400 m) ensina o CHÃO (rasteiros, puladores, caçamba);
+  D2 (o Despertar, 1401–1800 m) a MEIA ALTURA (Pipa em zig-zag, camionete
+  atiradora, hidrante); D3 (Zona de Contenção, 1801–2200 m) o CÉU (drones,
+  atirador voador, arco voltaico — a armadilha anti-pulo que inverte o reflexo
+  treinado por 1800 m). A narrativa é escrita com a luz que o jogo já tinha:
+  a noite fecha aos 1450 m, o D2 amanhece com a cidade acordando, e a luta da
+  Muralha acontece no escuro sob holofotes — zero mudança nas âncoras de céu.
+- **Portais físicos** (Viaduto 1400 · Checkpoint 1800 · Pórtico da Rodovia
+  2200) com flash colorido, sting próprio e ±300 px sem spawn — a gramática de
+  transição do zoológico, amplificada.
+- **A MURALHA (2000 m)**: barricada de viaturas + Comandante na torre de
+  holofote. Quatro camadas abrindo NO ALTO (o exame da lição do D3), granada-
+  de-luz cujo telegraph é o próprio holofote varrendo até a zona de pouso
+  (diegético — lê-se a luz, não um glow abstrato), K9 rasante anti-camping e
+  enrage suave aos 45 s. O startFight SILENCIA atiradores vivos na arena —
+  regra nova de boss, aprendida no desenho. Vitória abre a **Brecha**
+  (2000–2200: só rampas e pombos, o amanhecer, a volta olímpica) até o
+  Pórtico. A Muralha herda a série de dados do slot dos 2000 m (causa `boss2`,
+  letras `e`/`h`) — o funil continua contínuo.
+- **O Cerco foi realocado**: vira o porteiro do deserto (âncora futura ~3000 m,
+  quando o funil mostrar massa pós-2000). As tabelas dele seguem declaradas
+  sem luta ligada; a medalha "Fura-Bloqueio" dorme com ele.
+- **Curva por distrito sem tocar o tier global**: os distritos só modulam
+  PESOS da roleta (D1 alivia torre e devolve a sobra ao rasteiro — mesma
+  pressão, leitura mais honesta onde a mediana morria). Contrato binário
+  intacto: sem HP, contato mata, dash mata em 1 toque.
+- **Metas registradas** (medidas pelo funil novo): mediana pós-portão
+  1.224 → ≥1.500 m; corridas ≥1.400 m de 3% → 6%; chegada aos 2.000 m de
+  1% → 3%; a Muralha NÃO pode ser outro pedágio de 4 s.
+
 ## 🏆 Pontuação composta (v1.8.4) — o ranking deixa de ser só distância
 
 Até a v1.8.3, `score` **era** a distância: quem corria 1.000 m tinha 1.000 no
@@ -496,6 +534,8 @@ Leitura de 48 jogadores, 981 tentativas, 512 corridas e 945 mortes da v1.5:
 | A habilidade não valia nada: o ranking media só distância, enquanto os contadores de parede/torre/animal/camada dormiam em `runs[]` há meses. Simulação sobre as **895 corridas reais**: bônus com p95 de 13,7% do total e Spearman metros × total de **0,993** — dá para premiar façanha sem virar outro jogo. | **Pontuação composta** (v1.8.4): `score` vira metros + bônus, `scoreM` guarda os metros, teto `bônus ≤ metros`. Nada foi recalculado — doc antigo é total de bônus zero, e a ausência de `scoreM` é a marca de versão. |
 | A abertura roteirizada nasceu de um dado real (83 de 512 corridas morriam aos 34 m antes da v1.6), mas era aplicada a todo mundo: **os primeiros 190 m não geravam um único animal**, em toda tentativa, para todo jogador — inclusive quem já tinha 500 corridas. | A lição passou a valer só abaixo de 3 tentativas (a régua que já desligava as dicas). Veterano recebe a roleta aos 60 m, com par e escolta. Efeito medido em teste: 1º obstáculo aos 55 m e **29 animais dentro dos 200 m**, contra zero. |
 | **O deserto de 2.000–10.000 m**: dificuldade plana pós-portão e nenhum marco até a LENDA — só 10 corridas da janela passaram de 2.000 m, e o funil mostrou a massa de mortes parando antes (§2.2 das IDEIAS-FUTURAS). O portão, único chefe, tinha virado pedágio (41 de 48 lutas vencidas, mediana de 4 s). | **Dois bosses novos (v1.8.5)**: O Cerco aos 2.000 m (âncora colada na medalha "Inalcançável") e o Guardião do Fim aos 9.995 m (a LENDA vira vitória, não chegada). Variações deliberadas sobre a espinha do portão — ordem não monótona, leque, rasante, enrage suave — para exigir leitura, não memória. |
+
+| O boss do portão virou pedágio (41/48 lutas full-clear, mediana de 4 s) e o deserto pós-portão não tinha um único marco — 51 das 61 corridas pós-portão morriam antes dos 1.400 m. | **Estado de Alerta** (v1.8.7): a cidade em 3 distritos com curva pedagógica (chão → meia altura → céu), a MURALHA aos 2000 m abrindo pelo alto, e o funil do painel medindo as metas da fase. |
 
 ## 🧪 Testes
 

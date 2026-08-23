@@ -1,6 +1,6 @@
 # Furious Rhino — Arquitetura
 
-> Documentação da versão **1.8.6** · atualizada em 21/08/2026
+> Documentação da versão **1.8.7** · atualizada em 21/08/2026
 > Visão técnica intermediária: como o projeto é organizado, os principais componentes e como eles conversam. Pressupõe noções de programação, mas explica os termos específicos do projeto.
 
 ## 1. Filosofia

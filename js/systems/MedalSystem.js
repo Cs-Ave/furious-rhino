@@ -16,19 +16,26 @@ export const MEDALS = [
   { id: 'escape', emoji: '🗽', name: 'Livre!', desc: 'Escape do zoológico (1000m)', test: (s) => s.won || s.escaped },
   // Deixou de duplicar a fuga: agora é o primeiro marco DENTRO da cidade
   { id: 'dist_1000', emoji: '🌠', name: 'Na Cidade', desc: 'Corra 1100m — 100m de cidade', test: (s) => s.distance >= 1100 },
-  { id: 'dist_1200', emoji: '👑', name: 'Lenda do Zoológico', desc: 'Corra 1200m — a dificuldade máxima', test: (s) => s.distance >= 1200 },
-  // A escada parava em 1200m, que 3,5% das corridas já alcançavam. O recorde
-  // absoluto da v1.5 foi 1654m — daí os degraus novos.
-  { id: 'dist_1600', emoji: '🛸', name: 'Fora de Órbita', desc: 'Corra 1600m', test: (s) => s.distance >= 1600 },
-  { id: 'dist_2000', emoji: '🏆', name: 'Inalcançável', desc: 'Corra 2000m', test: (s) => s.distance >= 2000 },
+  // v1.8.7 — os distritos deram nome aos marcos: ids IMUTÁVEIS (Set no
+  // localStorage), textos re-batizados no vocabulário da cidade. Entram os
+  // marcos dos portais (1400/1800) e o fim da fase (2200).
+  { id: 'dist_1200', emoji: '🌙', name: 'Sombra do Subúrbio', desc: 'Corra 1200m — fundo no Subúrbio Sonolento', test: (s) => s.distance >= 1200 },
+  { id: 'dist_1400', emoji: '🚦', name: 'Viaduto do Centro', desc: 'Cruze o viaduto (1400m) — a cidade acorda', test: (s) => s.distance >= 1400 },
+  { id: 'dist_1600', emoji: '📡', name: 'Manhã de Pânico', desc: 'Corra 1600m sob os telões do Despertar', test: (s) => s.distance >= 1600 },
+  { id: 'dist_1800', emoji: '🚨', name: 'Zona de Contenção', desc: 'Passe o checkpoint (1800m) — a cidade te caça', test: (s) => s.distance >= 1800 },
+  { id: 'dist_2000', emoji: '🏆', name: 'Inalcançável', desc: 'Corra 2000m — a Muralha à vista', test: (s) => s.distance >= 2000 },
+  { id: 'dist_2200', emoji: '🛣️', name: 'Atravessou a Cidade', desc: 'Cruze o Pórtico da Rodovia (2200m)', test: (s) => s.distance >= 2200 },
   { id: 'walls_5', emoji: '🧱', name: 'Demolidor', desc: 'Quebre 5 paredes em uma corrida', test: (s) => s.wallsBroken >= 5 },
   { id: 'ramps_3', emoji: '🚜', name: 'Escavadeira', desc: 'Destrua 3 morros em uma corrida', test: (s) => s.rampsSmashed >= 3 },
   { id: 'towers_2', emoji: '⚡', name: 'Torre Abaixo', desc: 'Derrube 2 torres em uma corrida', test: (s) => s.towersDowned >= 2 },
   { id: 'animals_10', emoji: '🦁', name: 'Rolo Compressor', desc: 'Atropele 10 animais (no total)', test: (s) => s.animalsTotal >= 10 },
   { id: 'record_2x', emoji: '🎖️', name: 'Superação', desc: 'Bata seu próprio recorde', test: (s) => s.isNewRecord && s.hadPreviousRecord },
-  // v1.8.5 — os bosses do deserto. boss2Layers/legend chegam do GameScene;
-  // docs velhos de stats não têm os campos, e undefined >= 4 é false: seguro.
-  { id: 'boss2_win', emoji: '🕸️', name: 'Fura-Bloqueio', desc: 'Derrube a barricada do Cerco (2000m)', test: (s) => (s.boss2Layers || 0) >= 4 },
+  // v1.8.7 — a Muralha assumiu o slot dos 2000m (e o contador boss2Layers);
+  // o Cerco foi realocado para o deserto e ainda não tem âncora, então a
+  // medalha dele fica DORMENTE (test => false) até ele reabrir — conceder
+  // Fura-Bloqueio por vencer a Muralha seria a medalha errada. Id imutável.
+  { id: 'boss2_win', emoji: '🕸️', name: 'Fura-Bloqueio', desc: 'Derrube a barricada do Cerco (em breve, no deserto)', test: () => false },
+  { id: 'city_boss_win', emoji: '🧱', name: 'Queda da Muralha', desc: 'Derrube a Operação Muralha (2000m)', test: (s) => (s.boss2Layers || 0) >= 4 },
   { id: 'legend_world', emoji: '👑', name: 'Lenda do Mundo', desc: 'Vença o Caçador-Mor no fim do mundo', test: (s) => Boolean(s.legend) },
 ];
 

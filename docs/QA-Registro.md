@@ -6,6 +6,25 @@
 
 ---
 
+## 🗄️ Firestore — regras e console
+
+### 22/08/2026 — O que eu faço com as "rules no console"? Passo a passo
+
+**Resposta curta:** copiar o arquivo `firestore.rules` inteiro do projeto e colar no editor de Regras do console do Firebase, apertando **Publicar** — sempre **ANTES** do push da versão. É um copiar-e-colar de um arquivo só, e leva um minuto.
+
+**Como funciona por dentro (o passo a passo):**
+
+1. **Quando**: antes do push de qualquer versão que mudou o `firestore.rules` (regra 3 do CLAUDE.md). Pode ser feito a qualquer momento — as regras novas são sempre desenhadas para serem retrocompatíveis com a versão que está no ar, então publicar cedo nunca quebra produção.
+2. **Copiar o arquivo**: na caixa de mensagem da sessão, digite `! cat firestore.rules | clip.exe` — o conteúdo inteiro vai para a área de transferência. (Ou abra `C:\Users\crist\MobileGame\firestore.rules` no editor e Ctrl+A / Ctrl+C.)
+3. **Abrir o console** (link salvo no Anotacoes.txt): `https://console.firebase.google.com/project/furious-rhino/firestore/databases/-default-/security/rules` — login da conta dona do projeto.
+4. **Substituir TUDO**: no editor de regras, Ctrl+A e colar por cima. ⚠️ O console guarda UM documento de regras só — nunca cole apenas o bloco novo, sempre o arquivo inteiro (o arquivo do repositório é a fonte da verdade e já contém tudo).
+5. **Publicar**: botão "Publicar" no topo do editor. Vale em ~1 minuto. O console guarda o histórico de versões das regras — dá para voltar atrás por lá se precisar.
+6. **Conferir**: o assistente consegue verificar de fora se a parte de LEITURA entrou no ar (uma consulta REST pública à coleção nova responde 200 em vez de 403). A parte de ESCRITA só se prova no smoke em produção — os testes locais não cobrem, porque o `e2e-stats` não escreve nas coleções novas.
+
+**Por que essa ordem é inegociável:** o jogo engole erros de rede por design (telemetria/ranking são acessórios — regra 1). Se o código novo for ao ar antes das regras, cada escrita nova é **negada em silêncio**: nenhum erro na tela, nenhum aviso — só dado que não chega. Foi assim que nasceu a regra, e é por isso que o ritual de release começa pelas rules.
+
+---
+
 ## 🎨 Skins e sprites
 
 ### 16/08/2026 — Por que o script das skins do pódio precisou ser rodado por MIM, com `!`, em vez de o assistente rodar?

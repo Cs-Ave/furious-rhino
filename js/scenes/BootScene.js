@@ -130,6 +130,10 @@ export class BootScene extends Phaser.Scene {
       ['snake', 'alt', 4], ['croc', 'alt', 4], ['car', 'alt', 8],
       ['police', 'alt', 4], ['plane', 'alt', 10], ['drone', 'alt', 8],
       ['pickup', 'alt', 6], ['scooter', 'alt', 8],
+      // v1.8.7 — o elenco dos distritos (pipa/dronezig ficam fora: o -alt
+      // deles é telegraph de zig, não frame de corrida)
+      ['viralata', 'run-1', 10], ['pombo', 'flap', 8], ['reporter', 'run-1', 8],
+      ['helinews', 'alt', 10], ['tropa', 'run-1', 6], ['dronesent', 'alt', 8],
     ];
     for (const [type, suffix, fps] of ENEMY_ANIMS) {
       this.anims.create({

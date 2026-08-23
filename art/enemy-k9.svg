@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 46" width="64" height="46">
+  <!-- FURIOUS RHINO - v1.8.7 D2-D3. K9 DE CHOQUE: pastor com colete tatico
+       "K9", orelhas em pe, postura de avanco (e o pulador tatico da
+       contencao). Flat: preto-marrom + colete vermelho-escuro, contorno.
+       Corre para a DIREITA (o jogo espelha com setFlipX).
+       Hitbox sugerida: 54x32 com offset 6,14.
+       Par: enemy-k9-air.svg (pose esticada do salto). -->
+  <g transform="scale(0.9143 0.92)">
+  <!-- cauda baixa de trabalho -->
+  <path d="M8 26 Q3 29 2 35" fill="none" stroke="#17171b" stroke-width="5.4" stroke-linecap="round"/>
+  <path d="M8 26 Q3 29 2 35" fill="none" stroke="#3a2c1e" stroke-width="3" stroke-linecap="round"/>
+  <!-- pernas fase A -->
+  <path d="M16 33 Q12 39 9 44" fill="none" stroke="#17171b" stroke-width="6" stroke-linecap="round"/>
+  <path d="M16 33 Q12 39 9 44" fill="none" stroke="#3a2c1e" stroke-width="3.4" stroke-linecap="round"/>
+  <path d="M24 34 Q27 40 31 44" fill="none" stroke="#17171b" stroke-width="6" stroke-linecap="round"/>
+  <path d="M24 34 Q27 40 31 44" fill="none" stroke="#54402c" stroke-width="3.4" stroke-linecap="round"/>
+  <path d="M42 33 Q39 39 37 45" fill="none" stroke="#17171b" stroke-width="6" stroke-linecap="round"/>
+  <path d="M42 33 Q39 39 37 45" fill="none" stroke="#3a2c1e" stroke-width="3.4" stroke-linecap="round"/>
+  <path d="M48 32 Q52 37 56 41" fill="none" stroke="#17171b" stroke-width="6" stroke-linecap="round"/>
+  <path d="M48 32 Q52 37 56 41" fill="none" stroke="#54402c" stroke-width="3.4" stroke-linecap="round"/>
+  <!-- corpo -->
+  <ellipse cx="31" cy="27" rx="24" ry="10.5" fill="#54402c" stroke="#17171b" stroke-width="2.5"/>
+  <!-- manto escuro do pastor -->
+  <path d="M10 24 Q22 15 44 20 Q40 26 30 27 Q18 28 10 24 Z" fill="#2b2620"/>
+  <!-- COLETE K9 -->
+  <path d="M22 18 L44 20 L45 33 L23 33 Z" fill="#7a2620" stroke="#17171b" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M27 18.5 L27 33 M39 19.5 L39 33" fill="none" stroke="#17171b" stroke-width="1.6" opacity="0.7"/>
+  <!-- "K9" em barras brancas -->
+  <path d="M30 23 L30 29 M30 26 L34 23 M30 26 L34 29" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="36.6" cy="24.6" r="1.7" fill="none" stroke="#ffffff" stroke-width="1.6"/>
+  <path d="M38.2 24.4 Q38.4 28 36.4 29.2" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round"/>
+  <!-- pescoço/cabeca -->
+  <circle cx="55" cy="16" r="9.5" fill="#54402c" stroke="#17171b" stroke-width="2.5"/>
+  <path d="M48 10 Q54 6 60 9 L60 14 Q54 11 49 14 Z" fill="#2b2620"/>
+  <!-- orelhas EM PE (a marca do pastor) -->
+  <path d="M49 8 L47 0 L54 4 Z" fill="#2b2620" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M57 6 L58 -1 L63 5 Z" fill="#2b2620" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- focinho escuro rosnando -->
+  <path d="M62 15 Q69 15 69 19 Q69 23 63 23 Q60 23 59 21 Z" fill="#2b2620" stroke="#17171b" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="68" cy="17.5" r="1.8" fill="#17171b"/>
+  <!-- dentes do rosnado -->
+  <path d="M61 21.6 L62.2 23.6 L63.4 21.8 Z M64.4 21.8 L65.6 23.6 L66.8 21.9 Z" fill="#ffffff"/>
+  <!-- olho focado -->
+  <circle cx="56" cy="13.5" r="2.2" fill="#a35c1c"/>
+  <circle cx="56.5" cy="13" r="1.1" fill="#17171b"/>
+  <path d="M52.5 10.5 L58 11.5" fill="none" stroke="#17171b" stroke-width="1.6" stroke-linecap="round"/>
+  </g>
+</svg>

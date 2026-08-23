@@ -118,10 +118,18 @@ export class SpawnManager {
         resumeX: null,
         anchor: Constants.BOSS3_ANCHOR_PX,
       },
+      // v1.8.7 — portais dos distritos (ideia J): cada marco físico (viaduto,
+      // checkpoint, pórtico) reserva ±300px sem spawn. SEM `anchor` de
+      // propósito: anchor alimenta nearBossArena, que veta combos nos 1500px
+      // anteriores — um portal com anchor criaria uma sombra de combo de
+      // 1500px sem nenhuma luta por perto.
+      { from: 55700, to: 56300, resumeX: 56300 }, // 1400m — Viaduto do Centro
+      { from: 71700, to: 72300, resumeX: 72300 }, // 1800m — Checkpoint da Contenção
+      { from: 87700, to: 88300, resumeX: 88300 }, // 2200m — Pórtico da Rodovia (KM 0)
     ];
   }
 
-  // A zona sem spawn que contém x, ou null. São 3 — varredura linear é mais
+  // A zona sem spawn que contém x, ou null. São 6 — varredura linear é mais
   // barata que qualquer índice.
   inNoSpawnZone(x) {
     const zones = this.noSpawnZones();
@@ -203,8 +211,38 @@ export class SpawnManager {
         break;
       }
 
-      // O obstáculo nasce com a dificuldade do LUGAR onde vai ficar
-      const tier = Constants.getTierFor(this.nextSpawnX);
+      // O obstáculo nasce com a dificuldade do LUGAR onde vai ficar.
+      // v1.8.7: o distrito da cidade pode SOBREPOR pesos da roleta (ex.: D1
+      // towerW 0.24→0.16 — consolidação, não mais dificuldade). O spread lê
+      // os valores VIVOS do tier a cada spawn: os sliders do ?debug=1
+      // continuam valendo. Gaps/cadências ficam com o tier — o distrito só
+      // mexe no QUE nasce, nunca no quanto.
+      const baseTier = Constants.getTierFor(this.nextSpawnX);
+      const area = Constants.cityAreaFor(this.nextSpawnX);
+      const tier = area && Object.keys(area.weights).length
+        ? { ...baseTier, ...area.weights }
+        : baseTier;
+
+      // A BRECHA (2025–2200m): a volta olímpica de quem venceu a Muralha —
+      // só rampa-trampolim (airtime, o amanhecer nascendo) e pombo; nada de
+      // parede/espinho/torre/combos.
+      if (area && area.breach) {
+        if (this.rampFits(this.nextSpawnX) && Math.random() < 0.5) {
+          this.nextSpawnX += this.spawnRamp(this.nextSpawnX, 'jump');
+          this.nextSpawnX += Math.max(
+            Constants.RAMP_EXIT_GAP,
+            tier.gapMin + Math.random() * tier.gapRand
+          );
+        } else {
+          this.nextSpawnX += tier.animalLeadPx;
+          this.spawnAnimal(this.nextSpawnX); // cast da Brecha = ['pombo']
+          this.nextSpawnX += Math.max(
+            Constants.MIN_SAFE_GAP,
+            tier.gapMin + Math.random() * tier.gapRand
+          );
+        }
+        continue;
+      }
 
       // Combo: 2 obstáculos em sequência com offsets FIXOS (justiça).
       // Perto de uma arena de boss não — a zona livre não pode partir um par.
@@ -271,7 +309,10 @@ export class SpawnManager {
     const ex = x + offset;
     if (this.inNoSpawnZone(ex)) return 0;
     if (kind === 'spike') {
-      this.spawnAnimal(ex, this.pickBiomeAnimal(ex, 'fly'), 470);
+      // y por tipo (v1.8.7): 470 se a banda de voo/zig do sorteado contém
+      // 470, senão o centro da banda — sem mergulho não-telegrafado no 1º frame
+      const type = this.pickBiomeAnimal(ex, 'fly');
+      this.spawnAnimal(ex, type, Constants.flyerSpawnY(type));
     } else {
       this.spawnAnimal(ex, this.pickBiomeAnimal(ex, kind === 'wall' ? 'ground' : 'any'));
     }
@@ -286,8 +327,9 @@ export class SpawnManager {
     const crackHeight = heightOverride ||
       heights[Math.floor(Math.random() * heights.length)];
     // Depois do portão o rino está na cidade: a parede vira fachada de
-    // prédio. Só grafismo — a mecânica da fresta é a mesma.
-    wall.setSkin(x >= Constants.WIN_DISTANCE_PX ? '-city' : '');
+    // prédio — e, na v1.8.7, uma FAMÍLIA por distrito (skinFor). Só
+    // grafismo — a mecânica da fresta é a mesma.
+    wall.setSkin(Constants.skinFor(x, 'wall'));
     wall.setCrackHeight(crackHeight);
     wall.reset(x);
   }
@@ -326,7 +368,7 @@ export class SpawnManager {
     const variant = variantOverride || pool[Math.floor(Math.random() * pool.length)];
     // Depois do portão o rino está na cidade: concreto e asfalto no lugar de
     // terra e grama. Só grafismo — a superfície e a destruição são as mesmas.
-    ramp.setSkin(x >= Constants.WIN_DISTANCE_PX ? '-city' : '');
+    ramp.setSkin(Constants.skinFor(x, 'ramp'));
     return ramp.reset(x, variant);
   }
 
@@ -356,7 +398,7 @@ export class SpawnManager {
     const groundTop = Constants.GROUND_TOP;
     const variant = variantOverride || (Math.random() < 0.3 ? 'tower' : 'ground');
     // Pedestal de concreto com faixa de perigo depois do portão
-    spike.setSkin(x >= Constants.WIN_DISTANCE_PX ? '-city' : '');
+    spike.setSkin(Constants.skinFor(x, 'spike'));
     if (variant === 'tower') {
       spike.reset(x, groundTop - 120, 'tower');
     } else {
@@ -373,8 +415,15 @@ export class SpawnManager {
   //              tucano/arara na floresta é tematicamente honesto
   pickBiomeAnimal(x, mode = 'any') {
     const biome = Constants.BIOMES[Constants.getBiomeIndex(x)];
-    const list = Constants.BIOME_ANIMALS[biome] || Constants.ANIMAL_TYPES;
-    const isFly = (t) => t === 'bird' || !!Constants.ANIMAL_BEHAVIOR[t].fly;
+    // v1.8.7: dentro da cidade cada distrito tem elenco próprio (cast);
+    // cast null (rodovia) volta ao elenco legado da cidade
+    const areaCast = Constants.cityAreaFor(x)?.cast;
+    const list = areaCast ||
+      Constants.BIOME_ANIMALS[biome] || Constants.ANIMAL_TYPES;
+    // zig também é voador (pipa/dronezig vivem numa banda aérea): sem isso o
+    // filtro 'ground' escalaria uma pipa atrás de parede como se fosse pulável
+    const isFly = (t) => t === 'bird' ||
+      !!Constants.ANIMAL_BEHAVIOR[t].fly || !!Constants.ANIMAL_BEHAVIOR[t].zig;
     let pool = list;
     if (mode === 'fly') pool = list.some(isFly) ? list.filter(isFly) : ['bird'];
     else if (mode === 'ground') {
@@ -383,8 +432,9 @@ export class SpawnManager {
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  // typeOverride/yOverride: usados pelos combos para fixar espécie e altura
-  spawnAnimal(x, typeOverride = null, yOverride = null) {
+  // typeOverride/yOverride: usados pelos combos para fixar espécie e altura.
+  // isPartner (interno): o segundo de um par obrigatório — corta a recursão.
+  spawnAnimal(x, typeOverride = null, yOverride = null, isPartner = false) {
     const animal = this.animalsGroup.getFirst(false);
     if (!animal) return;
 
@@ -392,10 +442,12 @@ export class SpawnManager {
     animal.setType(type);
 
     // Terrestres pisam no topo do chão (y=620); voadores nascem na faixa de
-    // voo da espécie (behavior.fly) — o pássaro mantém a banda histórica
+    // voo da espécie (behavior.fly, ou a banda do zig) — o pássaro mantém a
+    // banda histórica
     const groundTop = Constants.GROUND_TOP;
     const spec = Constants.ANIMAL_SPECS[type];
-    const fly = Constants.ANIMAL_BEHAVIOR[type].fly ||
+    const behavior = Constants.ANIMAL_BEHAVIOR[type];
+    const fly = behavior.fly || (behavior.zig && behavior.zig.band) ||
       (type === 'bird' ? [410, 520] : null);
     const y = yOverride !== null
       ? yOverride
@@ -403,6 +455,13 @@ export class SpawnManager {
         ? Phaser.Math.Between(fly[0], fly[1])
         : groundTop - (spec.h * (spec.scale || Constants.ANIMAL_SCALE)) / 2;
     animal.reset(x, y);
+
+    // v1.8.7 — par OBRIGATÓRIO (tropa de escudos): spec.pair spawna o
+    // segundo à frente, com a guarda de zona do animalPackChance
+    if (spec.pair && !isPartner) {
+      const px = x + Constants.ANIMAL_PACK_OFFSET_PX;
+      if (!this.inNoSpawnZone(px)) this.spawnAnimal(px, type, null, true);
+    }
   }
 
   // Pares fixos; retorna o comprimento do par (o chamador soma o gap depois).
@@ -439,7 +498,8 @@ export class SpawnManager {
     }
     if (pattern === 'spike-bird') {
       this.spawnSpike(x, 'ground');
-      this.spawnAnimal(x + 220, this.pickBiomeAnimal(x + 220, 'fly'), 470);
+      const type = this.pickBiomeAnimal(x + 220, 'fly');
+      this.spawnAnimal(x + 220, type, Constants.flyerSpawnY(type));
       return 220;
     }
     this.spawnSpike(x, 'tower');
@@ -454,8 +514,33 @@ export class SpawnManager {
     if (!tower) return;
     // Torre de pedra medieval no meio do asfalto destoava: na cidade ela vira
     // poste de vigilância com caixa d'água
-    tower.setSkin(x >= Constants.WIN_DISTANCE_PX ? '-city' : '');
+    tower.setSkin(Constants.skinFor(x, 'tower'));
     tower.reset(x, baseY);
+  }
+
+  // v1.8.7 — contrato com o BossFight da Muralha (chamado no startFight):
+  // silencia as armas vivas dentro da arena. inNoSpawnZone só bloqueia spawn
+  // NOVO — uma camionete nascida aos 1960m atiraria durante a intro do boss,
+  // sobrepondo telegraphs. Desativa torres e animais ATIRADORES
+  // (behavior.shoot) com x no intervalo; animais não-atiradores ficam (são
+  // cenário legítimo). Devolve o nº de silenciados.
+  muzzleHostiles(fromX, toX) {
+    let n = 0;
+    this.towersGroup.children.entries.forEach((tower) => {
+      if (tower.active && tower.x >= fromX && tower.x <= toX) {
+        tower.deactivate();
+        n++;
+      }
+    });
+    this.animalsGroup.children.entries.forEach((animal) => {
+      if (!animal.active) return;
+      const behavior = Constants.ANIMAL_BEHAVIOR[animal.animalType];
+      if (behavior && behavior.shoot && animal.x >= fromX && animal.x <= toX) {
+        animal.deactivate();
+        n++;
+      }
+    });
+    return n;
   }
 
   // Chamado pela TranqTower no momento do disparo (mira em 360° / morteiro)

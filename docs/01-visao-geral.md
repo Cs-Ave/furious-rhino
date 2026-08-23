@@ -1,6 +1,6 @@
 # Furious Rhino — Visão geral
 
-> Documentação da versão **1.8.6** · atualizada em 21/08/2026
+> Documentação da versão **1.8.7** · atualizada em 21/08/2026
 > Este documento é para quem **não é programador**. Sem jargão — e quando um termo técnico for inevitável, ele vem explicado entre parênteses.
 
 ## O que é

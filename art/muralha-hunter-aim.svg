@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 72" width="64" height="72">
+  <!-- FURIOUS RHINO - v1.8.7, boss dos 2000m: o COMANDANTE em pose de ORDEM
+       (telegraph do tiro/granada). Mesmo personagem do muralha-hunter.svg —
+       pernas, tunica, dragonas e quepe identicos. Mudam: MEGAFONE ERGUIDO na
+       boca apontando para baixo-esquerda com a BOCA do cone no canvas (5,30)
+       — contrato com HunterSniper.muzzle(), de onde saem mira e projetil —,
+       linhas de grito saindo do cone e a cabeca inclinada gritando a ordem. -->
+  <!-- pernas (identicas) -->
+  <rect x="24.5" y="52" width="7.5" height="13" rx="3" fill="#223a55" stroke="#17171b" stroke-width="2"/>
+  <rect x="34" y="52" width="7.5" height="13" rx="3" fill="#2e4a6b" stroke="#17171b" stroke-width="2"/>
+  <rect x="22.6" y="63.6" width="10" height="6" rx="2.4" fill="#14181d" stroke="#0d1013" stroke-width="1.8"/>
+  <rect x="33.4" y="63.6" width="10" height="6" rx="2.4" fill="#1c2127" stroke="#0d1013" stroke-width="1.8"/>
+  <path d="M28.2 52.5 L28.2 64.5 M37.7 52.5 L37.7 64.5" fill="none" stroke="#ff4a5e" stroke-width="1.2"/>
+  <!-- tronco (identico) -->
+  <ellipse cx="33" cy="44" rx="13.5" ry="12" fill="#2e4a6b" stroke="#17171b" stroke-width="2.5"/>
+  <ellipse cx="32" cy="50" rx="9.5" ry="4.6" fill="#1c2f45" opacity="0.55"/>
+  <path d="M22.5 39 Q33 33 43.5 38.5" fill="none" stroke="#4a6a94" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+  <path d="M33 36 L33 52" fill="none" stroke="#1c2f45" stroke-width="1.6"/>
+  <circle cx="33" cy="39" r="1.3" fill="#ffd24a" stroke="#17171b" stroke-width="0.8"/>
+  <circle cx="33" cy="44" r="1.3" fill="#ffd24a" stroke="#17171b" stroke-width="0.8"/>
+  <circle cx="33" cy="49" r="1.3" fill="#ffd24a" stroke="#17171b" stroke-width="0.8"/>
+  <g stroke="#17171b" stroke-width="0.9">
+    <rect x="36" y="39" width="4" height="3" fill="#ff4a5e"/>
+    <rect x="40.5" y="39" width="4" height="3" fill="#4ad1ff"/>
+    <rect x="36" y="43" width="4" height="3" fill="#ffd24a"/>
+  </g>
+  <rect x="21" y="35.5" width="8" height="4" rx="1.6" fill="#ffd24a" stroke="#17171b" stroke-width="1.2"/>
+  <rect x="37" y="35.5" width="8" height="4" rx="1.6" fill="#ffd24a" stroke="#17171b" stroke-width="1.2"/>
+  <rect x="22.5" y="52" width="21" height="4.2" rx="1.6" fill="#14181d" stroke="#0d1013" stroke-width="1.8"/>
+  <rect x="30.8" y="52.4" width="4.6" height="3.4" rx="0.8" fill="#ffd24a" stroke="#17171b" stroke-width="1.2"/>
+  <!-- MEGAFONE ERGUIDO: cone com a boca em (5,30), cabo na mao da frente -->
+  <g>
+    <!-- linhas de grito saindo da boca do cone -->
+    <path d="M3 22.5 L0.5 19 M1.8 30 L-2 30 M3 37.5 L0.5 41" fill="none" stroke="#ffd24a" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M17 27.5 L13 24.5 L26 24.5 Z" fill="#26262c" stroke="#17171b" stroke-width="1.2" stroke-linejoin="round"/>
+    <!-- cone vermelho apontado para baixo-esquerda -->
+    <path d="M18.5 25.5 L5 25 L5 35 L18.5 34.5 Z" fill="#d6453c" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M18.5 25.5 L22.5 27.5 L22.5 32.5 L18.5 34.5 Z" fill="#a82f24" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+    <!-- boca do cone (aro claro) exatamente na mira (5,30) -->
+    <ellipse cx="5" cy="30" rx="2.6" ry="5.4" fill="#f6f4ef" stroke="#17171b" stroke-width="1.4"/>
+    <ellipse cx="5.4" cy="30" rx="1.4" ry="3.8" fill="#26262c"/>
+    <!-- gatilho/cabo -->
+    <rect x="20.5" y="32.5" width="4" height="7" rx="1.6" fill="#26262c" stroke="#17171b" stroke-width="1.3"/>
+  </g>
+  <!-- braco da frente erguendo o megafone -->
+  <path d="M26 40 Q23 36 22.5 33.5" fill="none" stroke="#17171b" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M26 40 Q23 36 22.5 33.5" fill="none" stroke="#26415e" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="22.5" cy="35.5" r="2.9" fill="#eaa96f" stroke="#17171b" stroke-width="1.7"/>
+  <!-- braco de tras APONTANDO o rino (a ordem e contra voce) -->
+  <path d="M41 40.5 Q36 38.5 31 37" fill="none" stroke="#17171b" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M41 40.5 Q36 38.5 31 37" fill="none" stroke="#2e4a6b" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="29.6" cy="36.6" r="2.9" fill="#eaa96f" stroke="#17171b" stroke-width="1.7"/>
+  <!-- orelha -->
+  <circle cx="36.4" cy="22" r="2.7" fill="#eaa96f" stroke="#17171b" stroke-width="1.8"/>
+  <!-- cabeca inclinada no grito -->
+  <circle cx="24.5" cy="20.5" r="11.5" fill="#eaa96f" stroke="#17171b" stroke-width="2.5"/>
+  <path d="M14.4 15.4 L20.2 17.6" fill="none" stroke="#17171b" stroke-width="2" stroke-linecap="round"/>
+  <path d="M29.4 17 L24.2 18.2" fill="none" stroke="#17171b" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="17.8" cy="20.6" r="2.4" fill="#17171b"/>
+  <circle cx="25.6" cy="20.8" r="2.4" fill="#17171b"/>
+  <circle cx="18.5" cy="19.8" r="0.8" fill="#ffffff"/>
+  <circle cx="26.3" cy="20" r="0.8" fill="#ffffff"/>
+  <circle cx="20.4" cy="24" r="1.8" fill="#e09b63" stroke="#b5713c" stroke-width="1"/>
+  <path d="M14.6 27.4 Q17.6 25.8 20.6 26.8 Q23.6 25.8 26.6 27.4" fill="none" stroke="#3a3a44" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- boca ABERTA gritando a ordem -->
+  <ellipse cx="19.5" cy="30.2" rx="3.4" ry="2.6" fill="#611e29" stroke="#17171b" stroke-width="1.4"/>
+  <!-- QUEPE (identico, acompanhando a cabeca) -->
+  <path d="M12.5 15 Q11.5 5.5 24.5 4.9 Q37.5 5.5 36.5 15 Q24.5 11 12.5 15 Z" fill="#223a55" stroke="#17171b" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M12 15.3 Q24.5 11.1 37 15.3 L37 17.9 Q24.5 13.9 12 17.9 Z" fill="#14181d" stroke="#17171b" stroke-width="1.6" stroke-linejoin="round"/>
+  <ellipse cx="16" cy="17.4" rx="7.5" ry="2.6" fill="#14181d" stroke="#17171b" stroke-width="1.6"/>
+  <path d="M24.5 6.9 L27.1 8.5 L26.3 11.5 L22.7 11.5 L21.9 8.5 Z" fill="#ffd24a" stroke="#17171b" stroke-width="1.1" stroke-linejoin="round"/>
+  <path d="M14.5 13.9 Q24.5 10.3 34.5 13.9" fill="none" stroke="#ff4a5e" stroke-width="1.4" stroke-linecap="round"/>
+</svg>

@@ -1,6 +1,7 @@
 import { Constants } from '../utils/Constants.js';
 import { StorageManager } from '../utils/StorageManager.js';
 import { Rhino } from '../entities/Rhino.js';
+import { TimedHazard } from '../entities/TimedHazard.js';
 import { SpawnManager } from '../systems/SpawnManager.js';
 import { FurySystem } from '../systems/FurySystem.js';
 import { BossFight } from '../systems/BossFight.js';
@@ -92,32 +93,36 @@ export class GameScene extends Phaser.Scene {
         scene.rhino.getSprite().x >= Constants.WIN_DISTANCE_PX,
       onDefeat: (fight) => fight.scene.crossGate(),
     });
-    // v1.8.5 — BOSS 2, o CERCO (2000m): a cidade barricou a avenida. Mesma
-    // anatomia do portão (canvas 240x620, contato por banda + clamp), mas a
-    // vitória NÃO encerra nada — a barricada cai e a corrida segue.
-    this.boss2Sprite = this.add.image(Constants.BOSS2_ANCHOR_PX, Constants.GROUND_TOP, 'boss2-gate-4')
+    // v1.8.7 — BOSS 2, a MURALHA (2000m): a Operação Muralha fechou o
+    // viaduto com viaturas empilhadas + torre de holofote. Mesma anatomia do
+    // portão (canvas 240x620, contato por banda + clamp); a vitória NÃO
+    // encerra nada — a barricada desaba e a Brecha começa. O CERCO foi
+    // REALOCADO para porteiro do deserto (declarado sem wiring — decisão do
+    // dono; as texturas boss2-gate/boss2-hunter seguem geradas).
+    this.boss2Sprite = this.add.image(Constants.BOSS2_ANCHOR_PX, Constants.GROUND_TOP, 'muralha-gate-4')
       .setOrigin(0.5, 1).setDepth(-1);
     this.boss2Fight = new BossFight(this, this.boss2Sprite, {
-      id: 'cerco',
+      id: 'muralha',
       anchorX: Constants.BOSS2_ANCHOR_PX,
-      layers: Constants.BOSS2_LAYERS,
-      rifle: Constants.BOSS2_NET, // MESMA referência: sliders do ?debug=1 vivos
+      layers: Constants.BOSS2_LAYERS, // ['high','ground','mid','high'] — abre no ALTO (exame do D3)
+      rifle: Constants.BOSS_MURALHA, // MESMA referência: sliders do ?debug=1 vivos
       arenaPx: Constants.BOSS_ARENA_PX,
       gateFaceHalf: Constants.BOSS_GATE_FACE_HALF,
-      texturePrefix: 'boss2-gate',
-      hunterTexture: 'boss2-hunter',
-      hunterAimTexture: 'boss2-hunter-aim',
+      texturePrefix: 'muralha-gate',
+      hunterTexture: 'muralha-hunter',
+      hunterAimTexture: 'muralha-hunter-aim',
       camLockOffsetPx: 1040,
       layersProp: 'runBoss2Layers',
       bouncesProp: 'runBoss2Bounces',
-      enrageMs: Constants.BOSS2_ENRAGE_MS, // luta arrastada sobe 1 degrau de cadência
-      hints: { intro: '🕸️ O CERCO! A CIDADE BLOQUEOU A AVENIDA!', how: '💥 INVISTA na fresta que brilha!' },
-      hintStorageKey: 'furious_rhino_boss2_seen',
-      deathCause: 'boss2', // a rede do Capturador — causa própria no funil
+      enrageMs: Constants.MURALHA_ENRAGE_MS, // luta arrastada desce UM degrau de cadência
+      rasanteStyle: 'k9', // o rasante anti-camping é um dardo-cão (k9-projectile)
+      hints: { intro: '🚧 A MURALHA! A CIDADE FECHOU O VIADUTO!', how: '💥 INVISTA na fresta que brilha!' },
+      hintStorageKey: 'furious_rhino_muralha_seen',
+      deathCause: 'boss2', // herda a POSIÇÃO dos 2000m — a série do funil continua
       // Rino já além da âncora sem a luta ter acontecido: só possível em
       // invencível de debug ou teleporte — o boss recolhe sem festa
       isBypassed: (scene) => scene.rhino.getSprite().x >= Constants.BOSS2_ANCHOR_PX,
-      onDefeat: (fight) => fight.scene.defeatBoss2(),
+      onDefeat: (fight) => fight.scene.defeatMuralha(),
     });
 
     // v1.8.5 — BOSS 3, o CAÇADOR-MOR (fim do mundo): a última cerca. Vencer
@@ -153,6 +158,23 @@ export class GameScene extends Phaser.Scene {
     this.bossFights = [this.bossFight, this.boss2Fight, this.boss3Fight];
     this.createSectorArches();
     this.createTrackMarks();
+
+    // v1.8.7 — armadilhas dos distritos: pool de 4 TimedHazard num ARRAY
+    // plano (nunca physics group: a entidade liga/desliga o próprio body
+    // estático por timer, e um physics group reescreveria isso no add).
+    // ARMADILHA: nem add.group() serve — o TimedHazard usa `this.on` como
+    // flag de fase, o que SOMBREIA EventEmitter.on, e Group.add chama
+    // child.on(DESTROY, ...) → TypeError. O overlap do Arcade aceita array
+    // e lê o conteúdo ao vivo, então o array cobre tudo que o grupo daria.
+    // O spawn é por POSIÇÃO fixa (HAZARD_SPOTS), não pela roleta do
+    // SpawnManager — armadilha é ARQUITETURA do distrito.
+    this.hazards = [];
+    for (let i = 0; i < 4; i++) {
+      const hz = new TimedHazard(this, -500, Constants.GROUND_TOP);
+      hz.deactivate();
+      this.hazards.push(hz);
+    }
+    this.nextHazardIdx = 0;
 
     // Polilinha da superfície das rampas (elas não têm corpo, então o debug
     // de hitboxes do TuningPanel não as mostraria)
@@ -1620,6 +1642,9 @@ export class GameScene extends Phaser.Scene {
     // Biomas por trecho de 200m: cada camada é um PAR de tileSprites — A é
     // a base, B recebe a textura nova e faz o crossfade (switchBiome)
     this.biomeIndex = 0;
+    // v1.8.7 — distritos da cidade (Estado de Alerta): -1 = fora da régua
+    // da cidade (o rino nasce no zoo); switchArea assume dali em diante
+    this.cityAreaIndex = Constants.getCityAreaIndex(0);
     const b0 = Constants.BIOMES[0];
     this.bgFarA = this.add.tileSprite(640, 410, 1280, 420, `bg-far-${b0}`)
       .setScrollFactor(0).setDepth(-19);
@@ -1810,19 +1835,77 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  // Arcos de setor: um objeto que ATRAVESSA a tela em cada fronteira de
-  // bioma. O crossfade sozinho passava despercebido — é o arco que faz a
-  // troca virar acontecimento. Os 32000 já têm o portão do zoológico.
+  // Marcos de setor: um objeto que ATRAVESSA a tela em cada fronteira. O
+  // crossfade sozinho passava despercebido — é o marco que faz a troca virar
+  // acontecimento. v1.8.7: generalizado para uma TABELA de marcos — os arcos
+  // de bioma do zoo (i×8000; os 32000 já têm o portão) + os três portais dos
+  // distritos, cada um com textura própria e um efeito ao cruzar (fx).
   createSectorArches() {
+    const marks = [];
     for (let i = 1; i < Constants.BIOMES.length - 1; i++) {
-      const x = i * 8000;
-      this.add.image(x, Constants.GROUND_TOP, 'biome-arch')
+      marks.push({
+        x: i * 8000, tex: 'biome-arch',
+        label: Constants.BIOMES[i].toUpperCase(), labelDy: 274,
+      });
+    }
+    // Portais do Estado de Alerta (labelDy acompanha a altura de cada canvas)
+    marks.push({
+      x: 56000, tex: 'portal-viaduto',
+      label: 'VIADUTO DO CENTRO', labelDy: 294, fx: 'siren',
+    });
+    marks.push({
+      x: 72000, tex: 'portal-checkpoint',
+      label: 'CHECKPOINT DA CONTENÇÃO', labelDy: 274, fx: 'klaxon',
+    });
+    marks.push({
+      x: 88000, tex: 'portal-rodovia',
+      label: 'RODOVIA — KM 0', labelDy: 294, fx: 'fanfare',
+    });
+
+    this.portalMarks = [];
+    for (const m of marks) {
+      this.add.image(m.x, Constants.GROUND_TOP, m.tex)
         .setOrigin(0.5, 1).setDepth(-1);
-      this.add.text(x, Constants.GROUND_TOP - 274, Constants.BIOMES[i].toUpperCase(), {
+      this.add.text(m.x, Constants.GROUND_TOP - m.labelDy, m.label, {
         fontFamily: '"Arial Black", Arial, sans-serif',
         fontSize: '22px',
-        color: '#5e3618',
+        color: m.fx ? '#e8e9ec' : '#5e3618',
+        stroke: m.fx ? '#1f2531' : undefined,
+        strokeThickness: m.fx ? 5 : 0,
       }).setOrigin(0.5).setDepth(-0.9);
+      // Só os portais novos têm efeito de passagem (molde do updateTrackMarks)
+      if (m.fx) this.portalMarks.push({ x: m.x, fx: m.fx, passed: false });
+    }
+  }
+
+  // v1.8.7 — o efeito ao CRUZAR cada portal (os toasts de área ficam com o
+  // switchArea; aqui é o evento pontual do marco físico).
+  updatePortals() {
+    const x = this.rhino.getSprite().x;
+    for (const m of this.portalMarks) {
+      if (m.passed || x < m.x) continue;
+      m.passed = true;
+      if (m.fx === 'siren') {
+        // Viaduto do Centro: o semáforo fecha — sirene curta de presságio
+        this.audio.playSirenShort();
+      } else if (m.fx === 'klaxon') {
+        // Checkpoint: klaxon + strobe vermelho/ciano (2 pulsos alternados)
+        this.audio.playKlaxon();
+        const strobe = this.add.rectangle(640, 360, 1280, 720, 0xff4a5e)
+          .setScrollFactor(0).setDepth(50).setAlpha(0.22);
+        this.tweens.add({
+          targets: strobe, alpha: 0, duration: 480,
+          onUpdate: (tw) => {
+            // alterna a cor no meio do fade — o "gira-gira" da viatura
+            strobe.fillColor = tw.progress > 0.5 ? 0x4ad1ff : 0xff4a5e;
+          },
+          onComplete: () => strobe.destroy(),
+        });
+      } else if (m.fx === 'fanfare') {
+        // Pórtico da Rodovia: a saída triunfal de quem atravessou a cidade
+        this.audio.playFanfare();
+        this.showToast('🛣️ VOCÊ ATRAVESSOU A CIDADE!', { y: 250, size: 34, duration: 2400 });
+      }
     }
   }
 
@@ -1966,6 +2049,11 @@ export class GameScene extends Phaser.Scene {
     const idx = Constants.getBiomeIndex(x);
     if (idx !== this.biomeIndex) this.switchBiome(idx);
 
+    // v1.8.7 — distrito da cidade (a régua CITY_DISTRICTS só governa visual
+    // e spawn; tier/clima continuam na régua de 8000px)
+    const aIdx = Constants.getCityAreaIndex(x);
+    if (aIdx !== this.cityAreaIndex) this.switchArea(aIdx);
+
     // Pássaros distantes: deriva própria + batida de asas por troca de textura
     const dt = delta / 1000;
     for (const b of this.skyBirds) {
@@ -2031,6 +2119,63 @@ export class GameScene extends Phaser.Scene {
         // Consolida na base A e libera B para a próxima fronteira
         this.bgFarA.setTexture(`bg-far-${key}`).setAlpha(1);
         this.bgNearA.setTexture(`bg-near-${key}`).setAlpha(1);
+        this.bgFarB.setAlpha(0);
+        this.bgNearB.setAlpha(0);
+      },
+    });
+  }
+
+  // v1.8.7 — quais distritos trocam o backdrop e para qual chave. A BRECHA
+  // fica FORA de propósito: a contenção continua no horizonte (a cidade
+  // ficando para trás) — só o toast marca a entrada. A rodovia devolve o
+  // backdrop genérico da cidade (é ele que assume o infinito pós-2200).
+  static AREA_BACKDROP = {
+    suburbio: 'suburbio', vidro: 'vidro', contencao: 'contencao', rodovia: 'cidade',
+  };
+  // O flash de cada distrito é COLORIDO (âmbar/ciano/vermelho) — a
+  // identidade da área no lugar do branco fixo dos biomas
+  static AREA_FLASH = { suburbio: 0xffb066, vidro: 0x4ad1ff, contencao: 0xff4a5e };
+
+  // Gêmeo do switchBiome para os DISTRITOS (Estado de Alerta): crossfade de
+  // 500ms nas mesmas camadas B, flash colorido, toast com o label da área e
+  // o sting de 3 notas próprio. Consultado no updateAtmosphere ao lado da
+  // troca de bioma; a régua CITY_DISTRICTS nunca toca tier/clima.
+  switchArea(areaIdx) {
+    this.cityAreaIndex = areaIdx;
+    if (areaIdx < 0) return; // voltou para fora da régua (teleporte de debug)
+    const area = Constants.CITY_DISTRICTS[areaIdx];
+    if (!area) return;
+
+    if (this.started) {
+      const color = GameScene.AREA_FLASH[area.key];
+      if (color !== undefined) {
+        const flash = this.add.rectangle(640, 360, 1280, 720, color)
+          .setScrollFactor(0).setDepth(50).setAlpha(0.3);
+        this.tweens.add({
+          targets: flash, alpha: 0, duration: 300,
+          onComplete: () => flash.destroy(),
+        });
+        this.audio.playAreaSting(areaIdx);
+      }
+      // Brecha e rodovia também anunciam ('🌅 A BRECHA' / o label da área);
+      // o triunfo do pórtico em si fica com o updatePortals
+      this.showToast(area.label, { y: 200, size: 32, duration: 1800 });
+    }
+
+    const bg = GameScene.AREA_BACKDROP[area.key];
+    if (!bg) return; // brecha: o horizonte não muda
+    // Mesmo protocolo anti-teleporte do switchBiome: mata o tween em voo e
+    // recomeça o crossfade da camada B do zero
+    this.tweens.killTweensOf([this.bgFarB, this.bgNearB]);
+    this.bgFarB.setTexture(`bg-far-${bg}`).setAlpha(0);
+    this.bgNearB.setTexture(`bg-near-${bg}`).setAlpha(0);
+    this.tweens.add({
+      targets: [this.bgFarB, this.bgNearB],
+      alpha: 1,
+      duration: 500,
+      onComplete: () => {
+        this.bgFarA.setTexture(`bg-far-${bg}`).setAlpha(1);
+        this.bgNearA.setTexture(`bg-near-${bg}`).setAlpha(1);
         this.bgFarB.setAlpha(0);
         this.bgNearB.setAlpha(0);
       },
@@ -2282,6 +2427,101 @@ export class GameScene extends Phaser.Scene {
       null,
       this
     );
+
+    // v1.8.7 — hazards dos distritos. O pool é um array plano (ver create),
+    // e o Arcade o aceita direto; body desligado = sem overlap, que é
+    // exatamente o ciclo do hidrante/arco.
+    this.physics.add.overlap(
+      this.rhino.getSprite(),
+      this.hazards,
+      this.onHazardHit,
+      null,
+      this
+    );
+  }
+
+  // v1.8.7 — handler canônico dos hazards de distrito. Ordem das guardas:
+  // fim de jogo → rampage (pulveriza: caçamba vira smash com pontos de
+  // parede; temporizado só estoura se está LETAL) → invincible de debug →
+  // caçamba (dash quebra e pontua como parede; sem dash, mata) →
+  // temporizado (mata SÓ no pulso letal — fora dele o corpo nem deveria
+  // estar ligado, o lethal é o cinto-e-suspensório).
+  onHazardHit(rhino, hazard) {
+    if (this.gameOver || this.won) return;
+    const smashable = hazard.kind === 'cacamba';
+
+    if (this.furySystem.rampage) {
+      if (smashable) {
+        hazard.smash();
+        this.runWallsBroken++;
+        this.addScore('wall', hazard.x, hazard.y - 32);
+        this.audio.playBreak();
+        this.createExplosion(hazard.x, hazard.y - 32);
+        this.createBreakParticles(hazard.x, hazard.y - 32, 6);
+      } else if (hazard.lethal) {
+        this.audio.playBreak();
+        this.createExplosion(hazard.x, hazard.y - 80);
+        hazard.deactivate();
+      }
+      return;
+    }
+    if (this.invincible) return; // debug: atravessa
+
+    if (smashable) {
+      if (this.rhino.dashState === 'active') {
+        // A primeira barreira BAIXA do jogo: pulável OU destrutível —
+        // conta e pontua como PAREDE (contrato de pontuação: zero peso novo)
+        hazard.smash();
+        this.runWallsBroken++;
+        this.addScore('wall', hazard.x, hazard.y - 32);
+        this.audio.playBreak();
+        this.createExplosion(hazard.x, hazard.y - 32);
+        this.createBreakParticles(hazard.x, hazard.y - 32, 6);
+      } else {
+        this.endGame(false, hazard.deathCause);
+      }
+      return;
+    }
+    if (hazard.lethal) this.endGame(false, hazard.deathCause);
+  }
+
+  // Janelas FIXAS por distrito (determinísticas — armadilha é arquitetura):
+  // D1 3 caçambas (1150/1250/1350m), D2 2 hidrantes (1500/1650m), D3 2 arcos
+  // (1850/1925m — antes da arena da Muralha, que trava em ~78900). Todas
+  // fora dos ±300px sem-spawn dos portais (56000/72000/88000).
+  static HAZARD_SPOTS = [
+    { x: 46000, kind: 'cacamba' },
+    { x: 50000, kind: 'cacamba' },
+    { x: 54000, kind: 'cacamba' },
+    { x: 60000, kind: 'hidrante' },
+    { x: 66000, kind: 'hidrante' },
+    { x: 74000, kind: 'arco' },
+    { x: 77000, kind: 'arco' },
+  ];
+
+  // Spawn por POSIÇÃO: quando o lookahead da câmera cruza a janela, o
+  // próximo membro livre do pool é plantado ali. Recicla quem ficou para
+  // trás. Pool de 4 cobre com folga: os pontos distam >= 3000px.
+  updateHazards() {
+    const spots = GameScene.HAZARD_SPOTS;
+    const camX = this.cameras.main.scrollX;
+
+    // recicla os que já ficaram para trás da tela
+    this.hazards.forEach((hz) => {
+      if (hz.active && hz.x < camX - 300) hz.deactivate();
+    });
+
+    const look = camX + 1280 + 600; // mesma folga de lookahead do spawn
+    while (this.nextHazardIdx < spots.length && spots[this.nextHazardIdx].x <= look) {
+      const spot = spots[this.nextHazardIdx];
+      // Teleporte de debug pode pular janelas inteiras: as que já ficaram
+      // para trás da câmera são simplesmente puladas
+      if (spot.x < camX - 300) { this.nextHazardIdx++; continue; }
+      const hz = this.hazards.find((h) => !h.active);
+      if (!hz) break; // pool cheio: tenta no próximo frame
+      hz.reset(spot.x, spot.kind);
+      this.nextHazardIdx++;
+    }
   }
 
   onTowerHit(rhino, tower) {
@@ -2653,6 +2893,8 @@ export class GameScene extends Phaser.Scene {
     this.drawTerrainDebug();
     this.updateOpeningHints();
     this.updateTrackMarks();
+    this.updatePortals();
+    this.updateHazards();
 
     this.rhino.update(time, delta);
 
@@ -2771,13 +3013,34 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  // v1.8.5 — o CERCO caiu (2000m): a corrida CONTINUA. Nada de crossGate nem
-  // gameOver aqui — a barricada explode com o mesmo vocabulário do portão,
-  // o "+150" nasce nela e o rino segue avenida adentro. A medalha boss2_win
-  // sai no endGame (persistida lá, como todas).
-  defeatBoss2() {
+  // v1.8.7 — a MURALHA caiu (2000m): a corrida CONTINUA. Nada de crossGate
+  // nem gameOver aqui — a barricada de viaturas DESABA PARA A ESQUERDA
+  // (padrão v1.8: contra o sentido da corrida), os holofotes apagam em
+  // flashes decrescentes (os feixes de verdade vivem assados nas texturas do
+  // fundo — inacessíveis, então a queda de luz é encenada na tela) e a
+  // Brecha amanhece pelo ciclo de céu vigente. A medalha sai no endGame.
+  defeatMuralha() {
     const gx = Constants.BOSS2_ANCHOR_PX;
-    if (this.boss2Sprite) this.boss2Sprite.setTexture('boss2-gate-broken');
+
+    // O tombo: um clone da textura ATUAL gira sobre a própria base para a
+    // esquerda enquanto o sprite real já vira o estado destruído (mesmo
+    // truque do collapseWallTop — o BossFight deixou o sprite em
+    // muralha-gate-1 quando a última camada caiu)
+    if (this.boss2Sprite) {
+      const piece = this.add.image(gx, Constants.GROUND_TOP, this.boss2Sprite.texture.key)
+        .setOrigin(0.5, 1).setDepth(this.boss2Sprite.depth);
+      this.boss2Sprite.setTexture('muralha-gate-broken');
+      this.tweens.add({
+        targets: piece,
+        angle: Phaser.Math.Between(-96, -78),
+        y: piece.y + 30,
+        alpha: 0,
+        duration: 900, // mesmo tempo do tombo do caçador/parede
+        ease: 'Quad.easeIn',
+        onComplete: () => piece.destroy(),
+      });
+    }
+
     this.createExplosion(gx, Constants.GROUND_TOP - 110);
     this.createBreakParticles(gx, Constants.GROUND_TOP - 110);
     this.createBreakParticles(gx - 70, Constants.GROUND_TOP - 40);
@@ -2789,11 +3052,25 @@ export class GameScene extends Phaser.Scene {
     this.audio.playBreak();
     this.audio.playFanfare();
 
-    this.showToast('🕸️ O CERCO CAIU!');
+    // Holofotes apagando um a um: 3 flashes de luz fria cada vez mais
+    // fracos, escalonados — a leitura de "a operação desligou"
+    [[300, 0.28], [800, 0.16], [1300, 0.08]].forEach(([ms, a]) => {
+      this.time.delayedCall(ms, () => {
+        if (this.gameOver) return;
+        const glow = this.add.rectangle(640, 360, 1280, 720, 0xfff3c4)
+          .setScrollFactor(0).setDepth(50).setAlpha(a);
+        this.tweens.add({
+          targets: glow, alpha: 0, duration: 380,
+          onComplete: () => glow.destroy(),
+        });
+      });
+    });
+
+    this.showToast('🚧 A MURALHA CAIU!');
     // O 2º aviso deixa explícito que a pista abriu — padrão do crossGate
     this.time.delayedCall(1500, () => {
       if (this.gameOver) return;
-      this.showToast('🏆 2000m LIVRES!', { y: 250, size: 34, color: '#ffe9a8', duration: 2000 });
+      this.showToast('🌅 A BRECHA ESTÁ ABERTA!', { y: 250, size: 34, color: '#ffe9a8', duration: 2000 });
     });
   }
 
@@ -2977,7 +3254,7 @@ export class GameScene extends Phaser.Scene {
       bossLayers: this.runBossLayers,
       // v1.8.5: as camadas dos bosses novos pontuaram AO VIVO (addScore
       // 'bossLayer' no breakLayer genérico; a vitória do Cerco, no
-      // defeatBoss2) — aqui elas só viram LINHAS do detalhamento
+      // defeatMuralha) — aqui elas só viram LINHAS do detalhamento
       boss2Layers: this.runBoss2Layers, boss3Layers: this.runBoss3Layers,
       escaped, blitz, legend: !!this.legend,
     });
@@ -3007,9 +3284,9 @@ export class GameScene extends Phaser.Scene {
       }
     } else {
       document.getElementById('game-over-title').textContent =
-        // O rifle do caçador também é tranquilizante (ninguém mata o rino);
-        // a rede do Cerco captura — mesmo sono, título próprio
-        cause === 'boss2' ? 'CAPTURADO! 🕸️'
+        // Todo tiro de boss é tranquilizante (ninguém mata o rino); a
+        // Muralha detém em nome da cidade — mesmo sono, título próprio
+        cause === 'boss2' ? 'DETIDO NA MURALHA! 🚧'
           : tranqCause ? 'TRANQUILIZADO! 💤' : 'GAME OVER';
       document.getElementById('final-score').textContent = distance;
       if (isNewRecord) {

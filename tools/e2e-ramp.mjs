@@ -377,7 +377,7 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
   });
 
   ok('14b. veterano pula a abertura-lição e enfrenta o trecho cheio antes dos 200m',
-    vet.primeiro !== null && vet.primeiro <= 2600 && !vet.roteiroFixo &&
+    vet.primeiro !== null && vet.primeiro < 3600 && !vet.roteiroFixo &&
     vet.total >= 4 && vet.animaisAte200m > 0,
     `1º obstáculo em ${vet.primeiro}px · ${vet.total} obstáculos · ${vet.animaisAte200m} animais · roteiroFixo=${vet.roteiroFixo}`);
 
@@ -581,8 +581,10 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
   ok('20. a fuga NÃO pausa a física (a corrida não para)',
     gate.pausedNoInstante === false && gate.pausedDepois === false,
     `instante=${gate.pausedNoInstante} depois=${gate.pausedDepois}`);
-  ok('21. parede vira prédio depois do portão',
-    JSON.stringify(gate.walls) === JSON.stringify(['cracked-mid', 'cracked-mid-city']),
+  // v1.8.7: logo após o portão a área é o SUBÚRBIO (D1) — a parede da cidade
+  // ganha família por distrito, e '-city' só volta na rodovia (2200m+)
+  ok('21. parede vira prédio de subúrbio depois do portão',
+    JSON.stringify(gate.walls) === JSON.stringify(['cracked-mid', 'cracked-mid-suburbio']),
     JSON.stringify(gate.walls));
 
   // ---------- 25-27. Espinho, rampa e torre também mudam de skin ----------

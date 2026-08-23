@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 40" width="52" height="40">
+  <!-- FURIOUS RHINO - v1.8.7 D1 (suburbio). Gato de BECO preto de olhos
+       amarelos, agachado pronto para o bote (e o pulador do distrito).
+       Flat: preto + cinza-escuro + amarelo, contorno. Vai para a DIREITA.
+       Hitbox sugerida: 38x24 com offset 4,14.
+       Par: enemy-gatobeco-air.svg (pose esticada do pulo). -->
+  <!-- rabo em S alto (a silhueta do beco) -->
+  <path d="M7 26 Q1 22 4 15 Q6 10 3 6" fill="none" stroke="#17171b" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M7 26 Q1 22 4 15 Q6 10 3 6" fill="none" stroke="#26262c" stroke-width="3" stroke-linecap="round"/>
+  <!-- patas agachadas -->
+  <path d="M14 32 Q13 35 12 37" fill="none" stroke="#17171b" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M14 32 Q13 35 12 37" fill="none" stroke="#26262c" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M34 32 Q35 35 37 37" fill="none" stroke="#17171b" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M34 32 Q35 35 37 37" fill="none" stroke="#26262c" stroke-width="3.2" stroke-linecap="round"/>
+  <!-- corpo agachado, garupa alta -->
+  <path d="M8 30 Q9 18 22 19 Q34 20 38 26 Q38 33 30 34 Q14 35 8 30 Z" fill="#1c1c22" stroke="#17171b" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M12 22 Q20 16 30 21" fill="none" stroke="#3a3a44" stroke-width="2.4" stroke-linecap="round"/>
+  <!-- cabeca -->
+  <circle cx="40" cy="18" r="8.5" fill="#1c1c22" stroke="#17171b" stroke-width="2.4"/>
+  <!-- orelhas pontudas (uma rasgada: gato de briga) -->
+  <path d="M34 12 L32 3 L39 8 Z" fill="#1c1c22" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M43 8 L47 2 L48 9 L45.5 7.5 Z" fill="#1c1c22" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- OLHOS AMARELOS (o que se ve no escuro) -->
+  <ellipse cx="38" cy="17" rx="2.8" ry="3.2" fill="#ffd24a" stroke="#17171b" stroke-width="1"/>
+  <ellipse cx="45" cy="16.5" rx="2.6" ry="3" fill="#ffd24a" stroke="#17171b" stroke-width="1"/>
+  <ellipse cx="38.6" cy="17" rx="1" ry="2.4" fill="#17171b"/>
+  <ellipse cx="45.6" cy="16.5" rx="1" ry="2.2" fill="#17171b"/>
+  <!-- focinho e bigodes -->
+  <path d="M46 21 L48.5 20 M46 22.5 L49 22.8 M45.5 24 L48 25.5" fill="none" stroke="#8a939f" stroke-width="1" stroke-linecap="round"/>
+  <path d="M44 20.6 L45.6 21.8 L43.6 22.6 Z" fill="#d3606a" stroke="#17171b" stroke-width="1"/>
+  <!-- pelos arrepiados do lombo -->
+  <path d="M14 19 L15.5 15.5 L18 18.4 L20.5 15 L23 18.2" fill="none" stroke="#17171b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

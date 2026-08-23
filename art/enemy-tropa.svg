@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 68" width="48" height="68">
+  <!-- FURIOUS RHINO - v1.8.7 D3 (contencao). TROPA DE ESCUDOS: silhueta de
+       agente de choque ATRAS do escudo de policarbonato — o escudo domina a
+       leitura (nasce sempre em PAR, offset 300, rasteiro lento 90).
+       Avanca para a DIREITA (o jogo espelha com setFlipX).
+       Hitbox sugerida no spec do A: 34x56 — offset sugerido 8,8.
+       Par: enemy-tropa-run-1.svg (pernas trocam de fase atras do escudo). -->
+  <g transform="translate(0 2)">
+  <!-- silhueta do agente atras do escudo -->
+  <circle cx="16" cy="12" r="8.5" fill="#232c38" stroke="#17171b" stroke-width="2.2"/>
+  <path d="M9 17 Q9 5 16 4.5 Q23 5 23 15 Q16 12 9 17 Z" fill="#333d49" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M8 30 Q16 24 24 29 L25 48 Q16 51 7 48 Z" fill="#232c38" stroke="#17171b" stroke-width="2.2" stroke-linejoin="round"/>
+  <!-- pernas (fase A) -->
+  <path d="M12 48 Q10 55 8 60" fill="none" stroke="#17171b" stroke-width="6" stroke-linecap="round"/>
+  <path d="M12 48 Q10 55 8 60" fill="none" stroke="#2c3642" stroke-width="3.6" stroke-linecap="round"/>
+  <rect x="3" y="58" width="10.5" height="5.5" rx="2.4" fill="#17171b"/>
+  <path d="M20 48 Q23 54 26 58" fill="none" stroke="#17171b" stroke-width="6" stroke-linecap="round"/>
+  <path d="M20 48 Q23 54 26 58" fill="none" stroke="#39444f" stroke-width="3.6" stroke-linecap="round"/>
+  <rect x="22" y="57" width="10.5" height="5.5" rx="2.4" fill="#17171b"/>
+  <!-- braco empurrando o escudo -->
+  <path d="M22 33 Q28 33 32 36" fill="none" stroke="#17171b" stroke-width="5.4" stroke-linecap="round"/>
+  <path d="M22 33 Q28 33 32 36" fill="none" stroke="#333d49" stroke-width="3" stroke-linecap="round"/>
+  <!-- ESCUDO de policarbonato (translucido, com a faixa TROPA) -->
+  <path d="M28 6 Q44 4 46 8 L46 56 Q44 62 30 63 Q26 62 26 56 L26 10 Q26 7 28 6 Z" fill="#9ab4c8" fill-opacity="0.55" stroke="#17171b" stroke-width="2.6" stroke-linejoin="round"/>
+  <path d="M29 9 L29 58" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <!-- faixa escura com "letras" -->
+  <rect x="26.5" y="28" width="19" height="12" fill="#1f2531" stroke="#17171b" stroke-width="1.4"/>
+  <g fill="#f6f4ef">
+    <rect x="29" y="31.5" width="3" height="5"/>
+    <rect x="33.5" y="31.5" width="3" height="5"/>
+    <rect x="38" y="31.5" width="3" height="5"/>
+  </g>
+  <!-- punho/visor do escudo -->
+  <rect x="32" y="44" width="9" height="4.5" rx="2" fill="#39444f" stroke="#17171b" stroke-width="1.4"/>
+  <!-- olhos pela viseira, unica cara visivel -->
+  <rect x="10" y="10" width="11" height="4.6" rx="2" fill="#4ad1ff" fill-opacity="0.9" stroke="#17171b" stroke-width="1.2"/>
+  </g>
+</svg>

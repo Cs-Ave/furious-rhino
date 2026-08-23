@@ -48,6 +48,9 @@ export class TranqDart extends Phaser.Physics.Arcade.Sprite {
     // tint dourado, senão um dardo de torre nasce fantasiado de boss
     this.fromBoss = false;
     this.clearTint();
+    // v1.8.7: o rasante K9 da Muralha troca a TEXTURA do dardo
+    // ('k9-projectile') — devolver a base no descarte, pela mesma razão
+    if (this.texture.key !== 'tranq-dart') this.setTexture('tranq-dart');
     this.setActive(false).setVisible(false);
   }
 }

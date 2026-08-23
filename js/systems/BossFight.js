@@ -28,6 +28,8 @@ import { HunterSniper } from '../entities/HunterSniper.js';
 //   camLockOffsetPx  a câmera trava em anchorX - isto
 //   layersProp / bouncesProp  nomes dos contadores da corrida na cena
 //   enrageMs      0 = sem enrage; >0 = depois disso a cadência sobe 1 degrau
+//   rasanteStyle  (v1.8.7, opcional) 'k9' = o rasante do atirador veste a
+//                 textura 'k9-projectile' (a Muralha); ausente = dardo padrão
 //   hints         { intro, how } dos toasts de ensino
 //   encounters    { get, add } do contador de encontros (o portão injeta os
 //                 métodos legados do StorageManager); na falta, cai em
@@ -214,6 +216,16 @@ export class BossFight {
       duration: 600,
       ease: 'Sine.easeOut',
     });
+
+    // INEGOCIÁVEL da v1.8.7: silenciar quem JÁ NASCEU no corredor da arena.
+    // inNoSpawnZone só bloqueia spawn NOVO — uma camionete nascida aos
+    // 1960 m atiraria durante a intro por cima dos telegraphs do boss.
+    // muzzleHostiles (SpawnManager) desativa torres e animais atiradores no
+    // intervalo; vale para os TRÊS bosses — seguro e correto em todos.
+    // O retorno fica guardado só para debug (quantos foram calados).
+    this.muzzledCount = scene.spawnManager.muzzleHostiles(
+      def.anchorX - 1500, def.anchorX + 500
+    );
 
     this.positionGlow();
     this.glow.setVisible(true);

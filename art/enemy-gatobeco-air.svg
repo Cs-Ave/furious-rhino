@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 40" width="52" height="40">
+  <!-- FURIOUS RHINO - v1.8.7 D1. Gato de beco no AR (airTexture do pulo):
+       corpo ESTICADO em arco, patas dianteiras lancadas e rabo reto de leme.
+       Mesmas cores/contorno do enemy-gatobeco.svg. -->
+  <!-- rabo reto de leme -->
+  <path d="M8 24 Q2 24 1 20" fill="none" stroke="#17171b" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M8 24 Q2 24 1 20" fill="none" stroke="#26262c" stroke-width="3" stroke-linecap="round"/>
+  <!-- patas traseiras lancadas para tras -->
+  <path d="M13 26 Q9 30 5 32" fill="none" stroke="#17171b" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M13 26 Q9 30 5 32" fill="none" stroke="#26262c" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M16 28 Q13 32 10 35" fill="none" stroke="#17171b" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M16 28 Q13 32 10 35" fill="none" stroke="#26262c" stroke-width="3.2" stroke-linecap="round"/>
+  <!-- patas dianteiras esticadas para o bote -->
+  <path d="M34 22 Q40 24 45 28" fill="none" stroke="#17171b" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M34 22 Q40 24 45 28" fill="none" stroke="#26262c" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M33 25 Q38 28 42 33" fill="none" stroke="#17171b" stroke-width="5.6" stroke-linecap="round"/>
+  <path d="M33 25 Q38 28 42 33" fill="none" stroke="#26262c" stroke-width="3.2" stroke-linecap="round"/>
+  <!-- corpo esticado em arco -->
+  <path d="M8 26 Q14 15 28 15 Q37 15 39 20 Q37 27 27 27 Q15 28 8 26 Z" fill="#1c1c22" stroke="#17171b" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M13 20 Q22 14 33 18" fill="none" stroke="#3a3a44" stroke-width="2.4" stroke-linecap="round"/>
+  <!-- cabeca projetada -->
+  <circle cx="42" cy="14" r="8.5" fill="#1c1c22" stroke="#17171b" stroke-width="2.4"/>
+  <path d="M36 8 L34 0 L41 4 Z" fill="#1c1c22" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M45 4 L49 0 L50 6 L47.5 4.6 Z" fill="#1c1c22" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- olhos amarelos cravados no alvo -->
+  <ellipse cx="40" cy="13" rx="2.8" ry="3.2" fill="#ffd24a" stroke="#17171b" stroke-width="1"/>
+  <ellipse cx="47" cy="12.5" rx="2.6" ry="3" fill="#ffd24a" stroke="#17171b" stroke-width="1"/>
+  <ellipse cx="40.8" cy="13" rx="1" ry="2.4" fill="#17171b"/>
+  <ellipse cx="47.6" cy="12.5" rx="1" ry="2.2" fill="#17171b"/>
+  <path d="M48 17 L50.5 16 M48 18.5 L51 18.8" fill="none" stroke="#8a939f" stroke-width="1" stroke-linecap="round"/>
+  <path d="M46 16.6 L47.6 17.8 L45.6 18.6 Z" fill="#d3606a" stroke="#17171b" stroke-width="1"/>
+</svg>

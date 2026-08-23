@@ -33,9 +33,14 @@ export async function initTuningPanel(scene) {
     behavior: Constants.ANIMAL_BEHAVIOR,
     weights: Constants.SCORE_WEIGHTS,
     rifle: Constants.BOSS_RIFLE,
-    // v1.8.5: os arsenais dos bosses novos também exportam
-    net2: Constants.BOSS2_NET,
+    // v1.8.5: os arsenais dos bosses novos também exportam.
+    // v1.8.7: a Muralha assumiu o slot dos 2000m (BOSS_MURALHA); a tabela do
+    // Cerco (CERCO_NET) segue declarada mas sem luta ligada — sem slider e
+    // sem export até ele reabrir no deserto.
+    muralha: Constants.BOSS_MURALHA,
     rifle3: Constants.BOSS3_RIFLE,
+    // v1.8.7: pesos por distrito da cidade (só os números exportam)
+    districts: Constants.CITY_DISTRICTS,
   }));
 
   const fisica = gui.addFolder('Física do Rino');
@@ -136,19 +141,32 @@ export async function initTuningPanel(scene) {
   }
   boss.close();
 
-  // v1.8.5: os bosses novos. As tabelas (BOSS2_NET/BOSS3_RIFLE) são as
-  // MESMAS referências lidas a cada tiro — sliders ao vivo, como no portão.
-  const boss2 = gui.addFolder('Boss 2 (Cerco)');
+  // v1.8.5: os bosses novos. As tabelas são as MESMAS referências lidas a
+  // cada tiro — sliders ao vivo, como no portão. v1.8.7: o slot dos 2000m é
+  // a MURALHA (BOSS_MURALHA); o Cerco realocado não tem luta ligada.
+  const boss2 = gui.addFolder('Boss 2 (Muralha)');
   for (const layers of [4, 3, 2, 1]) {
-    boss2.add(Constants.BOSS2_NET[layers], 'intervalMs', 400, 4000, 50)
-      .name(`rede: cadência ${layers} camada${layers > 1 ? 's' : ''}`);
+    boss2.add(Constants.BOSS_MURALHA[layers], 'intervalMs', 400, 4000, 50)
+      .name(`arsenal: cadência ${layers} camada${layers > 1 ? 's' : ''}`);
   }
   // O enrage foi COPIADO para a def no create (número, não referência):
   // o onChange espelha na luta viva para o slider valer na hora
-  boss2.add(Constants, 'BOSS2_ENRAGE_MS', 0, 120000, 1000)
+  boss2.add(Constants, 'MURALHA_ENRAGE_MS', 0, 120000, 1000)
     .name('enrage: ms de luta')
     .onChange((v) => { if (scene.boss2Fight) scene.boss2Fight.def.enrageMs = v; });
   boss2.close();
+
+  // v1.8.7: pesos de spawn por DISTRITO da cidade (override sobre o tier).
+  // Chave nova em weights ganha slider sozinha no próximo reload.
+  const distritos = gui.addFolder('Distritos da cidade');
+  Constants.CITY_DISTRICTS.forEach((d, i) => {
+    const keys = Object.keys(d.weights || {}).filter((k) => typeof d.weights[k] === 'number');
+    if (!keys.length) return;
+    const f = distritos.addFolder(`D${i + 1} ${d.key}`);
+    for (const k of keys) f.add(d.weights, k, 0, 1, 0.01).name(`peso: ${k}`);
+    f.close();
+  });
+  distritos.close();
 
   const boss3 = gui.addFolder('Boss 3 (Guardião)');
   for (const layers of [5, 4, 3, 2, 1]) {
@@ -279,7 +297,7 @@ const ROOT_KEYS = [
   'MIN_SAFE_GAP', 'SPAWN_LOOKAHEAD_PX', 'FURY_FULL_DISTANCE_PX',
   'SPECIAL_DURATION_MS', 'SPECIAL_SPEED_MULT',
   'BOSS_KNOCKBACK_VX', 'BOSS_KNOCKBACK_VY', 'BOSS_KNOCKBACK_MS', 'BOSS_SHOT_SPEED',
-  'BOSS2_ENRAGE_MS',
+  'MURALHA_ENRAGE_MS',
   'ANIMAL_KB_VX_MIN', 'ANIMAL_KB_VX_MAX', 'ANIMAL_KB_VY_MIN', 'ANIMAL_KB_VY_MAX',
 ];
 
@@ -322,13 +340,22 @@ function exportTuning(baseline) {
     }
   }
   // v1.8.5: os arsenais dos bosses novos, no mesmo padrão do BOSS_RIFLE
-  for (const [layers, pattern] of Object.entries(Constants.BOSS2_NET)) {
+  // (v1.8.7: o slot dos 2000m exporta como BOSS_MURALHA)
+  for (const [layers, pattern] of Object.entries(Constants.BOSS_MURALHA)) {
     for (const [k, v] of Object.entries(pattern)) {
-      if (typeof v === 'number' && v !== baseline.net2[layers][k]) {
-        lines.push(`${pad(`BOSS2_NET[${layers}].${k}: ${v},`)}// era ${baseline.net2[layers][k]} — objeto BOSS2_NET, chave ${layers}`);
+      if (typeof v === 'number' && v !== baseline.muralha[layers][k]) {
+        lines.push(`${pad(`BOSS_MURALHA[${layers}].${k}: ${v},`)}// era ${baseline.muralha[layers][k]} — objeto BOSS_MURALHA, chave ${layers}`);
       }
     }
   }
+  // v1.8.7: pesos por distrito (3 níveis — laço próprio; strings ficam fora)
+  Constants.CITY_DISTRICTS.forEach((d, i) => {
+    for (const [k, v] of Object.entries(d.weights || {})) {
+      if (typeof v === 'number' && v !== (baseline.districts[i].weights || {})[k]) {
+        lines.push(`${pad(`CITY_DISTRICTS[${i}].weights.${k}: ${v},`)}// era ${baseline.districts[i].weights[k]} — distrito ${d.key}`);
+      }
+    }
+  });
   for (const [layers, pattern] of Object.entries(Constants.BOSS3_RIFLE)) {
     for (const [k, v] of Object.entries(pattern)) {
       if (typeof v === 'number' && v !== baseline.rifle3[layers][k]) {

@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 46" width="64" height="46">
+  <!-- FURIOUS RHINO - v1.8.7 D2-D3. K9 de Choque no AR (airTexture do salto):
+       corpo esticado em arco de ataque, dianteiras lancadas, traseiras
+       recolhidas; mesmas cores e colete do enemy-k9.svg. -->
+  <g transform="scale(0.9143 0.92)">
+  <!-- cauda de leme -->
+  <path d="M6 20 Q1 21 0 17" fill="none" stroke="#17171b" stroke-width="5.4" stroke-linecap="round"/>
+  <path d="M6 20 Q1 21 0 17" fill="none" stroke="#3a2c1e" stroke-width="3" stroke-linecap="round"/>
+  <!-- traseiras recolhidas para tras -->
+  <path d="M14 26 Q9 31 4 34" fill="none" stroke="#17171b" stroke-width="6" stroke-linecap="round"/>
+  <path d="M14 26 Q9 31 4 34" fill="none" stroke="#3a2c1e" stroke-width="3.4" stroke-linecap="round"/>
+  <path d="M18 29 Q14 34 10 38" fill="none" stroke="#17171b" stroke-width="6" stroke-linecap="round"/>
+  <path d="M18 29 Q14 34 10 38" fill="none" stroke="#54402c" stroke-width="3.4" stroke-linecap="round"/>
+  <!-- dianteiras lancadas no bote -->
+  <path d="M44 24 Q52 27 58 33" fill="none" stroke="#17171b" stroke-width="6" stroke-linecap="round"/>
+  <path d="M44 24 Q52 27 58 33" fill="none" stroke="#3a2c1e" stroke-width="3.4" stroke-linecap="round"/>
+  <path d="M42 28 Q48 32 52 38" fill="none" stroke="#17171b" stroke-width="6" stroke-linecap="round"/>
+  <path d="M42 28 Q48 32 52 38" fill="none" stroke="#54402c" stroke-width="3.4" stroke-linecap="round"/>
+  <!-- corpo esticado em arco -->
+  <path d="M6 24 Q14 12 34 13 Q46 14 49 19 Q47 27 34 27 Q16 28 6 24 Z" fill="#54402c" stroke="#17171b" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M10 21 Q24 12 42 17 Q36 22 26 23 Q16 24 10 21 Z" fill="#2b2620"/>
+  <!-- colete K9 -->
+  <path d="M26 14 L46 17 L46 27 L27 26 Z" fill="#7a2620" stroke="#17171b" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M32 19 L32 25 M32 22 L36 19 M32 22 L36 25" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="39.6" cy="20.6" r="1.7" fill="none" stroke="#ffffff" stroke-width="1.6"/>
+  <path d="M41.2 20.4 Q41.4 24 39.4 25.2" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round"/>
+  <!-- cabeca projetada -->
+  <circle cx="56" cy="12" r="9.5" fill="#54402c" stroke="#17171b" stroke-width="2.5"/>
+  <path d="M49 6 Q55 2 61 5 L61 10 Q55 7 50 10 Z" fill="#2b2620"/>
+  <path d="M49 4 L46 -3 L54 0 Z" fill="#2b2620" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M57 2 L57 -4 L63 1 Z" fill="#2b2620" stroke="#17171b" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M63 11 Q70 11 70 15 Q70 19 64 19 Q61 19 60 17 Z" fill="#2b2620" stroke="#17171b" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="69" cy="13.5" r="1.8" fill="#17171b"/>
+  <path d="M62 17.6 L63.2 19.6 L64.4 17.8 Z M65.4 17.8 L66.6 19.6 L67.8 17.9 Z" fill="#ffffff"/>
+  <circle cx="57" cy="9.5" r="2.2" fill="#a35c1c"/>
+  <circle cx="57.5" cy="9" r="1.1" fill="#17171b"/>
+  <path d="M53.5 6.5 L59 7.5" fill="none" stroke="#17171b" stroke-width="1.6" stroke-linecap="round"/>
+  </g>
+</svg>

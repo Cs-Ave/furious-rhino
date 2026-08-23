@@ -10,10 +10,16 @@ import { Constants } from '../utils/Constants.js';
 // preUpdate da TranqTower.
 //
 // A `def` é a MESMA do BossFight; daqui só se lê:
-//   rifle        tabela de padrões por camadas restantes (referência viva)
+//   rifle        tabela de padrões por camadas restantes (referência viva);
+//                flags por degrau: burst, fan, mortar, rasante e (v1.8.7)
+//                holo — granada-de-luz: balística de morteiro, telegraph de
+//                holofote no chão (a Muralha)
 //   hunterTexture / hunterAimTexture   arte parado / mirando
 //   enrageMs     0 = sem enrage; >0 = passado esse tempo de luta a cadência
 //                desce UM degrau na tabela (nunca um muro de morte)
+//   rasanteStyle (v1.8.7, opcional) 'k9' = o rasante veste a textura
+//                'k9-projectile' (cão de choque cruzando a arena — Muralha);
+//                ausente/qualquer outro valor = dardo padrão
 export class HunterSniper extends Phaser.GameObjects.Sprite {
   constructor(scene, x, y, def) {
     super(scene, x, y, def.hunterTexture);
@@ -76,17 +82,29 @@ export class HunterSniper extends Phaser.GameObjects.Sprite {
     }
 
     if (this.phase === 'telegraph') {
-      this.drawLaser(time, rhino);
+      // O tiro que este telegraph anuncia é o de índice shotIndex+1 (o
+      // incremento acontece no disparo, logo abaixo). Se ele vai ser um
+      // holo, o aviso é o HOLOFOTE varrendo até a zona de pouso — o
+      // jogador lê a luz no chão, não uma linha abstrata
+      if ((this.shotIndex + 1) % 2 === 0 && cfg.holo) {
+        this.drawHoloTelegraph(time, rhino);
+      } else {
+        this.drawLaser(time, rhino);
+      }
       if (this.phaseMs <= 0) {
         this.laser.clear();
         this.shotIndex++;
         this.phase = 'cooldown';
         this.phaseMs = cfg.intervalMs;
-        // Regra dos ALTERNADOS (tiros de índice par): morteiro tem
-        // precedência sobre o rasante; sem nenhum dos dois, cai na rajada
-        // normal. Índice ímpar é sempre rajada. O portão só configura
-        // `mortar`, então o comportamento dele fica idêntico ao de sempre.
-        if (this.shotIndex % 2 === 0 && cfg.mortar) {
+        // Regra dos ALTERNADOS (tiros de índice par): holo (granada-de-luz)
+        // tem precedência sobre o morteiro, que tem sobre o rasante; sem
+        // nenhum dos três, cai na rajada normal. Índice ímpar é sempre
+        // rajada. O portão só configura `mortar`, então o comportamento
+        // dele fica idêntico ao de sempre.
+        if (this.shotIndex % 2 === 0 && cfg.holo) {
+          this.fireHolo(rhino);
+          this.setTexture(this.def.hunterTexture);
+        } else if (this.shotIndex % 2 === 0 && cfg.mortar) {
           this.fireMortar(rhino);
           this.setTexture(this.def.hunterTexture);
         } else if (this.shotIndex % 2 === 0 && cfg.rasante) {
@@ -122,6 +140,59 @@ export class HunterSniper extends Phaser.GameObjects.Sprite {
     g.lineBetween(m.x, m.y, rhino.x, rhino.y - 30);
     g.fillStyle(0xff3b30, 0.9);
     g.fillCircle(m.x, m.y, 3);
+  }
+
+  // Telegraph do HOLO: em vez do laser reto, um CONE de holofote da boca do
+  // rifle até a zona de pouso — mirada como a do morteiro (o x ATUAL do
+  // rino), então o cone varre a arena acompanhando quem se move. Sem
+  // gradiente (SwiftShader): 3 triângulos concêntricos de alpha decrescente
+  // + linha central + a ELIPSE âmbar pulsando no chão. É a elipse que o
+  // jogador lê — "não esteja aqui quando a luz apagar".
+  drawHoloTelegraph(time, rhino) {
+    const m = this.muzzle();
+    const g = this.laser;
+    g.clear();
+    const tx = rhino.x;
+    const ty = Constants.GROUND_TOP;
+    const pulse = 0.5 + 0.5 * Math.sin(time * 0.012);
+    const base = 0.08 + 0.1 * pulse; // pico ~0.18 no triângulo interno
+    const halves = [70, 44, 20];     // meia-largura do pé do cone no chão
+    const alphas = [base * 0.55, base * 0.8, base * 1.05];
+    for (let i = 0; i < halves.length; i++) {
+      g.fillStyle(0xffe9b8, alphas[i]);
+      g.fillTriangle(m.x, m.y, tx - halves[i], ty, tx + halves[i], ty);
+    }
+    g.lineStyle(2, 0xfff0a8, 0.3 + 0.4 * pulse);
+    g.lineBetween(m.x, m.y, tx, ty);
+    // A zona de pouso no chão — o coração do aviso
+    g.fillStyle(0xfff0a8, 0.18 + 0.22 * pulse);
+    g.fillEllipse(tx, ty, 150, 26);
+    g.lineStyle(3, 0xffd24a, 0.45 + 0.4 * pulse);
+    g.strokeEllipse(tx, ty, 150, 26);
+  }
+
+  // GRANADA-DE-LUZ (holo, v1.8.7 — a Muralha): mecanicamente um morteiro
+  // (MESMA balística do fireMortar), com dardo âmbar. O clearTint garantido
+  // do TranqDart.deactivate limpa o âmbar no reuso — precedente do dardo
+  // dourado de boss.
+  fireHolo(rhino) {
+    this.fireMortar(rhino);
+    const d = this.lastFiredDart();
+    if (d) d.setTint(0xfff0a8);
+  }
+
+  // O fireDart do SpawnManager não retorna o dardo (pool de fogo-e-esquece).
+  // O recém-disparado é o único ATIVO ainda parado exatamente na boca do
+  // rifle — a física não deu passo entre o fire e esta chamada (mesmo frame
+  // síncrono). Pool lotado = tiro silencioso = null (quem chama guarda).
+  lastFiredDart() {
+    const m = this.muzzle();
+    const darts = this.scene.spawnManager.getDartsGroup().getChildren();
+    for (let i = darts.length - 1; i >= 0; i--) {
+      const d = darts[i];
+      if (d.active && d.x === m.x && d.y === m.y) return d;
+    }
+    return null;
   }
 
   // Tiro reto mirado no corpo do rino. Com `fan`, vira leque de 3: o do meio
@@ -177,6 +248,21 @@ export class HunterSniper extends Phaser.GameObjects.Sprite {
     const len = Math.hypot(dx, dy) || 1;
     const v = Constants.BOSS_SHOT_SPEED;
     this.scene.spawnManager.fireDart(m.x, m.y, (dx / len) * v, (dy / len) * v, false, this.shotCause());
+    // rasanteStyle 'k9' (campo da def, v1.8.7): o rasante da Muralha é um
+    // K9 de choque cruzando a arena rente ao chão — o MESMO dardo,
+    // reskinado. A textura é do agente C; sem ela, tint azul-aço. O
+    // TranqDart devolve textura e tint no deactivate (higiene de pool).
+    if (this.def.rasanteStyle === 'k9') {
+      const d = this.lastFiredDart();
+      if (d) {
+        if (this.scene.textures.exists('k9-projectile')) {
+          d.clearTint(); // sem o dourado de boss por cima do sprite próprio
+          d.setTexture('k9-projectile');
+        } else {
+          d.setTint(0x9db4ff);
+        }
+      }
+    }
     this.scene.audio.playRifleShot();
   }
 

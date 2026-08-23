@@ -1,4 +1,51 @@
-# Handoff — FURIOUS RHINO v1.8.6
+# Handoff — FURIOUS RHINO v1.8.7
+
+**Data:** 22/08/2026 · **Status:** v1.8.4→v1.8.6 **commitadas local** (sem push) · **v1.8.7 PRONTA no working tree, sem commit** · produção segue na **v1.8.3**
+
+## 0. v1.8.7 — Estado de Alerta (working tree, sem commit)
+
+Ideias **J** (cidade em 3 distritos) e **H** (funil) entregues juntas. Rules NÃO mudam
+nesta versão (zero campo, zero coleção — ritual sem console).
+
+- **Motor**: `CITY_DISTRICTS` + `getCityAreaIndex/cityAreaFor/skinFor(x, kind)` —
+  parede tem família por distrito (`-suburbio/-vidro/-contencao`; espinho/torre/rampa
+  seguem `-city`); roleta com override de pesos por área; Brecha (2025–2200 m) = só
+  rampas jump + pombos; portais com ±300 px sem spawn (SEM anchor — evita sombra de
+  combo); `WEATHER_SCRIPT` 8→11 faixas; `flyerSpawnY` (banda do zig contém o y de
+  spawn — mata o mergulho não-telegrafado).
+- **Elenco**: 11 novos (padrões `zig` com telegraph no flip e `shoot` com cap e
+  telegraph de tint; tropa em `pair`; dronesent `sentinel` = conta torre e devolve
+  dash); 22 SVGs novos + anims no BootScene; legado redistribuído por distrito.
+  `POOL_SIZES`: darts 16→24, animals 16→20.
+- **A MURALHA (2000 m)**: def nova no slot do boss2 (camadas HIGH→GROUND→MID→HIGH,
+  `BOSS_MURALHA` com flag `holo` — telegraph de holofote com elipse de pouso —,
+  `rasanteStyle:'k9'`, enrage 45 s); `startFight` chama `muzzleHostiles` (torres e
+  atiradores vivos na arena são silenciados — inegociável novo); vitória
+  `defeatMuralha` (colapso p/ esquerda, holofotes apagando); herda causa `boss2` e
+  letras `e`/`h`. **Cerco realocado**: `CERCO_NET/CERCO_LAYERS` declaradas SEM wiring,
+  gatilho = funil com massa pós-2000; medalha `boss2_win` DORMENTE (test=>false).
+- **Hazards**: `TimedHazard` (caçamba/hidrante/arco), pool de 4 na cena, spots
+  determinísticos (caçambas 1150/1250/1350 m; hidrantes 1500/1650; arcos 1850/1925).
+- **Consertos de integração**: `this.on` do TimedHazard sombreava `EventEmitter.on`
+  (renomeado `phaseOn`); `CrackedWall.setSkin` normalizava família nova para `''`
+  (lista `WALL_SKINS` — as 4 entidades não tinham dono na partição, lição);
+  `BOSS2_ENRAGE_MS` morto (fica `MURALHA_ENRAGE_MS`); anims novas no BootScene.
+- **Funil (ideia H)**: teto mínimo 2200 com marcos rotulados (viaduto/checkpoint/
+  Muralha/rodovia) — a régua das metas da fase.
+- **Medalhas**: 22 no total — re-batismos + `dist_1400/1800/2200` + `city_boss_win`.
+- Versão **1.8.7 nos 4 lugares** · `CACHE furious-rhino-v187` · TimedHazard + 22 SVGs
+  no ASSETS · TuningPanel com pastas "Boss 2 (Muralha)" e "Distritos da cidade" nas
+  DUAS listas.
+- **Suítes (22/08, todas verdes — TREZE)**: test-stats **101** · test-score 83 ·
+  test-challenge 68 · test-skins 93 · test-integrate 49 · e2e-ramp **42** ·
+  e2e-boss 16 · e2e-boss2 **14** (Muralha) · e2e-boss3 10 · e2e-special **25**
+  (famílias por distrito) · e2e-skins 15 · e2e-setup 17 · e2e-stats 69.
+- Metas da fase (medir ~4 semanas pós-release, no funil novo): mediana pós-portão
+  ≥1.500 m · ≥1.400 m: 3%→6% · ≥2.000 m: 1%→3% · mortes `boss2` > 6.
+
+---
+
+# Handoff anterior — FURIOUS RHINO v1.8.6
 
 **Data:** 22/08/2026 · **Status:** v1.8.4 + v1.8.5 **commitadas local** (`8575e97`, `8f43c97` + docs `455bc15`, tags criadas, SEM push) · v1.8.6 **PRONTA no working tree, sem commit** · produção segue na **v1.8.3**
 

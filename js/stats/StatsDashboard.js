@@ -330,7 +330,7 @@ function tabOverview(root) {
 
   root.append(el('h2', null, '🏁 Progresso: quantos jogadores já alcançaram…'));
   root.append(chartBox(stepArea(agg.funnelSteps, { highlight: '🗽' }),
-    `De ${agg.players} jogadores. O degrau destacado é o portão dos ${GATE_M}m.`));
+    `De ${agg.players} jogadores. Marcos: portão ${GATE_M}m, viaduto 1400m, checkpoint 1800m, Muralha 2000m, rodovia 2200m.`));
 
   // Recorde mundial ao longo do tempo — máximo acumulado sobre todas as corridas
   const sorted = runs.slice().sort((a, b) => a.t - b.t);
@@ -1019,11 +1019,22 @@ export function aggregate(docs) {
     inc(agg.version, str(d.gameVersion) || 'pré-1.3.0');
   }
 
-  // Funil dinâmico: degraus de 200m até o MÁXIMO percorrido (modo infinito)
+  // Funil dinâmico: degraus de 200m até o MÁXIMO percorrido (modo infinito).
+  // v1.8.7 (ideia H): os marcos da cidade viram rótulos — é esta a régua que
+  // mede as metas da fase (mediana pós-portão 1.224m -> 1.500m; >=1.400m de
+  // 3% -> 6%; chegada à Muralha de 1% -> 3%). O teto mínimo subiu para 2200
+  // (fim da fase) para os degraus novos existirem mesmo antes de alguém chegar.
+  const FUNNEL_MARKS = {
+    [GATE_M]: `${GATE_M}m 🗽 (o portão!)`,
+    1400: '1400m 🚦 (viaduto — a cidade acorda)',
+    1800: '1800m 🚨 (checkpoint da contenção)',
+    2000: '2000m 🧱 (a Muralha)',
+    2200: '2200m 🛣️ (atravessou a cidade)',
+  };
   const maxBest = Math.max(0, ...bests, 0);
-  const top = Math.max(GATE_M, Math.ceil(maxBest / 200) * 200);
+  const top = Math.max(2200, Math.ceil(maxBest / 200) * 200);
   for (let m = 200; m <= top; m += 200) {
-    const label = m === GATE_M ? `${GATE_M}m 🗽 (o portão!)` : `${m}m`;
+    const label = FUNNEL_MARKS[m] || `${m}m`;
     agg.funnelSteps.push([label, bests.filter((b) => b >= m).length]);
   }
 

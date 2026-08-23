@@ -314,10 +314,15 @@ eq('tempo total somado', agg.playTimeS, 210);
 eq('mortes por etapa [t1..t6]', agg.deathsTier, [2, 2, 1, 0, 1, 0]);
 eq('mortes por causa (objeto)', agg.causes,
   { wall: 1, spike: 0, animal: 1, dart: 1, tower: 1, boss: 0, boss2: 0, boss3: 0, fall: 1 });
-// Funil dinâmico: degraus de 200m até o máximo percorrido (1150 → 1200)
-eq('funil: nº de degraus (200..1200)', agg.funnelSteps.length, 6);
-eq('funil: contagens por degrau', agg.funnelSteps.map(([, v]) => v), [2, 2, 1, 1, 1, 0]);
+// Funil dinâmico: degraus de 200m. v1.8.7 (ideia H): o teto mínimo é 2200
+// (fim da fase da cidade) — os marcos novos existem antes de alguém chegar.
+eq('funil: nº de degraus (200..2200 — teto mínimo da fase da cidade)', agg.funnelSteps.length, 11);
+eq('funil: contagens por degrau', agg.funnelSteps.map(([, v]) => v), [2, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0]);
 eq('funil: degrau do portão destacado', agg.funnelSteps[4][0].includes('1000m 🗽'), true);
+eq('funil: marcos da cidade rotulados (viaduto/checkpoint/Muralha/rodovia)',
+  [agg.funnelSteps[6][0].includes('1400m 🚦'), agg.funnelSteps[8][0].includes('1800m 🚨'),
+    agg.funnelSteps[9][0].includes('2000m 🧱'), agg.funnelSteps[10][0].includes('2200m 🛣')],
+  [true, true, true, true]);
 eq('funil: escaparam (cruzaram o portão)', agg.escaped, 2);
 eq('PWA instalado', agg.standalone, 1);
 eq('cidade formatada com região', agg.city.get('Rio de Janeiro (Rio de Janeiro)'), 1);

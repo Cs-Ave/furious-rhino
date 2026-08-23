@@ -1,6 +1,6 @@
 # Furious Rhino — Referência técnica
 
-> Documentação da versão **1.8.6** · atualizada em 21/08/2026
+> Documentação da versão **1.8.7** · atualizada em 21/08/2026
 > Para quem vai dar manutenção. Complementa (não substitui) `GAME_DESIGN.md` (o design e suas razões) e `HANDOFF.md` (estado da última sessão de trabalho e tabelas completas de parâmetros).
 
 ## 1. Estrutura de pastas
@@ -170,7 +170,10 @@ Tudo em `js/utils/Constants.js` (deploy sempre necessário). Principais:
 | `BOSS_KNOCKBACK_VX / VY / MS` | 3000 / −360 / 650 | quique: impulso (decai ~0,92/frame → ~600 px de recuo) e janela sem reescrita de velocidade |
 | `BOSS_LAYER_COOLDOWN_MS` | 450 | 1 contato processado por vez (o rampage não zera as 3 camadas em 3 frames) |
 | `BOSS_SHOT_SPEED / BOSS_RIFLE` | 800 / 3 padrões | rifle do caçador: velocidade e cadência/telegraph/rajada por camadas restantes (1500/1200/950 ms) |
-| `BIOME_ANIMALS` | 6 elencos | quais das 27 espécies nascem em cada bioma |
+| `BIOME_ANIMALS` | 6 elencos | quais espécies nascem em cada bioma (fora da cidade) |
+| `CITY_DISTRICTS` | 5 áreas | v1.8.7: os distritos da cidade — `from/key/wallSkin/cast/weights/breach`; elenco e pesos POR ÁREA via `cityAreaFor(x)`; skin de parede via `skinFor(x,'wall')` |
+| `BOSS_MURALHA / MURALHA_ENRAGE_MS` | 4 degraus / 45000 | v1.8.7: arsenal do boss dos 2000 m (flag nova `holo` = granada-de-luz com telegraph de holofote; `rasanteStyle:'k9'` na def) |
+| `CERCO_NET / CERCO_LAYERS` | declaradas | v1.8.7: o Cerco realocado — SEM luta ligada até o funil mostrar massa pós-2000 m |
 | `CAUSE_LABELS` | 8 rótulos | fonte única dos nomes de desfecho (painel, resumo, pushes) |
 
 Calibrar com dados, não no escuro: aba **Dificuldade** do painel (heatmap causa × distância). O `TuningPanel` (`?debug=1`) permite testar valores ao vivo e exportar um `.txt` com só o que mudou, no formato do `Constants.js`.
@@ -222,6 +225,7 @@ Parâmetros completos e receitas: `HANDOFF.md` §4A/§4B. Resumo de operação:
 |---|---|
 | `test-stats` (Node puro) | Agregação, contadores (inclusive `f/b/q/z` e a causa `boss`), consistência das camadas **contra as rules** (um teste falha se alguém criar campo de topo em `stats`; outros se `scoreAt`/`skin` sumirem da whitelist de `scores`), `LeaderboardSystem.holdDays` nas DUAS semânticas (por marca = lista; cascata = pódio), `buildDigest` |
 | `test-score` (Node puro, v1.8.4) | A fórmula da pontuação composta: peso de cada evento, evento desconhecido valendo 0, blitz na BORDA dos 20 s, LENDA, o teto `bônus <= metros` agindo, o clamp em `SCORE_MAX_TOTAL`, `metersOf` nas três formas (`scoreM`/`m`/`score` cru) e os formatadores. O assert-chave é o **contrato de recomputação**: a soma feita ao vivo durante a corrida tem de bater exatamente com `runBonus(run)` |
+| `e2e-boss2` (Chromium, v1.8.7) | A MURALHA no slot dos 2000 m: 4 camadas abrindo NO ALTO (HIGH→GROUND→MID→HIGH), startFight SILENCIANDO torre viva na arena (`muzzleHostiles`), vitória sem encerrar a corrida (+250 ao vivo), causa `boss2` herdada com título próprio, enrage de 45 s |
 | `test-challenge` (Node puro, v1.8.6) | A Arena de Desafios: `bestInWindow` (bordas EXATAS da janela, escolha por PONTOS e não metros, empate = mais antiga), countdown, `statusOf`/`leaderOf`, convites não vistos, guardas puras de criação (apelido/teto/duração) e os asserts de texto das rules de `challenges` (whitelist, janela ≤ 7d, o `hasAll` do aceite, delete proibido) |
 | `test-skins` (Node puro, v1.8) | É o **portão do /?setup** (roda a cada gravação da página, com rollback se reprovar). Lógica de acesso testada com **skins sintéticas** — rank exato, condições declarativas (`conditionMet`), totais, `hidden`, retro-scan, `requirementText`, `resolveEquipped` sem regravar — e o registry REAL só passa por checagens estruturais: ids/prefixos no padrão, JSON estrito, SVGs em `art/`, `ASSETS` e marcadores do `sw.js`. **Regra: nenhum assert pode "pinar" valores do registry** (o dono edita skins à vontade) |
 | `test-integrate` (Node puro, v1.8) | A integração do estúdio como funções puras: round-trip byte-idêntico do `SkinRegistry.js`, upsert/remove (só o `default` intocável; originais também removem, com `stripSwArtLines` limpando as linhas manuscritas do `sw.js`), flag `hidden`, validação de entradas/condições, e o patch idempotente do bloco `@setup:skins` no `sw.js` (CACHE jamais tocado) |

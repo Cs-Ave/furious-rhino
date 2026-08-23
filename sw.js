@@ -1,6 +1,6 @@
 // Network-first service worker: always serves fresh files while online
 // (essential during development), falls back to cache for offline play.
-const CACHE = 'furious-rhino-v186';
+const CACHE = 'furious-rhino-v187';
 const ASSETS = [
   './',
   './index.html',
@@ -117,6 +117,29 @@ const ASSETS = [
   './art/enemy-scooter.svg',
   './art/enemy-scooter-alt.svg',
   './art/boss-hunter.svg',
+  // v1.8.7 — elenco dos distritos + Comandante da Muralha
+  './art/enemy-dronesent-alt.svg',
+  './art/enemy-dronesent.svg',
+  './art/enemy-dronezig-alt.svg',
+  './art/enemy-dronezig.svg',
+  './art/enemy-gatobeco-air.svg',
+  './art/enemy-gatobeco.svg',
+  './art/enemy-helinews-alt.svg',
+  './art/enemy-helinews.svg',
+  './art/enemy-k9-air.svg',
+  './art/enemy-k9.svg',
+  './art/enemy-pipa-alt.svg',
+  './art/enemy-pipa.svg',
+  './art/enemy-pombo-flap.svg',
+  './art/enemy-pombo.svg',
+  './art/enemy-reporter-run-1.svg',
+  './art/enemy-reporter.svg',
+  './art/enemy-tropa-run-1.svg',
+  './art/enemy-tropa.svg',
+  './art/enemy-viralata-run-1.svg',
+  './art/enemy-viralata.svg',
+  './art/muralha-hunter-aim.svg',
+  './art/muralha-hunter.svg',
   './art/boss-hunter-aim.svg',
   './art/boss2-hunter.svg',
   './art/boss2-hunter-aim.svg',
@@ -151,6 +174,7 @@ const ASSETS = [
   './js/entities/TranqDart.js',
   './js/entities/HunterSniper.js',
   './js/entities/Ramp.js',
+  './js/entities/TimedHazard.js',
   'https://cdn.jsdelivr.net/npm/phaser@3.85.2/dist/phaser.min.js',
 ];
 

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 36" width="56" height="36">
+  <!-- FURIOUS RHINO - v1.8.7 D3. Drone de Choque, frame ALT: helices no
+       angulo oposto com borrao e o LED ventral ESTOURADO de brilho — o
+       telegraph diegetico de que o zigue vai inverter. Resto identico. -->
+  <path d="M22 18.5 L8 12.5" fill="none" stroke="#17171b" stroke-width="4.6" stroke-linecap="round"/>
+  <path d="M22 18.5 L8 12.5" fill="none" stroke="#2b2e33" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M34 18.5 L48 12.5" fill="none" stroke="#17171b" stroke-width="4.6" stroke-linecap="round"/>
+  <path d="M34 18.5 L48 12.5" fill="none" stroke="#2b2e33" stroke-width="2.2" stroke-linecap="round"/>
+  <rect x="4.5" y="9" width="7" height="5.4" rx="2.2" fill="#33363c" stroke="#17171b" stroke-width="1.8"/>
+  <rect x="44.5" y="9" width="7" height="5.4" rx="2.2" fill="#33363c" stroke="#17171b" stroke-width="1.8"/>
+  <circle cx="4.2" cy="15.2" r="1.1" fill="#ff4a5e" stroke="#17171b" stroke-width="0.9"/>
+  <circle cx="51.8" cy="15.2" r="1.1" fill="#ff4a5e" stroke="#17171b" stroke-width="0.9"/>
+  <ellipse cx="8" cy="7.8" rx="8" ry="1" fill="#cfd3db" opacity="0.35"/>
+  <g transform="rotate(-34 8 7.8)">
+    <ellipse cx="8" cy="7.8" rx="7.4" ry="1.4" fill="#101216" stroke="#17171b" stroke-width="1.2"/>
+  </g>
+  <ellipse cx="48" cy="7.8" rx="7.8" ry="1" fill="#cfd3db" opacity="0.35"/>
+  <g transform="rotate(30 48 7.8)">
+    <ellipse cx="48" cy="7.8" rx="7.4" ry="1.4" fill="#101216" stroke="#17171b" stroke-width="1.2"/>
+  </g>
+  <circle cx="8" cy="7.8" r="1.5" fill="#55585e" stroke="#17171b" stroke-width="1.1"/>
+  <circle cx="48" cy="7.8" r="1.5" fill="#55585e" stroke="#17171b" stroke-width="1.1"/>
+  <path d="M24.5 13 L23.5 8.8" fill="none" stroke="#17171b" stroke-width="1.6" stroke-linecap="round"/>
+  <circle cx="23.3" cy="7.9" r="1.2" fill="#ff4a5e" stroke="#17171b" stroke-width="1"/>
+  <ellipse cx="28" cy="19.5" rx="12.5" ry="7.2" fill="#1c1e23" stroke="#17171b" stroke-width="2.2"/>
+  <path d="M17 18 Q28 13.5 39 18" fill="none" stroke="#ff4a5e" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M18.5 22.8 Q28 27.6 37.3 22.6 Q33.8 26 28 26 Q22.2 26 18.5 22.8 Z" fill="#33363c"/>
+  <!-- LED ESTOURADO: o aviso do zag -->
+  <circle cx="24" cy="26.2" r="4.4" fill="#ff4a5e" opacity="0.35"/>
+  <circle cx="24" cy="26.2" r="2.2" fill="#ff4a5e" stroke="#17171b" stroke-width="1"/>
+  <circle cx="23.4" cy="25.6" r="0.9" fill="#ffd7dc"/>
+  <path d="M33.5 22.5 L37.5 25" fill="none" stroke="#17171b" stroke-width="3.4" stroke-linecap="round"/>
+  <circle cx="39" cy="25.5" r="4.6" fill="#33363c" stroke="#17171b" stroke-width="2"/>
+  <circle cx="39.4" cy="25.9" r="2.9" fill="#6e1420"/>
+  <circle cx="39.9" cy="26.4" r="1.4" fill="#ff4a5e"/>
+  <circle cx="38.3" cy="24.6" r="0.9" fill="#ffffff"/>
+</svg>

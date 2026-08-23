@@ -1,7 +1,7 @@
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
-  VERSION: '1.8.6',
+  VERSION: '1.8.7',
 
   // Rótulo humano de cada desfecho de corrida. Fonte única para o painel, o
   // resumo do jogador e os pushes — os três diziam a mesma coisa com palavras
@@ -102,19 +102,47 @@ export const Constants = {
   // na fresta é permanente — é a mira, não uma dica)
   BOSS_HINT_MAX_ENCOUNTERS: 2,
 
-  // ------------------------------------------- BOSS 2: o Cerco (declarado)
-  // O BossFight virou paramétrico (uma `def` por luta), então os bosses
-  // seguintes são só tabela. Estes números ficam DECLARADOS aqui à espera do
-  // wiring da fase 2 — nada os consome ainda. Filosofia da casa, sem
-  // exceção: justo, telegrafado, nunca um muro de morte.
+  // ------------------------------------------- BOSS 2: a Muralha (2000m)
+  // v1.8.7 "Estado de Alerta": o slot dos 2000m trocou de dono. BOSS2_*
+  // passa a significar "o boss dos 2000m" — hoje, a Operação Muralha
+  // (barricada de viaturas + torre de holofote com o Comandante no ninho).
+  // A Muralha HERDA âncora, causa de morte (`boss2`) e pontos (boss2: 150 +
+  // bossLayer/camada) — a série histórica do funil continua contínua.
   BOSS2_ANCHOR_PX: 80000,        // ~2000m: o segundo portal da fuga
+  // Comprimento 4 OBRIGATÓRIO: ScoreSystem/MedalSystem amarram a vitória do
+  // boss dos 2000m a BOSS2_LAYERS.length === 4. Abre no ALTO de propósito:
+  // é o exame da lição do D3 (a Zona de Contenção ensina a ler o céu).
+  BOSS2_LAYERS: ['high', 'ground', 'mid', 'high'],
+  // Arsenal da cidade, por camadas RESTANTES (objetos mutáveis: TuningPanel
+  // pode ligar sliders). burst = rajada de dardos; holo = granada-de-luz:
+  // morteiro cujo telegraph é o próprio holofote varrendo até a zona de
+  // pouso (diegético — o jogador lê a luz, não um glow abstrato); rasante =
+  // K9 de choque cruzando a arena rente ao chão (anti-camping); fan = leque.
+  // O despacho de `holo`/`rasante` vive no BossFight (agente B).
+  BOSS_MURALHA: {
+    4: { intervalMs: 1500, telegraphMs: 450, burst: 1 },
+    3: { intervalMs: 1250, telegraphMs: 420, burst: 2, holo: true },
+    2: { intervalMs: 1050, telegraphMs: 380, burst: 2, holo: true, rasante: true },
+    1: { intervalMs: 900,  telegraphMs: 350, burst: 3, holo: true, fan: true, rasante: true },
+  },
+  // Enrage suave da Muralha (filosofia da casa: desce UM degrau de cadência,
+  // nunca muro de morte).
+  // (agente B) migra — depois um dos dois morre.
+  MURALHA_ENRAGE_MS: 45000,
+
+  // --------------------------------- O CERCO (declarado, realocado)
+  // v1.8.7: o Cerco saiu do slot dos 2000m e vira o PORTEIRO DO DESERTO
+  // (âncora proposta 120000px/3000m, decisão em aberto). Mecânica 100%
+  // intacta — estas tabelas ficam DECLARADAS (precedente da casa: B e C
+  // ficaram declarados na v1.8.4) e reabrem quando o funil de conversão
+  // (ideia H do IDEIAS-FUTURAS) mostrar massa de corridas pós-2000m.
+  // A medalha `boss2_win` ("Fura-Bloqueio") segue com o Cerco.
   // 4 camadas fora da ordem "de baixo para cima": obriga a ler o glow em vez
   // de decorar a sequência do portão
-  BOSS2_LAYERS: ['mid', 'ground', 'high', 'mid'],
-  BOSS2_ENRAGE_MS: 45000,        // luta arrastada desce UM degrau de cadência
+  CERCO_LAYERS: ['mid', 'ground', 'high', 'mid'],
   // Canhão de redes do Cerco: leque e rasante (anti-camping) são o tema; o
   // morteiro entra SÓ na última camada, como estocada final.
-  BOSS2_NET: {
+  CERCO_NET: {
     4: { intervalMs: 1500, telegraphMs: 450, burst: 1, mortar: false, rasante: true },
     3: { intervalMs: 1250, telegraphMs: 420, burst: 2, mortar: false, rasante: true, fan: true },
     2: { intervalMs: 1050, telegraphMs: 380, burst: 2, mortar: false, rasante: true, fan: true },
@@ -278,6 +306,30 @@ export const Constants = {
     drone:     { w: 56,  h: 36, bodyW: 40,  bodyH: 18, offX: 8,  offY: 11, tex: 'enemy-drone',   scale: 1.4 },
     plane:     { w: 120, h: 42, bodyW: 88,  bodyH: 24, offX: 16, offY: 11, tex: 'enemy-plane',   scale: 1.1 },
     pickup:    { w: 132, h: 56, bodyW: 122, bodyH: 34, offX: 5,  offY: 20, tex: 'enemy-pickup',  scale: 1.25 },
+
+    // ------------------------------- elenco v1.8.7 por DISTRITO da cidade
+    // (ideia J do IDEIAS-FUTURAS). Mesmas regras da leva v1.7: offX já vem
+    // ESPELHADO (w - offX_arte - bodyW), bicos/microfones/rabiolas FORA da
+    // colisão. `pair: true` (tropa) = SpawnManager spawna o segundo a
+    // +ANIMAL_PACK_OFFSET_PX, sempre.
+    viralata:  { w: 62,  h: 42, bodyW: 50,  bodyH: 28, offX: 6,  offY: 12, tex: 'enemy-viralata' },
+    gatobeco:  { w: 52,  h: 40, bodyW: 40,  bodyH: 28, offX: 6,  offY: 10, tex: 'enemy-gatobeco' },
+    pombo:     { w: 48,  h: 34, bodyW: 32,  bodyH: 20, offX: 8,  offY: 8,  tex: 'enemy-pombo' },
+    // Microfone estendido fica FORA da hitbox (offX assimétrico, como a rede
+    // do zookeeper)
+    reporter:  { w: 44,  h: 64, bodyW: 28,  bodyH: 52, offX: 8,  offY: 10, tex: 'enemy-reporter' },
+    // Losango + rabiola: só o losango colide (rabiola é enfeite/telegraph)
+    pipa:      { w: 56,  h: 56, bodyW: 36,  bodyH: 36, offX: 10, offY: 6,  tex: 'enemy-pipa' },
+    helinews:  { w: 110, h: 48, bodyW: 84,  bodyH: 28, offX: 14, offY: 12, tex: 'enemy-helinews', scale: 1.2 },
+    // v1: ZERO SVG novo — reusa a arte do enemy-pickup em escala maior
+    // (paga o débito "mecânica própria da camionete" declarado na v1.7)
+    camionete: { w: 132, h: 56, bodyW: 122, bodyH: 34, offX: 5,  offY: 20, tex: 'enemy-pickup',  scale: 1.25 },
+    k9:        { w: 64,  h: 46, bodyW: 52,  bodyH: 34, offX: 6,  offY: 10, tex: 'enemy-k9' },
+    // Hitbox 34×56 do design (escudo alto e estreito); nasce SEMPRE em par
+    tropa:     { w: 48,  h: 68, bodyW: 34,  bodyH: 56, offX: 7,  offY: 10, tex: 'enemy-tropa', pair: true },
+    // Recolors do drone-base (mesma silhueta, paleta preto/vermelho)
+    dronezig:  { w: 56,  h: 36, bodyW: 40,  bodyH: 18, offX: 8,  offY: 11, tex: 'enemy-dronezig', scale: 1.4 },
+    dronesent: { w: 60,  h: 44, bodyW: 42,  bodyH: 24, offX: 9,  offY: 8,  tex: 'enemy-dronesent', scale: 1.4 },
   },
 
   // 5 espécies visuais de pássaro (mesma hitbox/behavior de 'bird');
@@ -295,11 +347,15 @@ export const Constants = {
   POOL_SIZES: {
     crackedWalls: 8,
     spikes: 8,
-    // 16: headroom para o "par de animais" (animalPackChance) — sem folga o
+    // v1.8.7: 16→20 — a Tropa de Escudos nasce SEMPRE em par (spec.pair) por
+    // cima do animalPackChance/escolta que já existiam; sem folga o
     // spawnAnimal devolve silêncio com o pool cheio e a densidade some
-    animals: 16,
+    animals: 20,
     towers: 4,
-    darts: 16,
+    // v1.8.7: 16→24 — o pool é COMPARTILHADO por torres t6 (520ms), os
+    // atiradores novos (camionete, drone-sentinela) e os bosses; fireDart
+    // falha EM SILÊNCIO com pool lotado (o risco nº 1 da ideia J)
+    darts: 24,
     // Janela viva: 200 (reciclagem) + 1280 (tela) + 600 (lookahead) + 540
     // (span máx) ≈ 2620px; com span+gap ≈ 1080 por rampa, 3 bastariam
     ramps: 4,
@@ -354,6 +410,9 @@ export const Constants = {
     'bluebird', 'jaguar', 'snake', 'manedwolf', 'croc', 'hippo',
     'capybara', 'jabiru', 'person', 'suit', 'scooter', 'car', 'police',
     'drone', 'plane', 'pickup',
+    // v1.8.7 — elenco dos distritos da cidade (ideia J)
+    'viralata', 'gatobeco', 'pombo', 'reporter', 'pipa', 'helinews',
+    'camionete', 'k9', 'tropa', 'dronezig', 'dronesent',
   ],
 
   // v1.7: cada bioma tem elenco próprio (antes as mesmas 5 espécies
@@ -408,6 +467,39 @@ export const Constants = {
     drone:     { speed: 160, bobVy: 45, fly: [400, 490], anim: 'drone-run' },
     plane:     { speed: 290, bobVy: 30, fly: [330, 410], anim: 'plane-run' },
     pickup:    { speed: 210, anim: 'pickup-run' },
+
+    // ------------------------------- elenco v1.8.7 por DISTRITO (ideia J)
+    // Chaves NOVAS de behavior:
+    //   zig: { vy, band: [minY, maxY] } — onda triangular: vy constante com
+    //     flip quando y sai da banda (clamp); o frame -alt pisca no flip
+    //     (telegraph diegético do zag). Zig também vale como flag de voador.
+    //   shoot: { ... } — atirador (Animal.updateShoot reusa fireDart):
+    //     range: [min,max] px do rino (só terrestre; aimed dispensa),
+    //     telegraphMs (setTintFill, molde da TranqTower), dartSpeed,
+    //     intervalMs (cadência; sem ele = 1 tiro por janela de range),
+    //     cap (máx. de exemplares do MESMO tipo atirando em tela),
+    //     aimed (tiro mirado no corpo do rino; sem ele, reto horizontal).
+    //   sentinel (dronesent): derrubado conta como TORRE (+15, letra `o` de
+    //     towersDowned — NUNCA `t`) e devolve o dash — handler na cena
+    //     (agente B/C); aqui é só a flag.
+    viralata:  { speed: 170, anim: 'viralata-run' },
+    gatobeco:  { speed: 140, jumpV: -700, jumpIntervalMs: 450, airTexture: 'enemy-gatobeco-air' },
+    // D1 alivia: voa ALTO ([440,520]) — o rasante não entra no subúrbio
+    pombo:     { speed: 170, bobVy: 50, fly: [440, 520], anim: 'pombo-run' },
+    reporter:  { speed: 150, anim: 'reporter-run' },
+    // Zig-zag: sem anim — a rabiola girando (frame -alt) é o telegraph
+    pipa:      { speed: 170, zig: { vy: 260, band: [400, 545] } },
+    helinews:  { speed: 280, bobVy: 25, fly: [320, 400], anim: 'helinews-run' },
+    // 1 dardo quando o rino entra na janela [700,900]px; farol pisca 280ms;
+    // dartSpeed 620 = t6−80; cap 1 = nunca duas camionetes atirando juntas
+    camionete: { speed: 210, anim: 'pickup-run',
+      shoot: { range: [700, 900], telegraphMs: 280, dartSpeed: 620, cap: 1 } },
+    k9:        { speed: 150, jumpV: -760, jumpIntervalMs: 400, airTexture: 'enemy-k9-air' },
+    tropa:     { speed: 90,  anim: 'tropa-run' },
+    dronezig:  { speed: 200, zig: { vy: 300, band: [370, 555] } },
+    // Paira (bob curto) e atira mirado a cada 1400ms com laser de 320ms
+    dronesent: { speed: 140, bobVy: 20, fly: [360, 430], sentinel: true,
+      shoot: { intervalMs: 1400, telegraphMs: 320, dartSpeed: 700, aimed: true } },
   },
 
   // 6 tiers de dificuldade, um a cada 200m (8000px de mundo). Objetos
@@ -499,6 +591,78 @@ export const Constants = {
     return Math.min(this.BIOMES.length - 1, Math.floor(x / 8000));
   },
 
+  // ------------------------------------ v1.8.7: distritos da cidade (ideia J)
+  // A cidade deixa de ser um skin infinito e vira um arco em 3 distritos
+  // (dorme → acorda → caça) + Brecha + rodovia. O dado que motiva (§4.3 do
+  // IDEIAS-FUTURAS): das 61 corridas pós-portão da janela, a mediana morre
+  // aos 1.224m — DENTRO do 1º distrito; só 3% passam de 1.400m. O conteúdo
+  // novo é gasto exatamente onde os jogadores reais estão.
+  // NADA aqui toca getBiomeIndex/getTierIndex/weatherFor — a régua de 8000px
+  // continua mandando em tier e clima; esta tabela é consultada só por
+  // visual (skins/portais) e spawn (elenco/pesos).
+  //   from     — x de mundo onde a área começa (a última com from <= x vence)
+  //   wallSkin — família de textura da PAREDE quebrável (só ela: espinho/
+  //              torre/rampa seguem na família -city, ver skinFor)
+  //   cast     — elenco de animais da área; null = elenco legado da cidade
+  //   weights  — override de pesos da roleta por cima do tier (ex.: D1
+  //              towerW 0.24→0.16 — a sobra vira rasteiro: mesma pressão,
+  //              leitura mais baixa e honesta, onde a mediana de 1.224m morre)
+  //   breach   — true = só rampa-trampolim + pombo (a volta olímpica)
+  CITY_DISTRICTS: [
+    { from: 40000, key: 'suburbio',  label: '🌙 SUBÚRBIO SONOLENTO', wallSkin: '-suburbio',
+      cast: ['person', 'suit', 'scooter', 'viralata', 'gatobeco', 'pombo', 'reporter'],
+      weights: { towerW: 0.16 }, breach: false },
+    { from: 56000, key: 'vidro',     label: '📡 O DESPERTAR', wallSkin: '-vidro',
+      cast: ['car', 'police', 'drone', 'reporter', 'pipa', 'helinews', 'camionete', 'k9'],
+      weights: {}, breach: false },
+    { from: 72000, key: 'contencao', label: '🚨 ZONA DE CONTENÇÃO', wallSkin: '-contencao',
+      cast: ['plane', 'pickup', 'camionete', 'k9', 'tropa', 'dronezig', 'dronesent'],
+      weights: {}, breach: false },
+    { from: 81000, key: 'brecha',    label: '🌅 A BRECHA', wallSkin: '-contencao',
+      cast: ['pombo'], weights: {}, breach: true },
+    { from: 88000, key: 'rodovia',   label: null, wallSkin: '-city',
+      cast: null, weights: {}, breach: false },  // cast null = elenco legado da cidade
+  ],
+
+  // Índice da área da cidade para um x de mundo: −1 antes do portão, senão a
+  // última entrada de CITY_DISTRICTS com from <= x. Puro — visual e spawn
+  // consultam sem efeito colateral.
+  getCityAreaIndex(x) {
+    if (x < this.WIN_DISTANCE_PX) return -1;
+    let idx = -1;
+    for (let i = 0; i < this.CITY_DISTRICTS.length; i++) {
+      if (this.CITY_DISTRICTS[i].from <= x) idx = i;
+    }
+    return idx;
+  },
+
+  // A área da cidade que contém x, ou null (antes do portão)
+  cityAreaFor(x) {
+    const i = this.getCityAreaIndex(x);
+    return i < 0 ? null : this.CITY_DISTRICTS[i];
+  },
+
+  // Família de skin de um obstáculo na posição x. Fora da cidade '' (zoo);
+  // dentro, a PAREDE tem família por distrito (wallSkin) e todo o resto
+  // (espinho/torre/rampa) segue na família -city — os 4 ternários binários
+  // do SpawnManager viraram esta função (o débito de extensão pago uma vez).
+  skinFor(x, kind = 'wall') {
+    const area = this.cityAreaFor(x);
+    if (!area) return '';
+    return kind === 'wall' ? area.wallSkin : '-city';
+  },
+
+  // y de spawn de um voador de escolta/combo. O y histórico é 470 (fixo);
+  // um tipo cuja banda de voo/zig NÃO contém 470 nasceria fora dela e o 1º
+  // frame seria um mergulho não-telegrafado — nesse caso, o centro da banda.
+  flyerSpawnY(type) {
+    const b = this.ANIMAL_BEHAVIOR[type] || {};
+    const band = b.fly || (b.zig && b.zig.band) ||
+      (type === 'bird' ? [410, 520] : null);
+    if (!band) return 470;
+    return band[0] <= 470 && 470 <= band[1] ? 470 : (band[0] + band[1]) / 2;
+  },
+
   // ------------------------------------------------------------ céu e clima
   // Até 1450m o céu segue a curva narrativa: dia pleno, entardecer chegando
   // junto com o portão (a fuga acontece no pôr do sol) e noite no modo
@@ -526,6 +690,11 @@ export const Constants = {
     'tempestade', // 1000–1200m cidade — o show, logo depois da fuga
     'limpo',      // 1200–1400m
     'chuva',      // 1400–1600m
+    // v1.8.7 (ideia J): 8→11 faixas — o roteiro cobre os distritos inteiros
+    'chuva',      // 1600–1800m  chuva do rush no Despertar (legível)
+    'limpo',      // 1800–2000m  corredor pré-boss: neblina sorteada (34% de
+                  //             alpha) seria ilegível sobre holofote/telegraph
+    'limpo',      // 2000–2200m  a Brecha — a volta olímpica amanhece limpa
   ],
   // Teto de alpha da neblina: acima disto ela começa a esconder obstáculo
   FOG_MAX_ALPHA: 0.34,

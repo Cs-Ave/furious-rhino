@@ -5,7 +5,19 @@
 
 ---
 
-## v1.8.6 — 22/08/2026 (versão atual)
+## v1.8.7 — 22/08/2026 (versão atual)
+
+**Tema: Estado de Alerta — a cidade acorda, e ela não gostou de você.**
+
+- **A cidade virou três distritos com personalidade** (1000–2200 m): o **Subúrbio Sonolento** (madrugada, comércio fechado, a cidade nem sabe quem você é), **o Despertar** (o dia amanhece junto com o pânico — telões "PROCURADO", drones de plantão) e a **Zona de Contenção** (holofotes varrendo o escuro: agora é uma operação para te parar). Cada um com prédios, cores, inimigos e armadilhas próprios — e portais físicos bem marcados: o **Viaduto do Centro** (1400 m), o **Checkpoint da Contenção** (1800 m) e o **Pórtico da Rodovia** (2200 m).
+- **11 perseguidores novos** — do vira-lata e do gato de beco às tropas de escudo, passando pela **Pipa Cortante** (voa em zigue-zague), pela **camionete do capturador** e pelo **drone-sentinela** (os dois ATIRAM dardos, com aviso antes). Derrubar o drone-sentinela vale como torre. Os inimigos que já existiam foram redistribuídos: cada distrito tem o seu elenco.
+- **Armadilhas de rua**: a caçamba de entulho (pule ou destrua na investida), o hidrante rompido (a coluna d'água liga e desliga — atravesse no ritmo) e o arco voltaico (elétrico, no ALTO — desta vez a resposta é NÃO pular).
+- **Boss novo aos 2000 m: a MURALHA.** A cidade fechou o viaduto com viaturas empilhadas e um Comandante na torre de holofote. Quatro camadas que abrem **pelo alto** (tudo que os distritos ensinaram, cobrado de uma vez), granada-de-luz cujo aviso é o próprio holofote varrendo até onde ela vai cair, e um K9 rasante para quem fica parado. Vencer derruba a barricada e libera a **Brecha** — 200 m de volta olímpica com rampas e pombos, o amanhecer nascendo, até o Pórtico da Rodovia. *(O Cerco não sumiu: foi promovido a porteiro do deserto e volta mais adiante na estrada.)*
+- **Medalhas dos distritos**: marcos novos em 1400/1800/2200 m, "Queda da Muralha", e os nomes antigos re-batizados no vocabulário da cidade.
+- **O funil do painel `/?stats` agora mede a fase** (faixas até 2200 m com os marcos rotulados) — é a régua que dirá se a cidade segura os jogadores como foi desenhada para segurar.
+- Por dentro: zero mudança nas regras do banco, zero dado novo por corrida — e o pool de dardos cresceu para a cidade inteira poder atirar sem tiro engolido.
+
+## v1.8.6 — 22/08/2026
 
 **Tema: a Arena de Desafios — chame um amigo (ou a turma toda) para uma disputa com prazo.**
 
