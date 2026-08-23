@@ -38,6 +38,7 @@ function el(tag, className = null, text = null) {
 
 // ------------------------------------------------------------------ estado
 let serverUp = false;
+let gameByUnified = false; // quem serve esta página é o próprio gerador?
 let sessionId = null;
 let selection = [];
 let lastB64 = null;
@@ -148,12 +149,30 @@ export async function render() {
   setInterval(pollStatus, 2000);
 }
 
-// ------------------------------------------------------------ card: servidor
+// ------------------------------------------------------------ card: servidores
+// v1.8.8: DUAS linhas de status — o JOGO (quem serve esta página: o estúdio
+// unificado, o python, produção, ou o cache do PWA) e o GERADOR (:3210).
+// A linha do gerador é contrato congelado do e2e-setup (#su-dot,
+// #su-server-text com 'executando'/'parado' EXATOS, #su-uptime,
+// #su-server-help hidden⇔no ar) — ids e strings intocados; o que é novo
+// (linha do jogo, botão Parar) tem id novo.
 function buildServerCard() {
   const card = el('div', 'su-card');
-  card.append(el('h2', null, 'Servidor local (quem grava os arquivos)'));
+  card.append(el('h2', null, 'Servidores locais'));
+
+  const rowGame = el('div');
+  rowGame.style.cssText = 'display:flex;align-items:center;gap:12px;flex-wrap:wrap';
+  const gameDot = el('span', null, '⚪');
+  gameDot.id = 'su-game-dot';
+  gameDot.style.fontSize = '20px';
+  const gameText = el('b', null, 'jogo: verificando…');
+  gameText.id = 'su-game-text';
+  const gameSrc = el('span', 'su-muted', '');
+  gameSrc.id = 'su-game-src';
+  rowGame.append(gameDot, gameText, gameSrc);
+
   const row = el('div');
-  row.style.cssText = 'display:flex;align-items:center;gap:12px;flex-wrap:wrap';
+  row.style.cssText = 'display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px';
   const dot = el('span', null, '⚪');
   dot.id = 'su-dot';
   dot.style.fontSize = '20px';
@@ -161,7 +180,26 @@ function buildServerCard() {
   text.id = 'su-server-text';
   const uptime = el('span', 'su-muted', '');
   uptime.id = 'su-uptime';
-  row.append(dot, text, uptime);
+  // ⏻ Parar: a página nunca pôde LIGAR o servidor (sandbox), mas desligar
+  // pode — o /api/shutdown responde antes de morrer e o polling pinta o
+  // resto sozinho. O aviso muda se quem serve esta página é o próprio
+  // servidor que vai cair.
+  const stopBtn = el('button', 'su-danger', '⏻ Parar servidor');
+  stopBtn.id = 'su-btn-stop';
+  stopBtn.hidden = true;
+  stopBtn.addEventListener('click', async () => {
+    const aviso = gameByUnified
+      ? 'Parar o servidor? Isto derruba TAMBÉM quem serve esta página — as duas '
+        + 'linhas ficam vermelhas e nada mais grava.\n\nPara voltar: duplo-clique '
+        + 'em iniciar-estudio.bat (na pasta do jogo).'
+      : 'Parar o gerador? (o jogo continua no ar — é outro servidor que o serve)';
+    if (!confirm(aviso)) return;
+    try {
+      await fetch(API + '/api/shutdown', { method: 'POST' });
+    } catch (e) { /* já caiu — o polling confirma */ }
+  });
+  row.append(dot, text, uptime, stopBtn);
+
   const help = el('div');
   help.id = 'su-server-help';
   help.hidden = true;
@@ -170,7 +208,8 @@ function buildServerCard() {
     + '(esta página detecta sozinha quando ele estiver no ar):');
   const p2 = el('p');
   p2.append('• Duplo-clique em ');
-  p2.append(el('code', null, 'gerador-de-sprites\\iniciar-gerador.bat'));
+  p2.append(el('code', null, 'iniciar-estudio.bat'));
+  p2.append(' (na pasta do jogo) — sobe tudo e abre este estúdio no endereço certo');
   p2.append(document.createElement('br'));
   p2.append('• Ou no terminal, na pasta do jogo: ');
   p2.append(el('code', null, 'npm run sprite-gen'));
@@ -187,7 +226,7 @@ function buildServerCard() {
   });
   p2.append(copyBtn);
   help.append(p1, p2);
-  card.append(row, help);
+  card.append(rowGame, row, help);
   return card;
 }
 
@@ -210,11 +249,49 @@ async function pollStatus() {
     $('su-uptime').textContent = up && uptimeS != null
       ? `há ${Math.floor(uptimeS / 60)}min ${uptimeS % 60}s` : '';
     $('su-server-help').hidden = up;
+    if ($('su-btn-stop')) $('su-btn-stop').hidden = !up;
   }
+  await pollGameServer();
   // primeira medição ou transição de estado → a lista acompanha (sem isso,
   // servidor já parado no boot deixaria o "aguardando…" para sempre)
   if (up !== wasUp || !polledOnce) refreshSkinList();
   polledOnce = true;
+}
+
+// v1.8.8: status de QUEM SERVE ESTA PÁGINA. O probe é HEAD de propósito —
+// o service worker ignora requisição não-GET (vai direto à rede e NUNCA
+// entra no Cache Storage; com GET, um 200 seria cache.put e depois um falso
+// "no ar" com tudo morto). Classificação: /api/status responde ok = é o
+// estúdio unificado; responde não-ok (404) = outro servidor estático
+// (python); exceção = fora do ar (esta página veio do cache do PWA).
+async function pollGameServer() {
+  if (!$('su-game-dot')) return;
+  const isLocal = ['localhost', '127.0.0.1'].includes(location.hostname);
+  if (!isLocal) {
+    gameByUnified = false;
+    $('su-game-dot').textContent = '🟢';
+    $('su-game-text').textContent = 'jogo no ar';
+    $('su-game-src').textContent = `${location.host} · produção`;
+    return;
+  }
+  let alive = false;
+  let unified = false;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 1500);
+    const r = await fetch(`${location.origin}/api/status`, {
+      method: 'HEAD', cache: 'no-store', signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    alive = true;
+    unified = r.ok;
+  } catch (e) { /* fora do ar */ }
+  gameByUnified = unified;
+  $('su-game-dot').textContent = alive ? '🟢' : '🔴';
+  $('su-game-text').textContent = alive ? 'jogo no ar' : 'jogo fora do ar';
+  $('su-game-src').textContent = alive
+    ? `${location.host} · ${unified ? 'servido pelo estúdio unificado' : 'outro servidor (ex.: python)'}`
+    : 'esta página veio do cache do PWA — suba um servidor para gravar';
 }
 
 function guardServer() {

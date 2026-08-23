@@ -1,14 +1,18 @@
-// GERADOR DE SPRITES — servidor local da ferramenta (dev-only, nunca é
-// servido ao jogador; a pasta fica FORA do sw.js/ASSETS).
-//   npm run sprite-gen        → http://localhost:3210
-//   gerador-de-sprites/iniciar-gerador.bat (duplo-clique no Windows)
+// SERVIDOR DO ESTÚDIO — dev-only, nunca é servido ao jogador (a pasta fica
+// FORA do sw.js/ASSETS). Desde a v1.8.8 este servidor É o estúdio inteiro:
+//   :3210 → API do gerador de sprites (como sempre)
+//   :3000 → o JOGO, servido dos estáticos da raiz (mesmo handler) — se a
+//           3000 já estiver ocupada (ex.: python -m http.server do dono),
+//           ele avisa no console e segue só na 3210, sem morrer.
+//   npm run sprite-gen        → sobe os dois
+//   iniciar-estudio.bat       → (raiz do repo) sobe e abre /?setup=0929
 //
-// node:http puro, como todos os scripts do projeto — zero framework. A
-// página (index.html) também funciona servida pelo servidor do jogo
-// (python :3000/gerador-de-sprites/): o CORS liberado aqui permite que ela
-// converse com esta API de qualquer origem local.
+// node:http puro, como todos os scripts do projeto — zero framework. O CORS
+// liberado permite que o /?setup converse com a API de qualquer origem local.
+// IMPORTANTE: jogar/testar sempre por http://localhost:3000 — localStorage e
+// service worker são POR ORIGEM; jogar na :3210 forkaria a identidade.
 import { createServer } from 'node:http';
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync, unlinkSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync, unlinkSync, statSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
@@ -36,6 +40,13 @@ const MIME = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.mjs': 'text/javascript',
+  // `.js` é o item que sustenta servir o JOGO: módulo ES tem checagem
+  // estrita de MIME — sem ele o browser bloqueia js/game.js e nada boota
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.ico': 'image/x-icon',
+  '.webmanifest': 'application/manifest+json',
+  '.woff2': 'font/woff2',
   '.json': 'application/json',
 };
 
@@ -129,7 +140,10 @@ async function writeAndValidate(newRegistry, snapshot, extraRollback = null, swB
   return { ok: true, test, skins };
 }
 
-const server = createServer(async (req, res) => {
+// Um handler só, dois servidores (3210 = API+jogo · 3000 = o mesmo, para o
+// navegador do jogador/e2e). Extraído do createServer para poder escutar em
+// duas portas — um http.Server do node só faz listen uma vez.
+const handler = async (req, res) => {
   try {
     const url = new URL(req.url, `http://localhost:${PORT}`);
     const path = url.pathname;
@@ -143,7 +157,7 @@ const server = createServer(async (req, res) => {
     if (path === '/api/shutdown' && req.method === 'POST') {
       send(res, 200, { ok: true, bye: true });
       // responde antes de morrer; o polling da página detecta a queda
-      setTimeout(() => { server.close(); process.exit(0); }, 150);
+      setTimeout(() => { server.close(); server2.close(); process.exit(0); }, 150);
       return;
     }
     if (path === '/api/slice' && req.method === 'POST') {
@@ -357,9 +371,6 @@ const server = createServer(async (req, res) => {
     }
 
     // --------------------------------------------------- estáticos
-    if (path === '/' || path === '/index.html') {
-      return send(res, 200, readFileSync(join(HERE, 'index.html')), MIME['.html']);
-    }
     if (path.startsWith('/output/')) {
       const file = normalize(join(HERE, path)).replace(/\\/g, '/');
       const base = normalize(OUT).replace(/\\/g, '/');
@@ -367,11 +378,32 @@ const server = createServer(async (req, res) => {
       const ext = file.slice(file.lastIndexOf('.'));
       return send(res, 200, readFileSync(file), MIME[ext] || 'application/octet-stream');
     }
+    // v1.8.8: fallback estático da RAIZ — é isto que faz o servidor servir o
+    // JOGO inteiro ('/' inclusive). Mesma guarda de traversal do /output/,
+    // com decodeURIComponent ANTES do join (pega %2e%2e e cobre "Art AI").
+    // Só GET/HEAD: POST em rota desconhecida continua 404 (contrato da API).
+    if (req.method === 'GET' || req.method === 'HEAD') {
+      let rel = decodeURIComponent(path);
+      if (rel.endsWith('/')) rel += 'index.html';
+      const file = normalize(join(ROOT, rel)).replace(/\\/g, '/');
+      const base = normalize(ROOT).replace(/\\/g, '/') + '/';
+      // Não é segurança (é o localhost do dono) — é prevenção de acidente:
+      // ninguém baixa node_modules/ ou .git/ por typo
+      const banned = /^(node_modules|\.git)(\/|$)/;
+      if (file.startsWith(base) && !banned.test(file.slice(base.length))
+          && existsSync(file) && statSync(file).isFile()) {
+        const ext = file.slice(file.lastIndexOf('.'));
+        return send(res, 200, readFileSync(file), MIME[ext] || 'application/octet-stream');
+      }
+    }
     return send(res, 404, { error: 'rota desconhecida' });
   } catch (e) {
     return send(res, 500, { error: String(e.message || e) });
   }
-});
+};
+
+const server = createServer(handler);
+const server2 = createServer(handler);
 
 // Toma a porta de uma instância ANTIGA antes de escutar: sem isto, subir o
 // server com código novo enquanto o velho roda dá EADDRINUSE — e pior, a
@@ -389,5 +421,20 @@ try {
 
 server.listen(PORT, () => {
   console.log(`🎨 Gerador de Sprites no ar: http://localhost:${PORT}`);
-  console.log('   (parar: botão na página, ou Ctrl+C aqui)');
+  console.log('   (parar: botão ⏻ no /?setup, ou Ctrl+C aqui)');
+});
+
+// v1.8.8: o MESMO handler também na porta do jogo. O handler de 'error' é
+// obrigatório — sem ele, EADDRINUSE (ex.: python do dono na 3000) derruba o
+// processo inteiro; com ele, degrada com aviso e o gerador segue na 3210.
+const GAME_PORT = 3000;
+server2.on('error', (e) => {
+  if (e.code === 'EADDRINUSE') {
+    console.log('⚠️  3000 ocupada — provavelmente o python servindo o jogo; seguindo só na 3210');
+  } else {
+    console.log(`⚠️  não deu para escutar na 3000: ${e.message}`);
+  }
+});
+server2.listen(GAME_PORT, () => {
+  console.log(`🦏 Jogo também no ar: http://localhost:${GAME_PORT} (mesmo servidor)`);
 });

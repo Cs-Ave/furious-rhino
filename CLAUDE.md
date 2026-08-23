@@ -27,7 +27,8 @@ Auto-runner de ação para web mobile (paisagem): um rinoceronte foge do zoológ
 ## Comandos
 
 ```bash
-python -m http.server 3000   # servir o jogo (os e2e dependem disso)
+python -m http.server 3000   # servir o jogo (os e2e dependem da :3000)
+npm run sprite-gen           # OU: servidor unificado — jogo na :3000 + gerador na :3210 (cede a 3000 ao python com aviso)
 npm run test-stats           # 69 asserts, sem navegador
 npm run test-ramp            # 30 asserts e2e (Chromium)
 npm run test-e2e-stats       # 69 asserts e2e (Chromium, escreve com sonda claude-*)
@@ -36,7 +37,7 @@ npm run radiografia          # análise de usabilidade completa (leitura públic
 npm run test-radiografia     # 62 asserts do núcleo/CLI/aba, sem rede
 ```
 
-URLs úteis: `/?debug=1` (painel de tuning), `/?stats` (painel público, chave `0929` para o detalhado), `/?setup=0929` (estúdio de skins do dono — upload/desbloqueio/aplicar; a escrita exige `npm run sprite-gen` no ar), `/?ntfy=test|off|on`.
+URLs úteis: `/?debug=1` (painel de tuning), `/?stats` (painel público, chave `0929` para o detalhado), `/?setup=0929` (estúdio de skins do dono — upload/desbloqueio/aplicar; a escrita exige o gerador no ar; o `iniciar-estudio.bat` da raiz sobe tudo e abre direto), `/?ntfy=test|off|on`.
 
 ## Documentação
 

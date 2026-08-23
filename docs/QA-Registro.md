@@ -52,6 +52,14 @@
 
 O `.bat` abre `http://localhost:3210/` porque essa é a **página avulsa antiga** do gerador (a primeira versão da ferramenta) — ela ainda funciona para converter folhas, mas o front oficial com o fluxo completo (desbloqueio, editar, esconder, remover) é o **`/?setup` dentro do jogo**, na 3000. A página do estúdio detecta sozinha quando o `:3210` está no ar (bolinha verde "executando"). Detalhe extra: o `/?setup` do **site publicado** também funciona — desde que aberto no seu PC com o `:3210` rodando (o servidor manda o header de Private Network Access que o Chrome exige).
 
+> **→ Atualizado em 22/08/2026 (v1.8.8): virou um servidor só.** Veja a entrada seguinte.
+
+### 22/08/2026 — Ainda preciso subir dois servidores (3000 e 3210)?
+
+**Resposta curta:** **não.** Um duplo-clique no **`iniciar-estudio.bat`** (na RAIZ da pasta do jogo) sobe tudo e já abre o estúdio no endereço certo (`http://localhost:3000/?setup=0929`).
+
+**Como funciona por dentro:** desde a v1.8.8 o servidor do gerador (`npm run sprite-gen`) é **unificado**: além da API na `:3210`, ele serve o JOGO inteiro dos arquivos da raiz e escuta **também na `:3000`**. Se a `:3000` já estiver ocupada (ex.: você subiu o `python -m http.server 3000` à moda antiga), ele avisa no console e segue só na `:3210` — o python continua servindo o jogo e nada quebra: os dois modos são suportados. O card **"Servidores locais"** no topo do `/?setup` mostra as duas linhas (o jogo — quem serve a página — e o gerador) e ganhou o botão **⏻ Parar servidor** (com aviso: se quem serve a página é o unificado, parar derruba tudo). A página avulsa antiga do gerador foi aposentada (o histórico está no git). ⚠️ Uma regra continua valendo: **jogue e teste sempre pela `:3000`** — `localStorage`, medalhas e o service worker são por ORIGEM, e jogar em `localhost:3210` criaria uma segunda identidade do zero.
+
 ---
 
 ## 📣 News — os cards do Diário da Fuga (home)

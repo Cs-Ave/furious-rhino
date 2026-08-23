@@ -127,6 +127,19 @@ async function boot(query) {
     googleReqs.length === 0, googleReqs.join(' | '));
 
   await page.waitForTimeout(2500); // um ciclo de polling do servidor
+
+  // v1.8.8: card "Servidores locais" — linha do jogo + botão ⏻ Parar.
+  // NUNCA clicar no ⏻ aqui: no modo unificado ele mataria o servidor que
+  // serve o próprio teste (e no modo separado, o gerador no meio da suíte).
+  // O emoji do dot é o contrato; a frase fica livre para o dono ajustar.
+  ok('3j. linha do jogo verde (a 3000 no ar é pré-condição de todo e2e)',
+    (await page.textContent('#su-game-dot')) === '🟢');
+  ok('3k. botão ⏻ Parar existe e segue a visibilidade do gerador',
+    await page.evaluate((genUp) => {
+      const b = document.getElementById('su-btn-stop');
+      return Boolean(b) && b.hidden === !genUp;
+    }, generatorUp));
+
   if (generatorUp) {
     const rows = await page.locator('.su-skin-row').count();
     ok('4. [gerador no ar] lista as skins do registry', rows >= 7, `rows=${rows}`);
