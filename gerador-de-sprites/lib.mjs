@@ -274,7 +274,19 @@ const compact = (d) => d.replace(/(\d+\.\d)\d+/g, '$1');
  * @returns        { svgs: [svg0, svg1, svg2], diagnostics }
  */
 export async function vectorizeFrames(frames, palette, opts = {}) {
-  const { upscale = 1, masterBody = true, masterIdx = 1, comment = '', autoMasterFallback = false } = opts;
+  // v1.8.9: o rig virou PARÂMETRO. Defaults = o rig histórico do rino
+  // (96×64, encaixe 95×63, piso de pernas 36, janela de cabeça x>80,
+  // mestre = frame do meio) — skins continuam byte-compatíveis. Sprites de
+  // inimigo passam targetW/targetH livres, masterIdx 0 e frações próprias.
+  const {
+    upscale = 1, masterBody = true, masterIdx = 1, comment = '',
+    autoMasterFallback = false,
+    targetW = 96, targetH = 64,
+    limbFloorFrac = 36 / 64, headWindowFrac = 80 / 96,
+  } = opts;
+  const fitW = targetW - 1;
+  const fitH = targetH - 1;
+  const headWindow = Math.round(targetW * headWindowFrac);
   const outline = (palette.find(([, o]) => o) || palette[0])[0];
 
   // -------- Passada 1: medir (máscara, bbox, âncoras rígidas). Escala
@@ -331,9 +343,9 @@ export async function vectorizeFrames(frames, palette, opts = {}) {
   // o alvo antigo de 94×54 deixava as skins geradas ~20% menores em área —
   // feedback do dono após a "prata"). +40% linear não existe sem cortar o
   // sprite: o rig 96×64 é fixo, então o teto é o próprio canvas.
-  const s = Math.min(...measured.map((m) => Math.min(95 / m.bw, 63 / m.bh)));
+  const s = Math.min(...measured.map((m) => Math.min(fitW / m.bw, fitH / m.bh)));
   const ref = measured[0];
-  const refTx = 95 - ref.bw * s;
+  const refTx = fitW - ref.bw * s;
   const anchorOutX = refTx + (ref.cx - ref.x0) * s;
   const anchorOutY = (ref.topY - ref.y0) * s;
   const pre = measured.map((m) => ({
@@ -341,17 +353,18 @@ export async function vectorizeFrames(frames, palette, opts = {}) {
     ty: anchorOutY - (m.topY - m.y0) * s,
   }));
   const maxBottom = Math.max(...measured.map((m, i) => pre[i].ty + m.bh * s));
-  const dy = 64 - maxBottom;
+  const dy = targetH - maxBottom;
   for (const p of pre) p.ty += dy;
   const maxRight = Math.max(...measured.map((m, i) => pre[i].tx + m.bw * s));
-  if (maxRight > 95) for (const p of pre) p.tx -= maxRight - 95;
+  if (maxRight > fitW) for (const p of pre) p.tx -= maxRight - fitW;
 
-  const LEG_FLOOR = 36; // acima disso nunca é perna (protege cauda/tronco)
+  // acima disso nunca é perna (protege cauda/tronco); 36 no rig 96×64
+  const LEG_FLOOR = Math.round(targetH * limbFloorFrac);
 
   // Diagnóstico: os CORPOS (acima do piso das pernas, já alinhados) são
   // parecidos o bastante para a composição corpo-mestre? IoU por frame.
   const bodyGrid = (f) => {
-    const g = new Uint8Array(96 * 64);
+    const g = new Uint8Array(targetW * targetH);
     const { keep, W, x0, y0, x1, y1 } = measured[f];
     const { tx, ty } = pre[f];
     for (let y = y0; y <= y1; y++) {
@@ -359,7 +372,7 @@ export async function vectorizeFrames(frames, palette, opts = {}) {
         if (!keep[y * W + x]) continue;
         const ox = Math.round(tx + (x - x0) * s);
         const oy = Math.round(ty + (y - y0) * s);
-        if (ox >= 0 && ox < 96 && oy >= 0 && oy < LEG_FLOOR) g[oy * 96 + ox] = 1;
+        if (ox >= 0 && ox < targetW && oy >= 0 && oy < LEG_FLOOR) g[oy * targetW + ox] = 1;
       }
     }
     return g;
@@ -384,7 +397,7 @@ export async function vectorizeFrames(frames, palette, opts = {}) {
   // HORIZONTAL separa o corpo (largo) das pernas (finas); o perfil de baixo
   // (bellyBot, por coluna do viewBox) corta o mestre e tuca as pernas.
   const mm = measured[masterIdx];
-  const bellyBot = new Float64Array(96).fill(-1);
+  const bellyBot = new Float64Array(targetW).fill(-1);
   if (useMaster) {
     const half = Math.round(mm.bw * 0.08);
     const bodyOnly = new Uint8Array(mm.W * mm.H);
@@ -412,7 +425,7 @@ export async function vectorizeFrames(frames, palette, opts = {}) {
         if (!bodyOnly[y * W + x]) continue;
         const ox = Math.round(tx + (x - x0) * s);
         const oy = ty + (y - y0) * s;
-        if (ox >= 0 && ox < 96 && oy > bellyBot[ox]) bellyBot[ox] = oy;
+        if (ox >= 0 && ox < targetW && oy > bellyBot[ox]) bellyBot[ox] = oy;
       }
     }
     // A abertura clipa CANTOS CURVOS (peito/queixo/traseira: curvatura menor
@@ -420,10 +433,10 @@ export async function vectorizeFrames(frames, palette, opts = {}) {
     // corpo que a camada de pernas nem sempre cobre ("cortes brancos").
     // Dilatação horizontal do perfil: cada coluna herda a profundidade do
     // vizinho mais fundo num raio de 5.
-    const dilated = new Float64Array(96).fill(-1);
-    for (let x = 0; x < 96; x++) {
+    const dilated = new Float64Array(targetW).fill(-1);
+    for (let x = 0; x < targetW; x++) {
       for (let d = -5; d <= 5; d++) {
-        const v = bellyBot[Math.max(0, Math.min(95, x + d))];
+        const v = bellyBot[Math.max(0, Math.min(targetW - 1, x + d))];
         if (v > dilated[x]) dilated[x] = v;
       }
     }
@@ -435,13 +448,13 @@ export async function vectorizeFrames(frames, palette, opts = {}) {
   // cortar lá. Margens generosas (+1.2 / -4): as curvas do potrace desviam
   // 1-2px do corte reto e uma sobreposição fina deixava frestas na costura.
   const keepBody = (ox, oy) => {
-    if (oy < LEG_FLOOR || ox > 80) return true;
-    const b = bellyBot[Math.max(0, Math.min(95, Math.round(ox)))];
+    if (oy < LEG_FLOOR || ox > headWindow) return true;
+    const b = bellyBot[Math.max(0, Math.min(targetW - 1, Math.round(ox)))];
     return b === -1 || oy <= b + 1.2;
   };
   const keepLegs = (ox, oy) => {
-    if (ox > 80) return false; // dali em diante é focinho, nunca perna
-    const b = bellyBot[Math.max(0, Math.min(95, Math.round(ox)))];
+    if (ox > headWindow) return false; // dali em diante é focinho, nunca perna
+    const b = bellyBot[Math.max(0, Math.min(targetW - 1, Math.round(ox)))];
     return oy >= Math.max(LEG_FLOOR, b === -1 ? LEG_FLOOR : b - 4);
   };
 
@@ -522,9 +535,13 @@ export async function vectorizeFrames(frames, palette, opts = {}) {
   const svgs = [];
   for (let f = 0; f < frames.length; f++) {
     const header = comment
-      ? `  <!-- ${comment} — frame ${f}. Rig: pés em y=64, focinho à direita
+      ? (targetW === 96 && targetH === 64
+        ? `  <!-- ${comment} — frame ${f}. Rig: pés em y=64, focinho à direita
        (narina ~(89,38)), hitbox 76x54 offset (8,10) inalterada. Corpo
        idêntico nos 3 frames (regra da casa); só as pernas mudam. -->\n`
+        : `  <!-- ${comment} — frame ${f}. Alvo ${targetW}x${targetH}, base em
+       y=${targetH}, virado para a DIREITA (o jogo espelha com setFlipX).
+       Regra da casa: entre frames só a peça móvel muda. -->\n`)
       : '';
     let content;
     if (!useMaster) {
@@ -539,7 +556,7 @@ export async function vectorizeFrames(frames, palette, opts = {}) {
       const legLayers = await traceLayers(f, 'legs');
       content = `${group(f, legLayers, '  ')}\n${group(masterIdx, masterBodyLayers, '  ')}`;
     }
-    svgs.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 64" width="96" height="64">\n${header}${content}\n</svg>\n`);
+    svgs.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${targetW} ${targetH}" width="${targetW}" height="${targetH}">\n${header}${content}\n</svg>\n`);
   }
   return {
     svgs,
@@ -547,6 +564,12 @@ export async function vectorizeFrames(frames, palette, opts = {}) {
       bodyIoU: bodyIoU.map((v) => +v.toFixed(3)),
       masterBodyRequested: masterBody,
       masterBodyUsed: useMaster,
+      // bbox de cada frame no canvas de SAÍDA — é daqui que o servidor mede
+      // a hitbox sugerida de um inimigo gerado
+      bounds: measured.map((m, i) => ({
+        x: +pre[i].tx.toFixed(1), y: +pre[i].ty.toFixed(1),
+        w: +(m.bw * s).toFixed(1), h: +(m.bh * s).toFixed(1),
+      })),
     },
   };
 }

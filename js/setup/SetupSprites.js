@@ -69,10 +69,12 @@ export function mount(root) {
   }
 
   montarCatalogo(views.catalogo.painel);
-  views.gerador.painel.append(el('p', 'su-muted',
-    'O gerador de sprites de inimigo chega na fatia S4.'));
-  views.orfaos.painel.append(el('p', 'su-muted',
-    'A área de sprites não atribuídos chega junto com o gerador (S4).'));
+  montarGerador(views.gerador.painel);
+  montarOrfaos(views.orfaos.painel);
+  // o estoque re-busca a cada visita (o gerador pode ter guardado algo novo)
+  views.orfaos.btn.addEventListener('click', () => {
+    if (atualizarOrfaos) atualizarOrfaos();
+  });
 }
 
 // ================================================================ 📚 catálogo
@@ -659,6 +661,400 @@ function construirEditor(row, t) {
   });
 
   return { painel, overlay };
+}
+
+// ================================================= ⚙️ gerador de inimigo (S4)
+// Os moldes do gerador de skins com ids/classes PRÓPRIOS (sp-*) — o fluxo de
+// skins usa estado global de módulo e seletores por classe no documento
+// inteiro; compartilhar markup contaminaria os dois. A extração de um
+// SpriteWizard comum fica como dívida declarada (plano B aprovado no design).
+const FPS_SUGERIDO = { 'run-1': 8, flap: 8, alt: 6 };
+
+function montarGerador(root) {
+  let sessionId = null;
+  let thumbs = [];
+  let selecionados = []; // índices na ordem do clique (base, peça móvel)
+  let paleta = []; // [{hex, outline}]
+
+  const card = el('div', 'su-card');
+  card.id = 'sp-gerador';
+  card.append(el('h2', null, '⚙️ Gerar sprite de inimigo'));
+  card.append(el('p', 'su-muted',
+    'Receita da folha: 2 células em linha, fundo branco puro, margens largas e NADA '
+    + 'atravessando o vão; cel-shading chapado (máx. 5 cores + contorno grosso); criatura '
+    + 'de PERFIL virada para a DIREITA (o jogo espelha); corpo IDÊNTICO entre as células — '
+    + 'só a peça móvel muda (pernas na passada, asa no flap, hélice/roda no alt); ≥2000px de largura.'));
+
+  const drop = el('div', 'su-drop', '📄 solte a folha aqui, ou clique para escolher (PNG/JPG/SVG)');
+  drop.id = 'sp-drop';
+  const file = document.createElement('input');
+  file.type = 'file';
+  file.accept = 'image/*,.svg';
+  file.hidden = true;
+  card.append(drop, file);
+  const statusUp = el('p', 'su-muted', '');
+  card.append(statusUp);
+  const gridFrames = el('div', 'su-frames');
+  gridFrames.id = 'sp-frames';
+  card.append(gridFrames);
+  const paletaBox = el('div');
+  paletaBox.id = 'sp-palette';
+  card.append(paletaBox);
+
+  // ---- opções
+  const opts = el('div', 'sp-campos');
+  const campoTxt = (id, rotulo, valor, largura = 110) => {
+    const l = el('label', 'sp-campo', `${rotulo} `);
+    const i = document.createElement('input');
+    i.id = id;
+    i.value = valor;
+    i.style.width = `${largura}px`;
+    l.append(i);
+    return [l, i];
+  };
+  const [lId, inpId] = campoTxt('sp-gen-id', 'id', '');
+  const hintId = el('span', 'su-muted', '');
+  const selSufixo = document.createElement('select');
+  selSufixo.id = 'sp-gen-sufixo';
+  for (const [v, rot] of [['run-1', '-run-1 (passada)'], ['flap', '-flap (asa)'],
+    ['alt', '-alt (peça móvel)'], ['air', '-air (pose no ar)'], ['', 'só 1 frame']]) {
+    const o = document.createElement('option');
+    o.value = v;
+    o.textContent = rot;
+    selSufixo.append(o);
+  }
+  const lSuf = el('label', 'sp-campo', '2º frame ');
+  lSuf.append(selSufixo);
+  const selArq = document.createElement('select');
+  selArq.id = 'sp-gen-arquetipo';
+  for (const v of ['terrestre', 'saltador', 'voador', 'voador-zig', 'atirador', 'sentinela']) {
+    const o = document.createElement('option');
+    o.value = v;
+    o.textContent = v;
+    selArq.append(o);
+  }
+  const lArq = el('label', 'sp-campo', 'arquétipo ');
+  lArq.append(selArq);
+  const [lW, inpW] = campoTxt('sp-gen-w', 'alvo L', '64', 60);
+  const [lH, inpH] = campoTxt('sp-gen-h', 'alvo A', '46', 60);
+  const dl = document.createElement('datalist');
+  dl.id = 'sp-presets';
+  for (const t of Constants.ANIMAL_TYPES) {
+    const s = Constants.ANIMAL_SPECS[t];
+    const o = document.createElement('option');
+    o.value = `${s.w}×${s.h}`;
+    o.label = t;
+    dl.append(o);
+  }
+  const lMaster = el('label', 'sp-campo', ' corpo-mestre (frames com corpo idêntico) ');
+  const chkMaster = document.createElement('input');
+  chkMaster.type = 'checkbox';
+  lMaster.prepend(chkMaster);
+  opts.append(lId, hintId, lSuf, lArq, lW, lH, dl, lMaster);
+  card.append(opts);
+  card.append(el('p', 'su-muted',
+    'Presets de alvo (L×A do elenco atual): vira-lata 62×42 · pombo 48×34 · hiena 66×46 · '
+    + 'k9 56×44 · camionete 132×56 · helinews 96×44.'));
+
+  const acoes = el('div', 'sp-acoes');
+  const btnGerar = el('button', 'su-primary', '⚙️ Gerar e guardar em Não atribuídos');
+  const statusGen = el('span', 'su-muted', '');
+  acoes.append(btnGerar, statusGen);
+  card.append(acoes);
+  const resultado = el('div');
+  resultado.id = 'sp-gen-resultado';
+  card.append(resultado);
+  root.append(card);
+
+  // crítica do id ao vivo (espécies do jogo + pendentes conhecidos)
+  inpId.addEventListener('input', () => {
+    const v = inpId.value.trim();
+    if (!v) { hintId.textContent = ''; return; }
+    if (!/^[a-z0-9][a-z0-9-]{0,23}$/.test(v)) {
+      hintId.className = 'su-err';
+      hintId.textContent = ' a-z, 0-9 e hífen (até 24)';
+    } else if (Constants.ANIMAL_TYPES.includes(v)) {
+      hintId.className = 'su-err';
+      hintId.textContent = ` ⛔ "${v}" já é uma espécie do jogo`;
+    } else {
+      hintId.className = 'su-ok';
+      hintId.textContent = ' ✓ livre';
+    }
+  });
+
+  const escolherArquivo = () => file.click();
+  drop.addEventListener('click', escolherArquivo);
+  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('su-over'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('su-over'));
+  drop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    drop.classList.remove('su-over');
+    if (e.dataTransfer.files[0]) processar(e.dataTransfer.files[0]);
+  });
+  file.addEventListener('change', () => { if (file.files[0]) processar(file.files[0]); });
+
+  async function processar(f) {
+    statusUp.className = 'su-muted';
+    statusUp.textContent = 'fatiando a folha…';
+    gridFrames.textContent = '';
+    resultado.textContent = '';
+    selecionados = [];
+    try {
+      const b64 = await new Promise((res2, rej) => {
+        const r = new FileReader();
+        r.onload = () => res2(String(r.result).split(',')[1]);
+        r.onerror = rej;
+        r.readAsDataURL(f);
+      });
+      const r = await fetch(`${API}/api/slice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: b64 }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || `erro ${r.status}`);
+      sessionId = j.sessionId;
+      thumbs = j.frames;
+      statusUp.textContent = `${j.frames.length} célula(s) — clique na BASE e depois na peça móvel`;
+      for (const fr of j.frames) {
+        const cel = el('div', 'su-frame');
+        const img = document.createElement('img');
+        img.src = `data:image/png;base64,${fr.png}`;
+        cel.append(img);
+        const badge = el('span', 'su-badge', '');
+        cel.append(badge);
+        cel.addEventListener('click', () => {
+          const at = selecionados.indexOf(fr.index);
+          if (at >= 0) selecionados.splice(at, 1);
+          else if (selecionados.length < 2) selecionados.push(fr.index);
+          for (const c of gridFrames.children) {
+            const i2 = [...gridFrames.children].indexOf(c);
+            const ordem = selecionados.indexOf(thumbs[i2].index);
+            c.classList.toggle('su-sel', ordem >= 0);
+            c.querySelector('.su-badge').textContent = ordem >= 0 ? ['①', '②'][ordem] : '';
+          }
+        });
+        gridFrames.append(cel);
+      }
+      paleta = (j.suggestedPalette || []).map((hex) => ({ hex, outline: hex === j.suggestedOutline }));
+      if (paleta.length && !paleta.some((p) => p.outline)) paleta[0].outline = true;
+      renderPaleta();
+    } catch (e) {
+      statusUp.className = 'su-err';
+      statusUp.textContent = `não deu: ${e.message} (o gerador está no ar?)`;
+    }
+  }
+
+  function renderPaleta() {
+    paletaBox.textContent = '';
+    if (!paleta.length) return;
+    paletaBox.append(el('b', 'sp-campos-titulo', 'Paleta (1 contorno)'));
+    const linha = el('div', 'sp-campos');
+    paleta.forEach((p, i) => {
+      const sw = el('label', 'sp-campo', '');
+      const cor = document.createElement('input');
+      cor.type = 'color';
+      cor.value = p.hex;
+      cor.addEventListener('input', () => { p.hex = cor.value; });
+      const rad = document.createElement('input');
+      rad.type = 'radio';
+      rad.name = 'sp-outline';
+      rad.checked = p.outline;
+      rad.title = 'contorno';
+      rad.addEventListener('change', () => paleta.forEach((q, k) => { q.outline = k === i; }));
+      sw.append(cor, rad);
+      if (paleta.length > 2) {
+        const x = el('button', null, '×');
+        x.addEventListener('click', () => { paleta.splice(i, 1); renderPaleta(); });
+        sw.append(x);
+      }
+      linha.append(sw);
+    });
+    const add = el('button', null, '+ cor');
+    add.addEventListener('click', () => { paleta.push({ hex: '#888888', outline: false }); renderPaleta(); });
+    linha.append(add);
+    paletaBox.append(linha);
+  }
+
+  btnGerar.addEventListener('click', async () => {
+    const id = inpId.value.trim();
+    const suf = selSufixo.value || null;
+    const nFrames = suf ? 2 : 1;
+    statusGen.className = 'su-muted';
+    if (!sessionId) { statusGen.className = 'su-err'; statusGen.textContent = 'suba uma folha primeiro'; return; }
+    if (selecionados.length !== nFrames) {
+      statusGen.className = 'su-err';
+      statusGen.textContent = `escolha ${nFrames} frame(s) na grade`;
+      return;
+    }
+    statusGen.textContent = 'vetorizando…';
+    btnGerar.disabled = true;
+    try {
+      const r = await fetch(`${API}/api/sprite/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          frameIndexes: selecionados,
+          id,
+          sufixo: suf,
+          arquetipo: selArq.value,
+          targetW: Number(inpW.value),
+          targetH: Number(inpH.value),
+          palette: paleta.map((p) => ({ hex: p.hex, outline: p.outline })),
+          masterBody: chkMaster.checked,
+        }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || `erro ${r.status}`);
+      statusGen.className = 'su-ok';
+      statusGen.textContent = `✓ guardado em 📥 Não atribuídos (${j.sizesKb.join(' / ')} KB)`;
+      mostrarResultado(j);
+      if (atualizarOrfaos) atualizarOrfaos();
+    } catch (e) {
+      statusGen.className = 'su-err';
+      statusGen.textContent = e.message;
+    } finally {
+      btnGerar.disabled = false;
+    }
+  });
+
+  function mostrarResultado(j) {
+    resultado.textContent = '';
+    const row = el('div', 'sp-row');
+    const modo = j.files.length < 2 ? 'estatico' : (selSufixo.value === 'air' ? 'estado' : 'loop');
+    const box = el('div', 'sp-thumb');
+    box.style.setProperty('--w', `${Number(inpW.value)}px`);
+    for (const f of j.files) {
+      const img = document.createElement('img');
+      img.src = `gerador-de-sprites/output/enemies/${j.id}/${f}?t=${Date.now()}`;
+      box.append(img);
+    }
+    if (modo === 'loop') {
+      box.style.setProperty('--dur', `${(2 / (FPS_SUGERIDO[selSufixo.value] || 8)).toFixed(3)}s`);
+      box.classList.add('sp-live');
+    } else if (modo === 'estado') box.classList.add('sp-state');
+    // hitbox sugerida por cima (des-espelhada, como no editor)
+    const hw = el('div', 'sp-hitwrap');
+    const hb = el('div', 'sp-hitbox');
+    const s = j.hitboxSugerida;
+    const tw = Number(inpW.value);
+    const th = Number(inpH.value);
+    hb.style.left = `${((tw - s.offX - s.bodyW) / tw) * 100}%`;
+    hb.style.top = `${(s.offY / th) * 100}%`;
+    hb.style.width = `${(s.bodyW / tw) * 100}%`;
+    hb.style.height = `${(s.bodyH / th) * 100}%`;
+    hw.append(hb);
+    box.append(hw);
+    row.append(box);
+    const meta = el('div', 'sp-meta');
+    meta.append(el('b', null, `enemy-${j.id}`));
+    meta.append(el('span', 'su-muted',
+      ` hitbox sugerida ${s.bodyW}×${s.bodyH} offset (${s.offX},${s.offY}) — ajustável na atribuição`));
+    for (const w of j.warnings || []) meta.append(el('p', 'su-warn', `⚠️ ${w}`));
+    row.append(meta);
+    resultado.append(row);
+  }
+}
+
+// ================================================ 📥 não atribuídos (S4/S5)
+let atualizarOrfaos = null;
+
+function montarOrfaos(root) {
+  const card = el('div', 'su-card');
+  card.id = 'sp-orfaos';
+  card.append(el('h2', null, '📥 Sprites não atribuídos'));
+  card.append(el('p', 'su-muted',
+    'Gerados pela aba e ainda FORA do jogo. Atribuir = trocar a arte de uma espécie '
+    + 'existente ou criar uma espécie nova. As pastas antigas de skins em output/ não '
+    + 'aparecem aqui (são domínio da aba 🎨 Skins).'));
+  const lista = el('div');
+  lista.id = 'sp-orfaos-lista';
+  card.append(lista);
+  root.append(card);
+
+  const carregar = async () => {
+    lista.textContent = '';
+    lista.append(el('p', 'su-muted', 'consultando o estoque…'));
+    try {
+      const r = await fetch(`${API}/api/sprites/pending`);
+      const j = await r.json();
+      lista.textContent = '';
+      const pendentes = (j.sprites || []).filter((s) => !s.recuperado || s.frames.length);
+      if (!pendentes.length) {
+        lista.append(el('p', 'su-muted', 'vazio — gere um sprite na sub-aba ⚙️.'));
+        return;
+      }
+      for (const s of pendentes) lista.append(linhaOrfao(s, carregar));
+      observar(lista);
+    } catch (e) {
+      lista.textContent = '';
+      lista.append(el('p', 'su-err',
+        'gerador parado — o estoque mora nele. Suba pelo iniciar-estudio.bat e volte aqui.'));
+    }
+  };
+  atualizarOrfaos = carregar;
+  carregar();
+}
+
+function linhaOrfao(s, recarregar) {
+  const row = el('div', 'sp-row');
+  row.dataset.pendente = s.id;
+  const box = el('div', 'sp-thumb');
+  box.style.setProperty('--w', `${s.alvoW || 64}px`);
+  for (const f of s.frames || []) {
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.src = `gerador-de-sprites/output/enemies/${s.id}/${f}`;
+    box.append(img);
+  }
+  if ((s.frames || []).length > 1) {
+    if (s.sufixo === 'air') box.classList.add('sp-state');
+    else {
+      box.style.setProperty('--dur', `${(2 / (FPS_SUGERIDO[s.sufixo] || 8)).toFixed(3)}s`);
+      box.dataset.live = '1';
+    }
+  }
+  row.append(box);
+  const meta = el('div', 'sp-meta');
+  meta.append(el('b', null, s.id));
+  const infos = [`${s.alvoW || '?'}×${s.alvoH || '?'}`, s.arquetipo || '—',
+    s.sufixo ? `-${s.sufixo}` : '1 frame',
+    s.criadoEm ? new Date(s.criadoEm).toLocaleDateString('pt-BR') : ''];
+  meta.append(el('span', 'su-muted', ` ${infos.filter(Boolean).join(' · ')}`));
+  const chips = el('div');
+  if (s.atribuido) {
+    chips.append(el('span', 'sp-chip su-ok',
+      `✓ atribuído (${s.atribuido.modo === 'new' ? 'espécie nova' : 'arte de'} ${s.atribuido.alvo})`));
+  }
+  if (s.recuperado) chips.append(el('span', 'sp-chip su-warn', '⚠️ recuperado do disco (índice refeito)'));
+  meta.append(chips);
+  row.append(meta);
+  const acoes = el('div', 'sp-acoes');
+  const btnAtrib = el('button', 'su-primary', '🎯 Atribuir');
+  btnAtrib.addEventListener('click', () => {
+    alert('A atribuição (trocar arte de espécie existente ou criar espécie nova) chega na fatia S5.');
+  });
+  const btnDel = el('button', 'su-danger', '🗑');
+  btnDel.title = 'excluir do estoque';
+  btnDel.addEventListener('click', async () => {
+    if (!confirm(`Excluir "${s.id}" do estoque? (apaga os SVGs gerados)`)) return;
+    try {
+      const r = await fetch(`${API}/api/sprite/remove-pending`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: s.id }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || `erro ${r.status}`);
+      recarregar();
+    } catch (e) {
+      alert(`não deu: ${e.message}`);
+    }
+  });
+  acoes.append(btnAtrib, btnDel);
+  row.append(acoes);
+  return row;
 }
 
 // Reaplica localmente o estado salvo (a página não recarrega módulos):

@@ -12,7 +12,7 @@
 // IMPORTANTE: jogar/testar sempre por http://localhost:3000 — localStorage e
 // service worker são POR ORIGEM; jogar na :3210 forkaria a identidade.
 import { createServer } from 'node:http';
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync, unlinkSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync, unlinkSync, statSync, readdirSync, rmSync } from 'node:fs';
 import { dirname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
@@ -148,6 +148,34 @@ const SPRITE_PARAMS_PATH = join(ROOT, 'js', 'art', 'SpriteParams.js');
 // Sempre node-only — cada execução é um processo NOVO, então o import do
 // Constants lá dentro enxerga o SpriteParams recém-escrito (merge fresco).
 const SPRITE_GATE = [join('tools', 'test-sprites.mjs'), join('tools', 'test-skins.mjs')];
+
+// Estoque de sprites de inimigo gerados e ainda NÃO atribuídos ao jogo:
+// pastas em output/enemies/<id>/ + índice JSON (namespace separado das
+// pastas de skin na raiz de output/). Índice corrompido nunca dá 500 —
+// re-scan das pastas com a marca `recuperado`.
+const OUT_ENEMIES = join(OUT, 'enemies');
+const PENDING_INDEX = join(OUT_ENEMIES, 'index.json');
+
+function lerIndicePendentes() {
+  try {
+    const j = JSON.parse(readFileSync(PENDING_INDEX, 'utf8'));
+    return Array.isArray(j.sprites) ? j.sprites : [];
+  } catch (e) {
+    if (!existsSync(OUT_ENEMIES)) return [];
+    return readdirSync(OUT_ENEMIES, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => ({
+        id: d.name,
+        recuperado: true,
+        frames: readdirSync(join(OUT_ENEMIES, d.name)).filter((f) => f.endsWith('.svg')),
+        atribuido: null,
+      }));
+  }
+}
+function gravarIndicePendentes(sprites) {
+  mkdirSync(OUT_ENEMIES, { recursive: true });
+  writeFileSync(PENDING_INDEX, `${JSON.stringify({ version: 1, sprites }, null, 2)}\n`);
+}
 
 // Generalização do runSkinTests: roda as suítes EM SÉRIE e para na primeira
 // vermelha (a saída acumulada vai crua para a página — é o diagnóstico)
@@ -445,6 +473,115 @@ const handler = async (req, res) => {
         });
       }
       return send(res, 200, { ok: true, params: parseSpriteParams(novo), testOutput: r.test.output });
+    }
+    if (path === '/api/sprites/pending' && req.method === 'GET') {
+      return send(res, 200, { ok: true, sprites: lerIndicePendentes() });
+    }
+    // Gera um sprite de INIMIGO (1-2 frames, alvo livre) para o estoque de
+    // não atribuídos — nada toca o jogo aqui (sem gate; o gate mora no assign)
+    if (path === '/api/sprite/generate' && req.method === 'POST') {
+      const {
+        sessionId, frameIndexes, id, targetW, targetH, sufixo, arquetipo, palette, masterBody,
+      } = JSON.parse((await readBody(req)).toString());
+      // A sessão É o array de frames do /api/slice ({jimp,x,y,w,h}, id string)
+      const sessFrames = sessions.get(String(sessionId));
+      if (!sessFrames) return send(res, 410, { error: 'sessão expirada — refaça o upload da folha' });
+      if (!/^[a-z0-9][a-z0-9-]{0,23}$/.test(id || '')) {
+        return send(res, 400, { error: 'id inválido (a-z, 0-9 e hífen; até 24 caracteres)' });
+      }
+      const suf = sufixo || null;
+      if (![null, 'run-1', 'flap', 'alt', 'air'].includes(suf)) {
+        return send(res, 400, { error: 'sufixo deve ser run-1, flap, alt, air ou vazio (1 frame)' });
+      }
+      const nFrames = suf ? 2 : 1;
+      const idx = Array.isArray(frameIndexes) ? frameIndexes : [];
+      if (idx.length !== nFrames) {
+        return send(res, 400, { error: `escolha ${nFrames} frame(s): base${suf ? ` e depois o ${suf}` : ''}` });
+      }
+      const tw = Math.round(Number(targetW));
+      const th = Math.round(Number(targetH));
+      if (!(tw >= 16 && tw <= 160 && th >= 16 && th <= 120)) {
+        return send(res, 400, { error: 'alvo fora da faixa: largura 16..160, altura 16..120' });
+      }
+      // Mesmo shape do fluxo de skins: [{hex, outline}]
+      const pal = (palette || []).map((p) => [p.hex, Boolean(p.outline)]);
+      if (pal.length < 2 || pal.filter(([, o]) => o).length !== 1) {
+        return send(res, 400, { error: 'a paleta precisa de 2+ cores e exatamente 1 contorno' });
+      }
+      const paramsAtual = parseSpriteParams(readFileSync(SPRITE_PARAMS_PATH, 'utf8'));
+      if (paramsAtual.novas.some((n) => n.id === id)) {
+        return send(res, 409, { error: `"${id}" já é uma espécie criada — escolha outro id` });
+      }
+      const chosen = idx.map((i) => sessFrames[i] && sessFrames[i].jimp).filter(Boolean);
+      if (chosen.length !== nFrames) return send(res, 400, { error: 'frame inexistente na sessão' });
+      const w0 = chosen[0].getWidth();
+      const upscale = w0 < 300 ? 3 : (w0 < 500 ? 2 : 1);
+      const { svgs, diagnostics } = await vectorizeFrames(chosen, pal, {
+        upscale,
+        masterBody: Boolean(masterBody),
+        masterIdx: 0, // o frame-base é o corpo-mestre num par de inimigo
+        autoMasterFallback: true,
+        comment: `enemy-${id} — gerado pela aba 🖼️ Sprites`,
+        targetW: tw,
+        targetH: th,
+      });
+      const dir = join(OUT_ENEMIES, id);
+      mkdirSync(dir, { recursive: true });
+      const nomes = [`enemy-${id}.svg`];
+      if (suf) nomes.push(`enemy-${id}-${suf}.svg`);
+      const sizesKb = [];
+      svgs.forEach((svg, i) => {
+        writeFileSync(join(dir, nomes[i]), svg);
+        sizesKb.push(+(Buffer.byteLength(svg) / 1024).toFixed(1));
+      });
+      writeFileSync(join(dir, 'preview.html'), buildPreviewHtml(`enemy-${id}`, [{ name: id, svgs }]));
+      // Hitbox sugerida do frame-base (bbox no canvas de saída), no molde da
+      // casa: caixa mais justa que a arte, pés embaixo, offX já ESPELHADO
+      // para o setFlipX do jogo (offX = w − offX_arte − bodyW)
+      const b0 = diagnostics.bounds[0];
+      const bodyW = Math.max(8, Math.round(b0.w * 0.82));
+      const bodyH = Math.max(8, Math.round(b0.h * 0.68));
+      const offXArte = Math.max(0, Math.round(b0.x + (b0.w - bodyW) / 2));
+      const hitboxSugerida = {
+        bodyW,
+        bodyH,
+        offX: Math.max(0, tw - offXArte - bodyW),
+        offY: Math.max(0, th - bodyH - 2),
+      };
+      const warnings = [];
+      if (sizesKb.some((k) => k > 60)) {
+        warnings.push(`frame acima de 60KB (${sizesKb.join(' / ')}KB) — potrace pesa 20-40× a arte manuscrita; considere simplificar a folha`);
+      }
+      const sprites = lerIndicePendentes().filter((s) => s.id !== id);
+      sprites.push({
+        id,
+        alvoW: tw,
+        alvoH: th,
+        sufixo: suf,
+        arquetipo: String(arquetipo || 'terrestre').slice(0, 16),
+        frames: nomes,
+        hitboxSugerida,
+        sizesKb,
+        criadoEm: new Date().toISOString(),
+        atribuido: null,
+      });
+      gravarIndicePendentes(sprites);
+      return send(res, 200, {
+        ok: true, id, files: nomes, sizesKb, hitboxSugerida, warnings, diagnostics,
+        previewUrl: `/output/enemies/${id}/preview.html`,
+      });
+    }
+    if (path === '/api/sprite/remove-pending' && req.method === 'POST') {
+      const { id, force } = JSON.parse((await readBody(req)).toString());
+      const sprites = lerIndicePendentes();
+      const alvo = sprites.find((s) => s.id === id);
+      if (!alvo) return send(res, 404, { error: `não há sprite pendente "${id}"` });
+      if (alvo.atribuido && !force) {
+        return send(res, 409, { error: 'este sprite já foi atribuído — o registro fica como histórico (use force para apagar mesmo assim)' });
+      }
+      rmSync(join(OUT_ENEMIES, id), { recursive: true, force: true });
+      gravarIndicePendentes(sprites.filter((s) => s.id !== id));
+      return send(res, 200, { ok: true, removed: id });
     }
 
     // --------------------------------------------------- estáticos
