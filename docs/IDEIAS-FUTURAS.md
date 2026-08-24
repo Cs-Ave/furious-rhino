@@ -16,6 +16,10 @@
 **23/08/2026** — ideia **L. As Areias do Tempo** (deserto em 5 etapas + 2 combates), desenhada e entregue na v1.8.10 no mesmo dia; o Cerco saiu do limbo.
 **22/08/2026** — entra também a ideia **J. Estado de Alerta** (a cidade em três distritos, boss novo aos 2000 m), desenhada com o dono em sessão de painel criativo.
 **22/08/2026** — entra a ideia **K. Radiografia viva** (análise permanente de usabilidade) — **desenhada e entregue no mesmo dia (v1.8.7)**, com a medição de 22/08 colada ao lado do §2.
+**24/08/2026** — entra a **Radiografia TÉCNICA** (a primeira de performance):
+os tempos medidos antes/depois da v1.9.3, as 4 dívidas do motor ainda abertas (preload,
+service worker, `document.write` do Phaser e a causa raiz do bug do cronômetro), o teto
+físico do motor e o mapa dos caches.
 **23/08/2026** — entra a ideia **M. A doutrina dos bosses** (função, réguas numéricas e redistribuição dos 5 bosses), fundida de dois pareceres (dados + design) a pedido do dono.
 
 ---
@@ -1411,6 +1415,181 @@ para tudo que julga a Muralha.
 
 ---
 
+## Radiografia TÉCNICA — 2026-08-24 (performance e dívidas do motor)
+
+> Primeira medição de **performance** do projeto. As radiografias anteriores
+> (§2) medem o JOGADOR; esta mede o JOGO. Mesma regra: é uma **fotografia
+> datada** — medição nova entra ao lado, não por cima.
+>
+> **Como reproduzir:** `npm run perf-home` (localhost) ou
+> `ALVO=https://cs-ave.github.io/furious-rhino/ node tools/perf-home.mjs`.
+> Sempre com throttling de celular (4G, 150 ms de latência, CPU 4× mais
+> lenta) — no desktop com rede boa o problema simplesmente não aparece.
+
+### Os números que temos de bater no futuro
+
+Produção, celular 4G + CPU 4×. Três rodadas por medição (a variação entre
+rodadas chega a 3 s no número absoluto; por isso o que se compara é a
+**espera**).
+
+| Marco | v1.9.2 (antes) | v1.9.3 (depois) |
+|---|---|---|
+| Primeira pintura (FCP) | 812 ms | ~800 ms |
+| Página carregada | 1.499 ms | ~1.610 ms |
+| **Pódio na tela** | **6.136 ms** | **~2.120 ms** |
+| Diário na tela | 6.798 ms | ~2.120 ms |
+| **Espera após a página pronta** | **4.637 ms** | **~510 ms** |
+| Preload das artes termina | 6.153 ms | 6.000–10.500 ms |
+| Peso total / nº de recursos | 734 KB / 201 | igual |
+
+Localhost com o mesmo throttling (útil para medir antes de publicar):
+pódio **10.342 → 2.079 ms**; espera **6.003 → 583 ms**.
+
+**A métrica que vale é a espera**, não o absoluto: o absoluto oscilou entre
+2.095 e 4.899 ms na mesma tarde, conforme a rede do momento. A espera ficou em
+505, 511 e 515 ms em três rodadas seguidas — variação de 10 ms.
+
+### Dívida 1 — o preload de 150 SVGs atrasa o INÍCIO DA CORRIDA
+
+Resolvida para a home na v1.9.3; **continua de pé para a partida**.
+
+- `BootScene.preload()` carrega **150 SVGs** (120 do `ART_MANIFEST` + 3 frames
+  × 10 skins) antes de a `GameScene` existir.
+- Somados, os 150 arquivos pesam **32 KB**. O custo é **150 × ida-e-volta**,
+  não peso.
+- O Phaser usa **7** deles antes do toque: 3 frames da skin equipada mais
+  `rhino-face-empty/full` e `fury-fire-empty/full`. Os outros **143 são da
+  corrida** (inimigos, bosses, animais) e vários nem aparecem antes dos 1000 m.
+- Não existe carga sob demanda no projeto hoje: zero `load.start()`, zero
+  `load.once('complete')`; são três `this.load.svg`, todos dentro do `preload`.
+
+**Desenho sugerido:** dividir em *essencial* (os 7 mais o cenário da primeira
+tela) e *resto em segundo plano*, com `scene.load` disparado depois do
+`create`. **Cuidado registrado:** `BootScene.createAnimations()` registra anims
+para todas as skins e todos os inimigos **por nome de textura** — mover arte
+sem mover o registro da anim quebra em silêncio, no meio da corrida.
+
+### Dívida 2 — o service worker revalida os 150 arquivos a cada visita
+
+**É a causa real de 32 KB custarem 6 a 10 segundos.** O `sw.js` é network-first
+**e** passa `cache: 'no-cache'` no fetch, o que manda o navegador ignorar o
+cache HTTP e revalidar no servidor. Na segunda visita o melhor caso são **150
+respostas `304`** — corpo vazio, mas uma ida-e-volta cada. O cache do SW só
+entra no `.catch()`, ou seja, **apenas quando a rede falha de vez**.
+
+**Por que está assim:** o comentário no próprio `sw.js` documenta o motivo —
+sem o `no-cache`, o cache HTTP servia JS e arte antigos por baixo do
+network-first e **misturava versões** (visto na validação da v1.4.0). Qualquer
+mudança aqui tem de resolver os dois problemas ao mesmo tempo.
+
+**Direção possível:** stale-while-revalidate só para `art/*.svg` (a arte é
+imutável na prática — o nome do arquivo muda quando a arte muda), mantendo
+network-first para `.js` e `.html`, que são o que de fato precisa de frescor.
+
+### Dívida 3 — o `document.write` do Phaser bloqueia o parser
+
+O `index.html` injeta `phaser.min.js` (312 KB) por `document.write`, que **para
+o parser** até baixar e executar. Em produção isso foi 797 → 1.306 ms; numa
+rede pior chegou a 3.592 ms. É o que segura o FCP e, com ele, todo o resto.
+
+A sincronia existe porque as cenas fazem `extends Phaser.Scene` na avaliação do
+módulo, e `js/game.js` é `type="module"` (implicitamente defer). **Um
+`<script defer>` clássico manteria a ordem garantida sem bloquear o parser** —
+defer executa em ordem de documento, antes dos módulos. Não testado.
+
+### Dívida 4 — a causa raiz do bug do cronômetro (em aberto)
+
+**Sintoma:** 26 de 85 corridas da v1.9.0 gravadas com tempo muito menor que o
+real (10.000 m em 47 s = 213 m/s), contra **ZERO** em ~820 corridas de todas as
+versões anteriores. **A distância é REAL; quem mente é o cronômetro** — a prova
+é que o mesmo jogador morria sempre no mesmo obstáculo dos ~57 m, às vezes com
+`s=7` (normal) e às vezes com `s=1`.
+
+**Correlação perfeita com o cliente:** todos os afetados em **Chrome 150 /
+Linux / 1360×768**; o `kukur`, em Chrome **151** no mesmo Linux, não teve uma
+anomalia sequer. Windows e iOS, zero.
+
+**Já descartado por teste** (nenhum reproduziu): congelar o JS por 20 s, rAF
+sem vsync, CPU 8× mais lenta, 3 minutos parado na home, 10 ciclos de
+morre-reinicia, e exceção dentro do `update` (que mata o loop e congela a
+metragem junto, em vez de inflá-la).
+
+**O instrumento está no ar desde a v1.9.2:** a letra **`i`** do `runs[]` grava
+os segundos medidos pelo LOOP (soma dos deltas) ao lado do `s`, que é relógio
+de parede. Num jogo saudável os dois quase coincidem (medido: 16 s × 15 s).
+
+| Leitura | Diagnóstico |
+|---|---|
+| `i ≈ s` | cronômetro certo → a **distância** saltou |
+| `i >> s` | o jogo rodou **acelerado** |
+| `i << s` | o loop **congelou** enquanto o relógio andava |
+
+**Próximo passo:** puxar a telemetria depois de a turma voltar a jogar e
+procurar corridas com `i` e `s` divergentes. A primeira que aparecer entrega o
+mecanismo.
+
+**Os dados brutos do incidente estão guardados.** O bug pôs 22 marcas de
+20.000 pts (o teto) no topo do ranking; a limpeza da v1.9.2 restaurou 6
+jogadores à marca legítima anterior — inclusive o `nikolinhasss`, que tinha uma
+vitória REAL de 10.000 m em 898 s (12.977 pts) — e removeu 16 contas que nunca
+tiveram corrida plausível. Antes de qualquer escrita, o
+`tools/fix-ranking.mjs` gravou **`tools/backup-ranking-2026-08-24.json`** com
+os 29 documentos de `scores` e 32 de `stats` originais, íntegros. O arquivo
+está **fora do versionamento** (é telemetria de jogadores), mas é a única cópia
+que resta das 25 corridas bugadas — se a caça à causa raiz precisar do dado
+real, é ali que ele está. **Não apagar sem o caso estar fechado.**
+
+### O teto FÍSICO do motor (para julgar qualquer marca no futuro)
+
+Derivado de `Constants` e de `FurySystem.update()`, com `PIXELS_PER_METER = 40`:
+
+| Situação | Velocidade |
+|---|---|
+| Corrida normal (`RUN_SPEED` 300 px/s) | 7,5 m/s |
+| Dash ativo (`DASH_SPEED` 750, dura 200 ms) | 18,75 m/s |
+| **Teto absoluto** (dash × fúria 1,5 × especial 1,25) | **35,16 m/s** |
+| Observado em campo, todas as versões sadias | 8–11 m/s |
+
+Percorrer 10.000 m no teto absoluto exigiria 4min44s; numa corrida real, ~18
+minutos. Daí o `RUN_SANITY_MAX_MPS = 40` (com folga deliberada sobre o teto)
+barrar o impossível sem tocar em ninguém legítimo — validado contra o `kukur`
+(23 m/s) e o `nikolinhasss` (11 m/s), ambos aceitos.
+
+### Mapa dos caches da home (auditado em 24/08)
+
+| Cache | TTL | Chave |
+|---|---|---|
+| Pódio (top 3) | **5 min** (era 6 h até a v1.9.3) | `furious_rhino_podium` |
+| Posição no ranking | **nenhum** — sempre rede | `furious_rhino_last_rank` |
+| Rivais da pista | nenhum (grava `at`, nunca lido) | `furious_rhino_rivals` |
+| Lista de desafios | 10 min / **45 s** com aceite pendente | `furious_rhino_chal_cache` |
+| Placar de um desafio | 30 min | `furious_rhino_chal_standings` |
+| Diário (remoto) | 1 h | `furious_rhino_news_cfg` |
+| Geo | 12 h / 6 h | dentro de `stats` |
+
+**A lição que atravessou três bugs seguidos (v1.9.1 a v1.9.3):** todo cache
+precisa de um dono que o invalide **no evento que muda o dado dele**. Os três
+bugs de "a tela não atualiza" foram o mesmo erro em lugares diferentes — dado
+novo gravado, tela nunca repintada.
+
+### Pendências menores registradas
+
+- **`/atualizar-docs` está 5 versões atrás** (v1.8.11 → v1.9.3). A pasta
+  `docs/` e o `GAME_DESIGN.md` costumam estar abertos noutra sessão do dono —
+  coordenar antes de rodar.
+- **`/?debug=1` é aberto em produção**, sem chave: teleporte para cada boss,
+  invencibilidade, sliders de velocidade e `window.game` no console. Foi
+  levantado quando as marcas de 20.000 pontos ainda pareciam trapaça; com o
+  diagnóstico corrigido virou **higiene, não emergência**. O `/?setup` já tem
+  chave, o `/?debug` não.
+- **Sonda contra produção SEMPRE com prefixo `claude-`.** Em 23/08 as
+  reproduções do bug foram apontadas para o site real com ids fora do padrão
+  (`repro-*`, `sonda-*`, `33d79c0e-repro-ben-01`) e sujaram 10 documentos — a
+  proteção do `StorageManager.allowsRemoteWrite` cobre apenas localhost, e um
+  Playwright apontado para produção grava de verdade.
+
+---
+
 ## 6. Restrições que qualquer ideia daqui respeita
 
 1. **Orçamento de letras livres em `runs[]`.** Livres na v1.8.4: 6 (`e h i l u y`);
@@ -1466,6 +1645,23 @@ levantamento recomendou (barato e destravante primeiro):
 
 Nada obriga a essa ordem — A e G são independentes de tudo e podem furar a fila
 a qualquer momento.
+
+### Dívidas TÉCNICAS (24/08) — fila própria, não concorre com as ideias
+
+Estas não são ideias de jogo: são coisas já medidas que atrapalham quem joga.
+Detalhe completo na **Radiografia TÉCNICA — 2026-08-24**, acima.
+
+| Ordem | Dívida | Custo | Impacto |
+|---|---|---|---|
+| 1 | **Causa raiz do cronômetro** — ler a letra `i` em campo | XS (só análise) | fecha o único bug ATIVO; o instrumento já está no ar |
+| 2 | **Preload de 150 SVGs** — dividir essencial / segundo plano | M | a CORRIDA começa em ~6 s no celular |
+| 3 | **Service worker revalida tudo** — SWR só para `art/*.svg` | M (arriscado: já misturou versões na v1.4.0) | é a causa REAL do preload lento |
+| 4 | **`document.write` do Phaser** — trocar por `<script defer>` | XS (não testado) | segura o FCP, e com ele tudo |
+| 5 | **`/atualizar-docs`** — 5 versões atrás | XS | a `docs/` mente hoje |
+| 6 | **`/?debug=1` sem chave em produção** | XS | higiene, não emergência |
+
+A ordem 2 e 3 andam juntas: dividir o preload sem consertar o service worker
+resolve metade — os arquivos adiados continuariam custando uma ida-e-volta cada.
 
 Vale lembrar as pendências pequenas que continuam abertas fora desta lista
 (estão no `HANDOFF.md`): leitores de `runs[].g` / `runs[].n` no painel,
