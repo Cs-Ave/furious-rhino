@@ -1,6 +1,6 @@
 # FURIOUS RHINO — Documento de Design
 
-> Estado atual do jogo (v1.8.10). Este documento descreve o que **é**, não o que
+> Estado atual do jogo (v1.9.3). Este documento descreve o que **é**, não o que
 > se imaginou no começo — as decisões de v1.1 em diante estão registradas aqui
 > com o motivo, e várias delas foram tomadas a partir dos dados reais de
 > telemetria (ver "Decisões orientadas por dados" no fim).
@@ -133,24 +133,28 @@ largada do modo infinito. Quem entra em chamas (ativou antes da arena) mantém
 o fogo, mas **precisa alinhar as 3 frestas como todo mundo**. O contador
 `runs[].n` mede quantos ainda tentam o truque antigo.
 
-## 🏙️ Os bosses do deserto (v1.8.5) — O Cerco e o Guardião do Fim
+## 🛡️ A linhagem do Cerco e o Guardião do Fim (v1.8.5 → v1.8.10)
 
 **O dado que motivou** (levantamento de 16/08, `docs/IDEIAS-FUTURAS.md` §4.3):
 depois do portão existia um **deserto de 2.000 m a 10.000 m** — a dificuldade
 teta no tier 6 e não havia nenhum marco até a LENDA. Só 10 corridas da janela
 passaram de 2.000 m, e quem vencia o boss não tinha próximo objetivo.
 
-**O Cerco (2.000 m).** Barricada de contenção urbana em **4 camadas**, com o
-**Capturador** (canhão de redes) no topo. Ancorado em 80.000 px de propósito: a
-face do clamp cai a ~3 m da medalha "Inalcançável" — a medalha vira a recompensa
-da luta **de graça**. Para não ser o mesmo chefe de novo: ordem **não monótona**
-`mid → ground → high → mid` (obriga a ler o glow em vez de decorar a sequência),
-tiro em **leque** (3 dardos, ±12°), **rasante** anti-camping (tiro rente ao chão
-— pular é a resposta, e pular é o que o camper não estava fazendo; o morteiro
-só entra na última camada) e **enrage suave** aos 45 s (a cadência desce UM
-degrau — nunca um muro de morte). **Vitória: a corrida CONTINUA** — a barricada
-explode, +150 pts (peso `boss2`) além dos 25 por camada, medalha `boss2_win`.
-Derrota = causa `boss2`, título próprio "CAPTURADO! 🕸️".
+**O Cerco — hoje a Barreira da Escavação (3.650 m).** Nasceu aos 2.000 m
+(v1.8.5), cedeu o slot à Muralha quando a cidade ganhou arco (v1.8.7) e vive
+desde a v1.8.10 como o **miniboss do meio do deserto**, com a mecânica
+original intacta e paleta nova de sacos de areia e andaimes. O desenho, para
+não ser o mesmo chefe do portão de novo: **4 camadas** em ordem **não
+monótona** `mid → ground → high → mid` (obriga a ler o glow em vez de decorar
+a sequência), o **Capturador** (canhão de redes) atirando em **leque** (3
+dardos, ±12°), **rasante** anti-camping (tiro rente ao chão — pular é a
+resposta, e pular é o que o camper não estava fazendo; o morteiro só entra na
+última camada) e **enrage suave** aos 45 s (a cadência desce UM degrau —
+nunca um muro de morte). **Vitória: a corrida CONTINUA** — a barricada
+explode, +150 pts (peso `cerco`) além dos 25 por camada, medalha `boss2_win`
+("Fura-Bloqueio" — o id é imutável e ficou DORMENTE de v1.8.7 a v1.8.9,
+enquanto o Cerco esteve sem âncora). Derrota = causa `cerco`, título próprio
+"CAPTURADO NA BARREIRA! 🕸️".
 
 **O Guardião do Fim (9.995 m).** O Caçador-Mor na última cerca do mundo. A
 arena saiu **de graça**: os 1.500 px sem spawn da chegada da LENDA já eram
@@ -162,15 +166,17 @@ era o prêmio). O valor é aspiracional: ninguém chegou perto (recorde 5.185 m)
 mas a marca máxima do jogo deixou de ser uma chegada e virou uma **vitória**.
 
 **Decisões de recompensa (do dono):** medalhas + pontos, **sem** skins novas e
-sem card no Diário. Telemetria: letras `e` (camadas do Cerco) · `h` (segundos
-do Cerco) · `l` (camadas do Guardião) em `runs[]`; `q` segue **exclusivo do
-portão** para preservar a baseline de 48 lutas que calibrou a v1.8. Restam 3
-letras livres (`i u y`).
+sem card no Diário. Telemetria em `runs[]`: `e`/`h` (camadas e segundos do
+boss dos 2.000 m — série herdada pela Muralha) · `u` (camadas da Barreira) ·
+`y` (camadas do Faraó) · `l` (camadas do Guardião); Barreira/Faraó/Guardião
+não têm letra de segundos (decisão de orçamento), e `q` segue **exclusivo do
+portão** para preservar a baseline de 48 lutas que calibrou a v1.8. Resta
+UMA letra livre (`i`).
 
 **A decisão estrutural — parametrizar, nunca copiar:** antes dos bosses novos,
 o `BossFight` passou pelos refactors R1–R7 (ideia D): âncora, camadas, tabela
 de tiro, texturas, contadores e callbacks de vitória viraram um objeto de
-definição, e os três chefes são **3 instâncias da mesma classe** — com o
+definição, e os cinco chefes são **5 instâncias da mesma classe** — com o
 `e2e-boss` 16/16 preservado após cada passo e a arte do portão byte a byte
 idêntica. Sem isso, B e C seriam cópia-e-cola do portão — o caminho mais
 rápido para um soft-lock. A zona sem spawn foi unificada no mesmo passo
@@ -342,9 +348,9 @@ Agora ela é um antagonista com arco: **dorme, acorda, caça**.
   (2000–2200: só rampas e pombos, o amanhecer, a volta olímpica) até o
   Pórtico. A Muralha herda a série de dados do slot dos 2000 m (causa `boss2`,
   letras `e`/`h`) — o funil continua contínuo.
-- **O Cerco foi realocado**: vira o porteiro do deserto (âncora futura ~3000 m,
-  quando o funil mostrar massa pós-2000). As tabelas dele seguem declaradas
-  sem luta ligada; a medalha "Fura-Bloqueio" dorme com ele.
+- **O Cerco foi realocado** — e entregue na v1.8.10 como a **Barreira da
+  Escavação (3650 m)**, o miniboss do meio do deserto; a medalha
+  "Fura-Bloqueio" acordou apontando para ela (id imutável).
 - **Curva por distrito sem tocar o tier global**: os distritos só modulam
   PESOS da roleta (D1 alivia torre e devolve a sobra ao rasteiro — mesma
   pressão, leitura mais honesta onde a mediana morria). Contrato binário
@@ -519,6 +525,55 @@ tela — com quatro decisões de design que sustentam tudo:
   `offX` já espelhado (`w − offX_arte − bodyW`) — automatiza o comentário
   que a arte manuscrita carregava à mão.
 
+## 🪪 Recuperação de identidade (v1.9.0) — o caso Teco
+
+**O dado que motivou:** caso real de produção. O jogo não tem login — a
+identidade é um UUID por aparelho, só em `localStorage` — e o dono reinstalou
+o PWA no celular: o aparelho renasceu com outro id e o doc órfão do próprio
+"Teco" (1.907 pts, 6º lugar) passou a **bloquear o dono do apelido** ("já
+está em uso"): o `checkName` exclui "o meu doc" pelo id, e com o id novo o
+doc antigo vira "de outra pessoa". Sem caminho de volta, o custo era perder a
+marca, o histórico e o nome.
+
+**A decisão central — recuperação MEDIADA, nunca automática.** Sem
+autenticação não existe prova de posse: qualquer automatismo ("clique aqui
+para retomar o nome") seria um sequestro de conta de um clique. O desenho
+divide a confiança em três: o **jogador pede** (botão 🆘 no erro de apelido —
+o pedido chega ao dono via ntfy com o id novo e a **assinatura do
+aparelho/local**, e arma o aparelho para consultar a ordem), o **dono
+confere e autoriza** (aba 🆘 do estúdio compara os aparelhos/locais das duas
+vidas — o antifraude é humano, e o custo disso é aceitável num jogo de
+dezenas de jogadores), e o **jogo se restaura sozinho** (o par
+`{idNovo: idAntigo}` vive no doc `config/reassign`, que os clientes só LEEM;
+a escrita é do servidor local do estúdio, com a credencial do dono).
+
+**As decisões de implementação e seus porquês:**
+
+- **Consulta "armada", não polling universal**: só o aparelho com pedido 🆘
+  pendente consulta o `config/reassign` (cache de 1h) — os outros 99% dos
+  jogadores não gastam nenhum read. O plano gratuito agradece.
+- **O merge SOMA os totais** (local + servidor), nunca copia: as rules de
+  `stats` exigem monotonia e negam write **em silêncio** — um total
+  restaurado menor congelaria a telemetria do jogador para sempre. A mesma
+  regra dos e2e desde a v1.7.2, agora em produção.
+- **`best_sent*` restaurados por inteiro** (score/metros/scoreAt/skin):
+  são os contratos do `rename`/`submit` — sem eles a troca de apelido
+  apagaria a marca e o "há X dias" do ranking.
+- **Medalhas: perda parcial honesta.** Não existem no servidor; o merge
+  re-infere as que a janela de 50 corridas comprova (distância, mecânicas,
+  camadas de chefe) e assume a perda do resto (ex.: "Superação") — melhor
+  uma perda declarada que uma restauração inventada. As skins de conquista
+  voltam de graça pelo retro-scan que já existia.
+- **A letra `i` NÃO foi gasta** com nada disso: o fluxo inteiro funciona sem
+  telemetria nova (a marca do pedido é local; a confirmação é um push).
+- **O mapa público não cria risco novo**: sem auth, qualquer cliente já pode
+  adotar qualquer id hoje — o modelo de confiança assumido do jogo inteiro.
+  A mediação humana é o filtro, não a criptografia.
+
+**Runbook operacional**: `docs/QA-Registro.md` §🪪 (primeira entrada do tema
+identidade). Suíte: `test-reassign` (61 asserts) tranca a invariante da
+monotonia e as guardas do fluxo.
+
 ## 🏁 Engajamento
 
 - **Marcas na pista**: estacas com nome e distância do **seu recorde**, do
@@ -618,6 +673,106 @@ causa × faixa de distância, curva de aprendizado, retenção D1–D30 e
 6. **Tiles de 640px precisam emendar**: formas nas bordas ganham cópia ±640.
 7. **Validação local do dono antes de qualquer publicação.**
 
+## 🛡️ Uma sessão quebrada não pontua (v1.9.1) — e por que a ordem do fim de corrida mudou
+
+Um jogador avisou que "o jogo trava". Era verdade e era pior do que parecia:
+**qualquer exceção dentro do `update` matava o loop de animação** — o jogo
+congelava na tela para sempre, sem mensagem, sem salvar a corrida, e com a
+tentativa já debitada. O projeto não tinha `window.onerror`, não tinha
+`unhandledrejection` e não tinha `try/catch` no `update`. Zero rede.
+
+As três decisões de design que saíram disso:
+
+- **Falha do jogo não pune o jogador.** O `crashToHome` devolve a tentativa que
+  o `startRun` já contou. Perder a corrida por um bug nosso já é ruim; perder a
+  tentativa junto seria cobrar pelo erro.
+- **Uma sessão quebrada NÃO PONTUA.** Nada de recorde, nada de pódio, nada de
+  run gravada, nada de telemetria. Uma partida que não terminou direito não é
+  uma partida — e um número vindo dela contaminaria o ranking de todo mundo.
+- **A corrida é salva ANTES de subir ao ranking.** O `endGame` gravava o recorde
+  local e enviava ao ranking mundial ~110 linhas *antes* de consolidar a corrida
+  em `runs[]`, sem `try/catch` no meio. Uma exceção ali deixava uma marca no
+  ranking **sem corrida por trás**. Invertida a ordem, o pior caso passou a ser
+  uma corrida salva que não subiu — o inverso do estrago.
+
+**A honestidade da mensagem é parte do design.** O overlay diz que a corrida não
+foi salva e que a tentativa voltou. A alternativa — sumir com o problema — faria
+o jogador achar que o recorde dele foi roubado.
+
+**Onde a rede global NÃO age:** um erro de rede (Firestore offline) jamais pode
+mostrar "o jogo travou", porque violaria a regra nº 1 da casa — telemetria e
+ranking são acessórios. Por isso o `unhandledrejection` só age com a corrida em
+andamento **e** só para erros de programação que não tenham assinatura de rede.
+O viés é deliberado: é melhor ficar mudo num caso raro do que mentir num comum.
+
+---
+
+## 🚦 A guarda de plausibilidade (v1.9.1) — na dúvida, aceita
+
+Um bug (ainda não localizado) fez corridas serem gravadas com tempo muito menor
+que o real — 10.000 m aparecendo como 47 s. Vinte e duas dessas marcas foram
+parar no topo do ranking, empatadas no teto de pontos.
+
+A defesa é uma pergunta só: **essa velocidade média é fisicamente possível?**
+
+O teto absoluto do motor é **35,16 m/s** (`DASH_SPEED` × fúria 1,5 × especial
+1,25 ÷ `PIXELS_PER_METER`) — os três simultâneos, o que ninguém sustenta. Em
+campo, todas as versões sadias mostram 8–11 m/s. O limite ficou em **40 m/s**,
+acima do teto, de propósito.
+
+**A regra que orienta o desenho é "NA DÚVIDA, ACEITA":**
+
+- sem tempo confiável (ausente, zero, negativo, `NaN`) → **aceita**;
+- corrida curta → **aceita**. O tempo é gravado em segundos inteiros, então uma
+  partida de 1,4 s vira "1 s" e infla a média medida em até 2×. O limiar ficou
+  em **300 m** e não em 200 porque com 200 existiria uma janela real (`s=5`,
+  `m=201` → 33,3 m/s reais) em que o arredondamento barraria um jogador
+  legítimo. Com 300, barrar exige ter sustentado **35,67 m/s reais** — acima do
+  teto do motor.
+
+Barrar um inocente é muito pior do que deixar passar um número estranho: o
+número estranho a gente limpa depois, a confiança do jogador não.
+
+**A guarda contém, não cura.** Enquanto a causa raiz não aparecer, o jogador
+afetado ainda perde a corrida dele — só que em silêncio, em vez de envenenar o
+pódio de todos.
+
+---
+
+## 🏠 A tela inicial não espera o jogo carregar (v1.9.3)
+
+Medido no celular: a home ficava **4,6 segundos vazia depois de a página já
+estar pronta**. A causa não era peso nem internet — era ordem. Todo o conteúdo
+da home era montado dentro do `GameScene.create()`, que só roda depois de o
+Phaser baixar **150 arquivos de arte**. Dos quais a home usa **quatro**, e por
+`<img>` HTML, sem passar pelo motor.
+
+**A decisão:** a tela inicial é DOM + `localStorage` e não tem por que depender
+do motor de jogo. Um módulo só (`HomeScreen`) virou o **dono único da pintura**,
+chamado antes de o Phaser existir. O pódio passou a aparecer ~0,6 s depois da
+página, em vez de 4,6 s.
+
+**O efeito colateral que virou decisão de design:** com a tela pronta antes do
+jogo, abre-se uma janela em que dá para tocar sem dar para jogar. Três saídas
+eram possíveis — ignorar o toque (o jogador toca no vazio), desabilitar o botão
+(a tela inteira pronta atrás de um botão apagado), ou **guardar o toque**.
+Escolhemos guardar: o texto vira "preparando a fuga…", o rino ao lado já está
+animado, e a corrida **começa sozinha** quando o motor fica pronto. O jogador
+nunca toca no vazio nem precisa tocar duas vezes.
+
+**O pódio voltou a ser atualizável.** Era relido a cada **6 horas** — a queixa
+do dono ("a posição demora demais para atualizar") vinha daí. A economia era
+ilusória: é 1 consulta de 3 documentos, num boot que já faz outras cinco sem
+limite nenhum. Pior, criava uma assimetria visível: a sua posição vinha fresca
+ao lado de degraus de ontem. Agora são 5 minutos.
+
+**A lição que atravessou três versões seguidas (v1.9.1 → v1.9.3):** *todo cache
+precisa de um dono que o invalide no evento que muda o dado dele.* Os três bugs
+de "a tela não atualiza" desta linhagem foram o mesmo erro em lugares
+diferentes — dado novo gravado, tela nunca repintada.
+
+---
+
 ## 📈 Decisões orientadas por dados (v1.6)
 
 Leitura de 48 jogadores, 981 tentativas, 512 corridas e 945 mortes da v1.5:
@@ -654,25 +809,32 @@ Leitura de 48 jogadores, 981 tentativas, 512 corridas e 945 mortes da v1.5:
 
 ## 🧪 Testes
 
-Quinze suítes (detalhe por suíte em `docs/04-referencia-tecnica.md` §11);
-números de 23/08/2026 — os que dependem do registry de skins variam com ele:
+Vinte e uma suítes (detalhe por suíte em `docs/04-referencia-tecnica.md` §11);
+números de 24/08/2026 — os que dependem do registry de skins variam com ele:
 
 | Comando | Asserts | Foco |
 |---|---|---|
-| `npm run test-stats` | 101 | Telemetria/agregação, `holdDays` nas duas semânticas, consistência contra as rules (inclusive as letras `e/h/l` e as causas `boss2`/`boss3`), digest — sem navegador |
-| `npm run test-score` | 83 | A fórmula da pontuação composta: pesos, blitz na borda, teto do bônus, formatadores — e o contrato de recomputação (ao vivo == recomputado de `runs[]`), cobrindo camadas e vitória dos bosses novos |
-| `npm run test-challenge` | 77 | A Arena: melhor corrida na janela (bordas, empates, pontos ≠ metros), countdown, status, guardas de criação, o texto das rules do `challenges` — e o **cancelamento** (`cancelledAt` gravado 1×) |
+| `npm run test-stats` | 102 | Telemetria/agregação, `holdDays` nas duas semânticas, consistência contra as rules (inclusive as letras `e/h/l/u/y` e as causas dos cinco chefes), digest — sem navegador |
+| `npm run test-score` | 101 | A fórmula da pontuação composta: pesos, blitz na borda, teto do bônus, formatadores — e o contrato de recomputação (ao vivo == recomputado de `runs[]`), cobrindo camadas e vitória de todos os chefes |
+| `npm run test-challenge` | 101 | A Arena: melhor corrida na janela (bordas, empates, pontos ≠ metros), countdown, status, guardas de criação, o texto das rules do `challenges`, o **cancelamento** (`cancelledAt` gravado 1×, sobrevivendo ao normalize) e os TTLs adaptativos do cache |
+| `npm run test-reassign` | 61 | A recuperação de identidade: o merge puro (a invariante da monotonia — totais restaurados ≥ servidor), janela de runs, fusão do history, medalhas inferidas e as guardas do fluxo 🆘 (cooldown, gate, idempotência) |
 | `npm run test-skins` | ~93 | Portão do /?setup (roda a cada gravação, com rollback): lógica de acesso com skins sintéticas + estrutura do registry real |
 | `npm run test-integrate` | 49 | A integração do estúdio como funções puras (round-trip, upsert/remove, patch dos blocos gerenciados do sw) |
 | `npm run test-sprites` | 31 | O **portão da aba Sprites**: contrato do SpriteParams, merge no Constants, paridade art/↔manifesto↔sw, w/h==viewBox, invariantes de spawn (elencos com terrestre, floresta sem voador, jaulas sem par) |
 | `npm run test-radiografia` | 62 | A radiografia: fixture sintética das 3 eras, conferência com o digest, `flattenRuns ⊇ RUN_COUNTERS`, determinismo byte a byte, zero writes por text-assert |
-| `npm run test-ramp` | 45 | Rampa/trampolim, abertura guiada, teclado, pausa + desistir, par/escolta, knockback, a home nova (cards de desafio no lugar da Campanha) e o contrato do toque |
+| `npm run test-crash` | 54 | A rede de proteção (v1.9.1): a guarda de plausibilidade contra os dados REAIS de produção (barra 200 e 213 m/s, **aceita** as vitórias honestas de 23 e 11 m/s), a costura que faz o tempo chegar até a guarda, a ordem do `endGame` e a regra de ouro — sessão quebrada não grava recorde, não envia ao pódio, não grava run |
+| `npm run test-fix-ranking` | 24 | A classificação que decide quem perde a marca e quem tem a dele restaurada, com as corridas **verbatim** de produção como fixture |
+| `npm run test-e2e-crash` | 10 | Injeta uma exceção **real** no `update` e exige: overlay visível com saída, tentativa devolvida, nada gravado — e 50 crashes seguidos devolvendo UMA tentativa só |
+| `npm run test-e2e-home` | 10 | A home desacoplada (v1.9.3): pintada com o motor ainda carregando (a suíte segura os SVGs de propósito) e o toque antecipado iniciando a corrida sozinho |
+| `npm run perf-home` | — | **Regressão de performance** da tela inicial (4G + CPU 4x). Critério RELATIVO: a distância entre "página pronta" e "pódio na tela" — o absoluto oscila com a rede, a espera não |
+| `npm run test-ramp` | 47 | Rampa/trampolim, abertura guiada, teclado, pausa + desistir, par/escolta, knockback, a home nova (cards de desafio no lugar da Campanha) e o contrato do toque |
 | `npm run test-boss` | 16 | A luta do portão: quique, ordem das camadas, fúria negada na arena, causa `boss` |
 | `npm run test-boss2` | 14 | A Muralha (2000 m): 4 camadas abrindo NO ALTO, atirador vivo silenciado no início da luta, vitória sem encerrar a corrida, causa `boss2` |
 | `npm run test-boss3` | 10 | O Guardião: palíndromo de 5 camadas — e **a 5ª camada dispara a LENDA** |
+| `npm run test-e2e-deserto` | — | As Areias do Tempo no navegador: as 5 etapas com as famílias de fachada, a Barreira (letra `u`, +150) e o Faraó (5 camadas, letra `y`, +250, enrage 30 s), causas/títulos próprios |
 | `npm run test-special` | 25 | Bioma dos animais, ciclo completo da FÚRIA TOTAL, desabamento |
 | `npm run test-e2e-skins` | 15 | Comportamento das skins no navegador contra registry canônico injetado (arte do núcleo — imune a remoções do dono) |
-| `npm run test-e2e-setup` | 26 | O estúdio /?setup: gate, as três abas (catálogo ≥38 espécies; zero requisição espontânea), card Servidores (nº varia com o gerador no ar ou não) |
+| `npm run test-e2e-setup` | 30 | O estúdio /?setup: gate, as quatro abas (catálogo ≥38 espécies; a 🆘 nasce com o Autorizar travado; zero requisição espontânea), card Servidores (nº varia com o gerador no ar ou não) |
 | `npm run test-e2e-stats` | 69 | Telemetria REAL no Firestore com sonda `claude-*`; prova que a suíte não suja produção |
 | `npm run radiografia` / `digest` | — | Análise de usabilidade completa / resumo diário — contra produção, **sem escrever nada** |
 

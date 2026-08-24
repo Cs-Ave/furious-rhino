@@ -1,6 +1,6 @@
 # Furious Rhino — Arquitetura
 
-> Documentação da versão **1.8.10** · atualizada em 23/08/2026
+> Documentação da versão **1.9.3** · atualizada em 24/08/2026
 > Visão técnica intermediária: como o projeto é organizado, os principais componentes e como eles conversam. Pressupõe noções de programação, mas explica os termos específicos do projeto.
 
 ## 1. Filosofia
@@ -17,6 +17,11 @@ Três decisões moldam tudo:
 index.html ─── HUD, telas e modais em DOM + CSS (~1300 linhas), carrega Phaser via CDN
     └── js/game.js ─── roteador: /?setup → estúdio · /?stats → painel · senão → jogo
          ├── [JOGO]
+         │    ├── home/HomeScreen.js ──── A TELA INICIAL (v1.9.3): dona única da
+         │    │                            pintura da home — pódio, degrau VOCÊ, campanha,
+         │    │                            gráfico, Diário e cards de desafio. Pintada
+         │    │                            ANTES do Phaser: é DOM + localStorage e
+         │    │                            **não pode tocar em Phaser** (regra do arquivo)
          │    ├── scenes/BootScene.js ──── carrega SVGs (2×), gera texturas, cria animações
          │    ├── scenes/GameScene.js ──── A CENA ÚNICA: loop, colisões, terreno, biomas,
          │    │                            clima, portão, morte, telas, pausa (~2000 linhas)
@@ -30,15 +35,16 @@ index.html ─── HUD, telas e modais em DOM + CSS (~1300 linhas), carrega Ph
          │    │    ├── FurySystem ───────── fúria = CARGA por distância → velocidade, tint,
          │    │    │                        fumaça; e o modo FÚRIA TOTAL (rampage)
          │    │    ├── BossFight ────────── luta de chefe PARAMÉTRICA (v1.8.5): uma `def`
-         │    │    │                        por boss — portão (1000m), Muralha (2000m,
-         │    │    │                        v1.8.7) e Guardião do Fim (9995m); o Cerco
-         │    │    │                        ficou DECLARADO para o deserto, sem wiring
+         │    │    │                        por boss — portão (1000m), Muralha (2000m),
+         │    │    │                        Barreira da Escavação (3650m), Faraó de
+         │    │    │                        Bronze (4700m) e Guardião do Fim (9995m) —
+         │    │    │                        cinco instâncias da MESMA classe
          │    │    ├── AudioSystem ──────── SFX + música generativa (Web Audio)
          │    │    ├── SkinSystem ───────── skins (v1.8): lógica de acesso (4 tipos com
          │    │    │                        condições declarativas), resolução da equipada
          │    │    ├── SkinRegistry ─────── DADOS das skins (JSON estrito, machine-owned:
          │    │    │                        reescrito pelo estúdio /?setup)
-         │    │    ├── MedalSystem ──────── 19 medalhas locais
+         │    │    ├── MedalSystem ──────── 27 medalhas locais (ids imutáveis, append-only)
          │    │    ├── ScoreSystem ───────── pontuação composta (v1.8.4): pesos por façanha,
          │    │    │                        teto do bônus, recomputação de runs[] e formatação
          │    │    │                        (módulo PURO — sem Phaser, testado no node)
@@ -50,6 +56,10 @@ index.html ─── HUD, telas e modais em DOM + CSS (~1300 linhas), carrega Ph
          │    │    ├── NewsSystem ───────── Diário da Fuga (config/news do console + eventos locais)
          │    │    ├── StatsSystem ──────── telemetria (Firestore: stats/)
          │    │    ├── NotifySystem ─────── pushes ntfy do administrador
+         │    │    ├── ReassignSystem ───── recuperação de identidade (v1.9.0): pedido 🆘,
+         │    │    │                        consulta gated ao config/reassign e a adoção
+         │    │    │                        do id antigo (mergeIdentity PURO — testado no
+         │    │    │                        node; totais SOMADOS pela monotonia das rules)
          │    │    └── TuningPanel ──────── painel de debug (?debug=1, lil-gui via CDN)
          │    └── utils/
          │         ├── Constants.js ─────── TODO o tuning numérico (fonte única). No fim do
@@ -67,15 +77,20 @@ index.html ─── HUD, telas e modais em DOM + CSS (~1300 linhas), carrega Ph
          │                                  as coleções decodificadas e devolve métricas +
          │                                  motor de insights + markdown — roda no navegador
          │                                  (aba 📊 do estúdio) e no node (npm run radiografia)
-         └── [ESTÚDIO /?setup=chave] — três abas, carregadas sob demanda
+         └── [ESTÚDIO /?setup=chave] — quatro abas, carregadas sob demanda
               ├── setup/SetupPage.js ────── moldura + aba 🎨 Skins (wizard de criação, lista
               │                             com editar/esconder/remover) + card Servidores
               ├── setup/SetupSprites.js ─── aba 🖼️ Sprites (v1.8.9): catálogo animado das
               │                             espécies, editor de parâmetros, gerador de
               │                             inimigo e a atribuição (substituir arte /
               │                             criar espécie nova)
-              └── setup/SetupAnalytics.js ─ aba 📊 Radiografia (v1.8.7): fetch público +
-                                            render dos insights (usa o RadiografiaCore)
+              ├── setup/SetupAnalytics.js ─ aba 📊 Radiografia (v1.8.7): fetch público +
+              │                             render dos insights (usa o RadiografiaCore)
+              └── setup/SetupReassign.js ── aba 🆘 Recuperação (v1.9.0): confere a
+                                            reivindicação (leituras públicas) e autoriza/
+                                            conclui via servidor local — que escreve o
+                                            config/reassign com a credencial do login do
+                                            firebase-tools (clientes só LEEM o doc)
 ```
 
 Fora do runtime: `sw.js` (service worker do PWA), `firestore.rules` (versionadas aqui, publicadas à mão no console), `tools/*.mjs` (testes e utilitários Node), `.github/workflows/daily-digest.yml` (resumo diário via cron) e `gerador-de-sprites/` (ferramenta local de conversão de arte raster em skins — ver §12).
@@ -85,15 +100,18 @@ Fora do runtime: `sw.js` (service worker do PWA), `firestore.rules` (versionadas
 ```mermaid
 flowchart TD
     A[index.html] -->|"?setup / ?stats na URL?"| B{js/game.js}
-    B -->|não| C[BootScene<br/>carrega SVGs 2x, gera texturas]
+    B -->|não| HS[HomeScreen.paintFromCache<br/>pódio, recorde, Diário, desafios<br/>DOM + localStorage, ZERO Phaser]
+    HS --> AR[HomeScreen.armStart<br/>toque já responde]
+    AR --> C[BootScene<br/>carrega 147 SVGs 2x, gera texturas]
     C --> D[GameScene.create<br/>mundo, rino, spawns, colisões, HUD]
-    D --> E[Tela inicial<br/>física pausada]
+    D --> RD[HomeScreen.ready<br/>assume o toque; se houve toque<br/>pendente, começa AGORA]
+    RD --> E[Tela inicial<br/>física pausada]
     E -->|toque| F[Loop update 60fps]
 
     F --> G[updateTerrain<br/>encaixa rino/animais na rampa]
     G --> H[rhino.update<br/>pulo / investida]
     H --> I[FurySystem<br/>carga + FÚRIA TOTAL + velocidade]
-    I --> BF[bossFights ×3<br/>portão 1000m · Cerco 2000m · Guardião 9995m<br/>clamp, camadas, quique]
+    I --> BF[bossFights ×5<br/>portão 1000m · Muralha 2000m · Barreira 3650m<br/>Faraó 4700m · Caçador-Mor 9995m<br/>clamp, camadas, quique]
     BF --> J[SpawnManager<br/>sorteia e recicla obstáculos]
     J --> K{colisão letal?}
     K -->|não| L{todas as camadas<br/>do chefe atual?}
@@ -116,6 +134,17 @@ flowchart TD
 Pontos que merecem destaque:
 
 - **Uma cena só.** Não há cena de menu/game-over separada: as "telas" são divs de DOM sobre o canvas, e `GameScene` pausa/retoma a física. Reiniciar é recarregar a página.
+- **A tela inicial não depende do motor (v1.9.3).** `js/game.js` chama
+  `HomeScreen.paintFromCache()` **antes** de instanciar o Phaser: a home é DOM +
+  `localStorage` e não usa uma única textura do motor (o rino da abertura são 3
+  `<img>` com animação CSS). Antes disso ela era montada dentro do
+  `GameScene.create()`, ou seja, depois dos 147 SVGs do preload — e ficava **4,6 s
+  vazia no celular depois de a página estar pronta**. O `HomeScreen` é o **dono
+  único** da pintura: a cena mantém os mesmos nomes de método, mas delega.
+- **O toque é armado antes da cena existir.** Como a home fica pronta em ~0,6 s e o
+  motor só aos ~6 s, existe uma janela em que dá para tocar sem dar para jogar. O
+  `armStart` **guarda** o toque (CTA vira "preparando a fuga...") e o `ready` da cena
+  dispara a partida sozinho. O `startTriggered` do `startRun` impede partida dupla.
 - **`updateTerrain()` roda antes de `rhino.update()`** — ordem obrigatória, ver §5.
 - **A vitória mudou de dono na v1.7**: quem chama `crossGate()` é o `BossFight` ao cair a 3ª camada (não mais a linha de x = 40000). O gatilho antigo por posição continua como *fallback* do modo invencível de debug — e por isso **teleportar para além do portão nos testes exige `invincible = true`**, senão o clamp da arena devolve o rinoceronte para a face do portão.
 - **O BossFight é paramétrico (v1.8.5)**: a classe recebe um objeto de definição (`def`) com âncora, camadas (na ordem de quebra — pode repetir altura), tabela de tiro, texturas, contadores e os callbacks `isBypassed`/`onDefeat`. Os três chefes são três instâncias em `scene.bossFights[]` (o alias `scene.bossFight` continua sendo o do portão, para telemetria e testes). Cada vitória tem dono: o portão chama `crossGate()`; o **Cerco** chama `defeatBoss2()` — explosão, +150 pts e a corrida **continua**; o **Guardião** seta `legend` e chama `endGame(true)` — a cutscene de LENDA vira a festa do chefe. O `HunterSniper` lê a tabela da `def` e ganhou três capacidades ativáveis por tabela: `fan` (leque de 3 dardos), `rasante` (tiro rente ao chão, anti-camping) e o *enrage* suave (passado `enrageMs` de luta, a cadência desce UM degrau — nunca um muro de morte). A causa de morte viaja no dardo: `fromBoss` virou a **string** da causa (`boss`/`boss2`/`boss3`).
@@ -209,7 +238,8 @@ O **resumo diário** é outro caminho: `tools/daily-digest.mjs` roda num cron do
 | `npm run test-integrate` | 49 asserts puro Node do integrador do estúdio: round-trip byte-estável do registry, upsert/remove, patch dos blocos gerenciados do `sw.js` |
 | `npm run test-sprites` | 31 asserts puro Node da camada de sprites (v1.8.9): contrato do `SpriteParams` (JSON estrito, zero imports), merge no Constants, paridade `art/` ↔ manifesto ↔ `sw.js`, **w/h do manifesto == viewBox de cada SVG**, invariantes de spawn (todo elenco com ≥1 terrestre; floresta sem voador; jaulas sem par). É o **portão** das gravações da aba Sprites |
 | `npm run test-radiografia` | 62 asserts puro Node da radiografia (v1.8.7): fixture sintética, letras completas, conferência com o `buildDigest`, determinismo byte a byte, higiene dos fetchers (zero writes) |
-| `npm run test-e2e-setup` | 26 asserts e2e do estúdio: gate da chave, as três abas (Skins no load, Sprites/Radiografia sob demanda), catálogo com ≥38 espécies, zero requisição espontânea |
+| `npm run test-e2e-setup` | 30 asserts e2e do estúdio: gate da chave, as quatro abas (Skins no load; Sprites, Radiografia e 🆘 Recuperação sob demanda), catálogo com ≥38 espécies, zero requisição espontânea |
+| `npm run test-reassign` | 61 asserts puro Node da recuperação de identidade (v1.9.0): o merge puro (monotonia — totais ≥ servidor), janela de runs, history fundido, medalhas inferidas e as guardas do fluxo 🆘 |
 | `npm run radiografia` | Roda a **radiografia completa** contra a produção (leitura pública, zero writes) e imprime o markdown pronto para o banco de ideias |
 | `npm run digest` | Monta o resumo diário contra dados de produção **sem enviar** |
 | `npm run sprite-gen` | Sobe o **servidor unificado do estúdio** (jogo na 3000 + gerador na 3210, ver §12) |

@@ -1454,7 +1454,8 @@ pódio **10.342 → 2.079 ms**; espera **6.003 → 583 ms**.
 Resolvida para a home na v1.9.3; **continua de pé para a partida**.
 
 - `BootScene.preload()` carrega **150 SVGs** (120 do `ART_MANIFEST` + 3 frames
-  × 10 skins) antes de a `GameScene` existir.
+  × 10 skins) antes de a `GameScene` existir. *(Número do dia da medição; a
+  v1.9.3 removeu uma skin e passou a 147 — o problema não muda com três arquivos.)*
 - Somados, os 150 arquivos pesam **32 KB**. O custo é **150 × ida-e-volta**,
   não peso.
 - O Phaser usa **7** deles antes do toque: 3 frames da skin equipada mais

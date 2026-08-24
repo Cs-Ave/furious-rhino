@@ -1,6 +1,6 @@
 # Furious Rhino — Guia funcional
 
-> Documentação da versão **1.8.10** · atualizada em 23/08/2026
+> Documentação da versão **1.9.3** · atualizada em 24/08/2026
 > Cada funcionalidade do jogo: o que faz, como o usuário interage e exemplos práticos. Termos técnicos vêm explicados entre parênteses na primeira vez.
 
 ## 1. Controles
@@ -43,6 +43,14 @@ O morro tem uma variante especial, o **trampolim**: um penhasco cuja crista lan�
 - No alto da tela, a **Pontuação** fica em destaque e os **metros** logo abaixo, menores. A tela de fim de corrida mostra a conta completa: quanto veio da distância e de onde saiu cada ponto de bônus.
 - **Marcas antigas não foram recalculadas**: quem já tinha recorde continua com ele (valendo como pontuação sem bônus), e vai sendo ultrapassado conforme as pessoas jogam a versão nova.
 - A barra no topo mostra o progresso até o portão.
+- **Se o jogo travar (v1.9.1)** — se acontecer alguma falha durante a partida, em vez de a tela
+  congelar em silêncio aparece o aviso **"😵 O jogo travou"**, dizendo honestamente que a corrida
+  não foi salva, com um botão para voltar ao início. **A tentativa é devolvida**: ninguém é punido
+  por um problema do jogo. Uma corrida interrompida assim não grava recorde, não sobe ao ranking
+  e não conta no histórico.
+- **Marca impossível não entra no ranking (v1.9.1)** — antes de enviar uma marca, o jogo confere se
+  a velocidade média da corrida é fisicamente possível. O limite tem folga sobre o máximo que o
+  motor consegue produzir, justamente para nunca barrar quem joga muito bem.
 - **Fúria** (ícone de fogo que vai enchendo): é uma **carga** que cresce com a distância percorrida — a primeira enche aos 900 m. Enquanto enche, o rinoceronte acelera (de 300 até 450 pixels/segundo), fica avermelhado, solta fumaça pelas narinas — e a música ganha camadas de instrumentos. Cheia, ela pode ser **gasta** na FÚRIA TOTAL (item 5) e volta a encher correndo.
 - **Dificuldade em 6 níveis**, um a cada 200 m: obstáculos mais frequentes, animais mais rápidos, dardos mais velozes, combinações de obstáculos ("combos") a partir dos 400 m.
 - **O zoológico persegue de verdade**: animais podem vir **em dupla**, e paredes, espinhos e torres costumam aparecer **escoltados por um animal** logo atrás — a chance de ambos cresce nível a nível (de ~50% até ~80%). O total de perseguidores praticamente **dobrou** em relação às versões anteriores, sem trocar nenhum obstáculo letal por animal (a proporção de paredes/espinhos é a mesma — só o zoológico ficou mais cheio).
@@ -52,7 +60,7 @@ O morro tem uma variante especial, o **trampolim**: um penhasco cuja crista lan�
 
 ## 4. As batalhas de chefe
 
-A fuga tem **três** batalhas, todas com a mesma gramática: um alvo blindado em camadas, um atirador no topo, a fresta que brilha como mira, o ricochete que nunca mata (o perigo mora nos tiros) e a **FÚRIA TOTAL bloqueada dentro da arena** (cadeado 🔒 no medidor; a carga continua enchendo e libera na vitória). O que muda de uma para outra é o número e a **ordem** das camadas, o arsenal do atirador e o prêmio.
+A fuga tem **cinco** batalhas — portão (1000 m), Muralha (2000 m), Barreira da Escavação (3650 m), Faraó de Bronze (4700 m) e o Caçador-Mor (9995 m) —, todas com a mesma gramática: um alvo blindado em camadas, um atirador no topo, a fresta que brilha como mira, o ricochete que nunca mata (o perigo mora nos tiros) e a **FÚRIA TOTAL bloqueada dentro da arena** (cadeado 🔒 no medidor; a carga continua enchendo e libera na vitória). O que muda de uma para outra é o número e a **ordem** das camadas, o arsenal do atirador e o prêmio. Só a última vitória encerra a corrida — todas as outras abrem o caminho e a fuga continua.
 
 ### 4a. A luta do portão (1000 m)
 
@@ -68,19 +76,39 @@ Encostar no portão do jeito errado (sem investir, ou investindo fora da fresta)
 
 Dicas na tela ensinam a mecânica só nos **2 primeiros encontros** da vida do jogador. **A FÚRIA TOTAL não resolve mais a luta**: dentro da arena a ativação fica **bloqueada** (o medidor mostra um cadeado 🔒 e o toque avisa "a fúria não pega no portão"), e mesmo quem entra em chamas — ativou pouco antes da arena — precisa acertar as 3 frestas na ordem: o fogo dispensa a investida, mas **não dispensa mais o alinhamento** (os dados mostravam a luta anulada: 120 camadas quebradas com só 8 mortes). A carga continua enchendo normalmente e **libera assim que o portão cai** — vira o fôlego de largada do modo infinito. Derrubada a terceira camada, o caçador despenca do portão e a festa da fuga acontece. O chefe aparece em **toda** corrida que chega aos 1000 m.
 
-### 4b. O Cerco (2000 m) — a cidade contra-ataca
+### 4b. A Muralha (2000 m) — a cidade contra-ataca
 
-Mil metros depois da fuga, a cidade **barrica a avenida**: uma estrutura de contenção urbana (concreto e tarjas amarelas de perigo) em **4 camadas**, com o **Capturador** — um agente de intervenção com **canhão de redes** — no topo. As diferenças em relação ao portão:
+No fim da Zona de Contenção, a cidade **barrica a avenida**: viaturas empilhadas em **4 camadas**, com o **Comandante** numa torre de holofote no topo. As diferenças em relação ao portão:
 
-- A ordem das frestas **não é de baixo para cima**: é **meio → chão → alto → meio**. Decorar a sequência do portão não ajuda — é preciso **ler o brilho dourado**. (A camada do meio é dupla: a primeira quebra a amassa, a segunda a abre de vez.)
-- O canhão atira em **leque** (3 dardos abertos ao mesmo tempo) e tem o **rasante** — um tiro reto rente ao chão que atinge quem fica **parado esperando** o padrão passar; pular é a resposta. O morteiro em arco só entra na última camada, como estocada final.
+- A primeira fresta abre **NO ALTO** (a ordem é **alto → chão → meio → alto**) — é o exame da lição que o terceiro distrito ensinou: olhar para o céu. Decorar a sequência do portão não ajuda; é preciso **ler o brilho dourado**.
+- A **granada-de-luz**: um tiro em arco cujo aviso é o próprio **holofote varrendo o chão até o ponto onde ela vai cair** — leia a luz e saia da zona iluminada.
+- O **K9 rasante**: um cão-robô que cruza rente ao chão e pega quem fica **parado esperando** o padrão passar; pular é a resposta. Na última camada entra o leque (3 tiros abertos ao mesmo tempo).
 - **Se a luta passar de 45 segundos**, a cadência de tiro sobe um degrau — pressão a mais, nunca um "muro de morte".
 
-**Vencer NÃO para a corrida**: a barricada explode, o Capturador despenca, sobem **+150 pontos** (além dos +25 de cada camada), a medalha 🕸️ **Fura-Bloqueio** fica garantida para o fim da corrida — e a pista segue livre ("🏆 2000m LIVRES!"). A face da barricada fica a ~3 m da marca dos 2000 m, então a medalha "Inalcançável" costuma cair junto. Ser atingido pela rede dá o fim de jogo próprio: "**CAPTURADO! 🕸️**" (o rinoceronte também adormece — ninguém morre neste jogo).
+**Vencer NÃO para a corrida**: a barricada tomba, os holofotes vão se apagando, sobem **+150 pontos** (além dos +25 de cada camada) e a medalha 🧱 **Queda da Muralha** fica garantida — e abre-se a **Brecha** (2000–2200 m), a volta olímpica só de rampas e pombos até o Pórtico da Rodovia. A face da barricada fica a ~3 m da marca dos 2000 m, então a medalha "Inalcançável" só cai com a vitória. Ser atingido dá o fim de jogo próprio: "**DETIDO NA MURALHA! 🚧**" (o rinoceronte adormece — ninguém morre neste jogo).
 
-### 4c. O Caçador-Mor (9995 m) — o Guardião do Fim
+### 4c. A Barreira da Escavação (3650 m) — o Cerco, no deserto
 
-Na **última cerca do mundo**, a poucos metros da linha da LENDA, espera o chefe final: um caçador imponente de casacão escuro e rifle ornamentado, defendendo **5 camadas em vaivém** — **chão → meio → alto → meio → chão** — com o arsenal dos dois chefes anteriores misturado (retos, morteiros, leques e, na última camada, o rasante). A arena são os próprios 1500 pixels livres da chegada: nenhum obstáculo nasce ali.
+No fim do Sítio da Escavação, o **Capturador** volta com o **canhão de redes**, agora numa barricada de sacos de areia e andaimes em **4 camadas**:
+
+- A ordem das frestas é **meio → chão → alto → meio** — de novo, leia o brilho em vez de decorar.
+- O **leque** (3 dardos abertos) e o **rasante** anti-camping atacam desde a primeira camada; o morteiro em arco só entra na última, como estocada final. Enrage aos 45 segundos, o mesmo degrau suave.
+
+**Vencer NÃO para a corrida**: +150 pontos (além dos +25 por camada), a medalha 🕸️ **Fura-Bloqueio** e o caminho aberto para o Vale dos Faraós. Ser capturado dá "**CAPTURADO NA BARREIRA! 🕸️**".
+
+### 4d. O Faraó de Bronze (4700 m) — o exame do deserto
+
+No fim da Necrópole, a muralha de arenito do **Faraó** fecha a estrada: **5 camadas** (meio → alto → chão → meio → alto) e o atirador mais agressivo do jogo — a cadência de tiro mais curta de todas, rajadas triplas e leque desde cedo:
+
+- O **Espelho de Rá**: o feixe de luz solar que varre o chão até onde o tiro em arco vai cair — a versão egípcia da granada-de-luz; leia o feixe.
+- O **Mergulho de Hórus**: um projétil-falcão rasante no lugar do cão-robô.
+- **Enrage aos 30 segundos** — metade do tempo dos outros: quem chegou até aqui já sabe ler os avisos, e a régua é executar rápido.
+
+**Vencer NÃO para a corrida**: a muralha desmorona em véus de areia, sobem **+250 pontos** (além dos +25 por camada) e a medalha 🏺 **Quebra-Faraó** — "a tempestade abriu", e o **deserto profundo** infinito segue até o fim do mundo. Ser atingido dá "**DETIDO PELO FARAÓ! 🏺**".
+
+### 4e. O Caçador-Mor (9995 m) — o Guardião do Fim
+
+Na **última cerca do mundo**, a poucos metros da linha da LENDA, espera o chefe final: um caçador imponente de casacão escuro e rifle ornamentado, defendendo **5 camadas em vaivém** — **chão → meio → alto → meio → chão** (um palíndromo: a ordem vai e volta) — com o arsenal dos chefes anteriores misturado: retos, morteiros, leques e, **só na última camada**, o rasante — cobrando de surpresa a lição de pular o padrão. Sem enrage: as 5 camadas já são a prova. A arena são os próprios 1500 pixels livres da chegada: nenhum obstáculo nasce ali.
 
 **Vencer é virar LENDA**: derrubada a quinta camada, dispara a cutscene do fim do mundo — o banner "🏆 LENDA!", os fogos, o confete — com a medalha 👑 **Lenda do Mundo** e o bônus de +400 pontos da LENDA. Antes da v1.8.5, bastava alcançar os 10.000 m; agora o fim do mundo tem um guardião, e a marca máxima do jogo é uma **vitória**, não uma chegada.
 
@@ -93,7 +121,7 @@ Com o medidor de fogo **cheio** (ele pulsa e a tela avisa), toque nele — ou **
 - Corre **25% mais rápido** por cima da velocidade de fúria cheia;
 - O medidor **drena** com o tempo; na reta final o rinoceronte pisca avisando que o fogo vai apagar.
 
-Depois de gasto, o medidor volta a encher com a distância (~900 m por carga). A invencibilidade cobre colisões — cair num buraco continua valendo o de sempre. **Nas arenas dos três chefes a ativação é bloqueada** (ver item 4); o aviso de "fúria cheia" que ficou devendo dispara na saída da luta. Skins criadas no estúdio podem ter uma **transformação de fúria própria** (uma arte em chamas exclusiva) em vez do fogo padrão.
+Depois de gasto, o medidor volta a encher com a distância (~900 m por carga). A invencibilidade cobre colisões — cair num buraco continua valendo o de sempre. **Nas arenas de todos os chefes a ativação é bloqueada** (ver item 4); o aviso de "fúria cheia" que ficou devendo dispara na saída da luta. Skins criadas no estúdio podem ter uma **transformação de fúria própria** (uma arte em chamas exclusiva) em vez do fogo padrão.
 
 ## 6. Cenário vivo
 
@@ -107,19 +135,21 @@ Depois de gasto, o medidor volta a encher com a distância (~900 m por carga). A
 **A tela inicial virou a vitrine do jogo (v1.8.1)**, desenhada para provocar o retorno e a caça ao recorde:
 
 - **Título em chamas** — "FURIOUS RHINO" em fonte cartoon com labaredas e brasas animadas (a fonte vem da internet; sem conexão, o jogo usa uma parecida do próprio aparelho — nada quebra).
-- **Pódio mundial ao vivo** — os 3 primeiros do ranking em pedestais de ouro/prata/bronze, cada um representado pela **skin que usava quando cravou a marca** (marcas antigas, de antes da v1.8.1, aparecem com o rinoceronte original), com nome, distância e **há quantos dias segura a posição** ("no trono há 12d"). Aqui a contagem é da **posição**: se alguém novo assume o 1º lugar, os contadores de quem caiu recomeçam naquele dia (efeito cascata) — diferente da lista completa do top 10, que mede a idade de cada marca. O pódio se atualiza sozinho (no máximo a cada 6 horas, para poupar o banco de dados) e funciona offline com a última foto conhecida.
+- **Pódio mundial ao vivo** — os 3 primeiros do ranking em pedestais de ouro/prata/bronze, cada um representado pela **skin que usava quando cravou a marca** (marcas antigas, de antes da v1.8.1, aparecem com o rinoceronte original), com nome, distância e **há quantos dias segura a posição** ("no trono há 12d"). Aqui a contagem é da **posição**: se alguém novo assume o 1º lugar, os contadores de quem caiu recomeçam naquele dia (efeito cascata) — diferente da lista completa do top 10, que mede a idade de cada marca. O pódio se atualiza sozinho (a cada 5 minutos) e funciona offline com a última foto conhecida. **Desde a v1.9.3 ele também é repintado na hora** quando a sua posição muda: ao terminar uma corrida que sobe ao ranking, ao reabrir o jogo e ao fechar o Top 10 — antes disso o dado novo era guardado mas a tela só mudava no recarregamento seguinte.
 - **O degrau VOCÊ** — um quarto pedestal tracejado ao lado do 3º lugar, com uma seta dourada apontando: sua skin animada, sua posição no mundo, o botão **🎨 Trocar skin** e a provocação de quantos metros faltam para o pódio (ou "🛡️ defenda o seu posto!", para quem já está lá).
 - **Box Campanha** — recorde, tentativas, fugas, "maior inimigo" (a causa de morte mais comum) e um **minigráfico das últimas 10 corridas** (barra dourada = a melhor; linha tracejada = o recorde), com os botões de apelido e "Minhas estatísticas completas".
 - **Diário da Fuga** — a área de notícias: o primeiro card é o **aviso do criador** (editado no console do Firebase, sem publicar código — é onde as novidades de cada versão são anunciadas); os demais são acontecimentos do próprio jogador: skin desbloqueada, **entrou no pódio**, **perdeu o pódio**, recorde novo. Cada acontecimento aparece uma única vez.
 - As instruções de jogo (pulo/investida) ficam em texto ao lado do **TOQUE PARA COMEÇAR** pulsante — e tocar em qualquer lugar livre da tela continua iniciando a corrida.
+- **A tela aparece antes de o jogo terminar de carregar (v1.9.3)** — pódio, recorde, gráfico e Diário são desenhados assim que a página abre, com os dados guardados no aparelho, sem esperar o motor do jogo. No celular isso adiantou a tela em cerca de **4 segundos**. Se você tocar nesse intervalo, o texto vira **"preparando a fuga..."** e a corrida **começa sozinha** assim que dá — sem precisar tocar de novo, e sem gastar duas tentativas.
 
 Os registros e o ranking:
 
 - **Recorde local**: fica salvo no aparelho e aparece no box Campanha.
 - **As Areias do Tempo (v1.8.10)**: depois da cidade, o deserto (2200–4700 m) em cinco etapas — dunas, oásis, escavação, Vale dos Faraós e necrópole — com armadilhas novas (areia movediça, flecheira, caixote), flechas de arqueiros e obeliscos, e DOIS chefes: a Barreira da Escavação (3650 m, o Cerco reformado) e o **Faraó de Bronze** (4700 m, o mais agressivo do jogo — 5 camadas, Espelho de Rá e Mergulho de Hórus). Vencer libera o deserto infinito até o fim do mundo.
 - **Estado de Alerta (v1.8.7)**: a cidade (1000–2200 m) tem três distritos — Subúrbio Sonolento, o Despertar e a Zona de Contenção — com inimigos, armadilhas e visual próprios, portais marcados em 1400/1800/2200 m, o boss **Muralha** aos 2000 m (4 camadas abrindo pelo alto) e a **Brecha** como saída triunfal. O Cerco foi realocado para o deserto (volta numa versão futura).
-- **Arena de Desafios (v1.8.6)**: o botão **Desafiar** abre o **diretório completo de adversários** (todo mundo do ranking, em ordem alfabética, com busca que ignora acentos) — toque no nome para marcar um ou vários (até 7) e envie um desafio de 1, 3 ou 7 dias; vence a melhor corrida em pontos dentro do prazo. As espadinhas ⚔️ do top 10 seguem como atalho. O desafiado recebe o convite ao abrir o jogo e só entra no placar se aceitar. Os cards dos desafios ocupam o lugar do box Campanha na tela inicial enquanto houver disputa (até 3 empilhados — sem desafios, a Campanha volta): participantes, melhor marca de cada um, 👑 no líder e o tempo restante; na corrida, os adversários aparecem como estacas vermelhas na pista. **O criador pode encerrar um desafio antes do prazo** (botão Encerrar, com confirmação) — os desafiados veem o aviso "Fulano cancelou o desafio" e um desafio cancelado não convida, não pontua e não planta estaca. Para desafiar é preciso ter apelido próprio; o limite de 3 disputas simultâneas conta as que você criou **ou** aceitou.
+- **Arena de Desafios (v1.8.6)**: o botão **Desafiar** abre o **diretório completo de adversários** (todo mundo do ranking, em ordem alfabética, com busca que ignora acentos) — toque no nome para marcar um ou vários (até 7) e envie um desafio de 1, 3 ou 7 dias; vence a melhor corrida em pontos dentro do prazo. As espadinhas ⚔️ do top 10 seguem como atalho. O desafiado recebe o convite ao abrir o jogo e só entra no placar se aceitar. Os cards dos desafios ocupam o lugar do box Campanha na tela inicial enquanto houver disputa (até 3 empilhados — sem desafios, a Campanha volta): participantes, melhor marca de cada um, 👑 no líder e o tempo restante; na corrida, os adversários aparecem como estacas vermelhas na pista. **O criador pode encerrar um desafio antes do prazo** (botão Encerrar, com confirmação) — os desafiados veem o aviso "Fulano cancelou o desafio" e um desafio cancelado não convida, não pontua e não planta estaca. Para desafiar é preciso ter apelido próprio; o limite de 3 disputas simultâneas conta as que você criou **ou** aceitou. O placar dos desafios se mantém fresco sozinho: ele é relido **ao fim de cada corrida sua e sempre que você volta para o jogo** (o gesto de quem espera um aceite), além de um intervalo automático curto enquanto houver convite pendente.
 - **Ranking mundial** (em pontos desde a v1.8.4, com a distância ao lado): a lista completa abre no botão **"ver top 10 ›"** ao lado do pódio. Para entrar, o jogador escolhe um **apelido único** (3–12 caracteres — o jogo confere se já existe; acentos e maiúsculas não diferenciam: "Thómas" e "thomas" são o mesmo apelido). Ao lado da distância de cada um aparece **há quantos dias aquela marca está de pé** ("há 12d", ou "hoje" para marca do dia) — trocar de apelido não zera a contagem nem troca a skin da vitrine.
+- **Reinstalou o app e o seu apelido "já está em uso"? (v1.9.0)** É o seu próprio registro antigo: o jogo não tem login, e a identidade do aparelho se perde na desinstalação. No erro aparece o botão **"🆘 Este apelido era meu (reinstalei o app)"** — ele envia o pedido ao criador do jogo (com os dados do aparelho, para conferência humana) e deixa o jogo de prontidão. Quando o criador autoriza, **tudo volta sozinho** no próximo boot: apelido, marca no ranking (com o "há X dias" intacto), recorde, totais e histórico; as skins conquistadas voltam, e as medalhas voltam **em parte** (as que as últimas 50 corridas comprovam — o resto se reconquista jogando).
 - Quem prefere **"Ficar anônimo"** recebe um nome automático (`Anonimo_7`). O jogo volta a convidar para escolher um nome de verdade **no momento de orgulho** — logo depois de o score subir no ranking ("🏆 Você é o #7 do mundo!") — no máximo 1 vez a cada 3 corridas, e nunca de forma bloqueante.
 - **Marcas na pista**: durante a corrida, estacas mostram onde fica **o seu recorde** (🏅), o **rival logo acima de você** no ranking (⚔️) e o **líder mundial** (👑). Ultrapassar cada uma provoca o jogador na tela.
 - **Convite por WhatsApp**: botão para chamar amigos, com link direto do jogo.
@@ -163,7 +193,7 @@ As conquistas são **retroativas**: quem já tinha feito a façanha nas últimas
 
 ### O estúdio de skins (`/?setup`, aba 🎨 — só para o criador)
 
-A página `/?setup` é o **estúdio do dono**, com três abas: 🎨 Skins (esta seção), 🖼️ Sprites e 📊 Radiografia (as duas últimas na **seção 15**). Na aba Skins o criador faz uma skin nova **de ponta a ponta, sem programar**: solta a folha de desenhos (gerada por IA), escolhe os 3 quadros do galope, ajusta a paleta, vê a prévia animada, dá nome e descrição e **configura como o jogador ganha a skin** — as opções são:
+A página `/?setup` é o **estúdio do dono**, com quatro abas: 🎨 Skins (esta seção), 🖼️ Sprites, 📊 Radiografia e 🆘 Recuperação (as três últimas na **seção 15**). Na aba Skins o criador faz uma skin nova **de ponta a ponta, sem programar**: solta a folha de desenhos (gerada por IA), escolhe os 3 quadros do galope, ajusta a paleta, vê a prévia animada, dá nome e descrição e **configura como o jogador ganha a skin** — as opções são:
 
 - 🎁 **Grátis** — disponível para todo mundo;
 - 🏆 **Pódio** — exclusiva de uma posição exata do ranking (1º, 2º ou 3º), com a mesma dinâmica de "perdeu o posto, perdeu a skin";
@@ -230,7 +260,7 @@ Abrir o jogo com `/?debug=1` liga um painel de ajustes ao vivo (física do rinoc
 
 ## 15. As outras abas do estúdio (`/?setup` — só para o criador)
 
-Além da aba 🎨 Skins (seção 9), o estúdio tem duas abas novas:
+Além da aba 🎨 Skins (seção 9), o estúdio tem três abas:
 
 ### 🖼️ Sprites (v1.8.9) — a gestão de todos os desenhos do jogo
 
@@ -242,3 +272,7 @@ Além da aba 🎨 Skins (seção 9), o estúdio tem duas abas novas:
 ### 📊 Radiografia (v1.8.7) — a análise de usabilidade sob demanda
 
 Um botão **▶ Rodar análise** baixa os dados públicos do jogo (mesmos do painel `/?stats`) e monta a **radiografia completa**: funil de distância, retenção, curva de aprendizado, uso das mecânicas, os três chefes, a pontuação composta em campo, skins e a Arena — cada número comparado com a **fotografia de 16/08/2026** (a linha de base congelada). No fim, um **motor de insights** transforma os números em diagnósticos automáticos com cor de severidade (🔴🟠🟡🟢 — e ⚪ quando a amostra é pequena demais para afirmar qualquer coisa). Dá para **copiar o relatório inteiro** (pronto para colar no banco de ideias) e **baixar os dados** em arquivo. A mesma análise roda no terminal com `npm run radiografia`. Tudo é **só leitura** — a análise nunca grava nada no banco.
+
+### 🆘 Recuperação (v1.9.0) — devolver a identidade a quem reinstalou o app
+
+O atendimento dos pedidos 🆘 (seção 7). Quando chega o aviso de que alguém reivindicou um apelido, o criador digita o **apelido** e o **id novo** que veio no aviso, e **Conferir** mostra tudo lado a lado: o registro antigo (nome, pontos, há quantos dias) e os **aparelhos/locais** das duas vidas — a conferência antifraude é humana, porque o jogo não tem login. **Autorizar** grava a ordem de migração (o jogo do jogador se restaura sozinho no próximo boot, ou em até 1 hora); quando chega o aviso de "✅ restaurada", **Concluído** limpa a ordem e apaga os registros provisórios. As leituras são públicas e funcionam sempre; autorizar e concluir exigem o **servidor local do estúdio no ar** (`iniciar-estudio.bat`) — é ele quem tem a credencial de administrador.

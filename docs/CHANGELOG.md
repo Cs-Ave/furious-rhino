@@ -5,7 +5,61 @@
 
 ---
 
-## v1.8.11 — 23/08/2026 (versão atual)
+## v1.9.3 — 24/08/2026 (versão atual)
+
+**Tema: a tela inicial deixou de esperar o jogo carregar.**
+
+- **O problema, medido**: no celular a tela inicial ficava **4,6 segundos vazia depois de a página já estar pronta**. Não era internet lenta nem peso: era ordem. Todo o conteúdo da home (pódio, recorde, gráfico, Diário, desafios) só era montado depois que o motor do jogo terminava de baixar **150 arquivos de arte** — dos quais a tela inicial usa **quatro**.
+- **O que mudou**: a tela inicial agora é pintada **antes** do motor, com os dados que já estão guardados no aparelho. O pódio aparece em cerca de meio segundo depois da página, em vez de quatro segundos e meio.
+- **Tocar cedo não se perde mais**: como a tela fica pronta antes do jogo, dá para tocar antes de ser possível jogar. Nesse caso o texto vira **"preparando a fuga…"** e a corrida **começa sozinha** assim que o motor fica pronto — sem precisar tocar de novo, e sem gastar duas tentativas.
+- **A sua posição no ranking volta a mudar no mesmo dia**: o pódio era relido **a cada 6 horas** e três situações atualizavam o dado sem repintar a tela (o envio do fim da corrida, a revalidação da posição ao abrir o jogo, e o modal do Top 10). Agora o pódio é relido a cada 5 minutos e as três situações repintam.
+- De carona: duas ferramentas novas de verificação — `npm run perf-home` (mede a tela inicial com internet e aparelho de celular simulados, e falha se alguém voltar a pendurá-la no motor) e `npm run test-e2e-home` (10 verificações, incluindo o toque antecipado).
+
+## v1.9.2 — 24/08/2026
+
+**Tema: instrumento para caçar o bug do cronômetro, e o ranking devolvido aos donos.**
+
+- **O bug**: algumas corridas foram gravadas com um tempo muito menor que o real — uma partida de 10.000 metros aparecendo como 47 segundos. A **distância era verdadeira**; quem mentia era o cronômetro. Vinte e duas dessas marcas foram parar no topo do ranking mundial, empatadas no teto de pontos.
+- **O instrumento**: cada corrida passou a gravar também **quanto tempo o jogo acredita ter rodado**, ao lado do tempo de relógio. Os dois lado a lado dizem o que aconteceu: se batem, foi a distância que saltou; se o do jogo é maior, a partida rodou acelerada; se é menor, o jogo congelou. Num jogo saudável os dois praticamente coincidem.
+- **A limpeza, com a regra que importa**: quem tinha uma marca legítima anterior **não foi apagado — teve a marca de volta**. Seis jogadores foram restaurados, incluindo um cuja vitória verdadeira (10.000 metros em 15 minutos) o teria levado ao segundo lugar por mérito, e que um apagamento cego teria destruído. As dezesseis contas que nunca tiveram uma corrida possível saíram, e as corridas impossíveis foram removidas do histórico — elas também venciam qualquer desafio automaticamente.
+- Toda a operação guardou uma **cópia de segurança completa** antes de tocar em qualquer coisa.
+
+## v1.9.1 — 23/08/2026
+
+**Tema: o jogo não trava mais em silêncio — e marca impossível não sobe ao ranking.**
+
+- **O caso que motivou**: um jogador avisou que "o jogo trava". Comprovado: uma falha qualquer durante a partida **congelava a tela para sempre**, sem mensagem nenhuma, sem salvar a corrida — e ainda consumindo a tentativa. O jogador ficava olhando uma tela morta sem saber o que fazer.
+- **A rede de proteção**: agora qualquer falha durante a partida encerra a sessão com dignidade — aparece a tela **"😵 O jogo travou"**, explicando honestamente que a corrida não foi salva, com um botão para voltar ao início. E **a tentativa é devolvida**: ninguém é punido por um problema nosso.
+- **Sessão quebrada não pontua**: uma partida interrompida por falha não grava recorde, não sobe ao ranking e não conta no histórico.
+- **A ordem do fim de corrida foi invertida**: a corrida passou a ser salva no aparelho **antes** de qualquer coisa subir ao ranking mundial. Assim, o pior caso de uma falha no meio é uma corrida salva que não subiu — e não uma marca no ranking sem corrida por trás.
+- **Marca impossível não sobe mais**: o jogo agora confere se a velocidade média da corrida é fisicamente possível antes de enviá-la ao ranking. O limite tem folga deliberada sobre o máximo que o motor consegue produzir, para nunca barrar um jogador legítimo — inclusive quem joga muito bem.
+
+## v1.9.0 — 23/08/2026
+
+**Tema: recuperação de identidade — ninguém mais perde o apelido ao reinstalar o app.**
+
+- **O caso que motivou**: quem desinstala e reinstala o aplicativo perde a "identidade" do aparelho (o jogo não tem login — cada aparelho tem um crachá interno sorteado no primeiro acesso, guardado só nele). O registro antigo continua no ranking e, pior, **bloqueia o próprio dono de re-registrar o apelido** ("já está em uso"). Aconteceu de verdade com o Teco.
+- **O caminho novo, no jogo**: no erro de apelido em uso apareceu o botão **"🆘 Este apelido era meu (reinstalei o app)"**. Ele avisa o criador (com os dados do aparelho para conferência) e deixa o jogo de prontidão. Quando o criador autoriza, **o jogo restaura tudo sozinho** no próximo boot: apelido, marca do ranking (com o "há X dias" intacto), recorde, totais e histórico. As aparências conquistadas voltam; **medalhas voltam só em parte** (não existem no servidor — as que as últimas 50 corridas comprovam são devolvidas, o resto se reconquista jogando).
+- **O caminho novo, para o criador**: o estúdio (`/?setup`) ganhou a **quarta aba, 🆘 Recuperação** — confere a reivindicação (o registro antigo + os aparelhos/locais dos dois lados), autoriza com um clique e, ao final, limpa os registros provisórios. A autorização é sempre uma decisão humana: sem login, é o criador quem confirma que o pedido é legítimo.
+- **A versão pulou de 1.8.13 para 1.9.0** para casar com o anúncio do Diário da Fuga ("v1.9: novas fases, chefes e sistema de pontuação…") — é a mesma onda de novidades das versões 1.8.4–1.8.13, agora com nome de gente grande.
+- De carona: a aba Sprites voltou a funcionar offline no aplicativo instalado (um arquivo dela faltava na lista do cache desde a v1.8.9), e a suíte nova `test-reassign` (61 verificações) tranca a matemática da restauração — em especial a regra de que os totais restaurados nunca podem ser menores que os do servidor (senão a telemetria congelaria em silêncio).
+
+## v1.8.13 — 23/08/2026
+
+**Correção: encerrar um desafio agora encerra de verdade (o card não ressuscita).**
+
+- O cancelamento **era gravado certo no servidor**, mas o tradutor que lê os desafios de volta descartava justamente o campo "cancelado em" — então o desafio sumia do painel do criador e **voltava** quando o cache vencia, e **nunca chegava como cancelado** ao desafiado. Tentar encerrar de novo era negado pelas regras (o campo só pode ser gravado uma vez) e o jogo culpava a internet ("confira a conexão") com a internet ótima.
+- Efeito colateral resolvido: desafio cancelado **contava no limite de 3 disputas ativas** — na prática, todos os 6 desafios do banco estavam cancelados e ainda bloqueavam a criação de novos.
+- Agora o campo sobrevive à leitura, encerrar um desafio já encerrado responde "já estava encerrado" (sem acusar a internet), e os desafios-fantasma somem sozinhos na próxima releitura de cada aparelho.
+
+## v1.8.12 — 23/08/2026
+
+**Correção: o aceite do desafio aparece na hora para quem convidou.**
+
+- O aceite era gravado no servidor imediatamente, mas o navegador de quem convidou só relia a lista **1 hora depois** — o card ficava preso em "aguardando fulano" com o dado já atualizado do outro lado (relato real: Fernanda-PC × Teco).
+- Agora a lista se atualiza **ao fim de cada corrida e sempre que você volta para o jogo** (o gesto natural de quem está esperando o aceite), e o intervalo automático caiu para 45 segundos enquanto houver convite pendente (10 minutos quando todo mundo já entrou).
+
+## v1.8.11 — 23/08/2026
 
 **Correção: o placar do desafio ficava preso em "ainda não correu".**
 

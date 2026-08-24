@@ -1,6 +1,6 @@
 # Furious Rhino — Referência técnica
 
-> Documentação da versão **1.8.10** · atualizada em 23/08/2026
+> Documentação da versão **1.9.3** · atualizada em 24/08/2026
 > Para quem vai dar manutenção. Complementa (não substitui) `GAME_DESIGN.md` (o design e suas razões) e `HANDOFF.md` (estado da última sessão de trabalho e tabelas completas de parâmetros).
 
 ## 1. Estrutura de pastas
@@ -18,7 +18,7 @@ MobileGame/
 ├── HANDOFF.md              # Estado da última release + referência completa de parâmetros
 ├── docs/                   # Esta documentação
 ├── iniciar-estudio.bat     # Duplo-clique: sobe o servidor unificado e abre o /?setup
-├── art/                    # 127 SVGs — a arte que o jogo carrega (fonte da verdade)
+├── art/                    # 147 SVGs — a arte que o jogo carrega (fonte da verdade)
 ├── art2/                   # Propostas de arte aprovadas + preview (registro do fluxo
 │                           #   "arte primeiro"; o jogo carrega SÓ o que foi copiado p/ art/)
 │                           #   art2/skins/ = folhas-fonte das skins + CLIs do pipeline
@@ -33,18 +33,21 @@ MobileGame/
 │   ├── notify-config.js    # Defaults dos pushes ntfy (topic vazio = tudo desligado)
 │   ├── scenes/             # BootScene (preload) e GameScene (o jogo inteiro)
 │   ├── entities/           # Rhino, Animal, CrackedWall, Spike, TranqTower, TranqDart,
-│   │                       #   Ramp, HunterSniper (o atirador dos 3 bosses, paramétrico)
+│   │                       #   Ramp, TimedHazard, HunterSniper (o atirador dos 5 chefes,
+│   │                       #   paramétrico)
 │   ├── systems/            # TextureFactory, SpawnManager, FurySystem, BossFight,
 │   │                       #   AudioSystem, SkinSystem + SkinRegistry (DADOS, reescrito
 │   │                       #   pelo /?setup), ScoreSystem, ChallengeSystem, NewsSystem,
 │   │                       #   MedalSystem, LeaderboardSystem, StatsSystem, NotifySystem,
+│   │                       #   ReassignSystem (recuperação de identidade, v1.9.0),
 │   │                       #   TuningPanel
 │   ├── utils/              # Constants (todo o tuning + o MERGE do SpriteParams no fim)
 │   │                       #   e StorageManager (persistência local)
 │   ├── stats/              # StatsDashboard, Charts, MyStats + RadiografiaCore (v1.8.7 —
 │   │                       #   o agregador puro da radiografia, navegador E node)
 │   ├── setup/              # SetupPage (moldura + aba Skins), SetupSprites (aba 🖼️,
-│   │                       #   v1.8.9) e SetupAnalytics (aba 📊, v1.8.7)
+│   │                       #   v1.8.9), SetupAnalytics (aba 📊, v1.8.7) e SetupReassign
+│   │                       #   (aba 🆘 Recuperação, v1.9.0)
 │   └── art/                # ArtManifest (mantido à mão), SpriteParams (DADOS de
 │                           #   calibração, machine-owned pela aba Sprites) e SvgSprites
 │                           #   (gerador aposentado)
@@ -87,11 +90,18 @@ npm run test-skins              # ~93 asserts das skins, sem navegador (nº vari
 npm run test-integrate          # 49 asserts da integração do /?setup, sem navegador
 npm run test-sprites            # 31 asserts da camada de sprites (v1.8.9), sem navegador
 npm run test-radiografia        # 62 asserts da radiografia (v1.8.7), sem navegador e SEM rede
+npm run test-reassign           # 61 asserts da recuperação de identidade (v1.9.0), sem navegador
+npm run test-crash              # 54 asserts da rede de proteção (v1.9.1), sem navegador
+npm run test-fix-ranking        # 24 asserts da classificação do fix-ranking, sem navegador
+npm run test-e2e-crash          # 10 asserts e2e: injeta exceção REAL no update — exige servidor
+npm run test-e2e-home           # 10 asserts e2e da home desacoplada (v1.9.3) — idem
+npm run perf-home               # REGRESSÃO DE PERFORMANCE da home (4G + CPU 4x) — idem
 npm run test-ramp               # 45 asserts em Chromium — exige o servidor acima no ar
 npm run test-boss               # 16 asserts e2e da luta do portão — idem
 npm run test-boss2              # 14 asserts e2e da Muralha (2000m) — idem
 npm run test-boss3              # 10 asserts e2e do Guardião do Fim — idem
 npm run test-special            # 25 asserts e2e da FÚRIA TOTAL, biomas e desabamento — idem
+npm run test-e2e-deserto        # 14 asserts e2e das Areias do Tempo (v1.8.10) — idem
 npm run test-e2e-skins          # 15 asserts e2e das skins — idem
 npm run test-e2e-setup          # 26 asserts e2e do estúdio /?setup — idem (2 ramos: gerador no ar/parado)
 npm run test-e2e-stats          # e2e da telemetria em Chromium — idem
@@ -102,7 +112,7 @@ npm run sprite-gen              # sobe o SERVIDOR UNIFICADO: jogo na :3000 + ger
 
 Atalho do dono: **duplo-clique no `iniciar-estudio.bat`** (raiz) — sobe o servidor unificado e abre o `/?setup=0929` no endereço certo.
 
-URLs especiais: `/?debug=1` (painel de tuning + `window.game` para os e2e), `/?stats` (painel público), `/?stats=0929` (painel detalhado), `/?setup=0929` (o estúdio do dono, três abas: 🎨 Skins · 🖼️ Sprites · 📊 Radiografia — a escrita exige o servidor no ar; a radiografia só lê), `/?ntfy=test|off|on` (testar/silenciar pushes).
+URLs especiais: `/?debug=1` (painel de tuning + `window.game` para os e2e), `/?stats` (painel público), `/?stats=0929` (painel detalhado), `/?setup=0929` (o estúdio do dono, quatro abas: 🎨 Skins · 🖼️ Sprites · 📊 Radiografia · 🆘 Recuperação — a escrita exige o servidor no ar; radiografia e conferências só leem), `/?ntfy=test|off|on` (testar/silenciar pushes).
 
 ## 4. Os quatro lugares da versão
 
@@ -132,8 +142,8 @@ Projeto `furious-rhino`. Credenciais em `js/firebase-config.js` são **públicas
 | Coleção | Leitura | Escrita |
 |---|---|---|
 | `scores/{playerId}` | pública | só campos `{name, nameLower, score, scoreAt, skin, updatedAt, scoreM}`; name 3–12 chars; **`score` int 1–20000 e só cresce — desde a v1.8.4 é o TOTAL (metros + bônus), não os metros**; `scoreM` (v1.8.4) opcional, int 1–10000, os metros da marca, com `score >= scoreM` e `score <= scoreM * 2` (o teto do bônus vira trava anti-abuso); sem `scoreM` o teto do `score` continua 10000 (é o cliente velho, cujo score AINDA são os metros); `scoreAt` (v1.8) opcional, timestamp `<= request.time` — o "quando a marca foi atingida"; `skin` (v1.8.1) opcional, string 1–24 — a skin usada ao cravar a marca (vitrine do pódio). Ambos regravados com o valor ANTIGO na troca de apelido (cópias locais `furious_rhino_best_sent_at`/`_skin`; sem elas os campos saem e a leitura cai nos fallbacks); delete proibido |
-| `stats/{playerId}` | pública (é o que faz o painel funcionar) | 12 campos de topo no máximo; núcleos monotônicos (`attempts/playTimeS/wins/bestM` só crescem); `runs` ≤ 50; `deaths` ≤ 15 chaves (v1.8.5 — entraram `boss2`/`boss3`); `client` ≤ 10; `geo` ≤ 4; delete proibido |
-| `config/notify` e `config/news` | pública | **proibida** — só o console (o wildcard `config/{doc}` cobre os dois). `config/news` (v1.8.1) = o Diário da Fuga: campo `items`, array de strings — cada string é um card na home, a 1ª sempre aparece; o jogo relê a cada 1h |
+| `stats/{playerId}` | pública (é o que faz o painel funcionar) | 12 campos de topo no máximo; núcleos monotônicos (`attempts/playTimeS/wins/bestM` só crescem); `runs` ≤ 50; `deaths` ≤ 17 chaves (v1.8.5 somou `boss2`/`boss3`; v1.8.10 somou `cerco`/`farao`); `client` ≤ 10; `geo` ≤ 4; delete proibido |
+| `config/notify`, `config/news` e `config/reassign` | pública | **proibida** — só o admin (o wildcard `config/{doc}` cobre todos). `config/news` (v1.8.1) = o Diário da Fuga: campo `items`, array de strings — cada string é um card na home, a 1ª sempre aparece; o jogo relê a cada 1h. `config/reassign` (v1.9.0) = as ordens de migração de identidade: campo `pairs`, mapa `{idNovo: idAntigo}` — o jogo só consulta se houver pedido 🆘 pendente no aparelho (cache 1h), e a escrita é da aba 🆘 do estúdio via servidor local (OAuth do login do `firebase-tools` — passa pelo IAM, não pelas rules) |
 | `challenges/{id}` (v1.8.6) | pública | **create**: só a forma — 7 campos (`from, participants, names, startAt, endAt, accepted, createdAt`), participants 2–8, janela `endAt − startAt <= 604800` (7 dias), epochs em SEGUNDOS (casam com `runs[].t`), `createdAt == request.time`; **update**: o mapa `accepted` pode mudar (só CRESCER — `hasAll` das chaves antigas, ≤ 8; o aceite regrava o doc relido inteiro) OU, desde a v1.8.8, o campo `cancelledAt` pode ser gravado **uma única vez** (o criador encerrando o desafio antes do prazo); nada mais muda; delete proibido. Sem auth o aceite é falsificável: modelo de confiança assumido do jogo inteiro. O placar NÃO mora aqui — é derivado do `stats/` dos aceitos |
 
 **A restrição que governa tudo:** o orçamento de avaliação das rules estoura com campos soltos — constatado que **19 campos de topo passavam e 20 falhavam**, negando writes legítimos em silêncio. Portanto: **nenhum campo novo de primeiro nível em `stats`**. Campo novo entra nos mapas existentes ou nos elementos de `runs[]` (forma livre).
@@ -142,17 +152,19 @@ Projeto `furious-rhino`. Credenciais em `js/firebase-config.js` são **públicas
 - `node tools/cleanup-stats.mjs` (lista) / `--yes` (apaga; exige `npx firebase-tools login` uma vez). Remove sondas `claude-*`, docs de teste conhecidos e, desde a v1.7.2, **relata** (sem apagar sozinho) qualquer doc com a assinatura de tráfego automatizado: `attempts >= 50`, `playTimeS = 0` e `runs` vazio.
 - `node tools/delete-player.mjs <nome-ou-id>` (v1.7.2): apaga **um** jogador específico nas duas coleções (`scores` + `stats`), buscando por apelido (normalizado como o `LeaderboardSystem.nameSlug`) ou por id/prefixo de id. Mesmo padrão dry-run / `--yes`.
 
+**Identidade e apelido (v1.9.0):** a identidade é um UUID por aparelho, só em `localStorage` — desinstalar o PWA a perde (iOS particiona o storage; Android/WebAPK compartilha com o Chrome). A **unicidade de apelido é melhor-esforço no CLIENTE** (`checkName` varre `scores/` excluindo "o meu doc" pelo id) — as rules NÃO a impõem, e é por isso que o doc órfão de quem reinstalou **bloqueia o próprio dono do nome**. A recuperação é mediada: pedido 🆘 no jogo → aba 🆘 do `/?setup` autoriza (par em `config/reassign`) → o `ReassignSystem` adota o id antigo e restaura dos docs públicos. O merge **SOMA** os totais (local + servidor) — copiar violaria a monotonia e congelaria a telemetria em silêncio. Runbook completo: `QA-Registro.md` §🪪.
+
 **Ambiente local nunca escreve por padrão** (v1.7.2, ver [`03-arquitetura.md`](03-arquitetura.md) §6): fecha a causa raiz dos vazamentos de teste — antes, um contexto Playwright sem `playerId` de sonda minava um UUID real e escrevia em produção.
 
 ## 7. Telemetria — formato dos dados
 
 - 1 write **idempotente** por fim de corrida (`setDoc` sem merge, totais acumulados). Também na tela inicial e ao abrir `/?stats`.
-- `runs[]` (últimas 50): `{t, m}` + opcionais `s` segundos, `c` causa, `k` teclado, `v` versão, `g` skin usada (v1.8, string ≤8, omitida na default) e 13 contadores de mecânica (`w` paredes, `r` rampas, `o` torres, `a` animais, `j` pulos, `d` investidas, `x` investidas negadas no cooldown, `p` pausas, `f` Fúrias Totais usadas, `n` ativações da fúria **negadas na arena do boss** (v1.8 — mede quem ainda tenta o truque antigo), `b` camadas do portão quebradas, `q` quiques na luta, `z` segundos de luta contra o boss — e, v1.8.5, `e` camadas do Cerco, `h` segundos de luta do Cerco e `l` camadas do Guardião; `q` segue **exclusivo do portão**, para não poluir a baseline que calibrou a v1.8). Zero é omitido.
-- Causas de morte: `wall/spike/animal/dart/tower/boss/boss2/boss3/fall` — `boss` (v1.7) é o rifle do caçador do portão; `boss2`/`boss3` (v1.8.5) são a rede do Capturador e o rifle do Caçador-Mor. 15 chaves no mapa `deaths` (as rules aceitam até 15 — bump publicado nesta release).
+- `runs[]` (últimas 50): `{t, m}` + opcionais `s` segundos, `c` causa, `k` teclado, `v` versão, `g` skin usada (v1.8, string ≤8, omitida na default) e 13 contadores de mecânica (`w` paredes, `r` rampas, `o` torres, `a` animais, `j` pulos, `d` investidas, `x` investidas negadas no cooldown, `p` pausas, `f` Fúrias Totais usadas, `n` ativações da fúria **negadas na arena do boss** (v1.8 — mede quem ainda tenta o truque antigo), `b` camadas do portão quebradas, `q` quiques na luta, `z` segundos de luta contra o boss — e, v1.8.5, `e` camadas do boss dos 2000 m (hoje a Muralha, herdeira da série) com `h` os segundos dessa luta, `l` camadas do Guardião; v1.8.10, `u` camadas da Barreira e `y` camadas do Faraó, **sem** letras de segundos — precedente do Guardião; `q` segue **exclusivo do portão**, para não poluir a baseline que calibrou a v1.8). Zero é omitido.
+- Causas de morte: `wall/spike/animal/dart/tower/boss/boss2/boss3/cerco/farao/fall` — `boss` (v1.7) é o rifle do portão; `boss2`/`boss3` (v1.8.5) são a Muralha (slot dos 2000 m) e o Caçador-Mor; `cerco`/`farao` (v1.8.10) são a Barreira da Escavação e o Faraó de Bronze. 17 chaves no mapa `deaths` (as rules aceitam até 17 — bump publicado com a v1.8.10).
 - `history` (localStorage e espelhado): `{clients, geos, versions}` podados pelo **menos usado**; `days` (60 dias) podado por **idade** — série temporal não pode ganhar buracos.
 - Geo por IP no cliente (geojs.io → ipwho.is, timeout 4 s), TTL 12 h ok / 6 h falha; **falha preserva** a última cidade (`stale: true`) — um `setDoc` sem merge com campo ausente **apaga** o valor no servidor (bug real corrigido na v1.6.1).
 - A fúria deixou de ser posicional na v1.7 (virou carga gastável): o contador `f` mede a **decisão de usar** o especial, que não está em nenhum outro campo.
-- **O bônus da pontuação composta (v1.8.4) NÃO tem letra em `runs[]`** — e isso é decisão, não esquecimento: ele é recomputável de `w r o a b` + `c` + `m` + `z` por `ScoreSystem.runBonus(run)`, e o `v` já versiona a fórmula. Gravá-lo seria byte pago por informação derivada. A v1.8.5 gastou 3 letras com os bosses do deserto (`e h l`) — **restam 3 livres** (`i u y`). A recomputação cobre os bosses novos: camada de qualquer chefe vale o mesmo `bossLayer`, e a vitória do Cerco (`e >= 4`) paga o peso `boss2`. `tools/test-score.mjs` tranca a igualdade "recomputado == somado ao vivo" com um assert dedicado — se ela quebrar, o painel passa a mentir.
+- **O bônus da pontuação composta (v1.8.4) NÃO tem letra em `runs[]`** — e isso é decisão, não esquecimento: ele é recomputável de `w r o a b` + `c` + `m` + `z` por `ScoreSystem.runBonus(run)`, e o `v` já versiona a fórmula. Gravá-lo seria byte pago por informação derivada. A v1.8.5 gastou 3 letras (`e h l`) e a v1.8.10 outras 2 (`u y`) — **resta UMA livre** (`i`, reservada como candidata à precisão de investida). A recomputação cobre todos os chefes: camada de qualquer um vale o mesmo `bossLayer`, e as vitórias pagam `boss2` (`e >= 4`), `cerco` (`u >= 4`) e `farao` (`y >= 5`). `tools/test-score.mjs` tranca a igualdade "recomputado == somado ao vivo" com um assert dedicado — se ela quebrar, o painel passa a mentir.
 - Tudo passa por `safeTelemetry` no `GameScene` — erro nunca derruba o jogo.
 
 Chaves completas de `localStorage`/`sessionStorage`: ver `js/utils/StorageManager.js` (todas prefixadas `furious_rhino_`).
@@ -223,7 +235,7 @@ Fluxo de trabalho: ajustar os sliders em campo → jogar → gostou? botão **ex
 ## 9. Service worker (`sw.js`)
 
 - Estratégia **network-first** com `cache: 'no-cache'` (força revalidação HTTP — sem isso o cache do navegador misturava versões de JS).
-- `ASSETS`: ~140 entradas explícitas (v1.8.5 somou os 4 SVGs dos caçadores novos; as barricadas são procedurais e não têm arquivo). **Todo `.js` novo entra na lista E o `CACHE` sobe de versão** (`furious-rhino-v185`) — esquecer = `addAll` falha inteiro no install e o PWA instalado toma 404.
+- `ASSETS`: ~150 entradas explícitas (as barricadas dos chefes são procedurais e não têm arquivo). **Todo `.js` novo entra na lista E o `CACHE` sobe de versão** (`furious-rhino-v190`) — esquecer = `addAll` falha inteiro no install e o PWA instalado toma 404 (aconteceu com o `SetupSprites.js`, esquecido da v1.8.9 à v1.9.0).
 - **Fonte do título** (v1.8.1): `fonts.googleapis.com` (o CSS) já cai no bypass `endsWith('googleapis.com')` — offline o título usa Impact (`font-display: swap`); o `.woff2` de `fonts.gstatic.com` entra no cache de runtime como o SDK do Firebase.
 - Entre os marcadores `// @setup:skins —` e `// @setup:skins:fim` fica o **bloco gerenciado pelo estúdio /?setup**: os SVGs de skins criadas pelo dono são reescritos ali pelo servidor do gerador (`patchSwAssets`). As 7 skins originais ficam FORA do bloco, listadas à mão. **Não editar o miolo nem duplicar os marcadores** — o `test-skins` valida.
 - Bypass (vai direto à rede, sem cache): não-GET e os hosts `*.googleapis.com`, `get.geojs.io`, `ipwho.is`, `ntfy.sh`. **Serviço externo novo precisa entrar nessa lista.**
@@ -233,6 +245,7 @@ Fluxo de trabalho: ajustar os sliders em campo → jogar → gostou? botão **ex
 Parâmetros completos e receitas: `HANDOFF.md` §4A/§4B. Resumo de operação:
 
 - Camadas: `?ntfy=off` (aparelho) > doc `config/notify` (Firestore, cache de 1 h por navegador) > `js/notify-config.js` (versionado). Tópico atual: `furiousrhino-f8497207e3be` em `ntfy.sh`.
+- Eventos (chaves do notify-config, todas desligáveis pelo doc): `onStart`, `onSessionEnd`, `onWorldRecord` e, v1.9.0, `onClaim` (pedido 🆘 de recuperação de apelido — traz o id novo + assinatura do aparelho) e `onReassignDone` (a migração completou — o sinal para concluir na aba 🆘).
 - No doc do Firestore, **o tipo do campo importa** (`boolean`/`number`/`array`) — um `"true"` string é ignorado em silêncio.
 - Resumo diário: `.github/workflows/daily-digest.yml`, cron `0 23 * * *`, secret `NTFY_TOPIC`. Testável pelo botão *Run workflow*. ⚠️ O GitHub desativa crons após 60 dias sem commits (avisa por e-mail).
 
@@ -254,7 +267,13 @@ Parâmetros completos e receitas: `HANDOFF.md` §4A/§4B. Resumo de operação:
 | `e2e-boss3` (Chromium, v1.8.5) | O Guardião do Fim: arena dentro da zona da LENDA (zero spawn de graça), palíndromo **ground→mid→high→mid→ground**, fúria negada, **a 5ª camada dispara a LENDA** (`legend`/`won`/overlay com a linha do chefe no breakdown), morte com causa `boss3` |
 | `e2e-special` (Chromium) | Sorteio de espécies por bioma, o ciclo completo da FÚRIA TOTAL (carga por distância, ativação sem virar dash, destruição do espinho, drenagem e reversão) e (v1.8) o desabamento do topo da parede: crop, tombo, autodestruição e pool limpo na reciclagem |
 | `e2e-skins` (Chromium, v1.8) | Comportamento no navegador contra um **registry canônico injetado por interceptação de rede** (`context.route` + `serviceWorkers: 'block'` — o registry real do dono não pode derrubar a suíte): preview e sprite vestem a skin; destronado vira default **sem regravar a escolha**; hub sem iniciar corrida; persistência após reload; fúria com `firePrefix` próprio (o canônico usa arte do NÚCLEO — `rhino-run`/`rhino-fire-run` — porque qualquer skin real pode ser removida com a arte pelo /?setup); e a guarda da escala visual — **hitbox segue 76×54 com os pés no chão** para qualquer `RHINO_VISUAL_SCALE` |
-| `e2e-setup` (Chromium) | O estúdio /?setup: sem chave/chave errada → restrito; chave certa → monta sem Phaser; as **três abas** (Skins montada no load com os 4 ids congelados; Sprites e Radiografia preguiçosas — o catálogo monta ≥38 espécies dos módulos ES, o órfão `boss2-hunter` é sinalizado, e **nenhuma requisição espontânea** sai antes de um clique do dono: zero Firestore, zero POST à API local); card Servidores (linha do jogo verde, botão ⏻ presente — o e2e **nunca o clica**); preview do requisito ao vivo; nome de skin original barrado na digitação; lista com só o default travado (v3); dois ramos (gerador no ar/parado) |
+| `e2e-setup` (Chromium) | O estúdio /?setup: sem chave/chave errada → restrito; chave certa → monta sem Phaser; as **quatro abas** (Skins montada no load com os 4 ids congelados; Sprites, Radiografia e 🆘 Recuperação preguiçosas — o catálogo monta ≥38 espécies dos módulos ES, o órfão é sinalizado, a aba 🆘 nasce com o Autorizar travado, e **nenhuma requisição espontânea** sai antes de um clique do dono: zero Firestore, zero POST à API local); card Servidores (linha do jogo verde, botão ⏻ presente — o e2e **nunca o clica**); preview do requisito ao vivo; nome de skin original barrado na digitação; lista com só o default travado (v3); dois ramos (gerador no ar/parado) |
+| `test-reassign` (Node puro, v1.9.0) | A recuperação de identidade: o `mergeIdentity` puro (a INVARIANTE da monotonia — todo total restaurado ≥ servidor; deaths somados chave a chave; runs em ordem cronológica na janela de 50; history fundido com os tetos; `best_sent*` completos — sem eles o `rename`/`submit` falham em silêncio; medalhas = união + inferência honesta da janela), os 3 formatos do `scoreAt` (Timestamp/ISO/ms), e as guardas do fluxo: cooldown de 24 h só para pedido ENVIADO, gate do claim (sem pedido → zero consulta), par obsoleto/autopar ignorados, aviso de restauração 1× — tudo com o ntfy silenciado (zero push em teste) |
+| `test-crash` (Node puro, v1.9.1) | A rede de proteção: a guarda de plausibilidade contra os dados REAIS de produção (barra 200 e 213 m/s; **aceita** as vitórias honestas de 23 e 11 m/s e a zona cega do arredondamento), a costura que faz o tempo chegar até a guarda (sem ela a guarda nunca dispararia), a ordem do `endGame` (corrida gravada ANTES de recorde e pódio), o `try/catch` do `update` com o early-return FORA dele, e a regra de ouro do `crashToHome` por text-assert: **sessão quebrada não grava recorde, não envia ao pódio, não grava run, não manda telemetria** |
+| `e2e-crash` (Chromium, v1.9.1) | Injeta uma exceção **real** no `update` (não chama o `crashToHome` na mão) e exige: o jogador VÊ o overlay com saída clicável, a tentativa volta de 41 para 40, e nada foi gravado — nem run, nem recorde, nem pódio. E 50 crashes seguidos devolvem UMA tentativa só (idempotência) |
+| `test-fix-ranking` (Node puro, v1.9.2) | A classificação que decide QUEM perde a marca e QUEM tem a dele restaurada — com as corridas **verbatim** de produção como fixture (a primeira versão inventou os contadores e dava 11.182 em vez dos 12.977 reais, o que restauraria a marca errada). Prova que quem TEM marca anterior é restaurado e não apagado, que 19.999 pts não entra na peneira, e que `bestM`/`wins` são recalculados das runs que sobraram |
+| `e2e-home` (Chromium, v1.9.3) | A home desacoplada: pódio 2·1·3, degrau VOCÊ, gap e campanha pintados **com o motor ainda carregando** (a suite segura os SVGs por 2,5 s de propósito), e o toque antecipado — toca, vé "preparando a fuga...", e a corrida começa SOZINHA contando UMA tentativa |
+| `perf-home` (Chromium, v1.9.3) | **Regressão de performance.** Mede com 4G + CPU 4x e falha se a home voltar a esperar o motor. O critério é RELATIVO — a distância entre "página pronta" e "pódio na tela" — porque o número absoluto oscila com a rede (2.095 a 4.899 ms na mesma tarde) enquanto a espera fica estável (505/511/515 ms em três rodadas) |
 | `e2e-stats` (Chromium) | Telemetria real no Firestore (sonda `claude-rules-check-01`), portão continuar/sair, LENDA, painel + chave, resiliência (telemetria quebrada não trava o jogo), e o assert final que compara a coleção antes/depois — **a suíte não suja a produção**. ⚠️ Os teleportes para além do portão usam `invincible = true` (senão o clamp do boss segura o rinoceronte na arena) |
 
 Regras de higiene dos testes (v1.7.2): rodando em `localhost`, o jogo **não escreve no Firestore por padrão** (`StorageManager.allowsRemoteWrite()`) — isso já protege qualquer suíte, mesmo uma que esqueça de semear algo. `e2e-stats` é a única que precisa validar a escrita real contra as rules, então semeia o opt-in (`furious_rhino_allow_local_write = '1'`) junto com o `player_id` de sonda `claude-*`; as outras três não semeiam o opt-in e por isso nunca gravam, ainda que também usem ids `claude-*` por convenção. Todo contexto nasce também com `furious_rhino_notify_off = '1'` (senão cada rodada dispararia pushes).
@@ -280,6 +299,13 @@ Regras de higiene dos testes (v1.7.2): rodando em `localhost`, o jogo **não esc
 | `setDoc` sem merge é destrutivo | Campo opcional ausente **apaga** o valor no servidor |
 | Arcade Physics não tem rampa | Rampa é terreno (`surfaceY(x)` + `updateTerrain()`), nunca corpo estático |
 | Corpo sólido + reescrita de velocidade = soft-lock | O portão do boss NÃO tem corpo: banda de x + clamp posicional + janela de knockback em que o `FurySystem` não reescreve `velocityX` (mesma família da armadilha das rampas) |
+| Exceção no `update` mata o loop | Uma falha qualquer dentro do `update` **congela o jogo para sempre** (o rAF não é reagendado) — e a metragem congela junto. Desde a v1.9.1 o corpo do `update` vive num `try/catch` que chama `crashToHome`; o early-return fica FORA do try (é o caminho mais quente). Rede global de `error`/`unhandledrejection` no `js/game.js` |
+| Rede global x erro de rede | O `unhandledrejection` **não pode** derrubar a sessão por Firestore offline (viola a regra 1 da casa). Dois portões em série: só age com a corrida em andamento E só para erros de PROGRAMAÇÃO que não casem com assinatura de rede |
+| Cache sem dono que o invalide | **A armadilha que causou três bugs seguidos (v1.9.1—v1.9.3).** Todo cache precisa ser invalidado NO EVENTO que muda o dado dele. Os três bugs de "a tela não atualiza" foram o mesmo erro em lugares diferentes: dado novo gravado, tela nunca repintada |
+| `js/home/HomeScreen.js` não pode tocar em Phaser | Ele é pintado ANTES de o motor existir. Um `this.add`/`this.time`/`this.rhino` ali quebra o boot inteiro. Se algo precisa da cena, pertence ao `GameScene` |
+| Contar frames em `runs[]` satura | `addRun` limita todo contador a **9999**. 15 min a 60 fps são ~54.000 frames — contar frames destruiria o sinal. Por isso a letra `i` grava SEGUNDOS do loop (teto de 7200 cabe) |
+| Sonda apontada para produção grava de verdade | O `allowsRemoteWrite` cobre **só localhost**. Um Playwright apontado para `cs-ave.github.io` escreve no Firestore real — em 23/08 isso sujou 10 documentos. Sonda contra produção SEMPRE com prefixo `claude-` |
+| Rules impedem DIMINUIR uma marca | `scores` exige `score >= resource.data.score` no update, e `stats` idem para `attempts`/`playTimeS`/`wins`/`bestM`. Para corrigir dado para MENOS: **apagar (admin) e recriar** — o `allow create` não tem a cláusula. É o que o `tools/fix-ranking.mjs` faz |
 | O clamp do boss vale para QUALQUER x além da face | Teleporte de debug/teste para depois do portão exige `invincible = true`, senão o rinoceronte é devolvido para a arena |
 | `fillGradientStyle` no SwiftShader | Não renderiza em screenshot headless — usar `fillVerticalGradient` (faixas) |
 | `fillRect` com largura negativa | Corrompe o batch WebGL e apaga o resto da textura em silêncio |
@@ -308,6 +334,10 @@ Regras de higiene dos testes (v1.7.2): rodando em `localhost`, o jogo **não esc
 | Probe do card Servidores é HEAD, nunca GET | O status "jogo no ar" testa `location.origin + '/api/status'` com **HEAD**: o service worker ignora não-GET e o probe vai direto à rede. Com GET, um 200 entraria no Cache Storage (`cache.put`) e depois serviria um falso "no ar" com tudo morto |
 | Letra nova em `runs[]` sem leitor | `RUN_COUNTERS` é a fonte; a radiografia (`flattenRuns`) e a aba Sprites precisam conhecê-la. O `test-radiografia` FALHA se nascer letra fora do `flattenRuns` — é proteção, não burocracia: a razão de existir das ferramentas é não deixar dado sem leitor |
 | SpriteParams com import | O `Constants` importa o `SpriteParams` — um import DENTRO dele fecharia ciclo e **mataria o boot do jogo inteiro**. O `test-sprites` proíbe por regex (`^import`), e o header do arquivo grita |
+| Restaurar identidade × monotonia de `stats` | O merge da recuperação **SOMA** os totais (local + servidor), nunca copia: um total restaurado menor que o do servidor faz TODO `StatsSystem.send()` seguinte ser negado **em silêncio** e o doc congela para sempre. O `test-reassign` tranca a invariante |
+| Configstore do firebase-tools no Windows | O login (`npx firebase-tools login`) fica em `%USERPROFILE%\.config\configstore\firebase-tools.json` (padrão XDG) — **não** em `%APPDATA%\configstore`. O resolvedor do servidor tenta os dois; um caminho fixo errado dá "login não encontrado" com o login feito |
+| Prompt `!` × barras invertidas | O shell do prompt `!` consome `\` de caminhos Windows (`C:\a\b` vira `C:ab`) — passar caminhos para o dono sempre com barras normais (`C:/a/b`), que o node aceita. Bônus: o Node 24 no Windows solta um `Assertion failed (libuv, async.c)` inofensivo ao encerrar processos que usaram `fetch` — o que confirma sucesso é a saída do script, não o exit limpo |
+| Rebatismo em massa × PowerShell | Trocar strings em muitos arquivos com `Set-Content`/`Out-File` grava BOM/CRLF e quebra os byte-asserts — fazer a substituição com um script node (`readFileSync`/`writeFileSync` preservam bytes e fins de linha) |
 
 ## 14. Manutenção da documentação
 
