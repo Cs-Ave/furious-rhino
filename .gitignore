@@ -1,3 +1,5 @@
 node_modules/
 # backups do fix-ranking: telemetria de jogadores, regerada a cada ensaio
 tools/backup-ranking-*.json
+# snapshots da linha de investigacao: telemetria de jogador
+tools/snapshots/

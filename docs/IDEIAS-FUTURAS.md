@@ -1500,6 +1500,13 @@ defer executa em ordem de documento, antes dos módulos. Não testado.
 
 ### Dívida 4 — a causa raiz do bug do cronômetro (em aberto)
 
+> **24/08 — este caso mudou de casa.** A investigação virou um documento vivo
+> próprio, com hipóteses vivas, as já descartadas e os detectores:
+> **[`INVESTIGACOES.md`](INVESTIGACOES.md) — Caso 1**. O que está abaixo é a
+> fotografia de 24/08 e fica como registro; a versão corrente vive lá.
+> Em especial, a leitura "o tempo é que mente" foi **contradita pela própria
+> sonda** (`i = s = 44 s`): quem salta é a DISTÂNCIA.
+
 **Sintoma:** 26 de 85 corridas da v1.9.0 gravadas com tempo muito menor que o
 real (10.000 m em 47 s = 213 m/s), contra **ZERO** em ~820 corridas de todas as
 versões anteriores. **A distância é REAL; quem mente é o cronômetro** — a prova

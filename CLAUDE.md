@@ -11,6 +11,7 @@ Auto-runner de ação para web mobile (paisagem): um rinoceronte foge do zoológ
 | Documentação completa (leigo → técnico) e histórico de versões | `docs/` |
 | Dúvidas pontuais do dono já respondidas (documento vivo — registrar novas ali) | `docs/QA-Registro.md` |
 | Ideias ainda não implementadas + a radiografia dos dados dos jogadores (banco vivo, sem versão prometida) | `docs/IDEIAS-FUTURAS.md` |
+| Problemas EM ABERTO: hipóteses vivas, as já descartadas e os detectores (documento vivo) | `docs/INVESTIGACOES.md` |
 | Todo o tuning numérico | `js/utils/Constants.js` |
 
 ## Regras que não se negociam
@@ -34,6 +35,7 @@ npm run test-ramp            # 30 asserts e2e (Chromium)
 npm run test-e2e-stats       # 69 asserts e2e (Chromium, escreve com sonda claude-*)
 npm run digest               # resumo diário sem enviar
 npm run radiografia          # análise de usabilidade completa (leitura pública, zero writes) — markdown p/ IDEIAS-FUTURAS
+npm run investiga            # varre a base com os detectores e compara com a coleta anterior
 npm run test-radiografia     # 62 asserts do núcleo/CLI/aba, sem rede
 ```
 

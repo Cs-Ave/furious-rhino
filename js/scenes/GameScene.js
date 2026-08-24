@@ -91,8 +91,14 @@ export class GameScene extends Phaser.Scene {
       // teleporte de debug direto para o Cerco/Guardião cruza o portão DENTRO
       // do mesmo frame, ANTES do check do crossGate no update; sem esta
       // guarda o portão dormente acordava e clampava o rino de volta
-      isBypassed: (scene) => scene.gateReached ||
-        scene.rhino.getSprite().x >= Constants.WIN_DISTANCE_PX,
+      // v1.9.4: a guarda de "já estou além da âncora" agora exige DEBUG. Ela
+      // nasceu na v1.8.5 para o teleporte do painel (que cruza a âncora dentro
+      // do mesmo frame e acordava o portão dormente, que clampava o rino de
+      // volta) — mas em jogo real virou a porta da cascata: um frame longo
+      // punha o rino além da linha e o chefe se rendia sem luta.
+      isBypassed: (scene) => scene.gateReached
+        || (scene.registry.get('debug')
+          && scene.rhino.getSprite().x >= Constants.WIN_DISTANCE_PX),
       onDefeat: (fight) => fight.scene.crossGate(),
     });
     // v1.8.7 — BOSS 2, a MURALHA (2000m): a Operação Muralha fechou o
@@ -122,7 +128,9 @@ export class GameScene extends Phaser.Scene {
       deathCause: 'boss2', // herda a POSIÇÃO dos 2000m — a série do funil continua
       // Rino já além da âncora sem a luta ter acontecido: só possível em
       // invencível de debug ou teleporte — o boss recolhe sem festa
-      isBypassed: (scene) => scene.rhino.getSprite().x >= Constants.BOSS2_ANCHOR_PX,
+      // v1.9.4: só em DEBUG — ver o comentário do portão acima
+      isBypassed: (scene) => scene.registry.get('debug')
+        && scene.rhino.getSprite().x >= Constants.BOSS2_ANCHOR_PX,
       onDefeat: (fight) => fight.scene.defeatMuralha(),
     });
 
@@ -153,7 +161,9 @@ export class GameScene extends Phaser.Scene {
       hints: { intro: '🕸️ A BARREIRA DA ESCAVAÇÃO!', how: '💥 INVISTA na fresta que brilha!' },
       hintStorageKey: 'furious_rhino_cerco_seen',
       deathCause: 'cerco', // causa PRÓPRIA (rules já com 17 chaves — agente B)
-      isBypassed: (scene) => scene.rhino.getSprite().x >= Constants.CERCO_ANCHOR_PX,
+      // v1.9.4: só em DEBUG — ver o comentário do portão acima
+      isBypassed: (scene) => scene.registry.get('debug')
+        && scene.rhino.getSprite().x >= Constants.CERCO_ANCHOR_PX,
       onDefeat: (fight) => fight.scene.defeatCerco(),
     });
 
@@ -180,7 +190,9 @@ export class GameScene extends Phaser.Scene {
       hints: { intro: '🏺 O FARAÓ DE BRONZE GUARDA A MURALHA!', how: '💥 INVISTA na fresta que brilha!' },
       hintStorageKey: 'furious_rhino_farao_seen',
       deathCause: 'farao',
-      isBypassed: (scene) => scene.rhino.getSprite().x >= Constants.FARAO_ANCHOR_PX,
+      // v1.9.4: só em DEBUG — ver o comentário do portão acima
+      isBypassed: (scene) => scene.registry.get('debug')
+        && scene.rhino.getSprite().x >= Constants.FARAO_ANCHOR_PX,
       onDefeat: (fight) => fight.scene.defeatFarao(),
     });
 
@@ -206,7 +218,9 @@ export class GameScene extends Phaser.Scene {
       hints: { intro: '🏹 A ÚLTIMA CERCA DO MUNDO!', how: '💥 INVISTA na fresta que brilha!' },
       hintStorageKey: 'furious_rhino_boss3_seen',
       deathCause: 'boss3', // o Caçador-Mor também usa tranquilizante
-      isBypassed: (scene) => scene.rhino.getSprite().x >= Constants.BOSS3_ANCHOR_PX,
+      // v1.9.4: só em DEBUG — ver o comentário do portão acima
+      isBypassed: (scene) => scene.registry.get('debug')
+        && scene.rhino.getSprite().x >= Constants.BOSS3_ANCHOR_PX,
       onDefeat: (fight) => {
         // A festa é a cutscene de LENDA que sempre existiu
         fight.scene.legend = true;
@@ -3017,13 +3031,25 @@ export class GameScene extends Phaser.Scene {
 
       this.updateScoreDisplay();
 
-      // Portão dos 1000m (1x por corrida): cruza SEM PARAR — a fuga conta na
-      // hora e o modo infinito começa na mesma passada
-      if (!this.gateReached && this.rhino.getSprite().x >= Constants.WIN_DISTANCE_PX) {
+      // v1.9.4 — O GATILHO LEGADO POR POSIÇÃO virou exclusivo do debug.
+      // Ele existia como fallback do modo invencível (é o que a documentação
+      // sempre disse), mas rodava no update NORMAL: bastava o rino ultrapassar
+      // a face do portão UMA vez — a janela entre a face e este gatilho é de
+      // 120 px, que um único frame de 85 ms atravessa — para a fuga contar SEM
+      // luta. E aí o `isBypassed` de cada chefe seguinte via "já estou além da
+      // âncora" e mandava todos se renderem, em cascata, até a vitória.
+      // O estrago medido: as 4 vitórias da base têm ZERO das 21 camadas
+      // possíveis, e nenhuma corrida quebra camada desde a v1.8.3.
+      // Quem decide a fuga em jogo real é o `onDefeat` do chefe (regra da v1.7).
+      if (this.invincible && !this.gateReached
+        && this.rhino.getSprite().x >= Constants.WIN_DISTANCE_PX) {
         this.gateReached = true;
         this.crossGate();
-      } else if (this.gateReached && this.rhino.getSprite().x >= Constants.WORLD_END_PX) {
-        // Fim físico do mundo (10.000m): ninguém corre para sempre
+      }
+      // Fim físico do mundo (10.000m): ninguém corre para sempre. SEMPRE vale
+      // — é o único caminho para a LENDA no modo infinito legítimo, e por isso
+      // saiu do `else if` acima quando o gatilho legado foi restrito.
+      if (this.gateReached && this.rhino.getSprite().x >= Constants.WORLD_END_PX) {
         this.legend = true;
         this.endGame(true);
       }

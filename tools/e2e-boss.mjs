@@ -372,6 +372,57 @@ await page.waitForTimeout(1500);
     `cause=${r.cause} title="${r.title}" deaths.boss=${r.bossDeaths}`);
 }
 
+// ---------- 11. A CASCATA (v1.9.4) — o portão não pode ser contornado ----------
+// O BUG QUE ISTO PEGA: até a v1.9.3 o gatilho legado dos 1000m rodava no
+// update NORMAL. Bastava o rino ultrapassar a face do portão UMA vez (a
+// janela é de 120px — um frame de 85ms a atravessa) para a fuga contar SEM
+// luta; daí o `isBypassed` de cada chefe seguinte via "já estou além da
+// âncora" e todos se rendiam, em cascata, até a vitória. Em produção isso
+// deixou as 4 vitórias da base com ZERO das 21 camadas possíveis.
+//
+// Nenhum e2e pegava: os três testes de chefe TELEPORTAM para dentro da
+// arena e validam a luta — nunca o caminho de chegada.
+{
+  // Pagina LIMPA: os asserts acima ja venceram o portao nesta corrida
+  // (camadas=3, estado=defeated) — reusar a mesma pagina mediria o estado
+  // errado. Mesmo contexto, corrida nova.
+  const p11 = await context.newPage();
+  await p11.goto(`${BASE}/?debug=1`, { waitUntil: 'networkidle' });
+  await p11.waitForTimeout(1500);
+  const pwa11 = p11.locator('#pwa-modal');
+  if (await pwa11.isVisible().catch(() => false)) {
+    await p11.click('#pwa-skip');
+    await p11.waitForTimeout(200);
+  }
+  await p11.locator('#start-screen').click({ position: { x: 640, y: 650 } });
+  await p11.waitForTimeout(600);
+
+  const r = await p11.evaluate(async () => {
+    const s = window.game.scene.getScene('GameScene');
+    // Vira JOGADOR REAL: sem debug, sem invencibilidade. O `?debug=1` da URL
+    // serviu só para alcançar a cena — o comportamento testado é o de campo.
+    s.registry.set('debug', false);
+    s.invincible = false;
+    // O estado que um frame longo produz: o rino ALÉM do gatilho, sem ter lutado
+    s.rhino.getSprite().body.reset(40050, 620);  // WIN + 50
+    await new Promise((r) => setTimeout(r, 1200));
+    return {
+      cruzou: s.gateReached,
+      escapou: Boolean(s.escaped),
+      estado: s.bossFight.state,
+      camadas: s.runBossLayers,
+      x: Math.round(s.rhino.getSprite().x),
+    };
+  });
+  ok('11. ultrapassar a face NÃO cruza o portão sem luta (a cascata está fechada)',
+    !r.cruzou && !r.escapou && r.camadas === 0,
+    `cruzou=${r.cruzou} escapou=${r.escapou} camadas=${r.camadas}`);
+  ok('11b. o chefe segue de pé e o clamp devolve o rino para a arena',
+    r.estado === 'fight' && r.x < WIN,
+    `estado=${r.estado} x=${r.x}`);
+  await p11.close();
+}
+
 // ---------- 10. Zero erro de JS ----------
 const fatal = errors.filter((e) => !/net::|Failed to load resource|ERR_/.test(e));
 ok('10. nenhum erro de JS', fatal.length === 0, fatal.slice(0, 3).join(' | '));
