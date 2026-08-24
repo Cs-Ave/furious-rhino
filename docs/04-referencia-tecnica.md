@@ -83,9 +83,9 @@ Para os testes e ferramentas (Node 18+):
 
 ```bash
 npm install                     # só devDependencies
-npm run test-stats              # 101 asserts, sem navegador
-npm run test-score              # 83 asserts da pontuação composta, sem navegador
-npm run test-challenge          # 77 asserts da Arena de Desafios, sem navegador
+npm run test-stats              # 108 asserts, sem navegador
+npm run test-score              # 101 asserts da pontuação composta, sem navegador
+npm run test-challenge          # 101 asserts da Arena de Desafios, sem navegador
 npm run test-skins              # ~93 asserts das skins, sem navegador (nº varia com o registry)
 npm run test-integrate          # 49 asserts da integração do /?setup, sem navegador
 npm run test-sprites            # 31 asserts da camada de sprites (v1.8.9), sem navegador
@@ -96,14 +96,14 @@ npm run test-fix-ranking        # 24 asserts da classificação do fix-ranking, 
 npm run test-e2e-crash          # 10 asserts e2e: injeta exceção REAL no update — exige servidor
 npm run test-e2e-home           # 10 asserts e2e da home desacoplada (v1.9.3) — idem
 npm run perf-home               # REGRESSÃO DE PERFORMANCE da home (4G + CPU 4x) — idem
-npm run test-ramp               # 45 asserts em Chromium — exige o servidor acima no ar
+npm run test-ramp               # 47 asserts em Chromium — exige o servidor acima no ar
 npm run test-boss               # 16 asserts e2e da luta do portão — idem
 npm run test-boss2              # 14 asserts e2e da Muralha (2000m) — idem
 npm run test-boss3              # 10 asserts e2e do Guardião do Fim — idem
 npm run test-special            # 25 asserts e2e da FÚRIA TOTAL, biomas e desabamento — idem
 npm run test-e2e-deserto        # 14 asserts e2e das Areias do Tempo (v1.8.10) — idem
 npm run test-e2e-skins          # 15 asserts e2e das skins — idem
-npm run test-e2e-setup          # 26 asserts e2e do estúdio /?setup — idem (2 ramos: gerador no ar/parado)
+npm run test-e2e-setup          # 30 asserts e2e do estúdio /?setup — idem (2 ramos: gerador no ar/parado)
 npm run test-e2e-stats          # e2e da telemetria em Chromium — idem
 npm run radiografia             # análise de usabilidade completa contra a produção (só leitura)
 npm run digest                  # monta o resumo diário SEM enviar
@@ -159,12 +159,12 @@ Projeto `furious-rhino`. Credenciais em `js/firebase-config.js` são **públicas
 ## 7. Telemetria — formato dos dados
 
 - 1 write **idempotente** por fim de corrida (`setDoc` sem merge, totais acumulados). Também na tela inicial e ao abrir `/?stats`.
-- `runs[]` (últimas 50): `{t, m}` + opcionais `s` segundos, `c` causa, `k` teclado, `v` versão, `g` skin usada (v1.8, string ≤8, omitida na default) e 13 contadores de mecânica (`w` paredes, `r` rampas, `o` torres, `a` animais, `j` pulos, `d` investidas, `x` investidas negadas no cooldown, `p` pausas, `f` Fúrias Totais usadas, `n` ativações da fúria **negadas na arena do boss** (v1.8 — mede quem ainda tenta o truque antigo), `b` camadas do portão quebradas, `q` quiques na luta, `z` segundos de luta contra o boss — e, v1.8.5, `e` camadas do boss dos 2000 m (hoje a Muralha, herdeira da série) com `h` os segundos dessa luta, `l` camadas do Guardião; v1.8.10, `u` camadas da Barreira e `y` camadas do Faraó, **sem** letras de segundos — precedente do Guardião; `q` segue **exclusivo do portão**, para não poluir a baseline que calibrou a v1.8). Zero é omitido.
+- `runs[]` (últimas 50): `{t, m}` + opcionais `s` segundos, `c` causa, `k` teclado, `v` versão, `g` skin usada (v1.8, string ≤8, omitida na default) e 13 contadores de mecânica (`w` paredes, `r` rampas, `o` torres, `a` animais, `j` pulos, `d` investidas, `x` investidas negadas no cooldown, `p` pausas, `f` Fúrias Totais usadas, `n` ativações da fúria **negadas na arena do boss** (v1.8 — mede quem ainda tenta o truque antigo), `b` camadas do portão quebradas, `q` quiques na luta, `z` segundos de luta contra o boss — e, v1.8.5, `e` camadas do boss dos 2000 m (hoje a Muralha, herdeira da série) com `h` os segundos dessa luta, `l` camadas do Guardião; v1.8.10, `u` camadas da Barreira e `y` camadas do Faraó, **sem** letras de segundos — precedente do Guardião; v1.9.2, `i` a sonda do cronômetro `loopS` (segundos do relógio do MOTOR, lado a lado com `s` do relógio de parede — diagnostica loop congelado/acelerado; não pontua); `q` segue **exclusivo do portão**, para não poluir a baseline que calibrou a v1.8). Zero é omitido.
 - Causas de morte: `wall/spike/animal/dart/tower/boss/boss2/boss3/cerco/farao/fall` — `boss` (v1.7) é o rifle do portão; `boss2`/`boss3` (v1.8.5) são a Muralha (slot dos 2000 m) e o Caçador-Mor; `cerco`/`farao` (v1.8.10) são a Barreira da Escavação e o Faraó de Bronze. 17 chaves no mapa `deaths` (as rules aceitam até 17 — bump publicado com a v1.8.10).
 - `history` (localStorage e espelhado): `{clients, geos, versions}` podados pelo **menos usado**; `days` (60 dias) podado por **idade** — série temporal não pode ganhar buracos.
 - Geo por IP no cliente (geojs.io → ipwho.is, timeout 4 s), TTL 12 h ok / 6 h falha; **falha preserva** a última cidade (`stale: true`) — um `setDoc` sem merge com campo ausente **apaga** o valor no servidor (bug real corrigido na v1.6.1).
 - A fúria deixou de ser posicional na v1.7 (virou carga gastável): o contador `f` mede a **decisão de usar** o especial, que não está em nenhum outro campo.
-- **O bônus da pontuação composta (v1.8.4) NÃO tem letra em `runs[]`** — e isso é decisão, não esquecimento: ele é recomputável de `w r o a b` + `c` + `m` + `z` por `ScoreSystem.runBonus(run)`, e o `v` já versiona a fórmula. Gravá-lo seria byte pago por informação derivada. A v1.8.5 gastou 3 letras (`e h l`) e a v1.8.10 outras 2 (`u y`) — **resta UMA livre** (`i`, reservada como candidata à precisão de investida). A recomputação cobre todos os chefes: camada de qualquer um vale o mesmo `bossLayer`, e as vitórias pagam `boss2` (`e >= 4`), `cerco` (`u >= 4`) e `farao` (`y >= 5`). `tools/test-score.mjs` tranca a igualdade "recomputado == somado ao vivo" com um assert dedicado — se ela quebrar, o painel passa a mentir.
+- **O bônus da pontuação composta (v1.8.4) NÃO tem letra em `runs[]`** — e isso é decisão, não esquecimento: ele é recomputável de `w r o a b` + `c` + `m` + `z` por `ScoreSystem.runBonus(run)`, e o `v` já versiona a fórmula. Gravá-lo seria byte pago por informação derivada. A v1.8.5 gastou 3 letras (`e h l`), a v1.8.10 outras 2 (`u y`) e a v1.9.2 gastou a última (`i`, a sonda do cronômetro `loopS`) — **o alfabeto está FECHADO**: métrica nova só recomputada ou dentro dos mapas existentes. A recomputação cobre todos os chefes: camada de qualquer um vale o mesmo `bossLayer`, e as vitórias pagam `boss2` (`e >= 4`), `cerco` (`u >= 4`) e `farao` (`y >= 5`). `tools/test-score.mjs` tranca a igualdade "recomputado == somado ao vivo" com um assert dedicado — se ela quebrar, o painel passa a mentir.
 - Tudo passa por `safeTelemetry` no `GameScene` — erro nunca derruba o jogo.
 
 Chaves completas de `localStorage`/`sessionStorage`: ver `js/utils/StorageManager.js` (todas prefixadas `furious_rhino_`).

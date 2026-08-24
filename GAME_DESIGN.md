@@ -170,8 +170,10 @@ sem card no Diário. Telemetria em `runs[]`: `e`/`h` (camadas e segundos do
 boss dos 2.000 m — série herdada pela Muralha) · `u` (camadas da Barreira) ·
 `y` (camadas do Faraó) · `l` (camadas do Guardião); Barreira/Faraó/Guardião
 não têm letra de segundos (decisão de orçamento), e `q` segue **exclusivo do
-portão** para preservar a baseline de 48 lutas que calibrou a v1.8. Resta
-UMA letra livre (`i`).
+portão** para preservar a baseline de 48 lutas que calibrou a v1.8. A última
+letra livre (`i`) foi gasta na v1.9.2 com a sonda do cronômetro (`loopS`) —
+**o alfabeto de `runs[]` está fechado**: métrica nova só recomputada ou
+dentro dos mapas existentes.
 
 **A decisão estrutural — parametrizar, nunca copiar:** antes dos bosses novos,
 o `BossFight` passou pelos refactors R1–R7 (ideia D): âncora, camadas, tabela
@@ -814,7 +816,7 @@ números de 24/08/2026 — os que dependem do registry de skins variam com ele:
 
 | Comando | Asserts | Foco |
 |---|---|---|
-| `npm run test-stats` | 102 | Telemetria/agregação, `holdDays` nas duas semânticas, consistência contra as rules (inclusive as letras `e/h/l/u/y` e as causas dos cinco chefes), digest — sem navegador |
+| `npm run test-stats` | 108 | Telemetria/agregação, `holdDays` nas duas semânticas, consistência contra as rules (inclusive as letras `e/h/l/u/y/i` e as causas dos cinco chefes), digest — sem navegador |
 | `npm run test-score` | 101 | A fórmula da pontuação composta: pesos, blitz na borda, teto do bônus, formatadores — e o contrato de recomputação (ao vivo == recomputado de `runs[]`), cobrindo camadas e vitória de todos os chefes |
 | `npm run test-challenge` | 101 | A Arena: melhor corrida na janela (bordas, empates, pontos ≠ metros), countdown, status, guardas de criação, o texto das rules do `challenges`, o **cancelamento** (`cancelledAt` gravado 1×, sobrevivendo ao normalize) e os TTLs adaptativos do cache |
 | `npm run test-reassign` | 61 | A recuperação de identidade: o merge puro (a invariante da monotonia — totais restaurados ≥ servidor), janela de runs, fusão do history, medalhas inferidas e as guardas do fluxo 🆘 (cooldown, gate, idempotência) |
