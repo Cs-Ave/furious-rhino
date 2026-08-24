@@ -1,6 +1,6 @@
 {
   "name": "mobilegame",
-  "version": "1.9.1",
+  "version": "1.9.2",
   "description": "Um rinoceronte rabujento decide fugir do zoológico — investindo contra as paredes de forma contínua e em linha reta, enquanto os outros animais tentam (sem sucesso) ficar no caminho.",
   "main": "sw.js",
   "scripts": {
@@ -15,6 +15,7 @@
     "test-boss3": "node tools/e2e-boss3.mjs",
     "test-skins": "node tools/test-skins.mjs",
     "test-score": "node tools/test-score.mjs",
+    "test-fix-ranking": "node tools/test-fix-ranking.mjs",
     "test-crash": "node tools/test-crash.mjs",
     "test-e2e-crash": "node tools/e2e-crash.mjs",
     "test-challenge": "node tools/test-challenge.mjs",

@@ -452,6 +452,15 @@ export class StorageManager {
     // de letras: sobra só `i`). Sem letras de segundos, precedente do boss3.
     u: 'cercoLayersBroken', // camadas da Barreira da Escavação (3650m) quebradas (0-4)
     y: 'faraoLayersBroken', // camadas do Faraó de Bronze (4700m) quebradas (0-5)
+    // v1.9.2 — a ÚLTIMA letra livre, gasta de propósito: `i` é quanto tempo o
+    // LOOP do jogo acredita ter rodado (soma dos deltas), para comparar com o
+    // `s`, que é relógio de parede. Em agosto/26 um bug gravou 26 de 85
+    // corridas da v1.9.0 com tempo muito menor que o real (10.000 m em 47 s)
+    // e não havia como saber se o jogo acelerou ou se o cronômetro mentiu.
+    // Com os dois relógios lado a lado: i ≈ s → a distância saltou;
+    // i >> s → loop acelerado; i << s → o loop congelou. Não pontua (o
+    // runBonus não a lê), então o contrato da pontuação segue intacto.
+    i: 'loopS',
   };
 
   // Até a v1.6.1 a fúria não entrava aqui por ser posicional (contida no

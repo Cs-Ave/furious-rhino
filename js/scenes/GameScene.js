@@ -290,6 +290,14 @@ export class GameScene extends Phaser.Scene {
     this.runCercoBounces = 0;
     this.runFaraoLayers = 0;
     this.runFaraoBounces = 0;
+    // v1.9.2: tempo que o LOOP acredita ter rodado (soma dos deltas), contra
+    // o relógio de parede do `runS`. É a sonda do bug do cronômetro: em
+    // agosto/26, 26 de 85 corridas da v1.9.0 foram gravadas com tempo MUITO
+    // menor que o real (10.000 m em 47 s), e os dois relógios lado a lado
+    // dizem qual dos dois mentiu — loop ≈ parede: a distância saltou;
+    // loop >> parede: o jogo rodou acelerado; loop << parede: congelou.
+    // Mesmo precedente do `fightMs` do BossFight (letras z/h).
+    this.runLoopMs = 0;
     // v1.8: skin concedida NESTA corrida (para a mensagem do fim de jogo)
     this.runSkinUnlocked = null;
     this.usedKeyboard = false;
@@ -3265,6 +3273,11 @@ export class GameScene extends Phaser.Scene {
     // congela na tela para sempre — sem mensagem, sem gravar a corrida e com
     // a tentativa já contada. Era o "o jogo trava" dos relatos.
     try {
+      // v1.9.2: PRIMEIRA linha do try, antes de qualquer coisa que possa
+      // falhar — o relógio do loop tem de contar o frame mesmo que o resto
+      // do update morra, senão a sonda mentiria justo na corrida quebrada.
+      this.runLoopMs += delta;
+
       this.bgClouds.tilePositionX = this.cameras.main.scrollX * 0.05 + time * 0.005;
       this.bgMountains.tilePositionX = this.cameras.main.scrollX * 0.06;
       const farX = this.cameras.main.scrollX * 0.15;
@@ -3766,6 +3779,9 @@ export class GameScene extends Phaser.Scene {
       // A; sem letras de segundos, precedente do boss3)
       cercoLayersBroken: this.runCercoLayers,
       faraoLayersBroken: this.runFaraoLayers,
+      // v1.9.2: o relógio do LOOP (letra `i`) ao lado do relógio de parede
+      // (`s`) — é o par que denuncia o bug do cronômetro
+      loopS: Math.round(this.runLoopMs / 1000),
       keyboard: this.usedKeyboard,
       version: Constants.VERSION,
       skin: this.skin ? this.skin.id : 'default',

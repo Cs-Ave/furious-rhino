@@ -384,5 +384,45 @@ eq('digest: dia sem jogadores tem mensagem própria', /Ninguém jogou hoje/.test
 eq('rules têm o bloco challenges com leitura pública',
   /match \/challenges\/\{challengeId\}[\s\S]*?allow read: if true/.test(rules), true);
 
+
+// ---------- v1.9.2: a letra `i`, o relógio do LOOP ----------
+// Existe para responder UMA pergunta: quando o tempo gravado sai muito menor
+// que o real (o bug de agosto/26 — 10.000 m em 47 s), foi o jogo que rodou
+// acelerado ou o cronômetro que mentiu? `s` é relógio de parede, `i` é a
+// soma dos deltas do loop. Os dois lado a lado entregam o veredito.
+{
+  localStorage.removeItem('furious_rhino_runs');
+  StorageManager.addRun(900, 120, 'wall', { loopS: 118 });
+  const r = StorageManager.getRuns().pop();
+  eq('corrida saudável: o relógio do loop acompanha o de parede',
+    [r.s, r.i], [120, 118]);
+
+  StorageManager.addRun(900, 47, 'win', { loopS: 940 });
+  const bug = StorageManager.getRuns().pop();
+  eq('assinatura do BUG: loop muito maior que a parede fica registrada',
+    [bug.s, bug.i], [47, 940]);
+
+  // zero é omitido como todo contador (byte-budget da janela)
+  localStorage.removeItem('furious_rhino_runs');
+  StorageManager.addRun(100, 10, 'wall', { loopS: 0 });
+  eq('loopS 0 é OMITIDO (mesma regra dos outros contadores)',
+    'i' in StorageManager.getRuns().pop(), false);
+
+  // o teto de 9999 é o motivo de gravar SEGUNDOS e não frames: 15min a 60fps
+  // seriam ~54.000 frames e saturariam, destruindo justamente o sinal
+  localStorage.removeItem('furious_rhino_runs');
+  StorageManager.addRun(100, 10, 'wall', { loopS: 999999 });
+  eq('loopS respeita o teto de 9999 dos contadores',
+    StorageManager.getRuns().pop().i, 9999);
+  eq('...e o teto de uma corrida (7200s) cabe com folga', 7200 < 9999, true);
+
+  // a letra nova não pode inventar chave em corrida sem extras
+  localStorage.removeItem('furious_rhino_runs');
+  StorageManager.addRun(50, 5, 'spike');
+  eq('corrida sem extras segue sem a letra nova',
+    Object.keys(StorageManager.getRuns().pop()).sort().join(','), 'c,m,s,t');
+  localStorage.removeItem('furious_rhino_runs');
+}
+
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);
