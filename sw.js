@@ -1,6 +1,6 @@
 // Network-first service worker: always serves fresh files while online
 // (essential during development), falls back to cache for offline play.
-const CACHE = 'furious-rhino-v192';
+const CACHE = 'furious-rhino-v193';
 const ASSETS = [
   './',
   './index.html',
@@ -53,9 +53,6 @@ const ASSETS = [
   './art/rhino-bronze-run-0.svg',
   './art/rhino-bronze-run-1.svg',
   './art/rhino-bronze-run-2.svg',
-  './art/rhino-robot-run-0.svg',
-  './art/rhino-robot-run-1.svg',
-  './art/rhino-robot-run-2.svg',
   // @setup:skins — bloco gerado pela página /?setup (não editar à mão)
   './art/rhino-pratagrande-run-0.svg',
   './art/rhino-pratagrande-run-1.svg',
@@ -201,6 +198,7 @@ const ASSETS = [
   './js/stats/RadiografiaCore.js',
   './js/scenes/BootScene.js',
   './js/scenes/GameScene.js',
+  './js/home/HomeScreen.js',
   './js/entities/Rhino.js',
   './js/entities/CrackedWall.js',
   './js/entities/Spike.js',

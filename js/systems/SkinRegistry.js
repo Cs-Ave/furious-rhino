@@ -29,13 +29,6 @@ export const SKINS = [
     "desc": "🎉 De graça, pela companhia — chapéu e língua-de-sogra."
   },
   {
-    "id": "robot",
-    "name": "Rino Robô",
-    "prefix": "rhino-robot-run",
-    "access": {"type":"default"},
-    "desc": "🤖 De graça — latão, vapor e um chifre de energia."
-  },
-  {
     "id": "gold",
     "name": "Rino de Ouro",
     "prefix": "rhino-gold-run",
@@ -91,6 +84,6 @@ export const SKINS = [
     "name": "Rino Robô",
     "prefix": "rhino-rinorob-run",
     "access": {"type":"default"},
-    "desc": "🤖 De graça — latão, vapor e um chifre de energia."
+    "desc": "Rino Robô"
   }
 ];

@@ -141,6 +141,20 @@ async function bootGame() {
   // dos imports, ela já cobre falhas do próprio carregamento das cenas.
   instalarRedeDeProtecao();
 
+  // v1.9.3: A HOME VEM PRIMEIRO. Até a v1.9.2 a tela inicial só era pintada
+  // dentro do GameScene.create(), ou seja, depois de o Phaser baixar 150
+  // SVGs — no celular isso deixava a tela vazia por 4,6 s DEPOIS de a página
+  // estar pronta. A home é DOM + localStorage e não usa nenhuma textura do
+  // Phaser, então não há motivo para ela esperar o motor.
+  //
+  // Este import é leve de propósito (nada de Phaser.Scene na cadeia dele) e
+  // vem ANTES do Promise.all das cenas — que é o await caro.
+  const { HomeScreen } = await import('./home/HomeScreen.js');
+  HomeScreen.paintFromCache();
+  // O toque também é armado agora: quem tocar antes de o motor ficar pronto
+  // tem o toque GUARDADO, e a corrida começa sozinha quando a cena chega.
+  HomeScreen.armStart();
+
   const [{ Constants }, { BootScene }, { GameScene }] = await Promise.all([
     import('./utils/Constants.js'),
     import('./scenes/BootScene.js'),

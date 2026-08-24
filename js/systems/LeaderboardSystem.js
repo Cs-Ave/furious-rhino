@@ -399,10 +399,16 @@ export class LeaderboardSystem {
     }
   }
 
-  // Top 3 para o pódio da tela inicial. Cache com TTL de 6h (3 reads por
-  // atualização — plano gratuito agradece); `force` fura o TTL (pós-submit).
+  // Top 3 para o pódio da tela inicial; `force` fura o TTL (pós-submit).
   // Devolve as entries (do cache ou da rede) ou null se nunca houve nada.
-  static PODIUM_TTL_MS = 6 * 60 * 60 * 1000;
+  //
+  // v1.9.3: o TTL era de 6 HORAS — depois da primeira visita do dia o pódio
+  // simplesmente não era relido, e a queixa do dono ("a posição demora demais
+  // para atualizar") vinha daí. A economia era ilusória: é 1 query de 3
+  // documentos, num boot que já dispara fetchMyRank SEM TTL nenhum e mais
+  // algumas leituras. Pior, criava assimetria visível — rank fresco ao lado
+  // de degraus de ontem, com o updatePodiumGap misturando os dois.
+  static PODIUM_TTL_MS = 5 * 60 * 1000;
 
   static async fetchPodium(force = false) {
     const cached = StorageManager.getPodium();
