@@ -1,6 +1,6 @@
 # Furious Rhino — Guia funcional
 
-> Documentação da versão **1.9.3** · atualizada em 24/08/2026
+> Documentação da versão **1.9.5** · atualizada em 25/08/2026
 > Cada funcionalidade do jogo: o que faz, como o usuário interage e exemplos práticos. Termos técnicos vêm explicados entre parênteses na primeira vez.
 
 ## 1. Controles
@@ -43,11 +43,14 @@ O morro tem uma variante especial, o **trampolim**: um penhasco cuja crista lan�
 - No alto da tela, a **Pontuação** fica em destaque e os **metros** logo abaixo, menores. A tela de fim de corrida mostra a conta completa: quanto veio da distância e de onde saiu cada ponto de bônus.
 - **Marcas antigas não foram recalculadas**: quem já tinha recorde continua com ele (valendo como pontuação sem bônus), e vai sendo ultrapassado conforme as pessoas jogam a versão nova.
 - A barra no topo mostra o progresso até o portão.
-- **Se o jogo travar (v1.9.1)** — se acontecer alguma falha durante a partida, em vez de a tela
-  congelar em silêncio aparece o aviso **"😵 O jogo travou"**, dizendo honestamente que a corrida
-  não foi salva, com um botão para voltar ao início. **A tentativa é devolvida**: ninguém é punido
-  por um problema do jogo. Uma corrida interrompida assim não grava recorde, não sobe ao ranking
-  e não conta no histórico.
+- **Se o jogo travar (v1.9.1, refinado na v1.9.5)** — se acontecer alguma falha durante a
+  partida, em vez de a tela congelar em silêncio aparece o aviso **"😵 O jogo travou"**, com um
+  botão para voltar ao início. **A tentativa é devolvida**: ninguém é punido por um problema do
+  jogo. A corrida **não vale pontos** — não grava recorde, não sobe ao ranking mundial e não
+  entra na disputa de desafios. Desde a v1.9.5 ela **é guardada no aparelho**, marcada como
+  travamento, para que a falha possa ser investigada: antes disso a partida sumia por inteiro,
+  e justamente a corrida com problema apagava a própria evidência. Por isso o aviso agora diz
+  "não valeu pontos" em vez de "não foi salva".
 - **Marca impossível não entra no ranking (v1.9.1)** — antes de enviar uma marca, o jogo confere se
   a velocidade média da corrida é fisicamente possível. O limite tem folga sobre o máximo que o
   motor consegue produzir, justamente para nunca barrar quem joga muito bem.
@@ -156,7 +159,7 @@ Os registros e o ranking:
 
 ## 8. Medalhas
 
-19 conquistas salvas no aparelho (não dependem de internet). Desde a v1.8.1 elas são vistas dentro de **"📊 Minhas estatísticas"** (a faixa de ícones saiu da tela inicial para dar lugar ao pódio). Exemplos:
+27 conquistas salvas no aparelho (conferido no `MedalSystem.js`) (não dependem de internet). Desde a v1.8.1 elas são vistas dentro de **"📊 Minhas estatísticas"** (a faixa de ícones saiu da tela inicial para dar lugar ao pódio). Exemplos:
 
 | Medalha | Como ganhar |
 |---|---|
@@ -208,7 +211,7 @@ Um detalhe importante: a página funciona no computador do criador (ela conversa
 
 ## 10. "📊 Minhas estatísticas" (para o jogador)
 
-Botão na tela inicial. Abre **na hora e funciona offline** (lê tudo do próprio aparelho): recorde, número de corridas e fugas, tempo jogado, um minigráfico das últimas corridas, "onde você morre" (por causa), dicas personalizadas (ex.: *"você ainda não usou a INVESTIDA"*), medalhas e sua posição no ranking. Dá para **compartilhar** o resumo formatado no WhatsApp.
+Botão na tela inicial. Abre **na hora e funciona offline** (lê tudo do próprio aparelho): recorde, número de corridas e fugas, tempo jogado, um minigráfico das últimas corridas, "onde você morre" (por causa), dicas personalizadas (ex.: *"você ainda não usou a INVESTIDA"*), medalhas e sua posição no ranking. Desde a v1.9.5 a lista de proezas mostra as camadas derrubadas dos **cinco** chefes, cada um com o próprio nome — antes a Barreira e o Faraó não apareciam e a linha da Muralha vinha rotulada como "Cerco". Dá para **compartilhar** o resumo formatado no WhatsApp.
 
 ## 11. Instalação como aplicativo (PWA)
 

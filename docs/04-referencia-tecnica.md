@@ -1,6 +1,6 @@
 # Furious Rhino — Referência técnica
 
-> Documentação da versão **1.9.3** · atualizada em 24/08/2026
+> Documentação da versão **1.9.5** · atualizada em 25/08/2026
 > Para quem vai dar manutenção. Complementa (não substitui) `GAME_DESIGN.md` (o design e suas razões) e `HANDOFF.md` (estado da última sessão de trabalho e tabelas completas de parâmetros).
 
 ## 1. Estrutura de pastas
@@ -83,7 +83,7 @@ Para os testes e ferramentas (Node 18+):
 
 ```bash
 npm install                     # só devDependencies
-npm run test-stats              # 108 asserts, sem navegador
+npm run test-stats              # 117 asserts, sem navegador
 npm run test-score              # 101 asserts da pontuação composta, sem navegador
 npm run test-challenge          # 101 asserts da Arena de Desafios, sem navegador
 npm run test-skins              # ~93 asserts das skins, sem navegador (nº varia com o registry)
@@ -91,20 +91,22 @@ npm run test-integrate          # 49 asserts da integração do /?setup, sem nav
 npm run test-sprites            # 31 asserts da camada de sprites (v1.8.9), sem navegador
 npm run test-radiografia        # 62 asserts da radiografia (v1.8.7), sem navegador e SEM rede
 npm run test-reassign           # 61 asserts da recuperação de identidade (v1.9.0), sem navegador
-npm run test-crash              # 54 asserts da rede de proteção (v1.9.1), sem navegador
-npm run test-fix-ranking        # 24 asserts da classificação do fix-ranking, sem navegador
-npm run test-e2e-crash          # 10 asserts e2e: injeta exceção REAL no update — exige servidor
+npm run test-crash              # 58 asserts da rede de proteção (v1.9.1), sem navegador
+npm run test-fix-ranking        # 36 asserts da classificação do fix-ranking, sem navegador
+npm run test-e2e-crash          # 11 asserts e2e: injeta exceção REAL no update — exige servidor
 npm run test-e2e-home           # 10 asserts e2e da home desacoplada (v1.9.3) — idem
 npm run perf-home               # REGRESSÃO DE PERFORMANCE da home (4G + CPU 4x) — idem
 npm run test-ramp               # 47 asserts em Chromium — exige o servidor acima no ar
-npm run test-boss               # 16 asserts e2e da luta do portão — idem
+npm run test-boss               # 18 asserts e2e da luta do portão — idem
 npm run test-boss2              # 14 asserts e2e da Muralha (2000m) — idem
 npm run test-boss3              # 10 asserts e2e do Guardião do Fim — idem
 npm run test-special            # 25 asserts e2e da FÚRIA TOTAL, biomas e desabamento — idem
 npm run test-e2e-deserto        # 14 asserts e2e das Areias do Tempo (v1.8.10) — idem
 npm run test-e2e-skins          # 15 asserts e2e das skins — idem
-npm run test-e2e-setup          # 30 asserts e2e do estúdio /?setup — idem (2 ramos: gerador no ar/parado)
-npm run test-e2e-stats          # e2e da telemetria em Chromium — idem
+npm run test-e2e-setup          # 28 asserts e2e do estúdio /?setup — idem (2 ramos: gerador no ar/parado)
+npm run test-e2e-stats          # 69 asserts e2e da telemetria em Chromium — idem
+npm run test-investiga          # 31 asserts dos 5 detectores (v1.9.4), sem navegador e SEM rede
+npm run investiga               # passa os 5 detectores na produção (só leitura); --salvar grava o retrato datado
 npm run radiografia             # análise de usabilidade completa contra a produção (só leitura)
 npm run digest                  # monta o resumo diário SEM enviar
 npm run sprite-gen              # sobe o SERVIDOR UNIFICADO: jogo na :3000 + gerador na :3210
@@ -164,7 +166,10 @@ Projeto `furious-rhino`. Credenciais em `js/firebase-config.js` são **públicas
 - `history` (localStorage e espelhado): `{clients, geos, versions}` podados pelo **menos usado**; `days` (60 dias) podado por **idade** — série temporal não pode ganhar buracos.
 - Geo por IP no cliente (geojs.io → ipwho.is, timeout 4 s), TTL 12 h ok / 6 h falha; **falha preserva** a última cidade (`stale: true`) — um `setDoc` sem merge com campo ausente **apaga** o valor no servidor (bug real corrigido na v1.6.1).
 - A fúria deixou de ser posicional na v1.7 (virou carga gastável): o contador `f` mede a **decisão de usar** o especial, que não está em nenhum outro campo.
-- **O bônus da pontuação composta (v1.8.4) NÃO tem letra em `runs[]`** — e isso é decisão, não esquecimento: ele é recomputável de `w r o a b` + `c` + `m` + `z` por `ScoreSystem.runBonus(run)`, e o `v` já versiona a fórmula. Gravá-lo seria byte pago por informação derivada. A v1.8.5 gastou 3 letras (`e h l`), a v1.8.10 outras 2 (`u y`) e a v1.9.2 gastou a última (`i`, a sonda do cronômetro `loopS`) — **o alfabeto está FECHADO**: métrica nova só recomputada ou dentro dos mapas existentes. A recomputação cobre todos os chefes: camada de qualquer um vale o mesmo `bossLayer`, e as vitórias pagam `boss2` (`e >= 4`), `cerco` (`u >= 4`) e `farao` (`y >= 5`). `tools/test-score.mjs` tranca a igualdade "recomputado == somado ao vivo" com um assert dedicado — se ela quebrar, o painel passa a mentir.
+- **O bônus da pontuação composta (v1.8.4) NÃO tem letra em `runs[]`** — e isso é decisão, não esquecimento: ele é recomputável de `w r o a b` + `c` + `m` + `z` por `ScoreSystem.runBonus(run)`, e o `v` já versiona a fórmula. Gravá-lo seria byte pago por informação derivada. A v1.8.5 gastou 3 letras (`e h l`), a v1.8.10 outras 2 (`u y`) e a v1.9.2 gastou a última (`i`, a sonda do cronômetro `loopS`). A recomputação cobre todos os chefes: camada de qualquer um vale o mesmo `bossLayer`, e as vitórias pagam `boss2` (`e >= 4`), `cerco` (`u >= 4`) e `farao` (`y >= 5`). `tools/test-score.mjs` tranca a igualdade "recomputado == somado ao vivo" com um assert dedicado — se ela quebrar, o painel passa a mentir.
+- **O "alfabeto FECHADO" era mito, e a v1.9.5 o desfez com número na mão.** Até a v1.9.4 este documento afirmava que, esgotado o `i`, métrica nova só poderia ser recomputada. **Não era regra técnica**: as `firestore.rules` validam apenas `runs is list && size() <= 50` — a forma do elemento é livre — e nada no código pressupõe chave de 1 caractere (conferido). O custo real é em **bytes**, e como contador zero é omitido (`if (v > 0)` no `addRun`), medir foi possível: as 7 chaves novas da v1.9.5 custam **~136 bytes na base inteira** de 1.070 corridas. O maior documento de `stats` tem 5,8 KB contra o teto de 1 MB do Firestore.
+- **As 7 chaves de 2 caracteres (v1.9.5)** seguem o padrão *prefixo do que é + letra do chefe*, em vez de esgotar criatividade: `zu`/`zy`/`zl` são segundos de luta (Barreira, Faraó, Caçador-Mor) e `qe`/`qu`/`qy`/`ql` são os quiques dos quatro chefes que não são o Portão (`q` segue **exclusivo** do portão — misturar poluiria a baseline de 48 lutas que calibrou a v1.8). Nenhuma pontua: o contrato do `ScoreSystem.runBonus` fica intacto. O dado já era calculado (o `fightMs` roda nos cinco chefes) e morria com a cena.
+- **A restrição que continua de pé é OUTRA**: o 1º nível de `stats` está em **12/12** chaves (`hasOnly` fechada nas rules), `geo` em 4/4 e `deaths` em 17/17 — ali, sim, métrica nova exige mexer nas rules antes do deploy (regra 3 do ritual). O espaço livre hoje é 1 em `client` e 1 em `history`.
 - Tudo passa por `safeTelemetry` no `GameScene` — erro nunca derruba o jogo.
 
 Chaves completas de `localStorage`/`sessionStorage`: ver `js/utils/StorageManager.js` (todas prefixadas `furious_rhino_`).
@@ -269,9 +274,10 @@ Parâmetros completos e receitas: `HANDOFF.md` §4A/§4B. Resumo de operação:
 | `e2e-skins` (Chromium, v1.8) | Comportamento no navegador contra um **registry canônico injetado por interceptação de rede** (`context.route` + `serviceWorkers: 'block'` — o registry real do dono não pode derrubar a suíte): preview e sprite vestem a skin; destronado vira default **sem regravar a escolha**; hub sem iniciar corrida; persistência após reload; fúria com `firePrefix` próprio (o canônico usa arte do NÚCLEO — `rhino-run`/`rhino-fire-run` — porque qualquer skin real pode ser removida com a arte pelo /?setup); e a guarda da escala visual — **hitbox segue 76×54 com os pés no chão** para qualquer `RHINO_VISUAL_SCALE` |
 | `e2e-setup` (Chromium) | O estúdio /?setup: sem chave/chave errada → restrito; chave certa → monta sem Phaser; as **quatro abas** (Skins montada no load com os 4 ids congelados; Sprites, Radiografia e 🆘 Recuperação preguiçosas — o catálogo monta ≥38 espécies dos módulos ES, o órfão é sinalizado, a aba 🆘 nasce com o Autorizar travado, e **nenhuma requisição espontânea** sai antes de um clique do dono: zero Firestore, zero POST à API local); card Servidores (linha do jogo verde, botão ⏻ presente — o e2e **nunca o clica**); preview do requisito ao vivo; nome de skin original barrado na digitação; lista com só o default travado (v3); dois ramos (gerador no ar/parado) |
 | `test-reassign` (Node puro, v1.9.0) | A recuperação de identidade: o `mergeIdentity` puro (a INVARIANTE da monotonia — todo total restaurado ≥ servidor; deaths somados chave a chave; runs em ordem cronológica na janela de 50; history fundido com os tetos; `best_sent*` completos — sem eles o `rename`/`submit` falham em silêncio; medalhas = união + inferência honesta da janela), os 3 formatos do `scoreAt` (Timestamp/ISO/ms), e as guardas do fluxo: cooldown de 24 h só para pedido ENVIADO, gate do claim (sem pedido → zero consulta), par obsoleto/autopar ignorados, aviso de restauração 1× — tudo com o ntfy silenciado (zero push em teste) |
-| `test-crash` (Node puro, v1.9.1) | A rede de proteção: a guarda de plausibilidade contra os dados REAIS de produção (barra 200 e 213 m/s; **aceita** as vitórias honestas de 23 e 11 m/s e a zona cega do arredondamento), a costura que faz o tempo chegar até a guarda (sem ela a guarda nunca dispararia), a ordem do `endGame` (corrida gravada ANTES de recorde e pódio), o `try/catch` do `update` com o early-return FORA dele, e a regra de ouro do `crashToHome` por text-assert: **sessão quebrada não grava recorde, não envia ao pódio, não grava run, não manda telemetria** |
-| `e2e-crash` (Chromium, v1.9.1) | Injeta uma exceção **real** no `update` (não chama o `crashToHome` na mão) e exige: o jogador VÊ o overlay com saída clicável, a tentativa volta de 41 para 40, e nada foi gravado — nem run, nem recorde, nem pódio. E 50 crashes seguidos devolvem UMA tentativa só (idempotência) |
-| `test-fix-ranking` (Node puro, v1.9.2) | A classificação que decide QUEM perde a marca e QUEM tem a dele restaurada — com as corridas **verbatim** de produção como fixture (a primeira versão inventou os contadores e dava 11.182 em vez dos 12.977 reais, o que restauraria a marca errada). Prova que quem TEM marca anterior é restaurado e não apagado, que 19.999 pts não entra na peneira, e que `bestM`/`wins` são recalculados das runs que sobraram |
+| `test-crash` (Node puro, v1.9.1, contrato revisto na v1.9.5) | A rede de proteção: a guarda de plausibilidade contra os dados REAIS de produção (barra 200 e 213 m/s; **aceita** a zona cega do arredondamento), a costura que faz o tempo chegar até a guarda (sem ela a guarda nunca dispararia), a ordem do `endGame` (corrida gravada ANTES de recorde e pódio), o `try/catch` do `update` com o early-return FORA dele, e o contrato do `crashToHome` — que **mudou de sentido na v1.9.5**: sessão quebrada agora **grava a corrida** com causa `crash`, e continua sem recorde, sem pódio, sem telemetria, com a tentativa devolvida. O assert antigo dizia "não grava run" e era uma regra; hoje o oposto é a regra, e o teste afirma as duas metades explicitamente — sem isso ele mentiria |
+| `e2e-crash` (Chromium, v1.9.1) | Injeta uma exceção **real** no `update` (não chama o `crashToHome` na mão) e exige: o jogador VÊ o overlay com saída clicável, a tentativa volta de 41 para 40, a corrida **aparece** em `runs[]` com a causa `crash` (v1.9.5) e recorde e pódio seguem intactos. E 50 crashes seguidos devolvem UMA tentativa só (idempotência) |
+| `test-fix-ranking` (Node puro, v1.9.2, ampliado na v1.9.5) | A classificação que decide QUEM perde a marca e QUEM tem a dele restaurada — com as corridas **verbatim** de produção como fixture. Duas causas independentes: o **cronômetro** (mentiu no tempo, distância real) e a **cascata dos chefes** (distância real, sem a luta). Prova que quem tem marca anterior é restaurado e não apagado, que a restauração **só desce**, que sem corrida suja ninguém é tocado (a janela de 50 rotaciona: recorde antigo some sem nada de errado ter acontecido) e que histórico rotacionado vai para revisão à mão em vez do lixo. **Duas fixtures guardam erros já cometidos**: a primeira versão inventou os contadores e dava 11.182 em vez dos 12.977 reais; a segunda chamava de `vitoriaHonesta` a corrida que a v1.9.4 provou ser a cascata |
+| `test-investiga` (Node puro, v1.9.4) | Os 5 detectores da linha de investigação perene, sem rede: `D1-velocidade` (acima do teto físico de 35,16 m/s), `D2-sem-interacao`, `D3-vitoria-sem-chefe` (venceu sem quebrar uma das 21 camadas), `D4-relogios` (o `i` do loop contra o `s` de parede) e `D5-arena-sem-quebra`. Cada detector tem fixture de acerto E de falso-positivo — o `D5` nasceu acusando quem entra na arena e morre ali, que é jogo normal |
 | `e2e-home` (Chromium, v1.9.3) | A home desacoplada: pódio 2·1·3, degrau VOCÊ, gap e campanha pintados **com o motor ainda carregando** (a suite segura os SVGs por 2,5 s de propósito), e o toque antecipado — toca, vé "preparando a fuga...", e a corrida começa SOZINHA contando UMA tentativa |
 | `perf-home` (Chromium, v1.9.3) | **Regressão de performance.** Mede com 4G + CPU 4x e falha se a home voltar a esperar o motor. O critério é RELATIVO — a distância entre "página pronta" e "pódio na tela" — porque o número absoluto oscila com a rede (2.095 a 4.899 ms na mesma tarde) enquanto a espera fica estável (505/511/515 ms em três rodadas) |
 | `e2e-stats` (Chromium) | Telemetria real no Firestore (sonda `claude-rules-check-01`), portão continuar/sair, LENDA, painel + chave, resiliência (telemetria quebrada não trava o jogo), e o assert final que compara a coleção antes/depois — **a suíte não suja a produção**. ⚠️ Os teleportes para além do portão usam `invincible = true` (senão o clamp do boss segura o rinoceronte na arena) |

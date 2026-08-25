@@ -1,6 +1,6 @@
 # FURIOUS RHINO — Documento de Design
 
-> Estado atual do jogo (v1.9.3). Este documento descreve o que **é**, não o que
+> Estado atual do jogo (v1.9.5). Este documento descreve o que **é**, não o que
 > se imaginou no começo — as decisões de v1.1 em diante estão registradas aqui
 > com o motivo, e várias delas foram tomadas a partir dos dados reais de
 > telemetria (ver "Decisões orientadas por dados" no fim).
@@ -611,7 +611,7 @@ Firestore (regra de arquitetura nº 2 abaixo).
 
 | Onde | Campos | Por que ali |
 |---|---|---|
-| `runs[]` (últimas 50) | `t, m, s, c` + `w` paredes, `r` rampas, `o` torres, `a` animais, `j` pulos, `d` investidas, `x` investidas negadas no cooldown, `p` pausas, `k` teclado, `v` versão, e (v1.7–v1.8) `f` Fúrias Totais usadas, `n` fúrias negadas na arena do boss, `b` camadas do portão, `q` quiques, `z` segundos de luta, `g` skin usada | As rules validam só `is list && size() <= 50` — a FORMA do elemento é livre. Sai de graça. |
+| `runs[]` (últimas 50) | `t, m, s, c` + `w` paredes, `r` rampas, `o` torres, `a` animais, `j` pulos, `d` investidas, `x` investidas negadas no cooldown, `p` pausas, `k` teclado, `v` versão, `g` skin usada; (v1.7–v1.8) `f` Fúrias Totais usadas, `n` fúrias negadas na arena, `q` quiques no Portão; **camadas de cada chefe** `b` Portão, `e` Muralha, `u` Barreira, `y` Faraó, `l` Caçador-Mor; **segundos de luta** `z` Portão, `h` Muralha e (v1.9.5) `zu`, `zy`, `zl`; **quiques dos outros quatro** (v1.9.5) `qe`, `qu`, `qy`, `ql`; e (v1.9.2) `i`, quanto tempo o LOOP acredita ter rodado, para comparar com o `s` de parede | As rules validam só `is list && size() <= 50` — a FORMA do elemento é livre, e chave de 2 caracteres é legítima. Contador zero é omitido, então o custo real é pequeno e mensurável (~136 bytes as 7 da v1.9.5 na base inteira). |
 | `history.days` | `{'AAAA-MM-DD': {r, s, b}}`, 60 dias, poda por idade | Contagem exata de execuções/sessões/melhor marca por dia. `runs[]` só guarda 50 e falsearia dias muito ativos. |
 | `client.tz` | fuso do aparelho | Conferência cruzada do geo por IP: VPN aparece como divergência. |
 | `geo.at` | epoch da medição | Deixa o painel dizer a IDADE da localização. |
@@ -688,18 +688,29 @@ As três decisões de design que saíram disso:
 - **Falha do jogo não pune o jogador.** O `crashToHome` devolve a tentativa que
   o `startRun` já contou. Perder a corrida por um bug nosso já é ruim; perder a
   tentativa junto seria cobrar pelo erro.
-- **Uma sessão quebrada NÃO PONTUA.** Nada de recorde, nada de pódio, nada de
-  run gravada, nada de telemetria. Uma partida que não terminou direito não é
-  uma partida — e um número vindo dela contaminaria o ranking de todo mundo.
+- **Uma sessão quebrada NÃO PONTUA — mas, desde a v1.9.5, é REGISTRADA.** Nada de
+  recorde, nada de pódio, nada de telemetria: uma partida que não terminou
+  direito não é uma partida, e um número vindo dela contaminaria o ranking de
+  todo mundo. Só que *não pontuar* e *não registrar* viraram a mesma coisa por
+  acidente, e o preço apareceu depois: **a corrida anômala apagava a própria
+  evidência**. Quando um jogador relatou travamentos, não havia uma única
+  partida travada na base inteira para examinar. Agora ela é gravada no
+  aparelho com a causa `crash` e com os dois relógios (o de parede e o do
+  loop), continuando fora de qualquer disputa. A lição generaliza: **descartar
+  um dado do placar não é motivo para descartá-lo da investigação** — e é
+  justamente o dado torto que a investigação precisa.
 - **A corrida é salva ANTES de subir ao ranking.** O `endGame` gravava o recorde
   local e enviava ao ranking mundial ~110 linhas *antes* de consolidar a corrida
   em `runs[]`, sem `try/catch` no meio. Uma exceção ali deixava uma marca no
   ranking **sem corrida por trás**. Invertida a ordem, o pior caso passou a ser
   uma corrida salva que não subiu — o inverso do estrago.
 
-**A honestidade da mensagem é parte do design.** O overlay diz que a corrida não
-foi salva e que a tentativa voltou. A alternativa — sumir com o problema — faria
-o jogador achar que o recorde dele foi roubado.
+**A honestidade da mensagem é parte do design.** O overlay diz que a corrida
+**não valeu pontos** e que a tentativa voltou. A palavra mudou na v1.9.5 junto
+com o comportamento: dizer "não foi salva" passou a ser falso no instante em
+que a corrida passou a ser guardada, e uma mensagem tranquilizadora que mente
+é pior que uma incômoda que não mente. A alternativa — sumir com o problema —
+faria o jogador achar que o recorde dele foi roubado.
 
 **Onde a rede global NÃO age:** um erro de rede (Firestore offline) jamais pode
 mostrar "o jogo travou", porque violaria a regra nº 1 da casa — telemetria e
@@ -775,6 +786,87 @@ diferentes — dado novo gravado, tela nunca repintada.
 
 ---
 
+## 🛡️ Os cinco chefes voltam a existir (v1.9.4) — a cascata
+
+Da **v1.8.5 à v1.9.3**, o jogo tinha cinco batalhas de chefe e **nenhuma delas
+precisava ser vencida**. Dava para atravessar os 10.000 m sem derrubar uma das
+21 camadas. As quatro vitórias registradas na base inteira tinham **zero**.
+
+**Como uma coisa dessas passa despercebida.** Dois atalhos legítimos, cada um
+inofensivo sozinho:
+
+1. Um gatilho antigo declarava a fuga pela **posição** do rino na linha dos
+   1000 m. Ele existia como fallback do modo invencível — e a documentação
+   sempre disse isso —, mas rodava no `update` **normal**.
+2. Cada chefe tem um `isBypassed` que o rende quando o rino já está além da
+   âncora dele. Nasceu na v1.8.5 para o **teleporte do painel de debug**, que
+   cruza a âncora dentro do mesmo quadro e acordava um chefe dormente, que então
+   clampava o rino de volta.
+
+Juntos viram uma cascata. A janela entre a face do portão e a linha do gatilho é
+de **120 px** — um único quadro travado de **85 ms** a atravessa. Cruzou: a fuga
+conta sem luta; e aí cada chefe seguinte olha a própria âncora, vê o rino do
+outro lado e se rende. Até o fim do mundo.
+
+**Por que nenhum teste pegou.** Porque **todo teste automatizado roda em
+`?debug=1`** — o único ambiente em que aquela guarda era legítima. As suítes de
+chefe passavam verdes enquanto os cinco estavam desligados em campo. É a
+armadilha mais cara do projeto até hoje, e as duas regras que ficaram dela:
+
+- **Guarda que existe para uma ferramenta de desenvolvimento tem de perguntar
+  pela ferramenta**, não pelo efeito colateral dela. Hoje os cinco `isBypassed`
+  e o gatilho legado exigem `debug`/`invincible` explicitamente.
+- **Teste que só roda em debug não prova nada sobre a partida real.** O
+  `e2e-boss` ganhou o assert que reproduz a cascata: põe o rino além do gatilho
+  e exige que os cinco chefes **não** se rendam.
+
+**A consequência de design, que é grande.** A Muralha (v1.8.7), a Barreira e o
+Faraó (v1.8.10) chegaram **dentro** da janela da falha. Nunca estiveram de pé:
+ninguém jamais derrotou nenhum dos quatro chefes que não são o Portão. A v1.9.4
+é a primeira versão em que o jogo tem cinco provas de verdade — **a dificuldade
+subiu um degrau inteiro sem que nada nos chefes tenha mudado**. Se a percepção
+de "ficou muito mais difícil" aparecer, é isso, e não regressão.
+
+**A regra de método que sobrou:** a resposta "os cinco chefes estão vivos" foi
+levantada lendo o **código**, e as cinco definições estavam lá, completas e
+corretas. Faltou perguntar aos **dados** se alguém realmente lutava — uma
+consulta de "camadas quebradas por versão" mostrava o zero na hora. Desde então
+a pergunta é feita sozinha a cada coleta (`D3-vitoria-sem-chefe` e
+`D5-arena-sem-quebra`, no `npm run investiga`). **Código presente não é
+funcionalidade viva.**
+
+---
+
+## 📐 Os cinco chefes passam a ser medíveis (v1.9.5)
+
+Auditoria de telemetria: dos cinco chefes, **só o Portão era medível**. O tempo
+de luta já era calculado nos cinco e **morria com a cena** em três deles; os
+quiques de quatro eram contados 60×/s e descartados no fim. Não havia como
+distinguir "lutou 40 s e perdeu" de "passou direto" — que é exatamente a
+pergunta que a cascata obrigou a fazer.
+
+**O argumento que travava isso era falso, e mediu-se para descobrir.** O motivo
+registrado para não coletar era "o orçamento de letras acabou". Mas as
+`firestore.rules` validam apenas `runs is list && size() <= 50` — **a forma do
+elemento é livre** — e nada no código pressupõe chave de 1 caractere. O custo
+real é em bytes, e como contador zero é omitido, dava para medir: as 7 chaves
+novas custam **~136 bytes na base inteira** de 1.070 corridas, contra um teto de
+1 MB por documento. **Uma restrição herdada que ninguém nunca mediu vale menos
+que cinco minutos de medição.**
+
+As chaves seguem *prefixo do que é + letra do chefe* (`zu`/`zy`/`zl` para
+segundos de luta, `qe`/`qu`/`qy`/`ql` para quiques) em vez de esgotar
+criatividade. Nenhuma pontua: o contrato do `ScoreSystem.runBonus` fica intacto.
+E `q` segue **exclusivo** do Portão — misturar quiques dos cinco poluiria a
+baseline de 48 lutas que calibrou a v1.8.
+
+**A restrição que continua de pé é outra**: o 1º nível de `stats` está em 12/12
+chaves com `hasOnly` fechada nas rules. Ali, sim, métrica nova exige publicar as
+rules **antes** do deploy do código, ou o write é negado em silêncio.
+
+---
+
+
 ## 📈 Decisões orientadas por dados (v1.6)
 
 Leitura de 48 jogadores, 981 tentativas, 512 corridas e 945 mortes da v1.5:
@@ -816,7 +908,7 @@ números de 24/08/2026 — os que dependem do registry de skins variam com ele:
 
 | Comando | Asserts | Foco |
 |---|---|---|
-| `npm run test-stats` | 108 | Telemetria/agregação, `holdDays` nas duas semânticas, consistência contra as rules (inclusive as letras `e/h/l/u/y/i` e as causas dos cinco chefes), digest — sem navegador |
+| `npm run test-stats` | 117 | Agregação, contadores (inclusive as 7 chaves de 2 caracteres da v1.9.5: gravadas quando > 0, omitidas quando 0, teto de 9999), consistência **contra as rules**, `holdDays` nas duas semânticas, `buildDigest` |
 | `npm run test-score` | 101 | A fórmula da pontuação composta: pesos, blitz na borda, teto do bônus, formatadores — e o contrato de recomputação (ao vivo == recomputado de `runs[]`), cobrindo camadas e vitória de todos os chefes |
 | `npm run test-challenge` | 101 | A Arena: melhor corrida na janela (bordas, empates, pontos ≠ metros), countdown, status, guardas de criação, o texto das rules do `challenges`, o **cancelamento** (`cancelledAt` gravado 1×, sobrevivendo ao normalize) e os TTLs adaptativos do cache |
 | `npm run test-reassign` | 61 | A recuperação de identidade: o merge puro (a invariante da monotonia — totais restaurados ≥ servidor), janela de runs, fusão do history, medalhas inferidas e as guardas do fluxo 🆘 (cooldown, gate, idempotência) |
@@ -824,19 +916,20 @@ números de 24/08/2026 — os que dependem do registry de skins variam com ele:
 | `npm run test-integrate` | 49 | A integração do estúdio como funções puras (round-trip, upsert/remove, patch dos blocos gerenciados do sw) |
 | `npm run test-sprites` | 31 | O **portão da aba Sprites**: contrato do SpriteParams, merge no Constants, paridade art/↔manifesto↔sw, w/h==viewBox, invariantes de spawn (elencos com terrestre, floresta sem voador, jaulas sem par) |
 | `npm run test-radiografia` | 62 | A radiografia: fixture sintética das 3 eras, conferência com o digest, `flattenRuns ⊇ RUN_COUNTERS`, determinismo byte a byte, zero writes por text-assert |
-| `npm run test-crash` | 54 | A rede de proteção (v1.9.1): a guarda de plausibilidade contra os dados REAIS de produção (barra 200 e 213 m/s, **aceita** as vitórias honestas de 23 e 11 m/s), a costura que faz o tempo chegar até a guarda, a ordem do `endGame` e a regra de ouro — sessão quebrada não grava recorde, não envia ao pódio, não grava run |
-| `npm run test-fix-ranking` | 24 | A classificação que decide quem perde a marca e quem tem a dele restaurada, com as corridas **verbatim** de produção como fixture |
-| `npm run test-e2e-crash` | 10 | Injeta uma exceção **real** no `update` e exige: overlay visível com saída, tentativa devolvida, nada gravado — e 50 crashes seguidos devolvendo UMA tentativa só |
+| `npm run test-crash` | 58 | A rede de proteção (v1.9.1): a guarda de plausibilidade contra os dados REAIS de produção (barra 200 e 213 m/s), a costura que faz o tempo chegar até a guarda, a ordem do `endGame` e o contrato do `crashToHome` — que **mudou de sentido na v1.9.5**: a sessão quebrada agora **grava** a corrida com causa `crash`, e segue sem recorde, sem pódio e sem telemetria |
+| `npm run test-fix-ranking` | 36 | A classificação que decide quem perde a marca e quem tem a dele restaurada, com corridas **verbatim** de produção. Duas causas: o cronômetro (mentiu no tempo) e a cascata dos chefes (distância sem a luta). A restauração só desce, e sem corrida suja ninguém é tocado — a janela de 50 rotaciona, e recorde antigo some sem culpa de ninguém |
+| `npm run test-investiga` | 31 | Os 5 detectores da linha de investigação perene, sem rede. Cada um com fixture de acerto **e** de falso-positivo — o `D5` nasceu acusando quem entra na arena e morre ali, que é jogo normal |
+| `npm run test-e2e-crash` | 11 | Injeta uma exceção **real** no `update` e exige: overlay visível com saída, tentativa devolvida, a corrida **presente** em `runs[]` com causa `crash` (v1.9.5) e recorde/pódio intactos — e 50 crashes seguidos devolvendo UMA tentativa só |
 | `npm run test-e2e-home` | 10 | A home desacoplada (v1.9.3): pintada com o motor ainda carregando (a suíte segura os SVGs de propósito) e o toque antecipado iniciando a corrida sozinho |
 | `npm run perf-home` | — | **Regressão de performance** da tela inicial (4G + CPU 4x). Critério RELATIVO: a distância entre "página pronta" e "pódio na tela" — o absoluto oscila com a rede, a espera não |
 | `npm run test-ramp` | 47 | Rampa/trampolim, abertura guiada, teclado, pausa + desistir, par/escolta, knockback, a home nova (cards de desafio no lugar da Campanha) e o contrato do toque |
-| `npm run test-boss` | 16 | A luta do portão: quique, ordem das camadas, fúria negada na arena, causa `boss` |
+| `npm run test-boss` | 18 | A luta do portão: quique, ordem das camadas, fúria negada na arena, causa `boss` — e (v1.9.4) o assert que **reproduz a cascata**: com o rino além do gatilho, os cinco chefes têm de continuar de pé |
 | `npm run test-boss2` | 14 | A Muralha (2000 m): 4 camadas abrindo NO ALTO, atirador vivo silenciado no início da luta, vitória sem encerrar a corrida, causa `boss2` |
 | `npm run test-boss3` | 10 | O Guardião: palíndromo de 5 camadas — e **a 5ª camada dispara a LENDA** |
 | `npm run test-e2e-deserto` | — | As Areias do Tempo no navegador: as 5 etapas com as famílias de fachada, a Barreira (letra `u`, +150) e o Faraó (5 camadas, letra `y`, +250, enrage 30 s), causas/títulos próprios |
 | `npm run test-special` | 25 | Bioma dos animais, ciclo completo da FÚRIA TOTAL, desabamento |
 | `npm run test-e2e-skins` | 15 | Comportamento das skins no navegador contra registry canônico injetado (arte do núcleo — imune a remoções do dono) |
-| `npm run test-e2e-setup` | 30 | O estúdio /?setup: gate, as quatro abas (catálogo ≥38 espécies; a 🆘 nasce com o Autorizar travado; zero requisição espontânea), card Servidores (nº varia com o gerador no ar ou não) |
+| `npm run test-e2e-setup` | 28 | O estúdio /?setup: gate, as quatro abas (catálogo ≥38 espécies; a 🆘 nasce com o Autorizar travado; zero requisição espontânea), card Servidores (nº varia com o gerador no ar ou não) |
 | `npm run test-e2e-stats` | 69 | Telemetria REAL no Firestore com sonda `claude-*`; prova que a suíte não suja produção |
 | `npm run radiografia` / `digest` | — | Análise de usabilidade completa / resumo diário — contra produção, **sem escrever nada** |
 

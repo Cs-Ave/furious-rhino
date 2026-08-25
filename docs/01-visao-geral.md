@@ -1,6 +1,6 @@
 # Furious Rhino — Visão geral
 
-> Documentação da versão **1.9.3** · atualizada em 24/08/2026
+> Documentação da versão **1.9.5** · atualizada em 25/08/2026
 > Este documento é para quem **não é programador**. Sem jargão — e quando um termo técnico for inevitável, ele vem explicado entre parênteses.
 
 ## O que é
@@ -30,7 +30,7 @@ A regra de ouro: cada obstáculo tem um jeito certo de passar. Parede rachada se
 
 Correr **1000 metros** até o portão do zoológico e escapar. No caminho, o cenário muda (jaulas, aviário, savana, floresta, pântano) — e **cada ambiente tem seus próprios perseguidores**: tratadores com rede nas jaulas, hienas e búfalos na savana, jacarés no pântano. E eles vêm em peso: animais aparecem em dupla e escoltando os obstáculos — o zoológico inteiro está na sua cola. O dia vira entardecer, e a **fúria** do rinoceronte cresce — ele fica mais rápido, mais vermelho, e a música mais intensa.
 
-Só que o portão não está mais escancarado: ele amanhece **blindado**, com um **caçador de rifle tranquilizante** no topo. É a batalha final do jogo — é preciso quebrar as três camadas da blindagem com investidas certeiras, desviando dos tiros, até o portão vir abaixo. Aí sim ele **explode em pedaços** com fogos e confete... e a corrida continua: começa o **modo infinito**, agora pela cidade (com carros, pedestres em pânico e até um teco-teco), à noite, para ver até onde você aguenta. E a cidade não desiste: aos **2000 metros** uma barricada de contenção com um **canhão de redes** bloqueia a avenida (**O Cerco**, o segundo chefe), e lá no **fim do mundo** (10.000 m) espera o **Caçador-Mor** — vencê-lo é o que transforma o rinoceronte em **LENDA**. O recorde de cada corrida fica salvo, e existe um **ranking mundial** — você escolhe um apelido e compete com todo mundo que joga.
+Só que o portão não está mais escancarado: ele amanhece **blindado**, com um **caçador de rifle tranquilizante** no topo. É a batalha final do jogo — é preciso quebrar as três camadas da blindagem com investidas certeiras, desviando dos tiros, até o portão vir abaixo. Aí sim ele **explode em pedaços** com fogos e confete... e a corrida continua: começa o **modo infinito**, agora pela cidade (com carros, pedestres em pânico e até um teco-teco), à noite, para ver até onde você aguenta. E o caminho não desiste: são **cinco** batalhas até o fim. Aos **2000 metros** a cidade barrica a avenida com holofotes e um cão de guarda (**a Muralha**); depois vem o deserto, com a **Barreira da Escavação** aos 3650 m e o **Faraó de Bronze** aos 4700 m — o mais agressivo de todos; e lá no **fim do mundo** (10.000 m) espera o **Caçador-Mor** — vencê-lo é o que transforma o rinoceronte em **LENDA**. O recorde de cada corrida fica salvo, e existe um **ranking mundial** — você escolhe um apelido e compete com todo mundo que joga.
 
 ## Uma analogia
 

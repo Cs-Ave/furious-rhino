@@ -123,6 +123,43 @@ O `.bat` abre `http://localhost:3210/` porque essa é a **página avulsa antiga*
 
 ---
 
+### 25/08/2026 — ⚠️ Correção da resposta acima: no dia em que ela foi escrita, os cinco chefes estavam sendo atravessados sem luta
+
+**A resposta de 23/08 diz "cinco lutas, TODAS vivas no jogo" e "nenhum boss está
+fora do jogo hoje". A tabela de poderes está correta — o veredito não estava.**
+Naquele momento os cinco existiam no código, tinham arte, telemetria e tabela de
+tiro, e **nenhum deles precisava ser vencido para seguir em frente**.
+
+**O que estava acontecendo.** Um gatilho antigo declarava a fuga pela **posição**
+do rinoceronte na linha dos 1000 m. Ele deveria valer só no modo de teste, mas
+rodava na partida normal — e a janela entre a face do portão e essa linha é de
+120 px, que um único quadro travado de 85 ms atravessa. Feita a fuga sem luta,
+cada chefe seguinte olhava a própria âncora, via o rino já do outro lado e se
+rendia. Em cascata, até o fim do mundo.
+
+**Desde quando.** Da **v1.8.5** (21/08) à **v1.9.3**. A última camada quebrada
+por um jogador na base inteira foi em **22/08 16:14, v1.8.3**. Corrigido na
+**v1.9.4**.
+
+**A consequência que muda a resposta de verdade:** a Muralha, a Barreira da
+Escavação, o Faraó de Bronze e o Caçador-Mor chegaram **dentro** dessa janela —
+entre a v1.8.5 e a v1.8.10. Ou seja, **nunca estiveram de pé**. Ninguém jamais
+derrotou nenhum dos quatro. A v1.9.4 é a primeira versão em que os cinco
+existem de verdade, e o jogo ficou sensivelmente mais difícil **sem que nada
+neles tenha mudado**. Se alguém disser que "ficou muito mais difícil de
+repente", não é impressão nem regressão: é o jogo funcionando pela primeira vez.
+
+**A lição de método, que vale além dos chefes.** A resposta de 23/08 foi
+levantada lendo o **código** — as cinco `def` estavam lá, completas e corretas.
+O que faltou foi perguntar aos **dados** se alguém realmente lutava: bastava
+uma consulta de "quantas camadas foram quebradas por versão" para o zero
+aparecer. Desde então isso virou detector permanente (`D3-vitoria-sem-chefe` e
+`D5-arena-sem-quebra` no `npm run investiga`), justamente para que a pergunta
+seja feita sozinha a cada coleta. **Código presente não é funcionalidade viva.**
+
+---
+
+
 ## 🪪 Identidade — quem é o jogador para o jogo
 
 ### 23/08/2026 — Reinstalei o PWA no celular, o apelido "Teco" não voltou e, ao tentar registrá-lo de novo, o jogo disse que "já está em uso". O que aconteceu? Como recuperar?

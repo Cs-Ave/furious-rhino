@@ -5,7 +5,30 @@
 
 ---
 
-## v1.9.3 — 24/08/2026 (versão atual)
+## v1.9.5 — 24/08/2026 (versão atual)
+
+**Tema: os cinco chefes deixam de ser "um medido e quatro cegos".**
+
+- **A auditoria que motivou a versão**: conferindo se tudo estava sendo coletado, apareceu que **dos cinco chefes só o Caçador do Portão era medível**. O tempo de luta já era calculado nos cinco e **morria com a partida** em três deles (a Barreira, o Faraó e o Caçador-Mor); os quiques de quatro eram contados sessenta vezes por segundo e jogados fora no fim. Não havia como distinguir "lutou quarenta segundos e perdeu" de "passou direto".
+- **O que passou a ser guardado**: tempo de luta da Barreira, do Faraó e do Caçador-Mor, e os quiques de cada um dos quatro chefes que não são o Portão. Nada disso pontua — a fórmula do ranking continua exatamente a mesma.
+- **A corrida que trava voltou a existir**: até aqui, quando o jogo congelava, a partida **não era registrada em lugar nenhum**. Foi um efeito colateral da v1.9.1: "não pontuar" virou "não registrar" sem querer, e justamente a corrida anômala — a que a investigação precisa ver — apagava a própria evidência. Agora ela é gravada com a causa `travamento` e com os dois relógios, **continuando sem valer pontos**. O aviso na tela ficou mais preciso: em vez de "esta corrida não foi salva", agora diz **"esta corrida não valeu pontos e a tentativa foi devolvida"** — porque salva ela passou a ser.
+- **"Minhas estatísticas" mostrava três chefes de cinco**: as camadas da Barreira e do Faraó nunca apareciam, e a linha da Muralha estava rotulada como "Cerco" desde que a Muralha herdou o slot dos 2000 m na v1.8.7. Os cinco agora aparecem com o nome certo.
+- **Duas causas de morte eram gravadas e nunca somadas** no relatório de análise (`cerco` e `farao`, desde a v1.8.10) — entraram na conta.
+- **O histórico por dia não pode mais divergir**: o registro da corrida e o do dia ficavam a 180 linhas de distância um do outro, com catorze acessos à tela desprotegidos no meio. Se qualquer um falhasse, a corrida entrava no histórico recente e **nunca** na contagem do dia — e essa é irrecuperável. Os dois passaram a andar juntos.
+- **Logo depois (25/08)**: com a causa da versão anterior corrigida, o ranking mundial foi limpo. Duas marcas de 10.000 metros que vinham da falha dos chefes saíram do topo, e cada jogador **voltou à melhor marca legítima dele** — ninguém foi apagado. O novo pódio: Ícaroo brabo (5.185), Thomas (4.606) e Caio Lindão (3.468).
+
+## v1.9.4 — 24/08/2026
+
+**Tema: os cinco chefes voltam a existir.**
+
+- **O problema, e ele era grande**: desde a v1.8.5 dava para **atravessar o jogo inteiro sem lutar contra nenhum chefe**. São vinte e uma camadas no caminho — e as quatro vitórias registradas na base tinham derrubado **zero**. A última camada quebrada por alguém foi em 22/08.
+- **Como acontecia**: existia um gatilho antigo que declarava a fuga pela simples **posição** do rinoceronte na linha dos 1000 metros. Ele deveria valer só no modo de teste, mas rodava na partida normal. A janela entre a face do portão e essa linha é de 120 pixels — **um único quadro travado de 85 milissegundos a atravessa**. Bastava isso: a fuga contava sem luta, e daí cada chefe seguinte olhava para a própria âncora, via o rinoceronte já do outro lado e se rendia. Em cascata, até o fim do mundo.
+- **A correção**: quem decide a fuga é a queda da terceira camada do Caçador do Portão, como sempre esteve documentado. O atalho por posição passou a exigir o modo de teste explicitamente, nos cinco chefes.
+- **Consequência que vale saber**: a Muralha, a Barreira da Escavação, o Faraó de Bronze e o Caçador-Mor **nunca estiveram realmente de pé**. Os três primeiros chegaram entre a v1.8.5 e a v1.8.10, exatamente na janela da falha. Esta é a primeira versão em que os cinco existem de verdade — o jogo ficou mais difícil sem que nada neles tenha mudado.
+- **Uma linha de investigação que não se perde**: nasceram o `docs/INVESTIGACOES.md` (documento vivo onde cada hipótese descartada guarda **o teste que a matou**, para ninguém repetir caminho morto) e o `npm run investiga`, que passa cinco detectores sobre as corridas de produção e grava um retrato datado para comparar com a coleta seguinte.
+
+
+## v1.9.3 — 24/08/2026
 
 **Tema: a tela inicial deixou de esperar o jogo carregar.**
 
@@ -22,6 +45,14 @@
 - **O bug**: algumas corridas foram gravadas com um tempo muito menor que o real — uma partida de 10.000 metros aparecendo como 47 segundos. A **distância era verdadeira**; quem mentia era o cronômetro. Vinte e duas dessas marcas foram parar no topo do ranking mundial, empatadas no teto de pontos.
 - **O instrumento**: cada corrida passou a gravar também **quanto tempo o jogo acredita ter rodado**, ao lado do tempo de relógio. Os dois lado a lado dizem o que aconteceu: se batem, foi a distância que saltou; se o do jogo é maior, a partida rodou acelerada; se é menor, o jogo congelou. Num jogo saudável os dois praticamente coincidem.
 - **A limpeza, com a regra que importa**: quem tinha uma marca legítima anterior **não foi apagado — teve a marca de volta**. Seis jogadores foram restaurados, incluindo um cuja vitória verdadeira (10.000 metros em 15 minutos) o teria levado ao segundo lugar por mérito, e que um apagamento cego teria destruído. As dezesseis contas que nunca tiveram uma corrida possível saíram, e as corridas impossíveis foram removidas do histórico — elas também venciam qualquer desafio automaticamente.
+- **⚠️ Correção registrada em 25/08/2026**: a frase acima, sobre a "vitória verdadeira"
+  de 10.000 metros em 15 minutos, **estava errada**. Aquela corrida não foi mérito — foi a
+  falha dos chefes corrigida na v1.9.4, e o jogador atravessou o mundo sem derrubar nenhuma
+  das vinte e uma camadas. O erro foi de critério: julgou-se pela **velocidade** (11 metros
+  por segundo, o ritmo de qualquer jogador), quando o que denunciava era a **luta que não
+  houve**. A marca foi desfeita em 25/08 e o jogador voltou à melhor corrida legítima dele.
+  O resto desta entrada continua valendo: a regra de restaurar em vez de apagar estava certa,
+  e foi ela que preservou as marcas anteriores dos dois envolvidos quando o erro foi desfeito.
 - Toda a operação guardou uma **cópia de segurança completa** antes de tocar em qualquer coisa.
 
 ## v1.9.1 — 23/08/2026
