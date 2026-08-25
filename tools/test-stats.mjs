@@ -424,5 +424,53 @@ eq('rules têm o bloco challenges com leitura pública',
   localStorage.removeItem('furious_rhino_runs');
 }
 
+
+// ---------- v1.9.5: os 5 chefes deixam de ser 1 chefe medido + 4 cegos ----------
+// A auditoria de 24/08 achou 7 chegadas na Barreira, 6 no Farao e 4 no
+// Cacador-Mor — TODAS cegas: sem cronometro, nao havia como distinguir
+// "lutou 40s e perdeu" de "passou direto". O dado ja era calculado (o
+// fightMs roda nos 5 chefes) e morria com a cena.
+{
+  localStorage.removeItem('furious_rhino_runs');
+  StorageManager.addRun(4000, 300, 'farao', {
+    cercoFightS: 18, faraoFightS: 42, boss3FightS: 0,
+    boss2Bounces: 5, cercoBounces: 3, faraoBounces: 9, boss3Bounces: 0,
+    cercoLayersBroken: 4, faraoLayersBroken: 2,
+  });
+  const r = StorageManager.getRuns().pop();
+  eq('cronometro da Barreira e do Farao chegam ao runs[]', [r.zu, r.zy], [18, 42]);
+  eq('quiques dos chefes novos chegam ao runs[]', [r.qe, r.qu, r.qy], [5, 3, 9]);
+  eq('zero segue OMITIDO tambem nas chaves novas (byte-budget)',
+    ['zl' in r, 'ql' in r], [false, false]);
+  eq('as camadas seguem no lugar (contrato do runBonus intacto)', [r.u, r.y], [4, 2]);
+
+  // O teto de 9999 vale para elas como para todas
+  localStorage.removeItem('furious_rhino_runs');
+  StorageManager.addRun(100, 10, 'wall', { faraoFightS: 999999, faraoBounces: 999999 });
+  const t = StorageManager.getRuns().pop();
+  eq('as chaves novas respeitam o teto de 9999', [t.zy, t.qy], [9999, 9999]);
+
+  // A garantia que protege o byte-budget da janela inteira
+  localStorage.removeItem('furious_rhino_runs');
+  StorageManager.addRun(50, 5, 'spike');
+  eq('corrida sem extras continua com so c,m,s,t (7 chaves novas nao incham)',
+    Object.keys(StorageManager.getRuns().pop()).sort().join(','), 'c,m,s,t');
+  localStorage.removeItem('furious_rhino_runs');
+}
+
+// ---------- v1.9.5: a corrida que TRAVA passa a ser registrada ----------
+// Ate a v1.9.4 o crashToHome nao chamava addRun: "nao pontuar" e "nao
+// registrar" viraram a mesma coisa por acidente, e a corrida ANOMALA — a que
+// a investigacao precisa ver — apagava a propria evidencia.
+{
+  localStorage.removeItem('furious_rhino_runs');
+  StorageManager.addRun(640, 47, 'crash', { loopS: 46, version: '1.9.5' });
+  const c = StorageManager.getRuns().pop();
+  eq('a corrida travada entra no runs[] com causa `crash`', c.c, 'crash');
+  eq('...levando os dois relogios (e o par que denuncia o bug)', [c.s, c.i], [47, 46]);
+  eq('...e a versao, para saber em qual build travou', c.v, '1.9.5');
+  localStorage.removeItem('furious_rhino_runs');
+}
+
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

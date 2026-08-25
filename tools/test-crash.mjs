@@ -124,16 +124,36 @@ eq('submit sem `seconds` mantém o comportamento de antes',
   }
   eq('crashToHome existe e é idempotente',
     /crashToHome\(motivo\) \{[\s\S]{0,300}?if \(this\.gameOver\) return/.test(gs), true);
-  eq('crashToHome devolve a tentativa contada no startRun',
-    /crashToHome[\s\S]{0,900}?StorageManager\.removeAttempt\(\)/.test(gs), true);
+  // Ancorado por ÍNDICE: um limite de caracteres quebra sempre que o método
+  // cresce (foi o que aconteceu na v1.9.5, ao gravar a corrida).
+  {
+    const iC = gs.indexOf('crashToHome(motivo) {');
+    const iFim = gs.indexOf('\n  }', iC);
+    eq('crashToHome devolve a tentativa contada no startRun',
+      gs.slice(iC, iFim).includes('removeAttempt()'), true);
+  }
 
-  // Regra de ouro: sessão quebrada NÃO pontua.
+  // Regra de ouro: sessão quebrada NÃO PONTUA.
+  //
+  // v1.9.5 — o assert "NÃO grava a corrida" MUDOU DE SENTIDO, de propósito.
+  // Ele afirmava uma regra que se mostrou errada: não pontuar e não
+  // registrar viraram a mesma coisa por acidente, e a corrida ANÔMALA — a
+  // que a investigação precisa ver — apagava a própria evidência. Agora a
+  // corrida É gravada com a causa `crash`, e tudo o mais continua valendo.
   const iCrash = gs.indexOf('crashToHome(motivo) {');
-  const corpoCrash = gs.slice(iCrash, iCrash + 1400);
+  const corpoCrash = gs.slice(iCrash, iCrash + 2600);
   eq('crashToHome NÃO grava recorde', /saveRecord/.test(corpoCrash), false);
   eq('crashToHome NÃO envia ao pódio', /submitScore|LeaderboardSystem/.test(corpoCrash), false);
-  eq('crashToHome NÃO grava a corrida', /addRun|addPlayTimeS/.test(corpoCrash), false);
-  eq('crashToHome NÃO manda telemetria', /StatsSystem/.test(corpoCrash), false);
+  eq('crashToHome NÃO manda telemetria ao servidor', /StatsSystem/.test(corpoCrash), false);
+  eq('crashToHome GRAVA a corrida (a anômala não pode mais sumir)',
+    /StorageManager\.addRun\(/.test(corpoCrash), true);
+  eq('...com a causa `crash`', /'crash'/.test(corpoCrash), true);
+  eq('...e levando a sonda do loop junto (é o par que denuncia o bug)',
+    /loopS/.test(corpoCrash), true);
+  eq('...sem deixar de devolver a tentativa',
+    /removeAttempt\(\)/.test(corpoCrash), true);
+  eq('a gravação é blindada — o handler de pânico não pode entrar em pânico',
+    /try \{[\s\S]{0,700}?StorageManager\.addRun\([\s\S]{0,400}?\} catch/.test(corpoCrash), true);
 
   eq('a cena publica a ponte para os handlers globais',
     /window\.__frCrash\s*=/.test(gs), true);

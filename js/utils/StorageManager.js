@@ -461,6 +461,29 @@ export class StorageManager {
     // i >> s → loop acelerado; i << s → o loop congelou. Não pontua (o
     // runBonus não a lê), então o contrato da pontuação segue intacto.
     i: 'loopS',
+    // v1.9.5 — O ALFABETO DE 1 LETRA ACABOU no `i`, e estas 7 chaves o rompem
+    // de propósito. O motivo registrado para não coletá-las era "orçamento de
+    // letras", mas o custo foi MEDIDO: contador zero é omitido logo abaixo
+    // (`if (v > 0)`) e luta nesses chefes é rara — na base inteira de 1.070
+    // corridas, as 7 chaves custariam ~136 bytes. O maior doc de stats tem
+    // 5,8 KB contra o limite de 1 MB do Firestore, e as rules NÃO validam as
+    // chaves de runs[] (só `runs is list && size() <= 50`): o alfabeto curto
+    // sempre foi convenção nossa, não regra técnica.
+    //
+    // O que elas destravam: até aqui, dos 5 chefes só o PORTÃO era medível.
+    // A auditoria de 24/08 mostrou 7 chegadas na Barreira, 6 no Faraó e 4 no
+    // Caçador-Mor — todas cegas, sem forma de distinguir "lutou 40 s e
+    // perdeu" de "passou direto". O dado já era calculado (o `fightMs` roda
+    // nos 5) e morria com a cena.
+    zu: 'cercoFightS',   // segundos de luta na Barreira da Escavação (3650m)
+    zy: 'faraoFightS',   // segundos de luta contra o Faraó de Bronze (4700m)
+    zl: 'boss3FightS',   // segundos de luta contra o Caçador-Mor (9995m)
+    // Quiques: `q` segue EXCLUSIVO do portão (a baseline de 48 lutas que
+    // calibrou a v1.8 não pode ser poluída), e cada chefe novo ganha o seu.
+    qe: 'boss2Bounces',  // quiques na Muralha (2000m)
+    qu: 'cercoBounces',  // quiques na Barreira (3650m)
+    qy: 'faraoBounces',  // quiques no Faraó (4700m)
+    ql: 'boss3Bounces',  // quiques no Caçador-Mor (9995m)
   };
 
   // Até a v1.6.1 a fúria não entrava aqui por ser posicional (contida no

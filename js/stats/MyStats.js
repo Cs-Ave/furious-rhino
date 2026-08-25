@@ -64,7 +64,9 @@ export function mySummary() {
   const attempts = StorageManager.getAttempts();
   const playTimeS = StorageManager.getPlayTimeS();
 
-  const totals = { w: 0, r: 0, o: 0, a: 0, j: 0, d: 0, x: 0, f: 0, b: 0, n: 0, e: 0, l: 0 };
+  // v1.9.5: `u` e `y` (Barreira e Farao) faltavam — as camadas dos dois
+  // chefes do deserto nunca apareciam para o jogador.
+  const totals = { w: 0, r: 0, o: 0, a: 0, j: 0, d: 0, x: 0, f: 0, b: 0, n: 0, e: 0, l: 0, u: 0, y: 0 };
   for (const run of runs) {
     for (const k of Object.keys(totals)) totals[k] += Number(run && run[k]) || 0;
   }
@@ -163,8 +165,12 @@ export function renderMyStats(root) {
       ['💨 investidas', t.d],
       ['🔥 especiais usados', t.f],
       ['🎯 camadas do portão quebradas', t.b],
-      ['🕸️ camadas do Cerco quebradas', t.e],
-      ['🏹 camadas do Guardião quebradas', t.l],
+      // v1.9.5: `e` é a MURALHA (2000m), não o Cerco — o rótulo estava
+      // trocado desde que a Muralha herdou o slot na v1.8.7.
+      ['🧱 camadas da Muralha quebradas', t.e],
+      ['⛏️ camadas da Barreira quebradas', t.u],
+      ['🏺 camadas do Faraó quebradas', t.y],
+      ['🏹 camadas do Caçador-Mor quebradas', t.l],
       ['🔒 fúrias seguradas no portão', t.n],
       ['⬆️ pulos', t.j],
     ]));

@@ -46,17 +46,32 @@ const depois = await page.evaluate(() => ({
   overlay: getComputedStyle(document.getElementById('crash-overlay')).display,
   tentativas: +localStorage.getItem('furious_rhino_attempts'),
   runs: JSON.parse(localStorage.getItem('furious_rhino_runs') || '[]').length,
+  ultima: JSON.parse(localStorage.getItem('furious_rhino_runs') || '[]').pop() || null,
   recorde: +localStorage.getItem('furious_rhino_record'),
   recordePts: +localStorage.getItem('furious_rhino_record_pts'),
   enviado: localStorage.getItem('furious_rhino_best_sent'),
   texto: document.getElementById('crash-overlay').textContent.replace(/\s+/g, ' ').trim().slice(0, 110),
+  textoCompleto: document.getElementById('crash-overlay').textContent.replace(/\s+/g, ' ').trim(),
   temBotao: !!document.querySelector('#crash-overlay button'),
 }));
 ok('3. o jogador VE o overlay (nao fica com a tela morta)', depois.overlay === 'flex', `display=${depois.overlay}`);
 ok('4. ...com saida clicavel', depois.temBotao);
-ok('5. ...e texto honesto', /não foi salva|devolvid/i.test(depois.texto), `"${depois.texto}"`);
+// v1.9.5: o texto mudou de "nao foi salva" para "nao valeu pontos" — a
+// corrida AGORA e registrada (para diagnostico), so nao pontua. Dizer
+// "nao foi salva" passaria a mentir para quem visse a corrida no historico.
+ok('5. ...e texto honesto sobre o que aconteceu',
+  /não valeu pontos/i.test(depois.texto) && /devolvid/i.test(depois.textoCompleto || depois.texto),
+  `"${depois.texto}"`);
 ok('6. a tentativa foi DEVOLVIDA', depois.tentativas === 40, `att=${depois.tentativas}`);
-ok('7. sessao quebrada NAO grava corrida', depois.runs === antes.runs, `runs=${depois.runs}`);
+// v1.9.5: INVERTIDO de proposito. A corrida quebrada agora E gravada (com a
+// causa `crash`) — o que ela nao faz e PONTUAR. A regra antiga apagava
+// justamente a corrida anomala, que e a que a investigacao precisa ver.
+ok('7. a corrida quebrada E gravada, com causa `crash`',
+  depois.runs === antes.runs + 1 && depois.ultima && depois.ultima.c === 'crash',
+  `runs=${antes.runs}->${depois.runs} c=${depois.ultima && depois.ultima.c}`);
+ok('7b. ...levando a sonda do loop junto (o par que denuncia o bug)',
+  Boolean(depois.ultima && depois.ultima.i !== undefined),
+  `i=${depois.ultima && depois.ultima.i}`);
 ok('8. sessao quebrada NAO mexe no recorde', depois.recorde === 900 && depois.recordePts === 1200,
   `rec=${depois.recorde}/${depois.recordePts}`);
 ok('9. sessao quebrada NAO envia ao podio', !depois.enviado, `best_sent=${depois.enviado}`);

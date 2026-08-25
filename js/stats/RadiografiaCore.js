@@ -46,7 +46,9 @@ export function decode(v) {
 // Letras-contador de runs[] — espelho de StorageManager.RUN_COUNTERS (que não
 // pode ser importado aqui: localStorage). O teste assere que esta lista cobre
 // TODAS as chaves de lá: letra nova gravada sem leitor aqui = teste vermelho.
-export const RUN_LETTER_KEYS = ['w', 'r', 'o', 'a', 'j', 'd', 'x', 'p', 'f', 'n', 'b', 'q', 'z', 'e', 'h', 'l', 'u', 'y', 'i'];
+export const RUN_LETTER_KEYS = ['w', 'r', 'o', 'a', 'j', 'd', 'x', 'p', 'f', 'n', 'b', 'q', 'z', 'e', 'h', 'l', 'u', 'y', 'i',
+  // v1.9.5: as 7 de 2 caracteres — o alfabeto de 1 letra acabou no `i`
+  'zu', 'zy', 'zl', 'qe', 'qu', 'qy', 'ql'];
 
 // Significado curto de cada letra (imprime na cobertura do relatório)
 export const RUN_LETTER_DESC = {
@@ -61,6 +63,13 @@ export const RUN_LETTER_DESC = {
   // comparar com o `s` (relógio de parede). Divergência grande entre os dois
   // é o bug do tempo encolhido de agosto/26.
   i: 'segundos pelo loop (vs `s` de parede)',
+  // v1.9.5 — os chefes que eram cegos: ate aqui so o portao (`z`) e a
+  // Muralha (`h`) tinham cronometro, e os quiques so existiam no portao
+  zu: 'segundos de luta (Barreira 3650m)',
+  zy: 'segundos de luta (Farao 4700m)',
+  zl: 'segundos de luta (Cacador-Mor 9995m)',
+  qe: 'quiques (Muralha)', qu: 'quiques (Barreira)',
+  qy: 'quiques (Farao)', ql: 'quiques (Cacador-Mor)',
 };
 
 const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
@@ -457,6 +466,14 @@ export function radiografia({ stats = [], scores = [], challenges = [] } = {}, o
   const chegadasB2 = runs.filter((r) => r.m >= 2000 || r.e > 0 || r.h > 0 || r.c === 'boss2');
   const distB2 = distDe('e', 4);
   for (const r of chegadasB2) distB2[Math.min(r.e, 4)]++;
+  // v1.9.5: mesma regra dos anteriores — chegou na ancora, quebrou camada,
+  // marcou tempo de luta ou morreu ali.
+  const chegadasBarreira = runs.filter((r) => r.m >= 3650 || r.u > 0 || r.zu > 0 || r.c === 'cerco');
+  const distBarreira = distDe('u', 4);
+  for (const r of chegadasBarreira) distBarreira[Math.min(r.u, 4)]++;
+  const chegadasFarao = runs.filter((r) => r.m >= 4700 || r.y > 0 || r.zy > 0 || r.c === 'farao');
+  const distFarao = distDe('y', 5);
+  for (const r of chegadasFarao) distFarao[Math.min(r.y, 5)]++;
   const bosses = {
     b1: {
       lutas: lutasB1.length,
@@ -473,8 +490,27 @@ export function radiografia({ stats = [], scores = [], challenges = [] } = {}, o
       medianaS: Math.round(mediana(chegadasB2.filter((r) => r.h > 0).map((r) => r.h))),
       mortes: somaDeaths('boss2'),
     },
+    // v1.9.5: a Barreira e o Farao existiam no jogo desde a v1.8.10 e NAO
+    // tinham metrica nenhuma aqui — o relatorio pulava de b2 para b3. Com os
+    // cronometros novos (`zu`/`zy`) da para separar "lutou e perdeu" de
+    // "passou direto", que era exatamente a cegueira registrada na ideia M.
+    barreira: {
+      chegadas: chegadasBarreira.length,
+      dist: distBarreira,
+      fullClear: chegadasBarreira.filter((r) => r.u >= 4).length,
+      medianaS: Math.round(mediana(chegadasBarreira.filter((r) => r.zu > 0).map((r) => r.zu))),
+      mortes: somaDeaths('cerco'),
+    },
+    farao: {
+      chegadas: chegadasFarao.length,
+      dist: distFarao,
+      fullClear: chegadasFarao.filter((r) => r.y >= 5).length,
+      medianaS: Math.round(mediana(chegadasFarao.filter((r) => r.zy > 0).map((r) => r.zy))),
+      mortes: somaDeaths('farao'),
+    },
     b3: {
       corridasComCamada: runs.filter((r) => r.l > 0).length,
+      medianaS: Math.round(mediana(runs.filter((r) => r.zl > 0).map((r) => r.zl))),
       mortes: somaDeaths('boss3'),
       lendas: runs.filter((r) => r.c === 'win' && r.m >= 10000).length,
     },
@@ -561,7 +597,10 @@ export function radiografia({ stats = [], scores = [], challenges = [] } = {}, o
   // -------------------------------------------------------------- 12. mortes
   const mortes = { porTier: {}, porCausa: {} };
   for (const key of ['t1', 't2', 't3', 't4', 't5', 't6']) mortes.porTier[key] = somaDeaths(key);
-  for (const key of ['wall', 'spike', 'animal', 'dart', 'tower', 'boss', 'boss2', 'boss3', 'fall']) {
+  // v1.9.5: `cerco` e `farao` eram gravados desde a v1.8.10 e nunca
+  // somados aqui — as mortes dos dois chefes do deserto nao apareciam
+  // em relatorio nenhum.
+  for (const key of ['wall', 'spike', 'animal', 'dart', 'tower', 'boss', 'boss2', 'cerco', 'farao', 'boss3', 'fall']) {
     mortes.porCausa[key] = somaDeaths(key);
   }
 

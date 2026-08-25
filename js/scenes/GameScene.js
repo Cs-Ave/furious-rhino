@@ -382,6 +382,25 @@ export class GameScene extends Phaser.Scene {
       try { this.physics.pause(); } catch (e) { /* física já foi embora */ }
       try { this.audio.stopMusic(); } catch (e) { /* áudio já foi embora */ }
 
+      // v1.9.5: REGISTRA a corrida com a causa `crash`. Até aqui a sessão
+      // quebrada não era gravada em lugar nenhum — e "não pontuar" virou
+      // "não registrar" por acidente: justamente a corrida ANÔMALA, a que a
+      // investigação precisa ver, apagava a própria evidência.
+      // Continua sem pontuar: nada de recorde, nada de pódio, nada de envio.
+      // A causa é string livre de 8 chars — custo zero nas rules.
+      try {
+        const metros = this.rhino ? this.rhino.getDistance() : 0;
+        const parado = this.pausedMs + (this.paused ? Date.now() - this.pauseStartedAt : 0);
+        const segundos = Math.min(7200, Math.max(0, Math.round(
+          (Date.now() - (this.runStartedAt || Date.now()) - (parado || 0)) / 1000)));
+        // Só o essencial: numa cena meio destruída, cada leitura a mais é
+        // uma chance a mais de o handler de pânico entrar em pânico.
+        StorageManager.addRun(metros, segundos, 'crash', {
+          loopS: Math.round((this.runLoopMs || 0) / 1000),
+          version: Constants.VERSION,
+        });
+      } catch (e) { /* sem a corrida, mas o encerramento segue */ }
+
       // Devolve a tentativa contada no startRun (mesmo gesto do "Desistir"
       // da pausa): corrida que nem chegou ao fim não é tentativa gasta.
       try { StorageManager.removeAttempt(); } catch (e) { /* storage cheio/bloqueado */ }
@@ -3444,7 +3463,9 @@ export class GameScene extends Phaser.Scene {
     // v1.8.4: pontuação composta = metros + bônus das façanhas. Os METROS
     // seguem sendo a marca física (medalhas, skins, estacas da pista).
     const bossFightS = Math.round((this.bossFight ? this.bossFight.fightMs : 0) / 1000);
-    // v1.8.5: duração da luta do Cerco (letra `h` do runs[])
+    // v1.8.5: duração da luta da MURALHA (letra `h`). O comentário dizia
+    // "Cerco" até a v1.9.5 — e o Cerco/Barreira é outro chefe (3650m, letra
+    // `zu`). Quem cruzasse `h` com `u` chegaria a conclusão errada.
     const boss2FightS = Math.round((this.boss2Fight ? this.boss2Fight.fightMs : 0) / 1000);
     const escaped = won || distance >= (Constants.WIN_DISTANCE_PX / Constants.PIXELS_PER_METER);
     const bonus = this.runBonus + ScoreSystem.endBonus({
@@ -3490,6 +3511,18 @@ export class GameScene extends Phaser.Scene {
       // A; sem letras de segundos, precedente do boss3)
       cercoLayersBroken: this.runCercoLayers,
       faraoLayersBroken: this.runFaraoLayers,
+      // v1.9.5: os cronômetros que faltavam. O `fightMs` já era calculado nos
+      // CINCO chefes (BossFight.update) — estes três morriam com a cena, e
+      // sem eles não havia como separar "lutou e perdeu" de "passou direto".
+      cercoFightS: Math.round((this.cercoFight ? this.cercoFight.fightMs : 0) / 1000),
+      faraoFightS: Math.round((this.faraoFight ? this.faraoFight.fightMs : 0) / 1000),
+      boss3FightS: Math.round((this.boss3Fight ? this.boss3Fight.fightMs : 0) / 1000),
+      // v1.9.5: os quiques dos 4 chefes novos. Eram contados 60x por segundo
+      // durante a luta (BossFight via `bouncesProp`) e descartados aqui.
+      boss2Bounces: this.runBoss2Bounces,
+      cercoBounces: this.runCercoBounces,
+      faraoBounces: this.runFaraoBounces,
+      boss3Bounces: this.runBoss3Bounces,
       // v1.9.2: o relógio do LOOP (letra `i`) ao lado do relógio de parede
       // (`s`) — é o par que denuncia o bug do cronômetro
       loopS: Math.round(this.runLoopMs / 1000),
@@ -3497,6 +3530,15 @@ export class GameScene extends Phaser.Scene {
       version: Constants.VERSION,
       skin: this.skin ? this.skin.id : 'default',
     });
+
+    // v1.9.5: o `recordRun` anda JUNTO do addRun, e não 180 linhas abaixo.
+    // Os dois registram a MESMA corrida, mas com durabilidades diferentes:
+    // `attempts`/`runs[]` são snapshot (o próximo envio cura), enquanto o
+    // `history.days[dia].r` que o recordRun alimenta é INCREMENTO — se algo
+    // entre os dois estourasse (havia 14 getElementById desprotegidos no
+    // caminho), aquela corrida sumia do `days` PARA SEMPRE, e é dele que
+    // saem o gráfico do painel, o execPorDia da radiografia e o digest.
+    this.safeTelemetry(() => StatsSystem.recordRun(distance));
 
     // v1.9.1: recorde local blindado — se o localStorage estourar (cota cheia,
     // modo privado), o fim de jogo TEM de continuar: o overlay precisa
@@ -3648,7 +3690,8 @@ export class GameScene extends Phaser.Scene {
     // v1.8.12: e relê a LISTA — enquanto eu jogava, o convidado pode ter
     // aceitado (o card ficava em "aguardando fulano" até o TTL vencer)
     this.safeTelemetry(() => ChallengeSystem.refresh(true).then(() => this.renderChallenges()));
-    this.safeTelemetry(() => StatsSystem.recordRun(distance).then(() => StatsSystem.send()));
+    // v1.9.5: o `recordRun` subiu para junto do addRun — ver o comentário lá.
+    this.safeTelemetry(() => StatsSystem.send());
     // Acumula no resumo da sessão (o push sai na saída ou no tempo configurado)
     this.safeTelemetry(() => NotifySystem.noteRun({
       meters: distance, cause: won ? 'win' : (cause || 'wall'), escaped: this.escaped,
