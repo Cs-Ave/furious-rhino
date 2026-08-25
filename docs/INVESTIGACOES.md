@@ -81,6 +81,19 @@ O `nikolinhasss` a **11 m/s** passa em qualquer teto de velocidade. **Interaçã
 por metro** é que separa. A restauração dele na v1.9.2 usou o critério errado —
 registrado aqui como erro, não corrigido no ranking (ver Pendências).
 
+**24/08 — a auditoria de telemetria mudou o que este caso enxerga.** Ao
+conferir se tudo estava sendo coletado (ver LACUNAS, abaixo), apareceu que **a
+corrida que TRAVA não era gravada em lugar nenhum**: o `crashToHome` não
+chamava `addRun` — decisão da v1.9.1, onde "não pontuar" virou "não registrar"
+por acidente. Ou seja, **a corrida anômala apagava a própria evidência**, e
+todo travamento relatado pelo ben saiu da amostra. Corrigido na v1.9.5: a
+corrida entra com causa `crash` e os dois relógios (`s` e `i`), sem pontuar.
+
+Também apareceu que **3 dos 5 chefes não tinham cronômetro** e que os quiques
+de 4 deles eram descartados — instrumentação que a v1.9.5 ligou. Para este
+caso, isso significa que a próxima coleta pode distinguir "lutou e perdeu" de
+"passou direto" em todas as arenas, não só no Portão.
+
 ### Hipóteses
 
 | # | Hipótese | Estado | Evidência |
@@ -137,5 +150,79 @@ inteira a cada coleta e guardam snapshot datado para o diff da próxima.
 Rodar `npm run investiga --salvar` depois de a v1.9.4 estar em campo alguns
 dias. Se `D3-vitoria-sem-chefe` cair a zero, a cascata está fechada e o que
 sobrar é o salto puro (H2/H3) — com muito menos ruído para caçar.
+
+---
+
+## LACUNAS DE TELEMETRIA — auditoria de 24/08/2026
+
+> Não é um caso investigativo: é o **mapa do que não se consegue medir hoje**,
+> levantado cruzando o código com 1.070 corridas reais. Serve para não
+> descobrir a mesma cegueira duas vezes, e para saber de antemão quais
+> perguntas os dados **não** conseguem responder.
+>
+> O que a auditoria achou e **já foi corrigido** está no fim, para o histórico.
+
+### O que ainda não dá para medir
+
+| # | Lacuna | Por quê | Custo de resolver |
+|---|---|---|---|
+| L1 | **A rotação da janela de 50** | `runs[]` guarda 50 corridas por jogador. **674 já saíram de alcance**, e 7 jogadores ativos estão perdendo histórico agora. Um detector que "melhora" pode ser só corrida velha caindo da janela | Alto: mexe nas rules (`runs.size() <= 50`) e cresce o doc de todo mundo |
+| L2 | **O painel `/?stats` é cego para 7 letras** (`p e h l u y i`) | O `allRuns()` (`StatsDashboard.js:183-202`) só copia 17 chaves. Os 4 chefes que não são o Portão e a sonda do cronômetro **não existem** em nenhuma aba agregada — só na radiografia | Baixo: acrescentar as chaves ao decodificador |
+| L3 | **`client.lang` e `client.browserVersion` são 100% órfãos** | Gravados em TODO envio, nunca lidos por ninguém. Consomem 2 das 10 chaves de `client` — e sobra só 1 | Baixo para remover, mas mexe em dado histórico |
+| L4 | **`n` é decodificado no painel e nunca usado** | `StatsDashboard.js:196` copia e nenhum cálculo consome. Decode morto | Trivial |
+| L5 | **Zero é indistinguível de ausente** | `addRun` omite contador zero (`if (v > 0)`). Para as letras de chefe, "chegou e não quebrou nada" e "nunca chegou" gravam a mesma coisa: nada. Só dá para separar cruzando com `m` — ou com os cronômetros, quando existem | Estrutural: mudaria o byte-budget da janela inteira |
+| L6 | **`x` mede mais do que promete** | O comentário diz "investidas pedidas durante o cooldown", mas `Rhino.js:130` testa `dashState !== 'idle'` — conta também os toques com o dash **ativo**. Em mobile, toque é rajada: boa parte de `x` é ruído, não frustração | Baixo, mas **mudaria a série histórica** |
+| L7 | **Encontros por chefe nunca são enviados** | `furious_rhino_muralha_seen` e afins existem em `localStorage` e só servem de gatilho de dica. Saber "quantas vezes este jogador já encontrou o Faraó" é dado que **já está no aparelho** | Médio: o 1º nível de `stats` está lotado (12/12) |
+| L8 | **Sem `sendBeacon`/`keepalive`** | O envio de telemetria é fire-and-forget e morre se o jogador recarregar (o "Jogar Novamente" é `location.reload()`). A cura é sempre "no próximo boot" — que só acontece se ele voltar | Médio |
+| L9 | **`days[].s` tem um leitor só; `days[].b` nenhum na radiografia** | `s` (sessões) só alimenta o denominador de `corridasPorSessao`; `b` (melhor do dia) só aparece no digest e na ficha individual | Trivial |
+| L10 | **Precisão de investida é proxy** | Não há contador de acertos: usa-se `(w+r+o+a)/d`, que fúria e multi-quebra superestimam. A letra que resolveria isso (`i`) foi gasta na sonda do cronômetro | Precisaria de chave nova |
+
+### O orçamento hoje
+
+| Onde | Teto das rules | Em uso | Livre |
+|---|---|---|---|
+| 1º nível de `stats` | 12 (`hasOnly`, fechada) | 12 | **0** |
+| `client` | 10 | 9 (2 delas órfãs — ver L3) | **1** |
+| `deaths` | 17 | 17 | **0** (bump é barato, já feito 2×) |
+| `history` | 6 | 5 | **1** |
+| `geo` | 4 | 4 | **0** |
+| `runs[]` — nº de corridas | 50 | 50 | **0** (ver L1) |
+| `runs[]` — chaves por corrida | **as rules não validam** | 26 letras + 7 de 2 chars | livre, com custo em bytes |
+
+**A descoberta que destravou a v1.9.5:** o "orçamento de letras" nunca foi
+regra técnica. As rules só exigem `runs is list && size() <= 50` — a forma do
+elemento é livre, e nada no código assume chave de 1 caractere. O custo real é
+em **bytes**, e como contador zero é omitido, 7 chaves novas custaram ~136
+bytes na base inteira.
+
+### Sobre a base de dados (contexto para qualquer leitura)
+
+- **35% das corridas não têm `s`/`c`/`v`** — são de **14 clientes presos em
+  v1.5.0–v1.7.2**, todos **inativos há 17+ dias**. É legado, não problema
+  ativo, mas qualquer média sobre a base inteira mistura os dois regimes.
+- **1 doc = 1 aparelho, não 1 pessoa.** Retenção medida aqui é de aparelhos.
+- A corrida do **"Desistir"** é descartada por design (`removeAttempt` +
+  reload, sem `endGame`) — quem pausa e desiste nunca aparece na amostra, e é
+  justamente o perfil que o contador de pausas (`p`) queria medir.
+
+### ✅ O que a auditoria achou e a v1.9.5 corrigiu
+
+Fica registrado para não se procurar de novo:
+
+- **3 dos 5 chefes não tinham cronômetro** (Barreira, Faraó, Caçador-Mor) — e o
+  `fightMs` já era calculado nos cinco, morrendo com a cena. → `zu`/`zy`/`zl`.
+- **Os quiques de 4 chefes eram write-only** — contados 60×/s e descartados no
+  `endGame`. → `qe`/`qu`/`qy`/`ql`.
+- **A corrida que trava não era gravada** — "não pontuar" virou "não registrar"
+  por acidente na v1.9.1, e a corrida anômala apagava a própria evidência.
+  → gravada com causa `crash`, ainda sem pontuar.
+- **`history.days` podia divergir para sempre** — o `recordRun` (incremento,
+  não recuperável) ficava 180 linhas depois do `addRun`, com 14
+  `getElementById` desprotegidos no meio. → os dois andam juntos.
+- **`deaths.cerco`/`farao` gravados desde a v1.8.10 e nunca somados** no
+  relatório. → incluídos no loop de causas.
+- **Barreira e Faraó sem métrica na radiografia** (pulava de `b2` para `b3`).
+- **Rótulo trocado**: `e` era chamado de "Cerco" no `MyStats` e no comentário
+  do `endGame` — é a **Muralha**. E o `MyStats` não somava `u`/`y`.
 
 ---
