@@ -1,4 +1,120 @@
-# Handoff — FURIOUS RHINO v1.8.11
+# Handoff — FURIOUS RHINO v1.9.5
+
+**Data:** 25/08/2026 · **Status:** **v1.9.5 em produção** (código publicado em
+24/08 22:00 BRT). **Dois commits locais aguardando push** — nenhum deles muda uma
+linha do que roda no navegador.
+
+## 0. Onde cada coisa está
+
+| | Estado |
+|---|---|
+| Código no ar | **v1.9.5** · `sw.js` em `furious-rhino-v195` · versão coerente nos 4 lugares |
+| Ranking mundial | **limpo** — corrigido no Firestore em 25/08 (ver §2) |
+| Portão 1 (commit) | ✅ |
+| Portão 2 (testes) | ✅ **1.001 asserts, zero FAIL** (740 sem navegador + 261 em Chromium) |
+| Portão 3 (publicar) | ✅ para o código; os 2 commits locais não precisam de release |
+| Teste humano | ❌ **ninguém jogou ainda** — ver §4 |
+
+Commits locais: `e01f540` (cascata no `fix-ranking`) e `bdb9b5d` (documentação).
+
+## 1. v1.9.4 e v1.9.5 — o que entrou
+
+**v1.9.4 — a cascata.** Da v1.8.5 à v1.9.3 dava para atravessar os 10.000 m
+**sem lutar contra nenhum chefe**: as 4 vitórias da base tinham 0 das 21 camadas.
+Dois atalhos legítimos se somaram — o gatilho de `crossGate()` por posição (que
+devia ser exclusivo do modo invencível mas rodava no `update` normal) e o
+`isBypassed` de cada chefe (criado para o teleporte do painel de debug). Um único
+quadro de 85 ms atravessa os 120 px entre a face do portão e a linha do gatilho;
+cruzou, a fuga contava sem luta e todos os chefes seguintes se rendiam em cascata.
+Hoje os cinco `isBypassed` e o gatilho exigem `debug`/`invincible` explicitamente.
+
+**v1.9.5 — a instrumentação.** Dos 5 chefes só o Portão era medível. Entraram 7
+chaves de 2 caracteres (`zu`/`zy`/`zl` segundos de luta, `qe`/`qu`/`qy`/`ql`
+quiques) — nenhuma pontua. A corrida que TRAVA voltou a ser registrada, com causa
+`crash` e os dois relógios, continuando sem pontuar. `addRun` e `recordRun`
+passaram a andar juntos no `endGame`.
+
+## 2. O que a sessão de 25/08 fez
+
+**Ajustou o pódio.** Com a causa corrigida, o ranking foi limpo. O critério de
+velocidade **não** servia (a marca do `nikolinhasss` era 11 m/s, ritmo normal); o
+que denuncia é a **luta que não houve**.
+
+| Jogador | Antes | Agora | Base |
+|---|---|---|---|
+| kukur | 13.700 | **502** | 472 m, 16/08, v1.8.1 |
+| nikolinhasss | 12.977 | **559** | 544 m, 23/08 |
+
+Base final: **1.065 corridas reais, zero sujas, zero sondas**. `D3` e `D1` do
+`investiga` caíram a zero. Novo topo: Ícaroo brabo (5.185), Thomas (4.606), Caio
+Lindão (3.468) — todos com `b=3`, portão derrubado de verdade.
+
+**Sincronizou a documentação** (estava na v1.9.3) e desfez **duas afirmações
+erradas**: o QA-Registro dizia que os cinco chefes estavam vivos no dia em que
+estavam sendo atravessados; o CHANGELOG creditava como mérito a vitória que era a
+cascata. As duas viraram correção datada, sem apagar a original.
+
+## 3. Armadilhas descobertas (as caras)
+
+- **Teste verde em debug não prova nada sobre a partida real.** A cascata
+  sobreviveu 18 versões porque **todo e2e roda em `?debug=1`** — o único ambiente
+  em que a guarda era legítima. O `e2e-boss` ganhou o assert que a reproduz.
+- **Guarda de ferramenta tem de perguntar pela ferramenta**, não pelo efeito
+  colateral dela. Foi a raiz do bug.
+- **Código presente não é funcionalidade viva.** A resposta "os cinco chefes estão
+  vivos" saiu de ler o código, que estava correto. Faltou perguntar aos dados.
+- **Descartar um dado do placar não é motivo para descartá-lo da investigação.**
+  Na v1.9.1, "não pontuar" virou "não registrar" por acidente e a corrida anômala
+  apagou a própria evidência por quatro versões.
+- **A janela de 50 corridas perde prova.** A melhor corrida legítima do
+  `nikolinhasss` (612 m, no `history.days`) já rodou para fora do `runs[]` — nem o
+  backup de 24/08 a tem. Toda correção futura restaura por baixo do real.
+- **Sonda contra produção SEMPRE com prefixo `claude-`** (regra já registrada; o
+  `allowsRemoteWrite` só cobre localhost).
+
+## 4. Como retomar
+
+**O único teste que falta é humano:** chegar aos **1.000 m** e ter de lutar contra
+o Caçador do Portão. Se der para atravessar sem lutar, a v1.9.4 não pegou em campo.
+Forçar a atualização no aparelho antes (o `CACHE` mudou duas vezes) — o rodapé tem
+de mostrar **v1.9.5**.
+
+```bash
+npm run investiga --salvar    # os 5 detectores + retrato datado para o diff
+npm run radiografia           # usabilidade completa (só leitura)
+```
+
+**Se alguém reclamar que ficou muito mais difícil:** é verdade e não é regressão.
+A Muralha, a Barreira, o Faraó e o Caçador-Mor chegaram dentro da janela da falha e
+**nunca estiveram de pé**. A v1.9.4 é a primeira versão em que os cinco existem.
+
+## 5. Pendências
+
+- **Levar o `ehCascata` para o `LeaderboardSystem.isPlausible`** — é regra pura e
+  testada (36 asserts) que só depende de `m`, `v` e das letras de camada. Viraria
+  prevenção: a marca nem subiria, em vez de ser limpa depois. **É a de maior valor.**
+- **O salto de distância segue aberto** (H2 catch-up sem `maxSubSteps`, H3 retrato
+  sem `scene.pause()`). A v1.9.5 já está no ar coletando: basta UM travamento em
+  campo — `i ≈ s` com metragem alta = a distância saltou; `i << s` = o loop congelou.
+- **2 acendidas no `D5`**, de v1.7.0 e v1.7.2, **anteriores** à cascata: é a única
+  anomalia de chefe que a v1.9.4 não explica.
+- **A rotação da janela de 50** (lacuna L1): aumentar o teto mexe nas rules e cresce
+  o doc de todo mundo. As outras 9 lacunas estão no `INVESTIGACOES.md`.
+
+## 6. Arquivos desta sessão
+
+`tools/fix-ranking.mjs` (+`ehCascata`/`ehSuja` e as 3 guardas), `tools/test-fix-ranking.mjs`,
+`docs/INVESTIGACOES.md`, `docs/CHANGELOG.md`, `docs/QA-Registro.md`, `docs/01`–`04`,
+`GAME_DESIGN.md`. **Nenhum arquivo de `js/` foi tocado em 25/08.**
+
+> ⚠️ Outra sessão trabalha neste mesmo repositório. Conferir o dono de cada arquivo
+> antes de commitar — **nunca `git add -A`**. Não rastreados hoje: `.claude/`,
+> `Anotacoes.txt`, `Art AI/`, `gerador-de-sprites/output/rinorob/`.
+
+---
+
+
+# Handoff anterior — FURIOUS RHINO v1.8.11
 
 **Data:** 23/08/2026 · **Status:** **v1.8.11 (hotfix do placar) em publicação**; v1.8.10 released mais cedo.
 
