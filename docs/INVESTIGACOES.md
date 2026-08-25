@@ -94,6 +94,53 @@ de 4 deles eram descartados — instrumentação que a v1.9.5 ligou. Para este
 caso, isso significa que a próxima coleta pode distinguir "lutou e perdeu" de
 "passou direto" em todas as arenas, não só no Portão.
 
+**25/08 — a cascata fechou em campo, e o pódio foi ajustado.** Primeira coleta
+com a v1.9.4 no ar. `D3-vitoria-sem-chefe` e `D1-velocidade` **caíram a zero**;
+`D5-arena-sem-quebra` caiu de 6 para 2. As duas que restam são de **v1.7.0 e
+v1.7.2**, anteriores à cascata — pergunta separada, não resolvida por ela.
+
+Com a causa corrigida, o ranking foi limpo (era a pendência aberta em 24/08). O
+critério de velocidade **não** servia: a marca do `nikolinhasss` era 11 m/s, o
+ritmo de qualquer jogador. O que denuncia é a **luta que não houve**:
+
+| Jogador | Marca | Camadas de 21 | "Luta" Portão/Muralha | Melhor dia pré-cascata |
+|---|---|---|---|---|
+| kukur | 13.700 → **502** | **0** | 1 s / 1 s | 472 m (16/08, v1.8.1) |
+| nikolinhasss | 12.977 → **559** | **0** | 2 s / 2 s | 612 m (22/08, v1.8.3) |
+
+O corte é limpo na base inteira: **fora** da janela da cascata, 35 de 36
+corridas que passaram dos 1.050 m derrubaram o portão; **dentro** dela, 0 de 5.
+E as 5 pertencem a essas duas pessoas. A confirmação mais forte é o
+`nikolinhasss`: mesmo aparelho, 23 corridas em 22/08 na v1.8.3 travando em
+612 m, depois 72 corridas na v1.9.0 atravessando o mundo inteiro.
+
+O `fix-ranking` ganhou a cascata como **segunda causa** (`ehCascata`), e com
+ela três guardas que faltavam — as três valem para qualquer correção futura:
+
+1. **Só entra quem tem corrida suja na janela.** A tentação era recalcular todo
+   mundo e rebaixar quem não sustentasse o placar; seria errado, porque a
+   janela guarda 50 corridas e 674 já rodaram para fora (lacuna **L1**). O
+   Funku Pópi marcou 3.304 e a melhor que resta dele é de 1.997 — recalcular o
+   rebaixaria sem que nada de errado tivesse acontecido. **Corrida suja é
+   prova; ausência de corrida boa não é.**
+2. **Nunca subir ninguém.** A restauração só desce.
+3. **Sem corrida boa E com histórico rotacionado → revisão à mão, não o lixo.**
+   Apagar aí seria punir por falta de prova.
+
+Perda aceita e registrada: o `nikolinhasss` voltou para 544 m, não para os
+612 m que o `history.days` guarda. Aquela corrida já rodou para fora da janela
+— **nem o backup de 24/08 a tem**. É a lacuna **L1** cobrando na prática, e
+inventar a corrida para recuperar 53 pontos seria pior que a perda.
+
+Achado de passagem, com consequência de design: **ninguém jamais derrotou a
+Muralha dos 2.000 m**. Ela chegou na v1.8.5 — exatamente quando a cascata
+começou — e nunca esteve de pé. A v1.9.4 é a primeira versão em que ela
+existe de verdade, e o mesmo vale para a Barreira, o Faraó e o Caçador-Mor.
+A dificuldade do jogo subiu de degrau para todo mundo sem que nada nela mudasse.
+
+Estado final da base: **1.065 corridas reais, zero sujas, zero sondas**.
+
+
 ### Hipóteses
 
 | # | Hipótese | Estado | Evidência |
@@ -138,18 +185,39 @@ inteira a cada coleta e guardam snapshot datado para o diff da próxima.
 
 ### Pendências deste caso
 
-- **O ranking não foi limpo.** Os dois primeiros lugares vieram de corridas com
-  zero camadas. Decisão do dono (24/08): esperar a causa estar corrigida —
-  limpar antes seria só para reencher depois. Com a v1.9.4 no ar, dá para
-  reavaliar.
+- ~~**O ranking não foi limpo.**~~ ✅ **feito em 25/08** — ver a entrada da
+  Linha do tempo. `kukur` e `nikolinhasss` voltaram à melhor marca legítima
+  deles; a base ficou com zero corridas sujas.
 - **O `D2`/`D3` ainda não são guarda de submit**, só detector de relatório. Se
   o salto reaparecer, a marca sobe ao ranking se estiver abaixo de 40 m/s.
+  **Agora dá para fazer melhor**: o `ehCascata` do `fix-ranking` é uma regra
+  pura e testada (36 asserts) que só depende de `m`, `v` e das letras de
+  camada. Levá-la para o `LeaderboardSystem.isPlausible` transformaria a
+  faxina de hoje em prevenção — a marca nem subiria.
+- **Sobraram 2 acendidas no `D5`**, de v1.7.0 e v1.7.2, **anteriores** à
+  cascata: alguém passou da arena do Portão sem quebrar camada numa versão em
+  que os chefes funcionavam. Amostra pequena e antiga, mas é a única anomalia
+  de chefe que a v1.9.4 **não** explica.
+- **A perda por rotação virou concreta** (lacuna **L1**): a corrida de 612 m do
+  `nikolinhasss` existe no `history.days` e não existe em lugar nenhum onde dê
+  para pontuá-la. Enquanto a janela for de 50, toda correção futura vai
+  restaurar por baixo do que o jogador realmente fez.
 
 ### Próximo passo
 
-Rodar `npm run investiga --salvar` depois de a v1.9.4 estar em campo alguns
-dias. Se `D3-vitoria-sem-chefe` cair a zero, a cascata está fechada e o que
-sobrar é o salto puro (H2/H3) — com muito menos ruído para caçar.
+A cascata fechou (`D3` = 0 em 25/08) e o pódio foi ajustado. O que sobra é o
+**salto de distância puro** — H2 (catch-up sem `maxSubSteps`) e H3 (retrato
+sem `scene.pause()`) —, agora sem o ruído que a cascata produzia.
+
+A instrumentação da v1.9.5 é o que muda o jogo aqui: a corrida que trava
+passou a ser **gravada** com causa `crash` e com os dois relógios (`s` de
+parede e `i` de loop). Antes ela apagava a própria evidência. Basta um novo
+travamento em campo para ler `i` contra `s` e separar H2 de H3 de uma vez:
+
+- `i` ≈ `s` com metragem alta → **a distância saltou** (H2, catch-up).
+- `i` << `s` → **o loop congelou** e o relógio de parede seguiu (H3, retrato).
+
+Rodar `npm run investiga --salvar` a cada coleta para ter o diff.
 
 ---
 

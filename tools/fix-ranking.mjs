@@ -31,6 +31,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ScoreSystem } from '../js/systems/ScoreSystem.js';
 import { LeaderboardSystem } from '../js/systems/LeaderboardSystem.js';
+import { Constants } from '../js/utils/Constants.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const cfg = readFileSync(join(ROOT, 'js', 'firebase-config.js'), 'utf8');
@@ -49,6 +50,42 @@ const SONDA = /^(claude-|repro-|sonda-|perf-teste|skin-check|freeze-teste|fernan
 // A marca do bug: o teto do jogo. Toda corrida que o produziu tem média
 // acima do teto físico — é o mesmo critério da guarda da v1.9.1.
 const MARCA_DO_BUG = 20000;
+// ----------------------------------------------- A SEGUNDA CAUSA (25/08/26)
+// A CASCATA DOS CHEFES. Bug diferente do cronômetro e com assinatura oposta:
+// ali a distância era real e o relógio mentiu; aqui o relógio está certo e a
+// distância foi REAL sem a luta que ela exige. O gatilho legado dos 1000 m
+// disparava `crossGate()` sem combate e, na sequência, o `isBypassed` dos
+// cinco chefes via "já estou além da âncora" e todos se rendiam. Resultado:
+// dava para atravessar o mundo inteiro — 21 camadas — sem encostar em uma.
+//
+// Janela: a v1.8.5 (21/08 22:22) trouxe o `isBypassed`; a v1.9.4 fechou.
+// Última camada quebrada na base inteira: 22/08 16:14, v1.8.3. Dentro da
+// janela, 5 corridas passaram dos 1.050 m e NENHUMA quebrou o portão;
+// fora dela, 35 de 36 quebraram. O corte é limpo.
+const CASCATA_DE = '1.8.5';
+const CASCATA_ATE = '1.9.4';   // exclusivo — esta versão já corrigiu
+const MARGEM_M = 50;           // folga para não acusar quem morreu NA âncora
+
+// Derivado de Constants, nunca literal: se um chefe mudar de lugar ou ganhar
+// camada, a régua acompanha sozinha. `desde` evita acusar corrida de uma
+// versão em que aquele chefe ainda nem existia.
+const PPM = Constants.PIXELS_PER_METER;
+const FIM_M = Constants.WORLD_END_PX / PPM;
+const CHEFES = [
+  { nome: 'Portão', m: Constants.WIN_DISTANCE_PX / PPM, k: 'b', camadas: Constants.BOSS_LAYERS.length, desde: '1.7.0' },
+  { nome: 'Muralha', m: Constants.BOSS2_ANCHOR_PX / PPM, k: 'e', camadas: Constants.BOSS2_LAYERS.length, desde: '1.8.5' },
+  { nome: 'Barreira', m: Constants.CERCO_ANCHOR_PX / PPM, k: 'u', camadas: Constants.CERCO_LAYERS.length, desde: '1.8.10' },
+  { nome: 'Faraó', m: Constants.FARAO_ANCHOR_PX / PPM, k: 'y', camadas: Constants.FARAO_LAYERS.length, desde: '1.8.10' },
+  { nome: 'Caçador-Mor', m: Constants.BOSS3_ANCHOR_PX / PPM, k: 'l', camadas: Constants.BOSS3_LAYERS.length, desde: '1.8.5' },
+];
+
+const vPartes = (v) => String(v || '').split('.').map((n) => Number(n) || 0);
+const vCmp = (a, b) => {
+  const [x, y] = [vPartes(a), vPartes(b)];
+  for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0);
+  return 0;
+};
+
 
 // ----------------------------------------------------------- REST: decode
 const decode = (v) => {
@@ -117,7 +154,7 @@ export function melhorLegitima(runs) {
     const r = item && typeof item === 'object' ? item : {};
     const m = Math.floor(Number(r.m) || 0);
     if (m <= 0) continue;
-    if (!LeaderboardSystem.isPlausible(m, r.s)) continue;
+    if (ehSuja(r)) continue;
     const pts = ScoreSystem.total(m, ScoreSystem.runBonus(r));
     const t = Math.floor(Number(r.t) || 0);
     if (!melhor || pts > melhor.pts || (pts === melhor.pts && t < melhor.t)) {
@@ -133,22 +170,74 @@ export function ehImplausivel(r) {
   return m > 0 && !LeaderboardSystem.isPlausible(m, o.s);
 }
 
+// Corrida que passou por um chefe DENTRO da janela da cascata sem derrubar
+// as camadas dele. É prova direta: no jogo não existe passar sem lutar — a
+// v1.9.4 tornou o gatilho por posição exclusivo do modo debug.
+export function ehCascata(r) {
+  const o = r && typeof r === 'object' ? r : {};
+  const m = Math.floor(Number(o.m) || 0);
+  const v = String(o.v || '');
+  // Sem versão não há acusação. Os clientes pré-v1.7 nem gravavam camada, e
+  // ausência de dado jamais é prova de bypass — seria condenar por silêncio.
+  if (!v || m <= 0) return false;
+  if (vCmp(v, CASCATA_DE) < 0 || vCmp(v, CASCATA_ATE) >= 0) return false;
+  return CHEFES.some((c) => {
+    if (vCmp(v, c.desde) < 0) return false;   // este chefe ainda não existia
+    // O Caçador-Mor mora em 9.995 m: `min` com o fim do mundo evita um limiar
+    // inalcançável, e lá passar é justamente chegar aos 10.000.
+    const passou = m >= Math.min(c.m + MARGEM_M, FIM_M);
+    return passou && Math.floor(Number(o[c.k]) || 0) < c.camadas;
+  });
+}
+
+// As DUAS causas conhecidas de marca falsa, com assinaturas opostas: o
+// cronômetro mentiu no TEMPO (distância real), a cascata entregou a
+// DISTÂNCIA sem a luta. Uma mesma corrida pode ter as duas — a do kukur em
+// 24/08 tem: 10.000 m em 44 s e zero camadas.
+export function ehSuja(r) { return ehImplausivel(r) || ehCascata(r); }
+
 // Destino de cada jogador. Devolve os quatro baldes do relatório.
 export function classificar(scores, stats) {
-  const runsDe = new Map();
-  for (const s of stats) runsDe.set(s.id, Array.isArray(s.campos.runs) ? s.campos.runs : []);
+  const campoDe = new Map();
+  for (const s of stats) campoDe.set(s.id, s.campos || {});
+  const runsDe = (id) => {
+    const c = campoDe.get(id) || {};
+    return Array.isArray(c.runs) ? c.runs : [];
+  };
 
   const restaurar = [];   // tem marca legítima anterior -> volta a valer
   const remover = [];     // nunca teve corrida legítima -> sai do ranking
   const sondas = [];      // ids claude-* das minhas próprias verificações
   const limparRuns = [];  // stats preservado, mas as corridas do bug saem
+  const revisar = [];     // suspeito, mas a prova pode ter saído da janela
 
   for (const doc of scores) {
     if (SONDA.test(doc.id)) { sondas.push({ id: doc.id, nome: doc.campos.name }); continue; }
-    if (Number(doc.campos.score) !== MARCA_DO_BUG) continue;
-    const melhor = melhorLegitima(runsDe.get(doc.id));
-    const alvo = { id: doc.id, nome: doc.campos.name, antes: Number(doc.campos.score) };
-    if (melhor) restaurar.push({ ...alvo, melhor });
+    const runs = runsDe(doc.id);
+    // O PORTÃO DA CORREÇÃO: só entra quem tem corrida SUJA na janela.
+    //
+    // A tentação era recalcular todo mundo e rebaixar quem não sustentasse o
+    // placar. Seria errado: a janela guarda 50 corridas e 674 já rodaram para
+    // fora, então recorde antigo desaparece do runs[] sem nada de errado ter
+    // acontecido — o Funku Pópi marcou 3.304 e a melhor corrida que ainda
+    // resta dele é de 1.997. Corrida suja é PROVA; ausência de corrida boa
+    // não é. Até a v1.9.5 o portão era `score === 20000` (a assinatura do bug
+    // do cronômetro); a cascata não tem número mágico, e passou a ser esta.
+    if (!runs.some(ehSuja)) continue;
+    const antes = Number(doc.campos.score) || 0;
+    const melhor = melhorLegitima(runs);
+    const alvo = { id: doc.id, nome: doc.campos.name, antes };
+    // Nunca SUBIR ninguém. Se o que sobrou vale igual ou mais que o placar
+    // guardado, então o placar já é o legítimo — a corrida suja existiu mas
+    // não foi ela que pontuou — e não há o que corrigir.
+    if (melhor && melhor.pts >= antes) continue;
+    if (melhor) { restaurar.push({ ...alvo, melhor }); continue; }
+    // Sem NENHUMA corrida boa na janela. Só sai do ranking quem tem a
+    // história INTEIRA aqui dentro (conta que nasceu com o bug). Se houve
+    // rotação, o recorde legítimo pode ter caído da janela, e apagar seria
+    // punir por falta de prova — vai para revisão à mão.
+    const tentativas = Math.floor(Number((campoDe.get(doc.id) || {}).attempts) || 0);
+    if (tentativas > runs.length) revisar.push({ ...alvo, tentativas, naJanela: runs.length });
     else remover.push(alvo);
   }
 
@@ -165,10 +254,10 @@ export function classificar(scores, stats) {
   for (const s of stats) {
     if (SONDA.test(s.id) || removidos.has(s.id)) continue;
     const runs = Array.isArray(s.campos.runs) ? s.campos.runs : [];
-    const sujas = runs.filter(ehImplausivel);
+    const sujas = runs.filter(ehSuja);
     if (sujas.length) limparRuns.push({ id: s.id, sujas: sujas.length, total: runs.length });
   }
-  return { restaurar, remover, sondas, limparRuns };
+  return { restaurar, remover, sondas, limparRuns, revisar };
 }
 
 // Recalcula os campos MONOTÔNICOS de stats a partir das runs que sobraram.
@@ -216,7 +305,7 @@ async function criar(colecao, id, campos) {
 // ------------------------------------------------------------- RELATÓRIO
 const fmt = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
-function relatar({ restaurar, remover, sondas, limparRuns }) {
+function relatar({ restaurar, remover, sondas, limparRuns, revisar }) {
   console.log(`\n=== RESTAURAR — ${restaurar.length} jogadores voltam à marca legítima ===`);
   for (const r of restaurar) {
     const d = new Date(r.melhor.t * 1000).toISOString().slice(0, 10);
@@ -227,6 +316,11 @@ function relatar({ restaurar, remover, sondas, limparRuns }) {
   for (const r of remover) console.log(`  ${(r.nome || r.id.slice(0, 8)).padEnd(16).slice(0, 16)} ${fmt(r.antes).padStart(7)} -> (fora do ranking)`);
   console.log(`\n=== SONDAS — ${sondas.length} ids claude-* ===`);
   for (const s of sondas) console.log(`  ${s.id} ${s.nome ? `(${s.nome})` : ''}`);
+  console.log(`\n=== REVISAR À MÃO — ${(revisar || []).length} com prova possivelmente fora da janela ===`);
+  for (const r of revisar || []) {
+    console.log(`  ${(r.nome || r.id.slice(0, 8)).padEnd(16).slice(0, 16)} ${fmt(r.antes).padStart(7)} pts  `
+      + `(${r.tentativas} corridas na vida, só ${r.naJanela} na janela — placar MANTIDO)`);
+  }
   console.log(`\n=== LIMPAR runs[] — ${limparRuns.length} jogadores preservados ===`);
   for (const l of limparRuns) console.log(`  ${l.id.slice(0, 8)}  ${l.sujas} de ${l.total} corridas saem`);
 }
@@ -294,11 +388,11 @@ async function main() {
   // Backup ANTES de qualquer escrita. Guarda também a telemetria de quem vai
   // ser removido — é o material que documenta o bug e ainda não achamos a
   // causa raiz; perder isso seria apagar a prova.
-  const alvos = new Set([...plano.restaurar, ...plano.remover, ...plano.sondas].map((x) => x.id)
+  const alvos = new Set([...plano.restaurar, ...plano.remover, ...plano.sondas, ...plano.revisar].map((x) => x.id)
     .concat(plano.limparRuns.map((x) => x.id)));
   const backup = {
     quando: new Date().toISOString(),
-    motivo: 'bug do cronometro v1.9.0 — marcas de 20.000 no teto',
+    motivo: 'cronometro v1.9.0 (20.000 no teto) + cascata dos chefes v1.8.5-v1.9.3 (mundo inteiro sem uma camada)',
     scores: scores.filter((s) => alvos.has(s.id)),
     stats: stats.filter((s) => alvos.has(s.id)),
   };
@@ -353,7 +447,7 @@ async function main() {
   for (const l of plano.limparRuns) {
     try {
       const doc = statsPorId.get(l.id);
-      const limpas = (doc.campos.runs || []).filter((r) => !ehImplausivel(r));
+      const limpas = (doc.campos.runs || []).filter((r) => !ehSuja(r));
       apagar('stats', l.id);
       await criar('stats', l.id, statsLimpos(doc.campos, limpas));
       console.log(`  ✔ ${l.id.slice(0, 8)} — ${l.sujas} corridas do bug removidas`);
