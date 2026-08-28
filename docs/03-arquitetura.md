@@ -1,6 +1,6 @@
 # Furious Rhino — Arquitetura
 
-> Documentação da versão **1.9.6** · atualizada em 28/08/2026
+> Documentação da versão **1.9.7** · atualizada em 28/08/2026
 > Visão técnica intermediária: como o projeto é organizado, os principais componentes e como eles conversam. Pressupõe noções de programação, mas explica os termos específicos do projeto.
 
 ## 1. Filosofia
@@ -225,10 +225,13 @@ O **resumo diário** é outro caminho: `tools/daily-digest.mjs` roda num cron do
 
 ## 9. PWA e cache
 
-`sw.js` usa estratégia **network-first** (tenta a rede primeiro; se offline, serve do cache): online sempre fresco, offline sempre funciona. Pontos críticos:
+`sw.js` usa **duas estratégias desde a v1.9.7** (antes era network-first para tudo): **JS/HTML** seguem network-first estrito com `cache: 'no-cache'` — misturar versões deles foi o desastre da v1.4.0 —; a **arte** (`art/*`) é cache-first com revalidação em segundo plano (SWR), porque misturá-la é cosmético e revalidar ~150 SVGs por sessão era metade do preload lento (dívida nº 3 da radiografia de 24/08). Pontos críticos:
 
 - `ASSETS` lista **todos** os arquivos, um a um. Arquivo `.js` novo → entra na lista **e** a constante `CACHE` sobe de versão (`furious-rhino-v161`), senão quem tem o PWA instalado toma 404.
 - Hosts externos (`googleapis.com`, `geojs.io`, `ipwho.is`, `ntfy.sh`) têm **bypass** total do cache — serviço externo novo precisa entrar nessa lista.
+- **A corrente de socorro (v1.9.7, CASO 2)**: falhou a rede → o próprio recurso do cache com `ignoreSearch` → em navegação, o shell (`./index.html`) → em navegação sem cache NENHUM, uma **página de socorro gerada dentro do SW** ("Sem conexão com o jogo" + tentar de novo). Antes, um miss devolvia `undefined`, e `respondWith(undefined)` é erro de rede garantido — o SW **fabricava** a página "não foi possível acessar" que um jogador real viu. Subrecurso sem cache segue falhando de propósito: é o sinal certo para a rede de proteção da página (v1.9.1) agir.
+- **Instalação tolerante (v1.9.7)**: `allSettled` arquivo a arquivo em vez do `addAll` atômico — UM item falhando (rede móvel, CDN, janela de deploy) prendia o cliente no SW velho, cujo `put` misturava arquivos novos no cache antigo. Só o **núcleo** (tudo que não é `./art/`) segue obrigatório: cache que não boota é pior que permanecer no SW anterior.
+- **`navigator.storage.persist()`** é pedido no boot (`game.js`): sem ele o navegador pode despejar o cache inteiro sob pressão de espaço — Safari/iPadOS é o mais agressivo, e os dois suspeitos do CASO 2 eram Apple.
 
 ## 10. Testes e ferramentas
 

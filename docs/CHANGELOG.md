@@ -5,7 +5,16 @@
 
 ---
 
-## v1.9.6 — 28/08/2026 (versão atual)
+## v1.9.7 — 28/08/2026 (versão atual)
+
+**Tema: o jogo nunca mais responde com a página de erro do navegador.**
+
+- **O relato**: um jogador tentava abrir o jogo e via a mensagem do navegador de **"não foi possível acessar a página"**. A investigação (CASO 2 do caderno de investigações) mostrou que já tinha acontecido antes — era a metade nunca explicada do relato do ben em 23/08 — e que a falha morava nos **dados guardados no aparelho** (o mecanismo de funcionamento offline), não no servidor: os 199 arquivos do jogo respondiam normalmente.
+- **O que estava errado, em uma frase**: quando a internet falhava E a cópia offline do aparelho estava incompleta (o navegador pode apagá-la sozinho para liberar espaço), o mecanismo respondia com um erro seco — e ainda por cima **forçava uma conferência com o servidor a cada arquivo**, o que fazia uma conexão fraca falhar onde teria funcionado sem ele.
+- **As correções**: sem rede, o jogo serve a cópia offline; sem rede E sem cópia, aparece uma **tela do próprio jogo** ("Sem conexão com o jogo", com botão de tentar de novo) — nunca mais o erro cru do navegador. A instalação da cópia offline ficou tolerante (um arquivo de arte que falhe não impede mais a atualização inteira), o jogo passou a **pedir ao navegador que não apague** seus dados para liberar espaço, e a arte passou a carregar **direto da cópia local** com atualização silenciosa por trás — o que também deixa o início da corrida mais rápido no celular (era metade do peso do carregamento).
+- **Sinceridade sobre o alcance**: um aparelho que JÁ esteja travado nesse estado talvez não receba a correção sozinho — nesse caso, limpar os dados do site uma vez resolve (anote o apelido antes: a tela 🆘 de recuperação devolve a conta). A v1.9.7 protege todos os próximos.
+
+## v1.9.6 — 28/08/2026
 
 **Tema: o painel de desenvolvimento para de escrever no placar de todo mundo.**
 

@@ -1,6 +1,6 @@
 # FURIOUS RHINO — Documento de Design
 
-> Estado atual do jogo (v1.9.6). Este documento descreve o que **é**, não o que
+> Estado atual do jogo (v1.9.7). Este documento descreve o que **é**, não o que
 > se imaginou no começo — as decisões de v1.1 em diante estão registradas aqui
 > com o motivo, e várias delas foram tomadas a partir dos dados reais de
 > telemetria (ver "Decisões orientadas por dados" no fim).
@@ -958,6 +958,37 @@ conta de ninguém.
 ---
 
 
+## 📵 O jogo nunca responde com a página de erro do navegador (v1.9.7)
+
+Um jogador relatou "não foi possível acessar a página" ao abrir o jogo — e o
+CASO 2 do `INVESTIGACOES.md` mostrou que **o nosso próprio service worker**
+fabricava esse erro: no miss do cache ele respondia `undefined` (erro de rede
+garantido), forçava revalidação no servidor a cada arquivo (tornando conexão
+fraca PIOR do que sem SW), instalava os 199 arquivos atomicamente (um fracasso
+e o cliente ficava preso no SW velho) e nunca pedia proteção contra o despejo
+de armazenamento. O reset do ben — que voltou como outra identidade dois dias
+depois — provou que a falha morava nos dados locais.
+
+As decisões de design que ficaram:
+
+- **O pior desfecho de uma navegação é uma tela NOSSA**, nunca o erro cru do
+  navegador. A página de socorro é gerada dentro do próprio SW, sem depender
+  de cache nenhum — quando tudo mais falhou, ela ainda existe.
+- **Cache parcial é melhor que cache nenhum** — o `addAll` atômico invertia
+  isso. Mas **núcleo incompleto ainda derruba a instalação**: um fallback que
+  não boota é pior do que permanecer no SW anterior, que funcionava.
+- **Duas estratégias, pela assimetria do risco**: misturar versões de JS/HTML
+  quebra o jogo (v1.4.0); misturar arte é um sprite antigo por uma sessão.
+  JS/HTML ficam network-first estrito; a arte vai de cache-first com
+  revalidação por trás — que de carona corta ~150 revalidações por sessão, a
+  metade do preload lento no celular.
+- **Sinceridade sobre o alcance**: cliente já quebrado talvez não receba a
+  correção sozinho (SW que não atualiza não se conserta) — a saída é limpar os
+  dados uma vez, com o apelido anotado para o 🆘 devolver a conta. A correção
+  protege os próximos, e isso está dito no CHANGELOG com todas as letras.
+
+---
+
 ## 📈 Decisões orientadas por dados (v1.6)
 
 Leitura de 48 jogadores, 981 tentativas, 512 corridas e 945 mortes da v1.5:
@@ -1007,7 +1038,7 @@ números de 24/08/2026 — os que dependem do registry de skins variam com ele:
 | `npm run test-integrate` | 49 | A integração do estúdio como funções puras (round-trip, upsert/remove, patch dos blocos gerenciados do sw) |
 | `npm run test-sprites` | 31 | O **portão da aba Sprites**: contrato do SpriteParams, merge no Constants, paridade art/↔manifesto↔sw, w/h==viewBox, invariantes de spawn (elencos com terrestre, floresta sem voador, jaulas sem par) |
 | `npm run test-radiografia` | 62 | A radiografia: fixture sintética das 3 eras, conferência com o digest, `flattenRuns ⊇ RUN_COUNTERS`, determinismo byte a byte, zero writes por text-assert |
-| `npm run test-crash` | 68 | A rede de proteção (v1.9.1): a guarda de plausibilidade contra os dados REAIS de produção, a ordem do `endGame` e o contrato do `crashToHome` — que **mudou de sentido na v1.9.5**: a sessão quebrada agora **grava** a corrida com causa `crash`. **v1.9.6**: a faxina do aparelho, incluindo o assert que prova que ela **destrava** o `bestSent` de quem foi corrigido |
+| `npm run test-crash` | 76 | A rede de proteção (v1.9.1): a guarda de plausibilidade contra os dados REAIS de produção, a ordem do `endGame` e o contrato do `crashToHome` — que **mudou de sentido na v1.9.5**: a sessão quebrada agora **grava** a corrida com causa `crash`. **v1.9.6**: a faxina do aparelho, incluindo o assert que prova que ela **destrava** o `bestSent` de quem foi corrigido **v1.9.7**: os 8 asserts do CASO 2 no sw.js |
 | `npm run test-fix-ranking` | 32 | A classificação que decide quem perde a marca e quem tem a dele restaurada, com corridas **verbatim** de produção. Duas causas: o cronômetro (mentiu no tempo) e a cascata dos chefes (distância sem a luta). A restauração só desce, e sem corrida suja ninguém é tocado |
 | `npm run test-bossproof` | 29 | A **prova do chefe** (v1.9.6): as três corridas que passaram do portão com zero camadas reprovadas, e as do MESMO jogador em que ele lutou e morreu aprovadas — é o assert que garante que a régua não pune quem perdeu. Mais o `desde` de cada chefe, a margem de quem morre na âncora, e as duas absolvições que mantêm a regra da casa: chefe fora do elenco e chefe sem contador |
 | `npm run test-investiga` | 31 | Os 5 detectores da linha de investigação perene, sem rede. Cada um com fixture de acerto **e** de falso-positivo — o `D5` nasceu acusando quem entra na arena e morre ali, que é jogo normal |

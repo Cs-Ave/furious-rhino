@@ -1,6 +1,6 @@
 # Furious Rhino — Guia funcional
 
-> Documentação da versão **1.9.6** · atualizada em 28/08/2026
+> Documentação da versão **1.9.7** · atualizada em 28/08/2026
 > Cada funcionalidade do jogo: o que faz, como o usuário interage e exemplos práticos. Termos técnicos vêm explicados entre parênteses na primeira vez.
 
 ## 1. Controles
@@ -220,7 +220,7 @@ O jogo é um **PWA** (Progressive Web App — site que se comporta como aplicati
 - **Android/Chrome**: um botão instala direto.
 - **iPhone/iPad**: instruções do "Compartilhar → Adicionar à Tela de Início".
 
-Instalado, o jogo abre em tela cheia, na horizontal, e **funciona sem internet** (só o ranking precisa de rede).
+Instalado, o jogo abre em tela cheia, na horizontal, e **funciona sem internet** (só o ranking precisa de rede). Desde a v1.9.7, se faltar internet **e** a cópia offline do aparelho tiver sido apagada pelo navegador, aparece uma tela do próprio jogo — **"Sem conexão com o jogo"**, com botão de tentar de novo — em vez da página de erro do navegador.
 
 ## 12. Painel `/?stats` (para o administrador)
 

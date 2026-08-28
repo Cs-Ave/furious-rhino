@@ -1,4 +1,56 @@
-# Handoff — FURIOUS RHINO v1.9.6
+# Handoff — FURIOUS RHINO v1.9.7
+
+**Data:** 28/08/2026 · **Status:** **v1.9.7 publicada** no mesmo dia da v1.9.6.
+Motivo: relato de campo de **"não foi possível acessar a página"** — investigado
+e registrado como **CASO 2** no `INVESTIGACOES.md`.
+
+## 0. O caso em três linhas
+
+O sintoma é o erro do NAVEGADOR (invisível na telemetria por definição). A
+evidência: o ben teve o mesmo em 23/08 e "consertou" **apagando os dados do
+site** (voltou como `calça larga` — fingerprint quase idêntico); o suspeito
+atual é o **Palito** (iPad/Safari, sessão de 25/08 inteira com o loop
+congelando 1-3 s, sumido desde 26/08); e o servidor estava íntegro (199/199
+arquivos respondendo 200). A falha morava no **nosso service worker**.
+
+## 1. O que a v1.9.7 mudou (`sw.js` + 1 linha no `game.js`)
+
+| Antes | Agora |
+|---|---|
+| Miss no cache → `respondWith(undefined)` → **erro de rede garantido** | Corrente de socorro: recurso c/ `ignoreSearch` → shell → **página de socorro do próprio SW** ("Sem conexão com o jogo" + tentar de novo) |
+| `cache: no-cache` em TUDO (rede fraca ficava PIOR com o SW) | Arte = cache-first + revalidação por trás (SWR — corta ~150 revalidações/sessão, dívida nº 3 da radiografia); JS/HTML seguem network-first estrito (v1.4.0) |
+| `addAll` atômico de 199 arquivos (1 falha = cliente preso no SW velho) | `allSettled` por arquivo; só o NÚCLEO (não-arte) é obrigatório |
+| Cache despejável em silêncio | `storage.persist()` pedido no boot |
+
+**Prova funcional** (Playwright + SW real): 199/199 no cache; offline `/` e
+`/?stats` servem o shell; offline + cache APAGADO serve a página de socorro —
+o cenário exato do sintoma. 8 text-asserts na seção 7 do `test-crash` trancam
+cada ponto. Bateria: **1.047 asserts, zero FAIL**.
+
+## 2. Ressalvas registradas
+
+- **Cliente JÁ quebrado talvez não receba isto sozinho** (SW que não atualiza
+  não se conserta): a saída é limpar os dados UMA vez — anotar o apelido antes,
+  o 🆘 do `/?setup` devolve a conta. Passar essa instrução a quem relatou.
+- **Os congelamentos de 1-3 s do iPad NÃO são isto** — são o CASO 1 (H2/H3),
+  e a sonda `i` já está coletando (79 corridas, `D4` acendendo).
+- CASO 2 fica 🔴 aberto até alguém do campo confirmar o acesso de volta.
+
+## 3. Como retomar
+
+```bash
+npm run test-crash            # 76 asserts — inclui os 8 do SW (seção 7)
+npm run investiga --salvar    # detectores + diff (D4 é o fio do CASO 1)
+node tools/claude-sonda-sw.mjs # (não existe mais — a sonda foi descartável;
+                               #  o roteiro dela está no commit 2f4a68d)
+```
+
+> ⚠️ Outra sessão trabalha neste repositório — conferir dono de arquivo antes
+> de commitar; nunca `git add -A`.
+
+---
+
+# Handoff anterior — FURIOUS RHINO v1.9.6
 
 **Data:** 28/08/2026 · **Status:** **v1.9.6 em produção, ciclo COMPLETO** — os
 três portões fechados, faxina do servidor aplicada, testes de campo do dono
