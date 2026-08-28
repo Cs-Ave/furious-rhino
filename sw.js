@@ -1,6 +1,6 @@
 // Network-first service worker: always serves fresh files while online
 // (essential during development), falls back to cache for offline play.
-const CACHE = 'furious-rhino-v196';
+const CACHE = 'furious-rhino-v197';
 const ASSETS = [
   './',
   './index.html',
@@ -213,7 +213,23 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
+  // v1.9.7: instalação TOLERANTE. O `addAll` atômico com ~200 arquivos era a
+  // fragilidade M3 do CASO 2 (INVESTIGACOES.md): UM arquivo falhando — rede
+  // móvel, CDN do Phaser, janela de propagação do deploy — e o SW novo nunca
+  // instalava. O cliente ficava preso no SW velho, cujo `put` do fetch ia
+  // misturando arquivos novos no cache velho (o precedente da v1.4.0).
+  // Agora cada arquivo é tentado por si: arte que falhar entra depois, pelo
+  // próprio fetch handler (SWR abaixo). Só o NÚCLEO (HTML/JS/CDN — sem ele o
+  // fallback offline não boota) continua obrigatório: núcleo incompleto ainda
+  // derruba a instalação, porque um cache que não boota é pior do que
+  // permanecer no SW anterior, que pelo menos funcionava.
+  e.waitUntil(caches.open(CACHE).then(async (c) => {
+    await Promise.allSettled(ASSETS.map((a) => c.add(a)));
+    const nucleo = ASSETS.filter((a) => !a.startsWith('./art/'));
+    const urls = new Set((await c.keys()).map((r) => r.url));
+    const faltando = nucleo.filter((a) => !urls.has(new URL(a, self.location.href).href));
+    if (faltando.length) throw new Error('nucleo incompleto: ' + faltando.join(' '));
+  }));
   self.skipWaiting();
 });
 
@@ -224,6 +240,22 @@ self.addEventListener('activate', (e) => {
     ).then(() => self.clients.claim())
   );
 });
+
+// v1.9.7: a página de SOCORRO — quando nada respondeu (a rede caiu E o cache
+// foi despejado), o jogador via a página de erro do NAVEGADOR: "não foi
+// possível acessar a página", o sintoma do CASO 2. Esta resposta é gerada
+// aqui dentro, sem depender de cache nenhum, e dá o botão de tentar de novo.
+const OFFLINE_HTML = `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FURIOUS RHINO — sem conexão</title>
+<style>body{margin:0;font-family:system-ui,sans-serif;background:#7ec8f0;display:flex;
+align-items:center;justify-content:center;height:100vh;text-align:center}
+.c{background:#fff;border-radius:16px;padding:32px 24px;max-width:320px;
+box-shadow:0 8px 24px rgba(0,0,0,.2)}h1{font-size:48px;margin:0}p{color:#333;line-height:1.5}
+button{font-size:18px;padding:12px 28px;border:0;border-radius:10px;background:#e8541e;
+color:#fff;font-weight:700}</style></head><body><div class="c"><h1>🦏</h1>
+<p><b>Sem conexão com o jogo.</b><br>Confira a internet e tente de novo.</p>
+<button onclick="location.reload()">Tentar de novo</button></div></body></html>`;
 
 self.addEventListener('fetch', (e) => {
   // Chamadas de dados do Firestore (googleapis.com), consultas de geo-IP,
@@ -239,10 +271,35 @@ self.addEventListener('fetch', (e) => {
       url.hostname === 'ntfy.sh' ||
       url.hostname.endsWith('.ntfy.sh')) return;
 
+  // v1.9.7 — ARTE: cache-first com revalidação em segundo plano (SWR). A arte
+  // muda raramente, e misturá-la entre versões é cosmético — um sprite antigo
+  // por uma sessão. JS/HTML seguem network-first estrito logo abaixo, porque
+  // misturá-LOS foi o desastre da v1.4.0. Este ramo é também a dívida técnica
+  // nº 3 da radiografia de 24/08: revalidar ~150 SVGs a cada sessão era
+  // metade do preload lento no celular.
+  if (url.origin === self.location.origin && url.pathname.includes('/art/')) {
+    e.respondWith(
+      caches.match(e.request).then((hit) => {
+        const rede = fetch(e.request).then((res) => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE).then((c) => c.put(e.request, clone));
+          }
+          return res;
+        });
+        // Com cache: responde NA HORA e atualiza por trás (falha da
+        // revalidação é ruído). Sem cache: é a rede ou nada, como antes.
+        if (hit) { rede.catch(() => {}); return hit; }
+        return rede;
+      })
+    );
+    return;
+  }
+
   e.respondWith(
     // cache: 'no-cache' força revalidação no servidor (304 é barato): sem
-    // isso, o cache HTTP do navegador pode servir JS/arte antigos por baixo
-    // do network-first e misturar versões (visto na validação da v1.4.0)
+    // isso, o cache HTTP do navegador pode servir JS antigo por baixo do
+    // network-first e misturar versões (visto na validação da v1.4.0)
     fetch(e.request, { cache: 'no-cache' })
       .then((res) => {
         // keep the offline cache fresh with every successful fetch
@@ -252,6 +309,25 @@ self.addEventListener('fetch', (e) => {
         }
         return res;
       })
-      .catch(() => caches.match(e.request))
+      // v1.9.7 — a CORRENTE DE SOCORRO do CASO 2, do específico ao genérico.
+      // Antes era um só `caches.match(e.request)`: um miss devolvia
+      // `undefined`, e `respondWith(undefined)` é erro de rede GARANTIDO — o
+      // service worker transformava conexão ruim em página de erro.
+      //   1. o próprio recurso, ignorando a query (`/?stats` era miss seco);
+      //   2. navegação sem cache do recurso → o shell do jogo;
+      //   3. navegação sem cache NENHUM → a página de socorro, nunca o erro
+      //      cru do navegador. Subrecurso sem cache segue falhando (sinal
+      //      certo para a rede de proteção da página agir).
+      .catch(async () => {
+        const exato = await caches.match(e.request, { ignoreSearch: true });
+        if (exato) return exato;
+        if (e.request.mode === 'navigate') {
+          const shell = await caches.match('./index.html');
+          if (shell) return shell;
+          return new Response(OFFLINE_HTML,
+            { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+        }
+        return undefined;
+      })
   );
 });

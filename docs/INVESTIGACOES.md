@@ -248,6 +248,113 @@ Rodar `npm run investiga --salvar` a cada coleta para ter o diff.
 
 ---
 
+## CASO 2 — "Não consegue acessar a página" (aberto em 28/08/2026)
+
+**Status: 🔴 aberto.** Relato de campo: ao tentar iniciar o jogo, o jogador vê
+uma mensagem de **"não foi possível acessar a página"** — erro do NAVEGADOR,
+anterior a qualquer código nosso. Este caso é, por definição, **invisível na
+telemetria**: a página que não carrega não grava nada. Toda a evidência abaixo
+é indireta — e mesmo assim conta uma história consistente.
+
+### A evidência
+
+**1. O precedente que nunca foi explicado — e agora tem desfecho.** Em 23/08 o
+**ben** relatou o mesmo sintoma ("não consegue abrir mais o jogo"), logo após o
+travamento que abriu o CASO 1. A metade do "travou" foi corrigida (v1.9.1); a
+metade do "não abre mais" ficou sem explicação. Agora dá para fechá-la: o ben
+**nunca mais apareceu com a identidade dele** — e dois dias depois surgiu o
+`calça larga` (`cadaec9e`, 25/08 19:28) com fingerprint quase idêntico:
+
+| | ben (backup 24/08) | calça larga |
+|---|---|---|
+| Cidade | Americana-SP | Americana-SP |
+| Aparelho | desktop Linux | desktop Linux |
+| Tela | **1360x768@1** | **1360x768@1** |
+| Idioma | **en-US** (raríssimo no BR) | **en-US** |
+| Chrome | 150 | 151 (2 dias depois — auto-update) |
+
+Conclusão com alta confiança: o ben "consertou" o acesso **apagando os dados do
+site** (novo UUID = localStorage zerado). Ou seja: **a falha morava nos dados
+locais do site (service worker/cache), não no servidor** — limpar resolveu.
+
+**2. O suspeito atual: Palito** (`18a80027`, iPad · Safari 26 · iPadOS 26.6,
+35 tentativas). A última sessão dele (25/08 18:16-18:18) tem **todas as corridas
+com o loop congelando 1-3 s** (`i` < `s` em 8 de 8 — é o D4 do `investiga`
+acendendo). Em **26/08 12:42 ele ABRIU o jogo** (o `updatedAt` do boot prova que
+a página ainda carregava) **e não jogou nenhuma corrida**. Silêncio desde então.
+O relato de "não acessa" chegou em 28/08. Perfil compatível; não confirmado.
+
+**3. O servidor está ÍNTEGRO agora** (28/08): os **199 arquivos** do `ASSETS`
+do `sw.js` respondem 200 em produção, versão v1.9.6 propagada. A falha não é
+arquivo faltando nem Pages fora do ar — é estado do cliente ou rede instável.
+
+**4. O mesmo padrão em três jogadores**: ben (23/08, travou → sumiu → voltou
+resetado), nikolinhasss (24/08 00:27, corrida com `i=7/s=14` → última atividade
+00:29) e Palito (25/08, congelamentos → sumiu). **Os três pararam de jogar
+minutos depois de um congelamento registrado.**
+
+### O mecanismo no código (confirmado por leitura, não por reprodução)
+
+O `fetch` handler do `sw.js` tem quatro fragilidades que convergem exatamente
+para "página inacessível":
+
+| # | Mecanismo | Efeito |
+|---|---|---|
+| M1 | `catch(() => caches.match(e.request))` devolve `undefined` quando o cache não tem o item — e `respondWith(undefined)` é **erro de rede garantido**. Não há `ignoreSearch`, nem fallback de navegação para `./index.html` | Qualquer miss vira a página de erro do navegador |
+| M2 | `fetch(req, { cache: 'no-cache' })` **força revalidação no servidor em toda requisição**. Em rede instável, a revalidação falha onde o navegador sozinho teria servido do cache HTTP | **Com o SW, a conexão ruim fica PIOR do que sem SW** — e o fallback é o M1 |
+| M3 | `install` faz `addAll` **atômico de 199 arquivos** (incl. CDN do Phaser): um único fracasso e o SW novo nunca instala; o cliente fica preso no SW velho, cujo `cache.put` do fetch **mistura arquivos novos no cache velho** (precedente documentado: v1.4.0) | Clientes presos em versão velha com cache híbrido |
+| M4 | Nunca pedimos `navigator.storage.persist()` | O navegador pode **despejar o cache inteiro** sob pressão de espaço — Safari/iPadOS é o mais agressivo (e apaga TUDO após 7 dias sem uso fora de PWA instalado) |
+
+A sequência que produz o sintoma: cache despejado ou incompleto (M3/M4) →
+jogador abre com rede fraca → revalidação forçada falha (M2) → fallback perde
+(M1) → **"não foi possível acessar a página"**. E dois deploys em 4 dias
+(25 e 28/08) multiplicam o M3: cada release força o re-download dos 199.
+
+### O que falta para confirmar (perguntar a quem relatou)
+
+1. **Qual aparelho?** (se iPad/Safari, o Palito vira confirmação)
+2. **A mensagem exata** — é a página de erro do navegador ou o overlay "😵 O
+   jogo travou"? (o segundo é outro caso, já coberto pela v1.9.1)
+3. **Instalado como app ou pelo navegador?**
+4. **Com internet funcionando em outros sites?**
+5. O teste que decide: **limpar os dados do site resolve?** (No ben, resolveu —
+   ao custo da identidade. Se resolver de novo, M1-M4 está confirmado e o
+   jogador deve ANTES anotar o apelido para o 🆘 do `/?setup` recuperar.)
+
+### Hipóteses
+
+| # | Hipótese | Estado | Evidência |
+|---|---|---|---|
+| **C2-H1** | O quarteto M1-M4 do `sw.js`: cache incompleto/despejado + rede fraca + revalidação forçada + fallback que devolve `undefined` | 🟡 principal | Mecanismo confirmado no código; o reset do ben resolvendo aponta para dados locais; servidor íntegro |
+| **C2-H2** | SW/cache em estado quebrado específico do Safari/iPadOS 26 (o processo do SW trava e toda navegação expira) | 🔴 aberta | Palito e benicio são os únicos iOS/iPadOS recentes; iPadOS 26.6 é novíssimo; irreproduzível daqui |
+| **C2-H3** | Transiente de deploy (CDN do Pages propagando entre 25 e 28/08) | 🔴 aberta, improvável como causa única | Explicaria um episódio, não o padrão ben→Palito de 5 dias |
+
+### A correção (v1.9.7) — implementada em 28/08, aguardando release
+
+Endurecer o `sw.js` nos quatro pontos, sem mudar a filosofia network-first:
+fallback de navegação (`ignoreSearch` + `./index.html` como última carta),
+install tolerante (`allSettled` — o cache é só fallback, parcial é melhor que
+nenhum), pedir `storage.persist()` uma vez, e repensar o `no-cache` (mantê-lo
+para HTML/JS e soltá-lo para arte, ou aceitar o cache HTTP como primeiro
+fallback). Detalhe relevante: **mudar o `sw.js` é a única correção que um
+cliente já quebrado talvez nem receba** — se o SW dele não atualiza, a saída é
+o jogador limpar os dados uma vez (e recuperar o apelido pelo 🆘).
+
+
+---
+
+
+**28/08, implementada e provada em sonda funcional** (Playwright + SW real no
+localhost): instalação tolerante com núcleo obrigatório (199/199 no cache),
+`ignoreSearch` (o `/?stats` offline carregou), navegação sem cache do recurso
+caindo no shell, e o cenário exato do sintoma — **offline com cache apagado —
+servindo a página de socorro** ("Sem conexão com o jogo" + Tentar de novo) em
+vez do erro do navegador. De carona, a arte virou cache-first com revalidação
+em segundo plano — a dívida técnica nº 3 da radiografia (revalidar ~150 SVGs
+por sessão era metade do preload lento). 8 text-asserts no `test-crash` (M1a,
+M1b, M1c, M3a, M3b, SWR, network-first estrito de JS/HTML, M4) trancam cada
+ponto. Bateria completa: 1.047 asserts, zero FAIL.
+
 ## LACUNAS DE TELEMETRIA — auditoria de 24/08/2026
 
 > Não é um caso investigativo: é o **mapa do que não se consegue medir hoje**,

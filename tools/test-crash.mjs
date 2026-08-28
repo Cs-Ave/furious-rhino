@@ -237,6 +237,33 @@ eq('submit sem `seconds` mantém o comportamento de antes',
     StorageManager.getBestSent(), 9999);
 }
 
+// ---------- 7. o service worker não fabrica mais o erro (CASO 2, v1.9.7) ----------
+// O sintoma de campo: "não foi possível acessar a página" — erro do NAVEGADOR.
+// O sw.js tinha 4 fragilidades que convergiam para ele (M1-M4 do CASO 2 no
+// INVESTIGACOES.md). Estes text-asserts travam cada correção; se alguém
+// simplificar o fetch handler de volta, este teste fica vermelho.
+{
+  const sw = ler('../sw.js');
+  eq('M1a: o fallback ignora a query (/?stats era miss seco)',
+    sw.includes('ignoreSearch: true'), true);
+  eq('M1b: navegação sem cache do recurso cai no shell do jogo',
+    sw.includes("mode === 'navigate'") && sw.includes("caches.match('./index.html')"), true);
+  eq('M1c: navegação sem cache NENHUM ganha a página de socorro, nunca o erro cru',
+    sw.includes('OFFLINE_HTML') && sw.includes('Tentar de novo'), true);
+  eq('M3a: a instalação tolera arte falhando (allSettled, não addAll atômico)',
+    sw.includes('Promise.allSettled') && !sw.includes('c.addAll(ASSETS)'), true);
+  eq('M3b: ...mas o NÚCLEO segue obrigatório (cache que não boota é pior que nenhum)',
+    sw.includes("!a.startsWith('./art/')") && sw.includes('nucleo incompleto'), true);
+  eq('SWR: arte é cache-first com revalidação por trás (dívida nº 3 da radiografia)',
+    sw.includes("url.pathname.includes('/art/')"), true);
+  eq('JS/HTML seguem network-first estrito (misturá-los foi a v1.4.0)',
+    sw.includes("fetch(e.request, { cache: 'no-cache' })"), true);
+
+  const gj = ler('../js/game.js');
+  eq('M4: o boot pede storage.persist (cache despejado era metade da receita)',
+    gj.includes('navigator.storage.persist()'), true);
+}
+
 
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

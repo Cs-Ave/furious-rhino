@@ -152,6 +152,17 @@ async function bootGame() {
     LeaderboardSystem.purgeUnprovenLocal();
   } catch (e) { /* faxina é acessório — nunca segura o boot */ }
 
+  // v1.9.7 (CASO 2, M4): pede ao navegador para NÃO despejar o armazenamento
+  // deste site sob pressão de espaço. Cache despejado era metade da receita do
+  // "não foi possível acessar a página" — a outra metade era o sw.js devolver
+  // undefined no miss. Fire-and-forget: cada navegador decide sozinho (PWA
+  // instalado quase sempre ganha), e uma recusa não muda nada do que já era.
+  try {
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist().catch(() => {});
+    }
+  } catch (e) { /* indiferente — proteção extra, não requisito */ }
+
   // v1.9.3: A HOME VEM PRIMEIRO. Até a v1.9.2 a tela inicial só era pintada
   // dentro do GameScene.create(), ou seja, depois de o Phaser baixar 150
   // SVGs — no celular isso deixava a tela vazia por 4,6 s DEPOIS de a página
