@@ -1661,12 +1661,12 @@ Detalhe completo na **Radiografia TÉCNICA — 2026-08-24**, acima.
 
 | Ordem | Dívida | Custo | Impacto |
 |---|---|---|---|
-| 1 | **Causa raiz do cronômetro** — ler a letra `i` em campo | XS (só análise) | fecha o único bug ATIVO; o instrumento já está no ar |
-| 2 | **Preload de 150 SVGs** — dividir essencial / segundo plano | M | a CORRIDA começa em ~6 s no celular |
-| 3 | **Service worker revalida tudo** — SWR só para `art/*.svg` | M (arriscado: já misturou versões na v1.4.0) | é a causa REAL do preload lento |
+| 1 | **Causa raiz do cronômetro** — ler a letra `i` em campo | XS (só análise) | 🟡 **em andamento (28/08)**: a sonda chegou a 79 corridas e o `D4` acendeu — congelamentos de 1-3 s no iPad (CASO 1). O pacote de correção (pausar no retrato + `maxSubSteps`) é a **abertura da próxima sessão** |
+| 2 | **Preload de 150 SVGs** — dividir essencial / segundo plano | M | a CORRIDA começa em ~6 s no celular. **O impacto caiu pela metade em 28/08**: o SWR da v1.9.7 serve a arte do cache da 2ª visita em diante — resta o peso da PRIMEIRA |
+| ~~3~~ | ~~**Service worker revalida tudo** — SWR só para `art/*.svg`~~ | — | ✅ **entregue na v1.9.7** (de carona no CASO 2): arte cache-first com revalidação por trás; JS/HTML seguem network-first estrito — o risco da mistura de versões (v1.4.0) ficou confinado a onde é cosmético |
 | 4 | **`document.write` do Phaser** — trocar por `<script defer>` | XS (não testado) | segura o FCP, e com ele tudo |
-| 5 | **`/atualizar-docs`** — 5 versões atrás | XS | a `docs/` mente hoje |
-| 6 | **`/?debug=1` sem chave em produção** | XS | higiene, não emergência |
+| ~~5~~ | ~~**`/atualizar-docs`** — 5 versões atrás~~ | — | ✅ **em dia desde 28/08** (rodado para v1.9.4 → v1.9.7, com duas afirmações erradas corrigidas no caminho) |
+| ~~6~~ | ~~**`/?debug=1` sem chave em produção**~~ | — | ✅ **entregue na v1.9.6** — e a lição ficou: esta linha o chamava de "higiene, não emergência", e um jogador real o usou para pôr 3 marcas sem luta no pódio. **Dívida de segurança nunca é só higiene** |
 
 A ordem 2 e 3 andam juntas: dividir o preload sem consertar o service worker
 resolve metade — os arquivos adiados continuariam custando uma ida-e-volta cada.

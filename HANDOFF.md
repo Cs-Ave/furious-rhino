@@ -38,6 +38,16 @@ cada ponto. Bateria: **1.047 asserts, zero FAIL**.
 
 ## 3. Como retomar
 
+**Decisão do dono (28/08): a próxima sessão abre com o pacote do CASO 1** —
+pausar a cena enquanto o `#rotate-overlay` está ativo (H3: hoje o jogo roda
+às cegas no retrato) + `maxSubSteps` no catch-up do Arcade (H2: o `while` do
+`fixedStep` compensa N passos num quadro — 85 ms atravessam os 120 px do
+portão). As duas juntas, aceitando perder a atribuição H2×H3: cada uma é
+defeito por mérito próprio, e os detectores seguem como juízes — sintoma
+persistindo = terceira causa. ⚠️ O portão 2 desse pacote é HUMANO: girar o
+aparelho no meio da corrida, trocar de aba e voltar — Playwright não simula
+isso com fidelidade (menos ainda no iPad do Palito).
+
 ```bash
 npm run test-crash            # 76 asserts — inclui os 8 do SW (seção 7)
 npm run investiga --salvar    # detectores + diff (D4 é o fio do CASO 1)
