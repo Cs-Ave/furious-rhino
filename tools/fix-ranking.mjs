@@ -31,7 +31,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ScoreSystem } from '../js/systems/ScoreSystem.js';
 import { LeaderboardSystem } from '../js/systems/LeaderboardSystem.js';
-import { Constants } from '../js/utils/Constants.js';
+import { ehCascata } from '../js/systems/BossProof.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const cfg = readFileSync(join(ROOT, 'js', 'firebase-config.js'), 'utf8');
@@ -50,41 +50,16 @@ const SONDA = /^(claude-|repro-|sonda-|perf-teste|skin-check|freeze-teste|fernan
 // A marca do bug: o teto do jogo. Toda corrida que o produziu tem média
 // acima do teto físico — é o mesmo critério da guarda da v1.9.1.
 const MARCA_DO_BUG = 20000;
-// ----------------------------------------------- A SEGUNDA CAUSA (25/08/26)
+// ------------------------------------------------- A SEGUNDA CAUSA
 // A CASCATA DOS CHEFES. Bug diferente do cronômetro e com assinatura oposta:
 // ali a distância era real e o relógio mentiu; aqui o relógio está certo e a
-// distância foi REAL sem a luta que ela exige. O gatilho legado dos 1000 m
-// disparava `crossGate()` sem combate e, na sequência, o `isBypassed` dos
-// cinco chefes via "já estou além da âncora" e todos se rendiam. Resultado:
-// dava para atravessar o mundo inteiro — 21 camadas — sem encostar em uma.
+// distância foi REAL sem a luta que ela exige. Da v1.8.5 à v1.9.3 dava para
+// atravessar o mundo inteiro — 21 camadas — sem encostar em uma.
 //
-// Janela: a v1.8.5 (21/08 22:22) trouxe o `isBypassed`; a v1.9.4 fechou.
-// Última camada quebrada na base inteira: 22/08 16:14, v1.8.3. Dentro da
-// janela, 5 corridas passaram dos 1.050 m e NENHUMA quebrou o portão;
-// fora dela, 35 de 36 quebraram. O corte é limpo.
-const CASCATA_DE = '1.8.5';
-const CASCATA_ATE = '1.9.4';   // exclusivo — esta versão já corrigiu
-const MARGEM_M = 50;           // folga para não acusar quem morreu NA âncora
-
-// Derivado de Constants, nunca literal: se um chefe mudar de lugar ou ganhar
-// camada, a régua acompanha sozinha. `desde` evita acusar corrida de uma
-// versão em que aquele chefe ainda nem existia.
-const PPM = Constants.PIXELS_PER_METER;
-const FIM_M = Constants.WORLD_END_PX / PPM;
-const CHEFES = [
-  { nome: 'Portão', m: Constants.WIN_DISTANCE_PX / PPM, k: 'b', camadas: Constants.BOSS_LAYERS.length, desde: '1.7.0' },
-  { nome: 'Muralha', m: Constants.BOSS2_ANCHOR_PX / PPM, k: 'e', camadas: Constants.BOSS2_LAYERS.length, desde: '1.8.5' },
-  { nome: 'Barreira', m: Constants.CERCO_ANCHOR_PX / PPM, k: 'u', camadas: Constants.CERCO_LAYERS.length, desde: '1.8.10' },
-  { nome: 'Faraó', m: Constants.FARAO_ANCHOR_PX / PPM, k: 'y', camadas: Constants.FARAO_LAYERS.length, desde: '1.8.10' },
-  { nome: 'Caçador-Mor', m: Constants.BOSS3_ANCHOR_PX / PPM, k: 'l', camadas: Constants.BOSS3_LAYERS.length, desde: '1.8.5' },
-];
-
-const vPartes = (v) => String(v || '').split('.').map((n) => Number(n) || 0);
-const vCmp = (a, b) => {
-  const [x, y] = [vPartes(a), vPartes(b)];
-  for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0);
-  return 0;
-};
+// v1.9.6: a regra saiu daqui e virou `js/systems/BossProof.js`, importado
+// acima. O motivo é que ela precisava valer também DENTRO do jogo (o envio ao
+// ranking e a Arena de Desafios), e uma regra que decide quem perde a marca
+// não pode existir em duas cópias que podem divergir. Aqui ficou só o uso.
 
 
 // ----------------------------------------------------------- REST: decode
@@ -168,26 +143,6 @@ export function ehImplausivel(r) {
   const o = r && typeof r === 'object' ? r : {};
   const m = Math.floor(Number(o.m) || 0);
   return m > 0 && !LeaderboardSystem.isPlausible(m, o.s);
-}
-
-// Corrida que passou por um chefe DENTRO da janela da cascata sem derrubar
-// as camadas dele. É prova direta: no jogo não existe passar sem lutar — a
-// v1.9.4 tornou o gatilho por posição exclusivo do modo debug.
-export function ehCascata(r) {
-  const o = r && typeof r === 'object' ? r : {};
-  const m = Math.floor(Number(o.m) || 0);
-  const v = String(o.v || '');
-  // Sem versão não há acusação. Os clientes pré-v1.7 nem gravavam camada, e
-  // ausência de dado jamais é prova de bypass — seria condenar por silêncio.
-  if (!v || m <= 0) return false;
-  if (vCmp(v, CASCATA_DE) < 0 || vCmp(v, CASCATA_ATE) >= 0) return false;
-  return CHEFES.some((c) => {
-    if (vCmp(v, c.desde) < 0) return false;   // este chefe ainda não existia
-    // O Caçador-Mor mora em 9.995 m: `min` com o fim do mundo evita um limiar
-    // inalcançável, e lá passar é justamente chegar aos 10.000.
-    const passou = m >= Math.min(c.m + MARGEM_M, FIM_M);
-    return passou && Math.floor(Number(o[c.k]) || 0) < c.camadas;
-  });
 }
 
 // As DUAS causas conhecidas de marca falsa, com assinaturas opostas: o

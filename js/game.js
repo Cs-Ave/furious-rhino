@@ -141,6 +141,17 @@ async function bootGame() {
   // dos imports, ela já cobre falhas do próprio carregamento das cenas.
   instalarRedeDeProtecao();
 
+  // v1.9.6: A FAXINA DO APARELHO, antes de qualquer coisa que LEIA o
+  // `runs[]`. Ela roda aqui, e não no create() da cena, porque a home é
+  // pintada logo abaixo e os cards da Arena de Desafios já leem a janela
+  // local — se a faxina viesse depois, o primeiro placar do dia ainda sairia
+  // com a corrida errada. É idempotente (marca própria no localStorage) e
+  // acessória: se falhar, o jogo segue e ela tenta no próximo boot.
+  try {
+    const { LeaderboardSystem } = await import('./systems/LeaderboardSystem.js');
+    LeaderboardSystem.purgeUnprovenLocal();
+  } catch (e) { /* faxina é acessório — nunca segura o boot */ }
+
   // v1.9.3: A HOME VEM PRIMEIRO. Até a v1.9.2 a tela inicial só era pintada
   // dentro do GameScene.create(), ou seja, depois de o Phaser baixar 150
   // SVGs — no celular isso deixava a tela vazia por 4,6 s DEPOIS de a página

@@ -92,7 +92,19 @@ export class StorageManager {
   // Pages). Existe para fechar o vazamento que já aconteceu duas vezes: um
   // contexto de teste sem playerId de sonda mina um UUID real e polui a
   // telemetria de produção.
+  //
+  // v1.9.6: `?debug=1` entra na MESMA categoria, e por um caso real. O painel
+  // de tuning é público — basta o parâmetro na URL — e traz o botão "Pular p/
+  // 50 m antes" de cada arena e o modo invencível. Em 25-26/08 um jogador de
+  // produção passou do portão três vezes com ZERO camadas e essas marcas
+  // subiram ao ranking mundial, porque o allowsRemoteWrite só olhava o
+  // hostname. Ferramenta de desenvolvimento não pode escrever no placar de
+  // todo mundo — e o opt-in para quando o dono precisa de verdade já existe
+  // ("📡 Escrita local" no próprio painel), então nada de fluxo novo.
   static isLocalEnv() {
+    try {
+      if (new URLSearchParams(location.search).get('debug') === '1') return true;
+    } catch (e) { /* sem URL utilizável: cai no teste de hostname abaixo */ }
     const h = location.hostname;
     if (h === 'localhost' || h === '127.0.0.1' || h === '::1') return true;
     return /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(h);
@@ -497,6 +509,29 @@ export class StorageManager {
     } catch (e) {
       return [];
     }
+  }
+
+  // v1.9.6: escrita direta da janela. Existe para a faxina do
+  // LeaderboardSystem.purgeUnprovenLocal — o `addRun` só sabe ACRESCENTAR,
+  // e a limpeza precisa REMOVER. Recorta no teto da janela pelo mesmo
+  // motivo do addRun: as rules recusam `runs.size() > 50`.
+  static setRuns(runs) {
+    const lista = (Array.isArray(runs) ? runs : []).slice(-this.RUNS_WINDOW);
+    localStorage.setItem(this.RUNS_KEY, JSON.stringify(lista));
+    return lista;
+  }
+
+  // Marca de que a faxina da v1.9.6 já rodou NESTE aparelho. Guardada com o
+  // número da versão no nome de propósito: uma faxina futura será outra
+  // chave, e esta continua contando o que aconteceu.
+  static PURGE_KEY = 'furious_rhino_purge_v196';
+
+  static purgeDone() {
+    try { return localStorage.getItem(this.PURGE_KEY) === '1'; } catch (e) { return true; }
+  }
+
+  static setPurgeDone() {
+    try { localStorage.setItem(this.PURGE_KEY, '1'); } catch (e) { /* modo privado: roda de novo, sem dano */ }
   }
 
   static addRun(meters, seconds = 0, cause = null, extra = null) {

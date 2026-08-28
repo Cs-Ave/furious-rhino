@@ -3,7 +3,11 @@
 // Este é o código que decide QUEM perde a marca e QUEM tem a dele
 // restaurada. Um erro aqui apaga a conquista de um jogador real, então os
 // casos abaixo são os dados de PRODUÇÃO de 23-24/08, não fixtures inventadas.
-import { melhorLegitima, ehImplausivel, ehCascata, ehSuja, classificar, statsLimpos } from './fix-ranking.mjs';
+import { melhorLegitima, ehImplausivel, ehSuja, classificar, statsLimpos } from './fix-ranking.mjs';
+// v1.9.6: a regra da cascata mora no BossProof (o jogo também a usa). Os
+// casos-limite dela vivem em test-bossproof.mjs; aqui fica só o que este
+// arquivo decide — quem perde a marca e quem tem a dele restaurada.
+import { ehCascata } from '../js/systems/BossProof.js';
 
 let pass = 0;
 let fail = 0;
@@ -40,6 +44,15 @@ const kukurLegitima = { t: 1786888968, m: 472, s: 52, c: 'animal', w: 6, j: 56,
 // mas ABAIXO do teto físico do motor (35,16 m/s) — o cronômetro não mentiu.
 const kukurDaCascata = { t: 1787520660, m: 10000, s: 429, c: 'win', v: '1.9.0',
   w: 6, r: 10, o: 3, a: 7, j: 3, d: 5, x: 20, f: 3, z: 1, h: 1, g: 'catisqui' };
+// A melhor corrida do Funku Pópi que ainda resta na janela dele: 1.997 m com
+// o PORTÃO DERRUBADO (`b: 3`). Ela existe aqui por dois motivos. O primeiro é
+// provar que placar acima do que a janela sustenta (ele marcou 3.304) não
+// basta para acusar ninguém. O segundo é uma lição repetida: a primeira versão
+// deste caso INVENTOU a corrida, sem o `b`, e o teste passou a acusá-lo de
+// cascata — exatamente o erro que a nota lá embaixo já registrava sobre os
+// contadores inventados. Fixture de gente real se copia, não se imagina.
+const funkuReal = { t: 1786617476, m: 1997, s: 206, c: 'wall', w: 20, j: 514,
+  d: 25, x: 1, f: 1, b: 3, z: 4, v: '1.7.2' };
 // Corrida curta comum (ele morria sempre no mesmo obstáculo dos ~57 m)
 const curtaNormal = { t: 1787520000, m: 57, s: 7, c: 'wall' };
 // A MESMA corrida curta com o tempo encolhido pelo bug — na zona cega do
@@ -67,20 +80,19 @@ eq('a corrida do cronômetro tem as duas doenças',
 eq('corrida curta nem chega em chefe nenhum e não é cascata',
   [ehCascata(curtaNormal), ehCascata(nikoLegitima)], [false, false]);
 {
-  // A janela é fechada dos dois lados: antes da v1.8.5 os chefes funcionavam,
-  // e da v1.9.4 em diante voltaram a funcionar.
+  // v1.9.6: a janela deixou de ter limite SUPERIOR. Até aqui a régua parava
+  // na v1.9.4 (a versão que corrigiu a cascata) — mas justamente de lá em
+  // diante passar sem lutar virou impossível, então uma corrida NOVA nessa
+  // condição é o que mais interessa pegar. O caso real que motivou: um
+  // jogador de produção passou do portão três vezes em v1.9.5, com zero
+  // camadas, usando o ?debug=1.
   const semLuta = (v) => ({ m: 10000, s: 500, c: 'win', v });
-  eq('fora da janela (antes) não acusa', ehCascata(semLuta('1.8.3')), false);
-  eq('fora da janela (depois) não acusa', ehCascata(semLuta('1.9.4')), false);
-  eq('dentro da janela acusa', [ehCascata(semLuta('1.8.5')), ehCascata(semLuta('1.9.3'))], [true, true]);
-  eq('SEM versão nunca acusa — ausência de dado não é prova',
-    ehCascata({ m: 10000, s: 500, c: 'win' }), false);
-  eq('quem DERRUBOU os cinco chefes não é acusado',
-    ehCascata({ m: 10000, s: 500, c: 'win', v: '1.9.0', b: 3, e: 4, u: 4, y: 5, l: 5 }), false);
-  eq('derrubar quatro e passar pelo quinto ainda é cascata',
-    ehCascata({ m: 10000, s: 500, c: 'win', v: '1.9.0', b: 3, e: 4, u: 4, y: 5 }), true);
-  eq('morrer NA âncora do Portão não é acusação (a margem existe para isso)',
-    ehCascata({ m: 1000, s: 120, c: 'wall', v: '1.9.0' }), false);
+  eq('corrida NOVA que passa sem lutar também é pega',
+    [ehCascata(semLuta('1.9.4')), ehCascata(semLuta('1.9.5'))], [true, true]);
+  eq('e as da janela original seguem pegas',
+    [ehCascata(semLuta('1.8.5')), ehCascata(semLuta('1.9.3'))], [true, true]);
+  eq('quem DERRUBOU os cinco chefes não é acusado, em versão nenhuma',
+    ehCascata({ m: 10000, s: 500, c: 'win', v: '1.9.5', b: 3, e: 4, u: 4, y: 5, l: 5 }), false);
 }
 eq('ehSuja é a união das duas causas',
   [ehSuja(corridaDoBug), ehSuja(vitoriaDaCascata), ehSuja(nikoLegitima)], [true, true, false]);
@@ -136,7 +148,7 @@ eq('runs vazio ou inválido devolve null',
 {
   const p = classificar(
     [{ id: 'funku-00000000000001', campos: { name: 'Funku Pópi', score: 3304 } }],
-    [{ id: 'funku-00000000000001', campos: { attempts: 200, runs: [{ t: 5, m: 1997, s: 206, c: 'wall', v: '1.7.2' }] } }]);
+    [{ id: 'funku-00000000000001', campos: { attempts: 92, runs: [funkuReal] } }]);
   eq('placar acima da janela, sem corrida suja: intocado',
     [p.restaurar.length, p.remover.length, p.revisar.length], [0, 0, 0]);
 }

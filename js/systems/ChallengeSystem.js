@@ -2,6 +2,7 @@ import { Constants } from '../utils/Constants.js';
 import { StorageManager } from '../utils/StorageManager.js';
 import { ScoreSystem } from './ScoreSystem.js';
 import { getDb } from './LeaderboardSystem.js';
+import { ehCascata } from './BossProof.js';
 
 // Arena de Desafios (v1.8.6) — desafios 1v1 e em grupo entre jogadores.
 //
@@ -49,6 +50,13 @@ export class ChallengeSystem {
       const r = item && typeof item === 'object' ? item : {};
       const t = Math.floor(Number(r.t) || 0);
       if (t < s || t > e) continue;
+      // v1.9.6: corrida que passou por um chefe sem derrubá-lo não vence
+      // desafio. A faxina de 25/08 limpou o Firestore, mas o `runs[]` mora
+      // no APARELHO e volta na primeira partida — e este laço lê os dois
+      // lados (o localStorage para a linha do próprio jogador, o doc do
+      // servidor para os adversários). Sem esta linha, quem tem uma corrida
+      // da cascata vence qualquer desafio automaticamente.
+      if (ehCascata(r)) continue;
       const m = Math.floor(Number(r.m) || 0);
       // MESMA conta do ranking: total = metros + bônus recomputado (runBonus
       // cobre w/r/o/a e as camadas b/e/l dos três bosses da v1.8.5)

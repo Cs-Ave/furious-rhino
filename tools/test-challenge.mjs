@@ -87,6 +87,21 @@ eq('item malformado no meio não derruba a leitura (dado de terceiros)',
     [null, 'lixo', { t: 'x', m: 100 }, { t: J0 + 5, m: 200 }], J0, J1),
   { pts: 200, m: 200, t: J0 + 5 });
 
+// v1.9.6: corrida que passou por um chefe sem derrubá-lo não vence desafio.
+// Este laço lê os DOIS lados — o localStorage para a linha do próprio
+// jogador e o doc do servidor para os adversários —, e a faxina de 25/08
+// mostrou que limpar só o Firestore não basta: o aparelho regrava.
+{
+  const cascata = { t: J0 + 50, m: 10000, s: 429, c: 'win', v: '1.9.0', z: 1, h: 1 };
+  const honesta = { t: J0 + 60, m: 1997, s: 206, c: 'wall', v: '1.7.2', b: 3, z: 4 };
+  eq('corrida da cascata NÃO vence desafio, mesmo sendo a maior',
+    ChallengeSystem.bestInWindow([cascata, honesta], J0, J1).m, 1997);
+  eq('só ela na janela: ninguém pontua',
+    ChallengeSystem.bestInWindow([cascata], J0, J1), null);
+  eq('quem derrubou os chefes segue valendo',
+    ChallengeSystem.bestInWindow([honesta], J0, J1).m, 1997);
+}
+
 // ---------- 2. countdownText ----------
 const AGORA_MS = 1700000000000; // = J0 em ms
 const emS = (s) => Math.floor(AGORA_MS / 1000) + s;

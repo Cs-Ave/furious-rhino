@@ -3,6 +3,7 @@ import { Constants } from '../utils/Constants.js';
 import { StorageManager } from '../utils/StorageManager.js';
 import { SkinSystem } from './SkinSystem.js';
 import { ScoreSystem } from './ScoreSystem.js';
+import { passouSemLutar, ehCascata } from './BossProof.js';
 
 // Placar online global (Firebase Firestore). Todo o Firebase vive aqui,
 // carregado por import dinâmico SÓ quando o jogador abre o ranking ou
@@ -56,9 +57,80 @@ export class LeaderboardSystem {
   // veredito de isPlausible (o submit checa de novo, é ele a linha de
   // defesa). Com os defaults 0 o comportamento é EXATAMENTE o de antes:
   // meters 0 cai na regra "nada a barrar" e isPlausible devolve true.
-  static shouldSubmit(total, meters = 0, seconds = 0) {
+  // v1.9.6: `bosses` é a lista do elenco REAL desta corrida (ver
+  // beatEveryBossPassed). Vazia por default — chamador antigo passa, como
+  // sempre.
+  static shouldSubmit(total, meters = 0, seconds = 0, bosses = []) {
     return this.isConfigured() && total >= 1 && total > StorageManager.getBestSent()
-      && this.isPlausible(meters, seconds);
+      && this.isPlausible(meters, seconds)
+      && this.beatEveryBossPassed(meters, bosses);
+  }
+
+  // v1.9.6: a SEGUNDA linha de defesa — e ela pergunta OUTRA coisa.
+  // `isPlausible` julga FÍSICA: a velocidade média era possível? Esta julga a
+  // REGRA DO JOGO: não se passa por um chefe que não foi derrubado. As duas
+  // são independentes de propósito, porque a cascata de agosto/26 provou que
+  // uma marca pode ser fisicamente impecável e mesmo assim falsa — o
+  // nikolinhasss atravessou o mundo a 11 m/s, o ritmo de qualquer jogador,
+  // sem encostar em uma das 21 camadas.
+  //
+  // A lista vem do elenco da CENA (BossProof.chefesDaCena), nunca de uma
+  // tabela paralela: chefe que não está no elenco não cobra ninguém, e o
+  // "sem contador, sem acusação" mantém a regra da casa — na dúvida, aceita.
+  static beatEveryBossPassed(meters, bosses) {
+    return !passouSemLutar(meters, bosses);
+  }
+
+  // v1.9.6: A FAXINA QUE FICA DE PÉ — e a lição que a motivou.
+  //
+  // Em 25/08 o ranking foi limpo no Firestore. No dia seguinte um dos
+  // corrigidos jogou de novo e o cliente dele REGRAVOU o `runs[]` inteiro por
+  // cima: as corridas da cascata voltaram e o `bestM` voltou a 10.000. A
+  // fonte da verdade é o APARELHO — limpar só o servidor é enxugar gelo.
+  //
+  // Pior que isso: o `shouldSubmit` compara com o `bestSent` LOCAL, que
+  // continuou na marca antiga. Os dois jogadores corrigidos ficaram
+  // TRAVADOS FORA do ranking — nunca mais conseguiriam pontuar, porque
+  // teriam de superar uma marca que nem era deles. Recomputar o `bestSent`
+  // do que sobrou é o que os destrava, e é a parte mais urgente disto.
+  //
+  // O que ela NÃO faz: mexer no recorde exibido (`record`/`record_pts`). A
+  // corrida aconteceu na tela do jogador; quem precisa ficar limpo é o
+  // placar compartilhado. Na dúvida, aceita.
+  static purgeUnprovenLocal() {
+    if (StorageManager.purgeDone()) return 0;
+    let removidas = 0;
+    try {
+      const runs = StorageManager.getRuns();
+      const limpas = runs.filter((r) => !ehCascata(r));
+      removidas = runs.length - limpas.length;
+      if (removidas > 0) {
+        StorageManager.setRuns(limpas);
+        // A melhor marca que as corridas restantes sustentam — mesma régua
+        // do ranking (ScoreSystem), para o número bater com o do servidor.
+        let pts = 0;
+        let metros = 0;
+        for (const r of limpas) {
+          const m = Math.floor(Number(r && r.m) || 0);
+          if (m <= 0) continue;
+          const total = ScoreSystem.total(m, ScoreSystem.runBonus(r));
+          if (total > pts) { pts = total; metros = m; }
+        }
+        // Só DESCE. Se o bestSent já é menor que isto, ele é o legítimo (a
+        // janela de 50 rotaciona e o recorde real pode ter caído fora dela) —
+        // subir seria inventar uma marca que o jogador não fez.
+        if (pts < StorageManager.getBestSent()) {
+          StorageManager.setBestSent(pts);
+          StorageManager.setBestSentM(metros);
+        }
+      }
+      StorageManager.setPurgeDone();
+    } catch (e) {
+      // Faxina é acessório como todo o resto daqui: falhou, o jogo segue.
+      // Sem a marca gravada, ela tenta de novo no próximo boot.
+      return removidas;
+    }
+    return removidas;
   }
 
   // v1.9.1: ÚLTIMA LINHA DE DEFESA do ranking mundial. Puro e testável no
@@ -178,7 +250,7 @@ export class LeaderboardSystem {
   // inteiros da telemetria) com default 0 — chamador antigo continua válido e
   // com 0 o filtro aceita, como antes. É a guarda contra o bug da v1.9.0
   // (26/85 corridas com média impossível, até 217 m/s, todas no teto).
-  static async submit(total, meters, seconds = 0) {
+  static async submit(total, meters, seconds = 0, bosses = []) {
     const name = StorageManager.getPlayerName();
     if (!name) return false;
     if (!StorageManager.allowsRemoteWrite()) return false;
@@ -186,6 +258,9 @@ export class LeaderboardSystem {
     // bestSent local NÃO é tocado, então quando o bug for corrigido a
     // próxima corrida honesta do jogador ainda consegue subir.
     if (!this.isPlausible(meters, seconds)) return false;
+    // v1.9.6: e marca que passou por chefe sem derrubá-lo também não sobe —
+    // mesmo tratamento, mesmo motivo para não tocar o bestSent.
+    if (!this.beatEveryBossPassed(meters, bosses)) return false;
     try {
       const { fs, db } = await getDb();
       const playerId = StorageManager.getOrCreatePlayerId();

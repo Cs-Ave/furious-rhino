@@ -5,6 +5,7 @@ import { TimedHazard } from '../entities/TimedHazard.js';
 import { SpawnManager } from '../systems/SpawnManager.js';
 import { FurySystem } from '../systems/FurySystem.js';
 import { BossFight } from '../systems/BossFight.js';
+import { chefesDaCena } from '../systems/BossProof.js';
 import { AudioSystem } from '../systems/AudioSystem.js';
 import { initTuningPanel } from '../systems/TuningPanel.js';
 import { LeaderboardSystem } from '../systems/LeaderboardSystem.js';
@@ -1315,13 +1316,13 @@ export class GameScene extends Phaser.Scene {
   // LeaderboardSystem precisa dele para barrar marca fisicamente impossível
   // (o bug da v1.9.0 mandou 26 corridas ao pódio a até 217 m/s). Sem o tempo
   // a guarda aceita tudo, que é o comportamento retrocompatível.
-  async submitScore(total, meters, seconds = 0) {
-    this.pendingScore = { total, meters, seconds };
+  async submitScore(total, meters, seconds = 0, bosses = []) {
+    this.pendingScore = { total, meters, seconds, bosses };
     if (!StorageManager.getPlayerName()) {
       this.openNicknameModal();
       return;
     }
-    const ok = await LeaderboardSystem.submit(total, meters, seconds);
+    const ok = await LeaderboardSystem.submit(total, meters, seconds, bosses);
     // v1.9.3: o submit dispara fetchPodium(true)+fetchMyRank() por dentro —
     // o cache muda e, até aqui, ninguém repintava: a marca nova só aparecia
     // no reload seguinte (e se o reload do "Jogar Novamente" não matasse o
@@ -1571,7 +1572,7 @@ export class GameScene extends Phaser.Scene {
     // v1.9.1: + `seconds`, para a guarda de plausibilidade valer também aqui
     if (submit && this.pendingScore) {
       LeaderboardSystem.submit(this.pendingScore.total, this.pendingScore.meters,
-        this.pendingScore.seconds).then((ok) => {
+        this.pendingScore.seconds, this.pendingScore.bosses).then((ok) => {
         if (ok) this.showOnlineStatus('🌍 Enviado ao ranking mundial!');
       });
     }
@@ -1603,7 +1604,7 @@ export class GameScene extends Phaser.Scene {
     this.updateIdentityLine();
     if (this.pendingScore) {
       const ok = await LeaderboardSystem.submit(this.pendingScore.total,
-        this.pendingScore.meters, this.pendingScore.seconds);
+        this.pendingScore.meters, this.pendingScore.seconds, this.pendingScore.bosses);
       if (ok) this.showOnlineStatus(`🌍 No ranking como ${name}!`);
     }
   }
@@ -3658,10 +3659,17 @@ export class GameScene extends Phaser.Scene {
     // já roda depois de a corrida estar gravada em runs[]; se o shouldSubmit
     // ou o submitScore lançarem de forma síncrona, o overlay ainda aparece.
     try {
-      if (LeaderboardSystem.shouldSubmit(total)) {
+      // v1.9.6: a PROVA DO CHEFE viaja junto. A lista sai do elenco REAL
+      // desta corrida (`this.bossFights`), nunca de uma tabela paralela: um
+      // chefe que não está no elenco não cobra ninguém, e um chefe sem
+      // contador não acusa. É o que impede a guarda de envelhecer quando o
+      // jogo mudar — precedente real: o Cerco ficou declarado sem luta da
+      // v1.8.5 à v1.8.9.
+      const bosses = chefesDaCena(this.bossFights, this);
+      if (LeaderboardSystem.shouldSubmit(total, distance, runS, bosses)) {
         // v1.9.1: `runS` já existe aqui — o bloco da telemetria subiu para
         // antes do recorde. É ele que arma a guarda de plausibilidade.
-        this.submitScore(total, distance, runS); // fire-and-forget: rede nunca trava o fim de jogo
+        this.submitScore(total, distance, runS, bosses); // fire-and-forget: rede nunca trava o fim de jogo
       }
     } catch (e) {
       // Pódio mundial que não subiu não pode roubar o fim de jogo do jogador

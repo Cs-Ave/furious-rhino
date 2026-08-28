@@ -81,19 +81,28 @@ eq('submit sem `seconds` mantém o comportamento de antes',
 {
   const gs = ler('../js/scenes/GameScene.js');
   eq('endGame passa o runS ao submitScore',
-    /this\.submitScore\(total, distance, runS\)/.test(gs), true);
+    /this\.submitScore\(total, distance, runS, bosses\)/.test(gs), true);
   eq('submitScore aceita e repassa o tempo',
-    /async submitScore\(total, meters, seconds = 0\)/.test(gs)
-    && /LeaderboardSystem\.submit\(total, meters, seconds\)/.test(gs), true);
+    /async submitScore\(total, meters, seconds = 0, bosses = \[\]\)/.test(gs)
+    && /LeaderboardSystem\.submit\(total, meters, seconds, bosses\)/.test(gs), true);
   eq('o envio ADIADO (apelido definido depois) também leva o tempo',
     (gs.match(/pendingScore\.seconds/g) || []).length >= 2, true);
-  eq('pendingScore guarda o tempo junto', /pendingScore = \{ total, meters, seconds \}/.test(gs), true);
+  eq('pendingScore guarda o tempo junto', /pendingScore = \{ total, meters, seconds, bosses \}/.test(gs), true);
+  // v1.9.6: a PROVA DO CHEFE faz o mesmo caminho do tempo — se ela não
+  // viajar até o submit, a guarda existe e nunca dispara.
+  eq('endGame monta a lista de chefes do elenco REAL da cena',
+    /const bosses = chefesDaCena\(this\.bossFights, this\)/.test(gs), true);
+  eq('o envio ADIADO também leva a prova do chefe',
+    (gs.match(/pendingScore\.bosses/g) || []).length >= 2, true);
 
   const ls = ler('../js/systems/LeaderboardSystem.js');
   eq('a guarda roda ANTES de qualquer rede (nada de write inútil)',
     ls.indexOf('isPlausible(meters, seconds)') < ls.indexOf('await getDb()'), true);
   eq('marca barrada NÃO grava bestSent local (a próxima honesta ainda sobe)',
     ls.indexOf('isPlausible(meters, seconds)') < ls.indexOf('setBestSent('), true);
+  eq('a prova do chefe também roda ANTES da rede e do bestSent',
+    ls.indexOf('beatEveryBossPassed(meters, bosses)') < ls.indexOf('await getDb()')
+    && ls.indexOf('beatEveryBossPassed(meters, bosses)') < ls.indexOf('setBestSent('), true);
 
   // ---------- 3. ordem do endGame ----------
   // A corrida tem de ser consolidada ANTES de recorde e pódio: assim o pior
@@ -101,7 +110,7 @@ eq('submit sem `seconds` mantém o comportamento de antes',
   // uma marca no ranking mundial sem corrida por trás.
   const iAddRun = gs.indexOf('StorageManager.addRun(distance, runS');
   const iRecorde = gs.indexOf('StorageManager.saveRecord(distance)');
-  const iSubmit = gs.indexOf('this.submitScore(total, distance, runS)');
+  const iSubmit = gs.indexOf('this.submitScore(total, distance, runS, bosses)');
   eq('addRun acontece ANTES de saveRecord', iAddRun > 0 && iAddRun < iRecorde, true);
   eq('addRun acontece ANTES do envio ao pódio', iAddRun > 0 && iAddRun < iSubmit, true);
   eq('addPlayTimeS também subiu junto',
@@ -185,6 +194,49 @@ eq('submit sem `seconds` mantém o comportamento de antes',
   eq('...e diz ao jogador que a corrida não foi salva',
     /crash-overlay[\s\S]{0,900}?(não foi salva|nao foi salva|não valeu|devolvid)/i.test(html), true);
 }
+// ---------- 6. a faxina do aparelho (v1.9.6) ----------
+// A limpeza do servidor em 25/08 durou um dia: o cliente do jogador regravou
+// o runs[] por cima na partida seguinte. E o bestSent LOCAL, intocado,
+// deixou os dois corrigidos sem conseguir pontuar nunca mais.
+{
+  const memoria = new Map();
+  globalThis.localStorage = {
+    getItem(k) { return memoria.has(k) ? memoria.get(k) : null; },
+    setItem(k, v) { memoria.set(k, String(v)); },
+    removeItem(k) { memoria.delete(k); },
+  };
+  const { StorageManager } = await import('../js/utils/StorageManager.js');
+
+  // A corrida da cascata do kukur (verbatim) + a legítima dele de 16/08.
+  const cascata = { t: 1787520660, m: 10000, s: 429, c: 'win', v: '1.9.0',
+    w: 6, r: 10, o: 3, a: 7, j: 3, d: 5, x: 20, f: 3, z: 1, h: 1, g: 'catisqui' };
+  const legitima = { t: 1786888968, m: 472, s: 52, c: 'animal', w: 6, j: 56,
+    d: 12, x: 4, p: 2, v: '1.8.1' };
+
+  StorageManager.setRuns([cascata, legitima]);
+  StorageManager.setBestSent(13700);
+  StorageManager.setBestSentM(10000);
+  const saiu = LeaderboardSystem.purgeUnprovenLocal();
+
+  eq('a faxina remove a corrida da cascata do aparelho', saiu, 1);
+  eq('...e preserva a legítima', StorageManager.getRuns().map((r) => r.m), [472]);
+  eq('DESTRAVA o jogador: bestSent volta ao que as corridas sustentam',
+    StorageManager.getBestSent(), 502);
+  eq('e os metros da marca acompanham', StorageManager.getBestSentM(), 472);
+  eq('roda UMA vez só (a marca fica gravada)',
+    [StorageManager.purgeDone(), LeaderboardSystem.purgeUnprovenLocal()], [true, 0]);
+
+  // Idempotência do outro lado: aparelho limpo não perde nada nem tem o
+  // bestSent mexido — a janela de 50 rotaciona e o recorde real pode estar
+  // fora dela, então baixar por falta de prova seria roubar a marca.
+  memoria.clear();
+  StorageManager.setRuns([legitima]);
+  StorageManager.setBestSent(9999);
+  eq('aparelho limpo: nada removido', LeaderboardSystem.purgeUnprovenLocal(), 0);
+  eq('...e o bestSent NÃO é rebaixado por falta de prova',
+    StorageManager.getBestSent(), 9999);
+}
+
 
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);
