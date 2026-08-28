@@ -1,4 +1,97 @@
-# Handoff — FURIOUS RHINO v1.9.5
+# Handoff — FURIOUS RHINO v1.9.6
+
+**Data:** 28/08/2026 · **Status:** **v1.9.6 em produção, ciclo COMPLETO** — os
+três portões fechados, faxina do servidor aplicada, testes de campo do dono
+confirmados, tudo pushed. **Nada pendente de release.**
+
+## 0. O que é a v1.9.6
+
+Um **jogador real** (`cadaec9e`, "calça larga") descobriu o `?debug=1` — painel
+público com teleporte de chefe — e pôs três marcas sem luta no ranking, uma em
+3º lugar. Não era regressão da v1.9.4: as outras corridas dele provam a
+correção funcionando (morreu 3× nos 990 m com `b=2`, lutou a Muralha). A porta
+era o `allowsRemoteWrite` olhar só o hostname.
+
+| Mudança | Onde |
+|---|---|
+| `?debug=1` = ambiente de teste (não grava; opt-in "📡 Escrita local" continua) | `StorageManager.isLocalEnv` |
+| A PROVA DO CHEFE: não se passa por chefe sem derrubá-lo — guarda no submit E nos desafios | `js/systems/BossProof.js` (novo), `LeaderboardSystem`, `ChallengeSystem` |
+| Faxina do APARELHO no boot: remove corrida da cascata do `runs[]` local e recomputa o `bestSent` | `LeaderboardSystem.purgeUnprovenLocal`, chamada no `bootGame` |
+
+A lista de chefes da guarda sai do **elenco real da cena** (`chefesDaCena`),
+nunca de tabela paralela — chefe fora do elenco não cobra ninguém (precedente:
+o Cerco, declarado sem luta da v1.8.5 à v1.8.9).
+
+## 1. Faxina do servidor — APLICADA em 28/08, 6 ops, 0 erros
+
+| Ação | Quem |
+|---|---|
+| Restaurado 3.992 → **1.119** (990 m, a corrida em que lutou e morreu) | calça larga |
+| 3 corridas da cascata fora do `runs[]` | `827596b5` (kukur) e `cadaec9e` |
+| 1 corrida (a única) fora | `ff79ba36` |
+| Sonda `claude-rules-check-01` removida (aprovado pelo dono) | — |
+
+Backup: `tools/backup-ranking-2026-08-28.json`. Pós-verificação: **`D1` e `D3`
+a ZERO** na base inteira; pódio 100% jogadores legítimos (Ícaroo 5.185, Thomas
+4.606, Caio 3.468). A ordem que fez esta faxina FICAR de pé: deploy primeiro,
+`--yes` depois — a de 25/08 foi desfeita em um dia pelo cliente regravando o
+`runs[]` por cima (a fonte da verdade é o aparelho; hoje a faxina local do
+boot impede a volta).
+
+## 2. 🔔 O primeiro dado de campo da investigação do salto (H2/H3)
+
+A sonda `i` chegou a **79 corridas** e o `D4-relogios` acendeu com dado novo:
+duas corridas de 25/08 18:16-17 com **`i=6, s=9`** (57 m) — o loop congelou
+~3 s enquanto o relógio de parede correu. É a assinatura **H3 em miniatura**
+(congelamento), SEM salto de distância. Ainda nenhum caso de `i ≈ s` com
+metragem alta (H2). Acompanhar: `npm run investiga --salvar` a cada coleta —
+snapshots em `tools/snapshots/`, diff automático.
+
+## 3. Estado dos testes
+
+**1.039 asserts, zero FAIL** (778 node + 261 Chromium). Suítes novas/alteradas:
+`test-bossproof` (29, novo — fixtures VERBATIM do caso real), `test-crash`
+61→68 (faxina + text-asserts do 4º argumento), `test-challenge` 101→104,
+`test-fix-ranking` 32 (importa a regra do BossProof em vez de duplicar).
+Campo (dono, 28/08): lutou no portão aos 1.000 m ✓; `?debug=1` + teleporte
+terminou sem nada subir ✓.
+
+## 4. Armadilhas novas desta versão
+
+- **Testar escrita em produção agora exige ligar "📡 Escrita local"** no
+  painel — o `?debug=1` sozinho não grava mais nada. É o custo assumido.
+- **Fixture de gente real se copia, não se imagina** (2ª vez): o fixture do
+  Funku Pópi foi inventado sem o `b` e a régua nova passou a acusá-lo de
+  cascata. A corrida real tem `b=3`. O test-fix-ranking guarda a lição.
+- **Baixar marca no servidor sem baixar o `bestSent` local tranca o jogador
+  fora do ranking em silêncio** — foi o efeito colateral da faxina de 25/08.
+- Hipótese morta (não repetir): a FÚRIA TOTAL **não** seta `this.invincible`
+  (usa `rampage`); `invincible` vem só do painel (`TuningPanel.js:265`).
+
+## 5. Pendências (nenhuma bloqueia)
+
+- **H2/H3 (o salto)**: agora com dado chegando — ver §2.
+- **`D5` = 1**: uma corrida de v1.7.0 atravessou a arena sem quebra, anterior
+  à cascata. Única anomalia de chefe sem explicação.
+- **`D2` fica como detector DE PROPÓSITO** (decisão 28/08): pulos/metro variam
+  demais entre legítimos para barrar submit.
+- **Lacuna L1** (janela de 50) e as outras 9 do `INVESTIGACOES.md`.
+
+## 6. Como retomar
+
+```bash
+npm run investiga --salvar    # detectores + diff da coleta anterior
+npm run test-bossproof        # a régua da prova do chefe (29 asserts, sem rede)
+```
+
+> ⚠️ Outra sessão trabalha neste repositório. Conferir dono de arquivo antes
+> de commitar — nunca `git add -A`. A sonda `claude-rules-check-01` que
+> apareceu em 26-28/08 era dela e foi removida COM aprovação do dono; se ela
+> reaparecer, é a outra sessão trabalhando.
+
+---
+
+# Handoff anterior — FURIOUS RHINO v1.9.5
 
 **Data:** 25/08/2026 · **Status:** **v1.9.5 em produção** (código publicado em
 24/08 22:00 BRT). **Dois commits locais aguardando push** — nenhum deles muda uma
