@@ -1,6 +1,6 @@
 # FURIOUS RHINO — Documento de Design
 
-> Estado atual do jogo (v1.9.5). Este documento descreve o que **é**, não o que
+> Estado atual do jogo (v1.9.6). Este documento descreve o que **é**, não o que
 > se imaginou no começo — as decisões de v1.1 em diante estão registradas aqui
 > com o motivo, e várias delas foram tomadas a partir dos dados reais de
 > telemetria (ver "Decisões orientadas por dados" no fim).
@@ -867,6 +867,97 @@ rules **antes** do deploy do código, ou o write é negado em silêncio.
 ---
 
 
+## 🚪 A porta do `?debug=1` (v1.9.6) — ferramenta de desenvolvimento não escreve no placar de todo mundo
+
+O jogo sempre teve um painel de tuning que liga com `?debug=1` no endereço.
+Ele é excelente para calibrar — sliders ao vivo, teleporte para 50 m antes de
+cada arena, modo invencível — e sempre foi **público**: o site é estático, o
+parâmetro é uma string na URL, não há nada a "descobrir".
+
+Em 25-26/08 um **jogador real** de produção usou. Três marcas feitas com o
+teleporte subiram ao ranking mundial, uma delas ao terceiro lugar. As outras
+corridas dele mostram alguém jogando de verdade — morreu três vezes nos 990 m
+contra o Caçador do Portão, e depois lutou a Muralha até perder. Não é a
+história de um trapaceiro sofisticado: é a de um parâmetro público que
+escrevia no placar de todo mundo.
+
+**A correção não foi esconder o painel.** Esconder é frágil (o `?setup` tem
+chave e mesmo assim é só ofuscação) e custaria a ferramenta que faz o tuning
+deste jogo funcionar. A pergunta certa era outra: *o que uma sessão de
+desenvolvimento tem direito de escrever?* E essa pergunta o projeto já havia
+respondido em v1.7.2, para o `localhost` — **nada, a menos que alguém peça
+explicitamente.** O `?debug=1` só entrou na mesma categoria.
+
+O ganho de não inventar mecanismo: o opt-in já existia e já estava exposto no
+próprio painel ("📡 Escrita local"). Zero chave nova, zero fluxo novo. E de
+quebra a telemetria de produção parou de receber sessões de calibração, que
+sempre foram ruído — o mesmo motivo pelo qual o localhost nunca escreveu.
+
+**O custo, assumido:** testar escrita real em produção agora exige ligar o
+interruptor. É um clique a mais para o dono, e em troca ninguém mais consegue
+cravar recorde por teleporte.
+
+---
+
+## 🛡️ A prova do chefe (v1.9.6) — o invariante que percebe o próximo buraco
+
+Fechar a cascata na v1.9.4 foi corrigir **um** buraco. Esta é a rede para o
+próximo, e ela vale a pena por uma razão que a v1.9.6 provou na prática: o
+`?debug=1` era um segundo caminho para a mesma marca falsa, por um mecanismo
+completamente diferente. Corrigir causas uma a uma não termina; afirmar o
+invariante, sim.
+
+**O invariante é o mais simples que este jogo tem:** *não se passa por um
+chefe que não foi derrubado.* São 21 camadas até o fim do mundo. Passar por
+uma arena sem quebrar nenhuma não acontece jogando.
+
+**Por que é uma pergunta SEPARADA da plausibilidade.** A guarda da v1.9.1
+julga física: a velocidade média era possível? A cascata provou que isso não
+basta — o `nikolinhasss` atravessou o mundo inteiro a **11 m/s**, o ritmo de
+qualquer jogador comum, sem encostar em uma camada. Uma marca pode ser
+fisicamente impecável e mesmo assim falsa. Duas perguntas, duas funções.
+
+**A decisão que mais importa aqui é de onde vem a lista de chefes.** Ela é
+montada do **elenco real da cena** (`this.bossFights`), não de uma tabela
+paralela no código da guarda. O motivo tem precedente: o Cerco ficou
+*declarado sem luta* da v1.8.5 à v1.8.9. Se um chefe sair do elenco de novo,
+ele some da régua sozinho — em vez de barrar todo mundo que passar pela âncora
+de um chefe que não estava lá. **Uma regra que se alimenta do estado real do
+jogo não envelhece; uma tabela paralela envelhece no primeiro refactor.**
+
+E a régua da casa continua valendo — *na dúvida, aceita*. Três prudências,
+todas na direção de deixar passar: chefe sem contador de camadas não acusa;
+corrida sem versão gravada não acusa (os clientes pré-v1.7 nem escreviam a
+letra, e silêncio não é prova); e cada chefe só é cobrado a partir da versão
+em que a letra dele **realmente** era gravada.
+
+---
+
+## 🧹 Limpar o servidor não limpa nada (v1.9.6)
+
+Em 25/08 o ranking foi corrigido no Firestore. Em 26/08 um dos corrigidos
+jogou de novo, e o cliente dele **regravou a janela de corridas por cima** — as
+marcas erradas voltaram e o `bestM` voltou aos 10.000. A correção durou um dia.
+
+**A fonte da verdade é o aparelho.** O `runs[]` do servidor é um espelho do
+`localStorage`, reescrito a cada envio. Qualquer faxina que só toque o
+Firestore é enxugar gelo, e isso vale para toda correção futura.
+
+Pior que o desperdício foi o efeito colateral que ninguém previu: o
+`shouldSubmit` compara a marca nova com o **`bestSent` local**, que continuou
+guardando o número antigo. Os dois jogadores corrigidos ficaram **impedidos de
+pontuar** — para voltar ao ranking teriam de bater um recorde que nunca foi
+deles. Baixar uma marca no servidor sem baixar a referência no aparelho **tranca
+o jogador fora do jogo em silêncio**, e é a parte mais urgente da correção.
+
+O que a faxina **não** faz: mexer no recorde exibido (`record`/`record_pts`).
+A corrida aconteceu na tela do jogador e ele a viu acontecer. Quem precisa
+ficar limpo é o **placar compartilhado** — a conquista pessoal dele não é da
+conta de ninguém.
+
+---
+
+
 ## 📈 Decisões orientadas por dados (v1.6)
 
 Leitura de 48 jogadores, 981 tentativas, 512 corridas e 945 mortes da v1.5:
@@ -910,14 +1001,15 @@ números de 24/08/2026 — os que dependem do registry de skins variam com ele:
 |---|---|---|
 | `npm run test-stats` | 117 | Agregação, contadores (inclusive as 7 chaves de 2 caracteres da v1.9.5: gravadas quando > 0, omitidas quando 0, teto de 9999), consistência **contra as rules**, `holdDays` nas duas semânticas, `buildDigest` |
 | `npm run test-score` | 101 | A fórmula da pontuação composta: pesos, blitz na borda, teto do bônus, formatadores — e o contrato de recomputação (ao vivo == recomputado de `runs[]`), cobrindo camadas e vitória de todos os chefes |
-| `npm run test-challenge` | 101 | A Arena: melhor corrida na janela (bordas, empates, pontos ≠ metros), countdown, status, guardas de criação, o texto das rules do `challenges`, o **cancelamento** (`cancelledAt` gravado 1×, sobrevivendo ao normalize) e os TTLs adaptativos do cache |
+| `npm run test-challenge` | 101 | A Arena: melhor corrida na janela (bordas, empates, pontos ≠ metros), countdown, status, guardas de criação, o texto das rules do `challenges`, o **cancelamento** (`cancelledAt` gravado 1×, sobrevivendo ao normalize) e os TTLs adaptativos do cache . **v1.9.6**: corrida que passou por um chefe sem derrubá-lo não vence desafio — o laço lê o `localStorage` do próprio jogador e o doc do servidor dos adversários |
 | `npm run test-reassign` | 61 | A recuperação de identidade: o merge puro (a invariante da monotonia — totais restaurados ≥ servidor), janela de runs, fusão do history, medalhas inferidas e as guardas do fluxo 🆘 (cooldown, gate, idempotência) |
 | `npm run test-skins` | ~93 | Portão do /?setup (roda a cada gravação, com rollback): lógica de acesso com skins sintéticas + estrutura do registry real |
 | `npm run test-integrate` | 49 | A integração do estúdio como funções puras (round-trip, upsert/remove, patch dos blocos gerenciados do sw) |
 | `npm run test-sprites` | 31 | O **portão da aba Sprites**: contrato do SpriteParams, merge no Constants, paridade art/↔manifesto↔sw, w/h==viewBox, invariantes de spawn (elencos com terrestre, floresta sem voador, jaulas sem par) |
 | `npm run test-radiografia` | 62 | A radiografia: fixture sintética das 3 eras, conferência com o digest, `flattenRuns ⊇ RUN_COUNTERS`, determinismo byte a byte, zero writes por text-assert |
-| `npm run test-crash` | 58 | A rede de proteção (v1.9.1): a guarda de plausibilidade contra os dados REAIS de produção (barra 200 e 213 m/s), a costura que faz o tempo chegar até a guarda, a ordem do `endGame` e o contrato do `crashToHome` — que **mudou de sentido na v1.9.5**: a sessão quebrada agora **grava** a corrida com causa `crash`, e segue sem recorde, sem pódio e sem telemetria |
-| `npm run test-fix-ranking` | 36 | A classificação que decide quem perde a marca e quem tem a dele restaurada, com corridas **verbatim** de produção. Duas causas: o cronômetro (mentiu no tempo) e a cascata dos chefes (distância sem a luta). A restauração só desce, e sem corrida suja ninguém é tocado — a janela de 50 rotaciona, e recorde antigo some sem culpa de ninguém |
+| `npm run test-crash` | 68 | A rede de proteção (v1.9.1): a guarda de plausibilidade contra os dados REAIS de produção, a ordem do `endGame` e o contrato do `crashToHome` — que **mudou de sentido na v1.9.5**: a sessão quebrada agora **grava** a corrida com causa `crash`. **v1.9.6**: a faxina do aparelho, incluindo o assert que prova que ela **destrava** o `bestSent` de quem foi corrigido |
+| `npm run test-fix-ranking` | 32 | A classificação que decide quem perde a marca e quem tem a dele restaurada, com corridas **verbatim** de produção. Duas causas: o cronômetro (mentiu no tempo) e a cascata dos chefes (distância sem a luta). A restauração só desce, e sem corrida suja ninguém é tocado |
+| `npm run test-bossproof` | 29 | A **prova do chefe** (v1.9.6): as três corridas que passaram do portão com zero camadas reprovadas, e as do MESMO jogador em que ele lutou e morreu aprovadas — é o assert que garante que a régua não pune quem perdeu. Mais o `desde` de cada chefe, a margem de quem morre na âncora, e as duas absolvições que mantêm a regra da casa: chefe fora do elenco e chefe sem contador |
 | `npm run test-investiga` | 31 | Os 5 detectores da linha de investigação perene, sem rede. Cada um com fixture de acerto **e** de falso-positivo — o `D5` nasceu acusando quem entra na arena e morre ali, que é jogo normal |
 | `npm run test-e2e-crash` | 11 | Injeta uma exceção **real** no `update` e exige: overlay visível com saída, tentativa devolvida, a corrida **presente** em `runs[]` com causa `crash` (v1.9.5) e recorde/pódio intactos — e 50 crashes seguidos devolvendo UMA tentativa só |
 | `npm run test-e2e-home` | 10 | A home desacoplada (v1.9.3): pintada com o motor ainda carregando (a suíte segura os SVGs de propósito) e o toque antecipado iniciando a corrida sozinho |

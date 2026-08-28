@@ -5,7 +5,19 @@
 
 ---
 
-## v1.9.5 — 24/08/2026 (versão atual)
+## v1.9.6 — 28/08/2026 (versão atual)
+
+**Tema: o painel de desenvolvimento para de escrever no placar de todo mundo.**
+
+- **O que aconteceu**: o jogo tem um painel de ajustes que liga com `?debug=1` no endereço — ele existe para calibrar o jogo e traz, entre outras coisas, um botão que **pula para 50 metros antes de cada chefe** e um modo invencível. O endereço é público: basta escrever o parâmetro. Um jogador descobriu e três marcas feitas assim subiram ao **ranking mundial**, uma delas até o terceiro lugar.
+- **A correção**: jogar com o painel ligado passou a contar como **ambiente de teste**, exatamente como já acontecia quando o jogo roda na máquina de quem o desenvolve. Nada do que é feito ali chega ao ranking mundial, aos desafios ou às estatísticas coletadas. Quem precisa mesmo gravar (o dono, testando de verdade) tem um interruptor no próprio painel — que já existia.
+- **Uma segunda tranca, independente da primeira**: o jogo passou a conferir, na hora de enviar uma marca, se **todo chefe que ficou para trás foi realmente derrubado**. São 21 camadas no caminho até o fim do mundo; passar por uma arena sem quebrar nenhuma é impossível jogando. Vale para o ranking e para a Arena de Desafios. A conferência é deliberadamente cautelosa: chefe que não está no jogo naquela versão não cobra nada de ninguém, e na dúvida a marca passa.
+- **A limpeza agora fica de pé**: em 25/08 o ranking foi corrigido no servidor, e no dia seguinte um dos jogadores voltou a jogar — o aparelho dele regravou o histórico antigo por cima e as marcas erradas voltaram. O aparelho é que manda. Agora a limpeza acontece **no próprio aparelho**, uma vez, ao abrir o jogo.
+- **E destrava quem tinha sido corrigido**: os dois jogadores cuja marca foi desfeita em 25/08 tinham ficado **impedidos de pontuar** — o jogo só envia uma marca quando ela supera a anterior, e a anterior guardada no aparelho ainda era a errada. Eles teriam de bater um recorde que nunca foi deles. A marca de referência passou a ser recalculada do que sobrou.
+- O recorde que aparece na tela do jogador **não é tocado** por nada disso: a corrida aconteceu, ele a viu. Quem precisa ficar limpo é o placar compartilhado.
+
+
+## v1.9.5 — 24/08/2026
 
 **Tema: os cinco chefes deixam de ser "um medido e quatro cegos".**
 

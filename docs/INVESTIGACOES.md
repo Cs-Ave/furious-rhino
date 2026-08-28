@@ -141,6 +141,31 @@ A dificuldade do jogo subiu de degrau para todo mundo sem que nada nela mudasse.
 Estado final da base: **1.065 corridas reais, zero sujas, zero sondas**.
 
 
+**28/08 — a porta do `?debug=1`, e a faxina que o caso de 25/08 exigiu.** Ao
+retomar, a leitura da produção mostrou três coisas: (1) um **jogador real**
+(`cadaec9e`, "calça larga", 3º lugar com 3.992 pts) passou do portão três
+vezes em v1.9.5 com zero camadas — não é regressão da v1.9.4: as outras
+corridas dele provam a correção funcionando (morreu 3× nos 990 m com `b=2`,
+lutou a Muralha com `e=2`). O caminho fecha no `isBypassed`, que exige a flag
+`debug` — e ela vem de um lugar só, o **`?debug=1` da URL**, painel público
+com teleporte de chefe. (2) A limpeza de 25/08 **durou um dia**: o `kukur`
+jogou às 19:25 e o cliente regravou o `runs[]` por cima — a fonte da verdade
+é o aparelho. (3) Os dois corrigidos ficaram **travados fora do ranking**: o
+`bestSent` local continuou na marca antiga e o `shouldSubmit` exigia superá-la.
+
+A v1.9.6 fechou as três: `?debug=1` virou ambiente de teste (o
+`allowsRemoteWrite` recusa, com o opt-in que já existia no painel); a **prova
+do chefe** virou guarda de submit e de desafio (módulo puro `BossProof.js`,
+lista montada do elenco REAL da cena); e a **faxina roda no aparelho**, no
+boot, recomputando o `bestSent` — é ela que destrava os dois. 1.039 asserts.
+
+A faxina do SERVIDOR (`fix-ranking --yes`) fica para DEPOIS do deploy da
+v1.9.6 — antes dele, o próximo boot do jogador desfaz de novo. O ensaio de
+28/08: `calça larga` 3.992 → 1.119 (decisão do dono pendente — jogador real
+usando parâmetro público não é a mesma coisa que bug nosso), 3 corridas saem
+do `827596b5`, 3 do `cadaec9e`, 1 do `ff79ba36`, e a sonda
+`claude-rules-check-01` (de outra sessão? conferir antes).
+
 ### Hipóteses
 
 | # | Hipótese | Estado | Evidência |
@@ -188,12 +213,14 @@ inteira a cada coleta e guardam snapshot datado para o diff da próxima.
 - ~~**O ranking não foi limpo.**~~ ✅ **feito em 25/08** — ver a entrada da
   Linha do tempo. `kukur` e `nikolinhasss` voltaram à melhor marca legítima
   deles; a base ficou com zero corridas sujas.
-- **O `D2`/`D3` ainda não são guarda de submit**, só detector de relatório. Se
-  o salto reaparecer, a marca sobe ao ranking se estiver abaixo de 40 m/s.
-  **Agora dá para fazer melhor**: o `ehCascata` do `fix-ranking` é uma regra
-  pura e testada (36 asserts) que só depende de `m`, `v` e das letras de
-  camada. Levá-la para o `LeaderboardSystem.isPlausible` transformaria a
-  faxina de hoje em prevenção — a marca nem subiria.
+- ~~**O `D2`/`D3` ainda não são guarda de submit**~~ ✅ **o `D3` virou guarda na
+  v1.9.6** (28/08): a PROVA DO CHEFE (`js/systems/BossProof.js`) roda no
+  `shouldSubmit`/`submit` e no `bestInWindow` dos desafios — marca que passou
+  por chefe sem derrubá-lo nem sobe. O **`D2` (interação por metro) fica DE
+  PROPÓSITO como detector**: pulos por metro variam demais entre jogadores
+  legítimos para barrar submit sem risco de punir inocente — a régua da casa
+  é "na dúvida, aceita", e o D2 continua no relatório para apontar o que a
+  guarda dura não pode afirmar.
 - **Sobraram 2 acendidas no `D5`**, de v1.7.0 e v1.7.2, **anteriores** à
   cascata: alguém passou da arena do Portão sem quebrar camada numa versão em
   que os chefes funcionavam. Amostra pequena e antiga, mas é a única anomalia

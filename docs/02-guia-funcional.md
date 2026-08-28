@@ -1,6 +1,6 @@
 # Furious Rhino — Guia funcional
 
-> Documentação da versão **1.9.5** · atualizada em 25/08/2026
+> Documentação da versão **1.9.6** · atualizada em 28/08/2026
 > Cada funcionalidade do jogo: o que faz, como o usuário interage e exemplos práticos. Termos técnicos vêm explicados entre parênteses na primeira vez.
 
 ## 1. Controles
@@ -259,7 +259,7 @@ Controles úteis (parâmetros na seção D do `HANDOFF.md` e em [`04-referencia-
 
 ## 14. Modo debug (para desenvolvimento)
 
-Abrir o jogo com `/?debug=1` liga um painel de ajustes ao vivo (física do rinoceronte, dificuldade por nível — incluindo **os pesos do sorteio de obstáculos e a densidade de animais** (dupla e escolta, ver o guia de calibração no [`04-referencia-tecnica.md`](04-referencia-tecnica.md)) —, velocidade e **força do voo do atropelo** dos animais, e duração/boost da Fúria Total). Os chefes têm uma **pasta própria "Bosses"** com Portão, Muralha e Guardião: sliders de cadência camada a camada, tempo do enrage, o liga/desliga do **bloqueio da fúria na arena** e um botão **"Pular p/ 50 m antes"** de cada arena. Além disso: ver as caixas de colisão, invencibilidade, avançar quadro a quadro, teleportar para os 600 m ou para o portão, **encher a fúria na hora**, **vestir qualquer skin sem desbloqueio**, **ajustar a escala visual do rinoceronte ao vivo** (pasta "Skins" — só naquela sessão, nada fica salvo), um toggle de **"Escrita local (Firestore)"** para testes com gravação real, e **exportar os ajustes** num arquivo pronto para colar no código. O painel tem barra de rolagem permanente (o menu é longo).
+Abrir o jogo com `/?debug=1` liga um painel de ajustes ao vivo (física do rinoceronte, dificuldade por nível — incluindo **os pesos do sorteio de obstáculos e a densidade de animais** (dupla e escolta, ver o guia de calibração no [`04-referencia-tecnica.md`](04-referencia-tecnica.md)) —, velocidade e **força do voo do atropelo** dos animais, e duração/boost da Fúria Total). Os chefes têm uma **pasta própria "Bosses"** com Portão, Muralha e Guardião: sliders de cadência camada a camada, tempo do enrage, o liga/desliga do **bloqueio da fúria na arena** e um botão **"Pular p/ 50 m antes"** de cada arena. Além disso: ver as caixas de colisão, invencibilidade, avançar quadro a quadro, teleportar para os 600 m ou para o portão, **encher a fúria na hora**, **vestir qualquer skin sem desbloqueio**, **ajustar a escala visual do rinoceronte ao vivo** (pasta "Skins" — só naquela sessão, nada fica salvo), um toggle de **"Escrita local (Firestore)"** para testes com gravação real, e **exportar os ajustes** num arquivo pronto para colar no código. O painel tem barra de rolagem permanente (o menu é longo). **Desde a v1.9.6 nada feito com o painel ligado chega ao ranking mundial, aos desafios ou às estatísticas** — jogar com `?debug=1` conta como ambiente de teste, do mesmo jeito que rodar o jogo na máquina de quem o desenvolve. O motivo foi um caso real: o endereço é público, um jogador descobriu o parâmetro e três marcas feitas com o teleporte de chefe subiram ao pódio. Para gravar de verdade quando é preciso, o interruptor "Escrita local (Firestore)" do próprio painel continua liberando.
 
 ## 15. As outras abas do estúdio (`/?setup` — só para o criador)
 
