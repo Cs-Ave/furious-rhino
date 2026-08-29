@@ -26,6 +26,10 @@ export class GameScene extends Phaser.Scene {
 
   create() {
     if (typeof window !== 'undefined' && window.__frVoo) window.__frVoo('v14-cena');
+    // v1.9.10 (CASO 2): o conta-giros entra na cena — os voos do iPhone
+    // morrem DENTRO deste create, sempre no mesmo ponto. Cada bloco
+    // anuncia a própria execução; no crash, o slot diz qual rodava.
+    const passo = (s) => { if (typeof window !== 'undefined' && window.__frPasso) window.__frPasso('cena:' + s); };
     this.physics.world.setFPS(60);
     // Ceiling-only world bounds: stops the infinite jump from flying the
     // rhino out of the scene (no side walls, no world floor).
@@ -37,6 +41,7 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, Constants.WORLD_END_PX + 1000, Constants.GAME_HEIGHT);
     this.cameras.main.setLerp(0.1, 0);
 
+    passo('fundo');
     this.createBackground();
 
     // v1.8: skins — o retro-scan concede a Catisquick a quem já fez a façanha
@@ -48,20 +53,24 @@ export class GameScene extends Phaser.Scene {
       NewsSystem.push(`skin:${s.id}`, `🎨 Você desbloqueou a skin ${s.name}!`, 'gold');
     }
     this.skin = SkinSystem.resolveEquipped();
+    passo('rino');
     this.rhino = new Rhino(this, 100, Constants.GROUND_TOP, this.skin);
     // v1.8.4: a abertura roteirizada é uma LIÇÃO — quem já correu algumas
     // vezes não precisa mais dela (e ficava com 190m de pista vazia, sem
     // nada para fazer nem pontuar). Mesma régua das dicas da abertura.
     const skipOpening = StorageManager.getAttempts() >= Constants.VETERAN_MIN_ATTEMPTS;
+    passo('spawns');
     this.spawnManager = new SpawnManager(this, { skipOpening });
     this.furySystem = new FurySystem(this);
 
+    passo('chao');
     this.createGround();
 
     // Marco visual da fuga: o portão fica exatamente na linha dos 1000m.
     // v1.7: ele amanhece BLINDADO (o boss) — full-height, canvas 240x620.
     // Guardado numa referência porque o BossFight troca as texturas e o
     // crossGate o explode.
+    passo('chefes-5x');
     this.gateSprite = this.add.image(Constants.WIN_DISTANCE_PX, Constants.GROUND_TOP, 'zoo-gate-armored-3')
       .setOrigin(0.5, 1).setDepth(-1);
     // A luta do portão é a primeira entrada da LISTA de lutas: o BossFight
@@ -234,6 +243,7 @@ export class GameScene extends Phaser.Scene {
     // Faraó 188000 → Guardião 400000); o update itera todos por frame.
     this.bossFights = [this.bossFight, this.boss2Fight,
       this.cercoFight, this.faraoFight, this.boss3Fight];
+    passo('arcos-e-marcas');
     this.createSectorArches();
     this.createTrackMarks();
 
@@ -258,6 +268,7 @@ export class GameScene extends Phaser.Scene {
     // de hitboxes do TuningPanel não as mostraria)
     this.terrainDebug = this.add.graphics().setDepth(7);
 
+    passo('input-pausa-colisoes');
     this.setupInput();
     this.setupPause();
     this.setupCollisions();
@@ -336,13 +347,16 @@ export class GameScene extends Phaser.Scene {
 
     // Hold everything until the start-screen tap (which also unlocks audio)
     this.started = false;
+    passo('audio');
     this.audio = new AudioSystem();
     this.audio.bindMuteButton(document.getElementById('mute-btn'));
     this.physics.pause();
+    passo('tela-inicio');
     this.setupStartScreen();
     this.setupShareButtons();
 
     // Manual-emission wind streaks trailing the rhino during a dash
+    passo('particulas-vento');
     this.windEmitter = this.add.particles(0, 0, 'wind-streak', {
       speedX: { min: -350, max: -220 },
       speedY: { min: -30, max: 30 },
@@ -353,6 +367,7 @@ export class GameScene extends Phaser.Scene {
     });
     this.windEmitter.setDepth(4);
 
+    passo('camera');
     this.cameras.main.startFollow(this.rhino.getSprite(), true, 0.1, 0, -200);
 
     if (this.registry.get('debug')) initTuningPanel(this);
@@ -365,6 +380,7 @@ export class GameScene extends Phaser.Scene {
     // não tem referência à cena; esta ponte dá a eles o encerramento digno.
     // Arrow function para o `this` continuar sendo a cena viva.
     window.__frCrash = (motivo) => this.crashToHome(motivo);
+    if (typeof window !== 'undefined' && window.__frVoo) window.__frVoo('v14b-cena-ok');
   }
 
   // v1.9.1: encerramento DIGNO de uma sessão quebrada. Não é game over: é o
