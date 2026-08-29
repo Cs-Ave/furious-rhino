@@ -3,6 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <script>
+      // ====== GRAVADOR DE VOO (v1.9.8, CASO 2 do INVESTIGACOES.md) ======
+      // iPhones com iOS 26 morrem ANTES de a home aparecer ("Um problema
+      // ocorreu repetidamente") — sem console, sem telemetria, sem nada.
+      // Cada etapa do carregamento grava um marco SÍNCRONO no localStorage;
+      // o voo que não terminar fica guardado, e /?voo=1 mostra a caixa-preta
+      // PARANDO a página antes de qualquer coisa pesada rodar: o viewer
+      // escreve um <plaintext> que neutraliza TODO o resto do HTML/CSS — se
+      // o assassino mora no nosso CSS, o viewer sobrevive mesmo assim.
+      // Minúsculo e inerte de propósito; /?safe=1 liga o modo seguro (a
+      // home sem Phaser), para bisseção. Ambos são instrumentos do dono —
+      // jogador normal nunca passa por aqui.
+      (function () {
+        window.__frVoo = function () {};
+        window.__frSafe = false;
+        try {
+          var q = new URLSearchParams(location.search);
+          var t0 = Date.now();
+          window.__frVoo = function (marco) {
+            try {
+              var reg = JSON.parse(localStorage.getItem('fr_voo_atual') || '[]');
+              reg.push(marco + '@' + (Date.now() - t0) + 'ms');
+              localStorage.setItem('fr_voo_atual', JSON.stringify(reg));
+            } catch (e) { /* sem storage (privado): voa sem caixa-preta */ }
+          };
+          if (q.get('voo') === '1') {
+            var atu, ant;
+            try { atu = localStorage.getItem('fr_voo_atual') || '(vazio)'; } catch (e) { atu = '(sem acesso ao storage)'; }
+            try { ant = localStorage.getItem('fr_voo_anterior') || '(vazio)'; } catch (e) { ant = '(sem acesso ao storage)'; }
+            document.write('<pre style="font:14px/1.7 monospace;padding:16px;white-space:pre-wrap;word-break:break-all">'
+              + 'CAIXA-PRETA — FURIOUS RHINO\n\n'
+              + 'ULTIMO VOO (interrompido se nao chegou a v8-engine):\n' + atu + '\n\n'
+              + 'VOO ANTERIOR:\n' + ant + '\n\n'
+              + 'NAVEGADOR: ' + navigator.userAgent + '</pre>'
+              + '<style>plaintext{display:none}</style><plaintext>');
+            return;
+          }
+          // arquiva o voo anterior e começa um novo
+          try {
+            var velho = localStorage.getItem('fr_voo_atual');
+            if (velho && velho !== '[]') localStorage.setItem('fr_voo_anterior', velho);
+            localStorage.setItem('fr_voo_atual', '[]');
+          } catch (e) { /* idem */ }
+          window.__frSafe = q.get('safe') === '1';
+          window.__frVoo('v0-head');
+        } catch (e) { /* o gravador jamais derruba a página que ele vigia */ }
+      })();
+    </script>
     <title>FURIOUS RHINO</title>
     <meta name="description" content="Um rinoceronte rabugento foge do zoológico quebrando paredes! Jogue grátis no navegador.">
     <!-- v1.8.1: fonte cartoon do título (escolha do dono). Offline/CDN fora
@@ -2375,8 +2423,10 @@
             .bar-row { grid-template-columns: 110px 1fr 48px; }
         }
     </style>
+    <script>window.__frVoo('v1-css');</script>
 </head>
 <body>
+    <script>window.__frVoo('v2-body');</script>
     <div id="game-container"></div>
 
     <div id="stats-page" hidden></div>
@@ -2546,7 +2596,7 @@
 
         <span class="start-footer footer-left">by Thomas Avelino</span>
         <span class="start-footer footer-center">Estatísticas anônimas são coletadas · <a href="./?stats">/?stats</a></span>
-        <span class="start-footer footer-right" id="game-version">v1.9.7</span>
+        <span class="start-footer footer-right" id="game-version">v1.9.8</span>
     </div>
 
     <div id="ranking-modal" class="modal">
@@ -2739,15 +2789,18 @@
       })();
     </script>
     <script>
+      window.__frVoo('v3-dom');
       // /?stats (painel) e /?setup (estúdio de skins) não precisam do jogo:
       // 1,2 MB de Phaser ficam de fora. document.write durante o parse é
       // síncrono — no modo jogo o global Phaser existe antes de js/game.js
       // (módulo) rodar.
       const q = new URLSearchParams(location.search);
-      if (!q.has('stats') && !q.has('setup')) {
+      if (!q.has('stats') && !q.has('setup') && !window.__frSafe) {
+        window.__frVoo('v4-phaser-pre');
         document.write('<script src="https://cdn.jsdelivr.net/npm/phaser@3.85.2/dist/phaser.min.js"><\/script>');
       }
     </script>
+    <script>window.__frVoo(window.__frSafe ? 'v5-phaser-pulado(safe)' : 'v5-phaser-pos');</script>
     <script type="module" src="js/game.js"></script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+window.__frVoo && window.__frVoo('v6-module');
 // /?stats: painel público de estatísticas — sem Phaser, sem cenas.
 // O index.html só injeta o script do Phaser fora do modo stats, e as cenas
 // referenciam window.Phaser na definição das classes — por isso o boot do
@@ -176,6 +177,16 @@ async function bootGame() {
   // O toque também é armado agora: quem tocar antes de o motor ficar pronto
   // tem o toque GUARDADO, e a corrida começa sozinha quando a cena chega.
   HomeScreen.armStart();
+  window.__frVoo && window.__frVoo('v7-home');
+
+  // v1.9.8 (CASO 2): MODO SEGURO — /?safe=1 para na home, sem Phaser e sem
+  // as 150 texturas. Bisseção de crash: se o seguro abre e o normal morre,
+  // o assassino está do motor para baixo; se nem o seguro abre, está no
+  // HTML/CSS/boot — e a caixa-preta (/?voo=1) diz em qual marco.
+  if (window.__frSafe) {
+    try { document.getElementById('game-version').textContent += ' · MODO SEGURO'; } catch (e) { /* opcional */ }
+    return;
+  }
 
   const [{ Constants }, { BootScene }, { GameScene }] = await Promise.all([
     import('./utils/Constants.js'),
@@ -206,6 +217,7 @@ async function bootGame() {
   };
 
   const game = new Phaser.Game(config);
+  window.__frVoo && window.__frVoo('v8-engine');
 
   // ?debug=1 liga o painel de tuning + hitboxes (ver TuningPanel.js)
   const debugOn = new URLSearchParams(location.search).get('debug') === '1';

@@ -329,6 +329,61 @@ jogador abre com rede fraca → revalidação forçada falha (M2) → fallback p
 | **C2-H2** | SW/cache em estado quebrado específico do Safari/iPadOS 26 (o processo do SW trava e toda navegação expira) | 🔴 aberta | Palito e benicio são os únicos iOS/iPadOS recentes; iPadOS 26.6 é novíssimo; irreproduzível daqui |
 | **C2-H3** | Transiente de deploy (CDN do Pages propagando entre 25 e 28/08) | 🔴 aberta, improvável como causa única | Explicaria um episódio, não o padrão ben→Palito de 5 dias |
 
+### 28/08 (noite) — a foto muda o caso: é CRASH-LOOP do WebKit, não rede
+
+O dono reproduziu **no próprio iPhone 17 (iOS 26)** e mandou a captura: a
+mensagem real é **"Um problema ocorreu repetidamente em .../index.html"** — a
+tela do Safari para quando **o processo da página morre várias vezes seguidas**
+(quase sempre memória/jetsam, às vezes bug do próprio WebKit). A paráfrase
+"não conseguiu acessar a página" nos levou primeiro à face de rede; a v1.9.7
+fica de pé pelos méritos próprios, mas **não corrige esta face**.
+
+Os experimentos do dono, no aparelho que reproduz:
+
+| Teste | Resultado | O que elimina |
+|---|---|---|
+| Aba privada (sem SW, sem dados) | **crasha igual** | ❌ estado local (SW/cache/localStorage) |
+| Chrome iOS (mesmo motor, outro app) | **crasha igual** | ❌ o Safari-app; sobra o WebKit |
+| O que aparece antes de morrer | **nada — nem o pódio** | a morte é nos PRIMEIROS instantes (a home é DOM+localStorage e pinta em ~0,5 s) |
+| Caixa-preta do iOS | um `JetsamEvent` de 26/08, maior processo = Ajustes | inconclusivo — é de outro dia; o arquivo certo seria `WebContent-2026-08-28-*` |
+
+A correlação de campo agora tem três pontos: **benicio (iOS 18.7) joga normal
+· Palito (iPadOS 26.6) congela 1-3 s por corrida e some · o dono (iOS 26)
+crash-loop antes da home**. O fator comum é o **WebKit 26**, não o aparelho
+(iPhone 17 é topo de linha). Congelamento e morte por memória são o mesmo
+filme em momentos diferentes.
+
+| # | Hipótese (fase crash-loop) | Estado | Evidência |
+|---|---|---|---|
+| **C2-H4** | WebKit 26 morre com algo dos NOSSOS primeiros instantes (CSS de 2.400 linhas? SVG da home? o `document.write` de 1,2 MB do Phaser? o boot WebGL?) | 🟡 principal | privada+Chrome crasham; antes do pódio; iOS 18.7 imune |
+| C2-H5 | Memória: jetsam por pico na carga (texturas/WebGL) | 🔴 aberta | precisa do `WebContent-*.ips` de hoje, ou da caixa-preta abaixo |
+
+### O instrumento (v1.9.8) — GRAVADOR DE VOO + MODO SEGURO
+
+Sem console no iPhone e com a morte antes de qualquer telemetria, a saída foi
+a mesma filosofia da sonda `i`: **fazer a própria página deixar rastro**.
+
+- **Gravador**: primeiro script da página; cada etapa do carregamento grava um
+  marco síncrono no `localStorage` (`v0-head → v1-css → v2-body → v3-dom →
+  v4-phaser-pre → v5-phaser-pos → v6-module → v7-home → v8-engine`). O voo que
+  não chega ao `v8` fica guardado como interrompido.
+- **`/?voo=1`**: mostra a caixa-preta e neutraliza TODO o resto do documento
+  com um `<plaintext>` escrito no parse — se o assassino mora no nosso CSS, o
+  viewer sobrevive mesmo assim. (O `window.stop()` foi testado e removido: ele
+  impedia o `DOMContentLoaded`, e o `<plaintext>` sozinho basta.)
+- **`/?safe=1`**: para na home, sem Phaser e sem as ~150 texturas (rodapé
+  marca "MODO SEGURO"). Bisseção instantânea: safe abre e o normal morre =
+  o assassino está do motor para baixo; nem o safe abre = HTML/CSS/boot, e o
+  voo diz o marco exato.
+
+**Roteiro para o aparelho que reproduz**: abrir o jogo normal e deixar morrer
+(2-3×) → abrir `/?voo=1` e fotografar → abrir `/?safe=1` e dizer se a home
+aparece. O último marco do voo interrompido aponta o assassino: parou em
+`v0`/`v1` = CSS/fontes; `v4` = o Phaser (download/parse de 1,2 MB); `v5`/`v6`
+= boot do módulo; `v7` = motor WebGL subindo.
+
+---
+
 ### A correção (v1.9.7) — implementada em 28/08, aguardando release
 
 Endurecer o `sw.js` nos quatro pontos, sem mudar a filosofia network-first:
