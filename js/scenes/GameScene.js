@@ -2055,21 +2055,40 @@ export class GameScene extends Phaser.Scene {
   }
 
   createGround() {
-    // Um único quad com fill-pattern — largura de 404000px não aloca bitmap
-    const width = Constants.WORLD_END_PX + 4000;
-    const ground = this.add.tileSprite(width / 2, Constants.GAME_HEIGHT - 50, width, 100, 'ground');
-    this.physics.add.existing(ground, true);
+    // v1.9.11 (CASO 2): o chão DEIXA DE SER UM QUAD DE 404.000 px. A
+    // caixa-preta do iPhone (WebKit 26) morreu com o conta-giros parado em
+    // `cena:chao` — a criação do TileSprite gigante era o último passo em
+    // execução. No WebGL de desktop o fill-pattern realmente não aloca
+    // bitmap; no WebKit 26, algo nesse caminho estoura o processo. A forma
+    // ortodoxa — que o PRÓPRIO fundo já usava (bgFg/bgCars): visual FINO do
+    // tamanho da tela, preso à câmera, rolado por tilePositionX no update;
+    // o padrão de 1280 px alinha 1:1 com as coordenadas do mundo. A física
+    // vai numa ZONA invisível do tamanho do mundo: corpo estático é
+    // matemática pura do Arcade — nada chega ao renderer.
+    const passo = (s) => { if (typeof window !== 'undefined' && window.__frPasso) window.__frPasso('chao:' + s); };
+    passo('visual');
+    const ground = this.add.tileSprite(
+      Constants.GAME_WIDTH / 2, Constants.GAME_HEIGHT - 50,
+      Constants.GAME_WIDTH, 100, 'ground'
+    ).setScrollFactor(0);
     this.atmoLayers.push(ground); // o chão também escurece ao anoitecer
-    // Guardado para o switchBiome trocar grama por asfalto ao entrar na cidade
-    // (mesmo canvas 1280x100, então é só um setTexture — nada é recriado)
+    // Guardado para o switchBiome trocar grama por asfalto ao entrar na
+    // cidade (mesmo canvas 1280x100, então é só um setTexture)
     this.ground = ground;
 
-    this.physics.add.collider(this.rhino.getSprite(), ground);
+    passo('corpo');
+    const worldW = Constants.WORLD_END_PX + 4000;
+    const solo = this.add.zone(worldW / 2, Constants.GAME_HEIGHT - 50, worldW, 100);
+    this.physics.add.existing(solo, true);
+    this.groundBody = solo;
+
+    passo('colisores');
+    this.physics.add.collider(this.rhino.getSprite(), solo);
 
     // Animais terrestres pisam no chão (pulos do macaco/zebra com arco real);
     // abatidos pelo dash e os voadores atravessam e reciclam fora da tela
     this.physics.add.collider(
-      this.spawnManager.getAnimalsGroup(), ground, null,
+      this.spawnManager.getAnimalsGroup(), solo, null,
       (animal) => animal.active && !animal.knockedOut && !animal.isFlyer(),
       this
     );
@@ -3026,6 +3045,8 @@ export class GameScene extends Phaser.Scene {
       this.bgNearB.tilePositionX = nearX;
       // Fator > 1: o primeiro plano passa MAIS RÁPIDO que o rino
       this.bgFg.tilePositionX = this.cameras.main.scrollX * 1.5;
+      // v1.9.11: o chão rola como as outras camadas — padrão alinhado 1:1
+      this.ground.tilePositionX = this.cameras.main.scrollX;
       if (this.bgCars.alpha > 0.001) {
         this.bgCars.tilePositionX = this.cameras.main.scrollX * 0.55;
       }
