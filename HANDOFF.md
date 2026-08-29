@@ -1,4 +1,48 @@
-# Handoff — FURIOUS RHINO v1.9.7
+# Handoff — FURIOUS RHINO v1.9.11
+
+**Data:** 29/08/2026 (madrugada) · **Status:** v1.9.11 em produção. O CASO 2
+saiu de "não abre e ninguém sabe por quê" para **correção mirada em dado**,
+em UMA noite de loop com o dono reproduzindo no próprio iPhone.
+
+## 0. A noite em uma linha por versão
+
+| Versão | O quê |
+|---|---|
+| v1.9.8 | Gravador de voo (marcos v0→v8) + `/?voo=1` (viewer que neutraliza o resto com `<plaintext>`) + `/?safe=1` |
+| v1.9.9 | Marcos no boot do Phaser (v9→v15) + conta-giros por arquivo/gerador + `/?canvas=1` de verdade |
+| v1.9.10 | Conta-giros nos 12 blocos do `GameScene.create()` |
+| **v1.9.11** | **A correção**: o chão deixa de ser um TileSprite de 404.000 px — visual fino + zona física invisível (`this.groundBody`) |
+
+## 1. O que a caixa-preta provou (iPhone do dono, WebKit 26)
+
+- A página SEMPRE chega ao motor (`v8-engine`); a morte era no
+  `GameScene.create()`, SEMPRE no mesmo ponto — conta-giros parado em
+  **`cena:chao`** (2 voos). Intermitente no *se* (disjuntor do iOS,
+  sensível à memória do aparelho), determinístico no *onde*.
+- Aba privada e Chrome iOS crashavam IGUAL (estado local e Safari-app
+  inocentes); `/?safe=1` abria (motor para baixo implicado).
+- O UA congela "iPhone OS 18_7" — a versão REAL está em `Version/26.6.1`.
+  ("benicio imune no iOS 18.7" era artefato disso.)
+
+## 2. Como retomar
+
+- **A prova do caso é de campo**: o dono jogando alguns dias sem ver o
+  disjuntor. Fechou → registrar 🏁 no CASO 2 ("WebKit 26 × TileSprite
+  gigante"). Morreu de novo → `/?voo=1` aponta o próximo cômodo (os
+  sub-marcos `chao:*` dizem até o sub-passo).
+- A caixa-preta fica DE PLANTÃO em produção — custo ~zero, e qualquer
+  aparelho que crashar vira dado com uma foto.
+- Pendência de docs: o /atualizar-docs fino da v1.9.8→11 (03/04 §PWA e o
+  GAME_DESIGN do chão) — o CHANGELOG e os casos já estão em dia.
+- Segue de pé (decisão anterior): o pacote do CASO 1 (retrato +
+  maxSubSteps) — os congelamentos de 1-3 s do iPad são outro fenômeno.
+
+> ⚠️ Outra sessão trabalha neste repositório — conferir dono de arquivo
+> antes de commitar; nunca `git add -A`.
+
+---
+
+# Handoff anterior — FURIOUS RHINO v1.9.7
 
 **Data:** 28/08/2026 · **Status:** **v1.9.7 publicada** no mesmo dia da v1.9.6.
 Motivo: relato de campo de **"não foi possível acessar a página"** — investigado

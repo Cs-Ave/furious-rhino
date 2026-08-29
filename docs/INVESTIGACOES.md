@@ -419,6 +419,34 @@ para o teste WebGL×resto quando o episódio voltar.
 para ver se em CANVAS sobrevive.
 
 
+### 29/08 — a caixa-preta NOMEIA o assassino: `cena:chao`
+
+A trilogia de instrumentação fechou o cerco em três rodadas na mesma noite,
+todas guiadas pelo aparelho do dono (iPhone 17, WebKit 26):
+
+1. **v1.9.9** (marcos no boot do Phaser): os voos morrem **entre `v14-cena` e
+   `v15-update1`** — dentro do `GameScene.create()` — e SEMPRE no mesmo ponto
+   (~1070 ms, voos quase idênticos). Intermitente no *se*, determinístico no
+   *onde*.
+2. **v1.9.10** (conta-giros nos 12 blocos do create): o voo seguinte morreu
+   com o slot parado em **`cena:chao`** — e um voo-relâmpago de `[v0-head]`
+   sozinho mostrou o disjuntor do iOS matando recargas quase instantâneas.
+3. **v1.9.11** (a correção): o único móvel exótico do cômodo era o chão — um
+   **TileSprite de 404.000 px de largura** ("não aloca bitmap" no desktop;
+   no WebKit 26, estoura o WebContent). Virou o padrão que o próprio fundo
+   já usava: visual fino preso à câmera + `tilePositionX`, física numa zona
+   invisível (matemática pura, nada chega ao renderer). Sub-marcos
+   `chao:visual/corpo/colisores` ficam de sentinela.
+
+**Estado: 🟡 correção em campo, aguardando a prova.** Se o iPhone do dono
+abrir sempre a partir da v1.9.11, o caso fecha como **"WebKit 26 ×
+TileSprite gigante"**. Se morrer de novo, a caixa-preta aponta o próximo
+cômodo — este estará eliminado. A lição de método já fica: **crash sem
+console se resolve fazendo a própria página deixar rastro** — 3 releases de
+instrumentação transformaram "não abre" em um nome de bloco de código.
+
+---
+
 ### A correção (v1.9.7) — implementada em 28/08, aguardando release
 
 Endurecer o `sw.js` nos quatro pontos, sem mudar a filosofia network-first:

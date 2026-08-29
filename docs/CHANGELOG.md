@@ -5,7 +5,24 @@
 
 ---
 
-## v1.9.7 — 28/08/2026 (versão atual)
+## v1.9.11 — 29/08/2026 (versão atual)
+
+**Tema: o chão de 404.000 pixels — a correção que a caixa-preta apontou.**
+
+- O crash dos iPhones/iPads novos (iOS 26) foi **caçado com instrumentação**, não com chute: três versões de caixa-preta (abaixo) estreitaram a morte até um bloco de código com nome — a criação do chão, um único elemento de **404.000 pixels de largura** cobrindo o mundo inteiro. No computador isso é seguro; no motor dos aparelhos Apple novos, mata o processo da página (e o iOS mostra "Um problema ocorreu repetidamente").
+- **A correção**: o chão virou o mesmo padrão das outras camadas do cenário — uma faixa do tamanho da tela que acompanha a câmera, com o piso físico numa área invisível (pura matemática, nada chega ao desenho). Visual idêntico, jogo idêntico, 149 verificações automáticas passando.
+- Se você viu a tela de "problema ocorreu repetidamente": atualize (o rodapé deve mostrar v1.9.11) e volte a jogar. Se acontecer de novo, abra `/?voo=1` e mande a foto — a caixa-preta diz exatamente onde parou.
+
+## v1.9.8 → v1.9.10 — 28-29/08/2026
+
+**Tema: a caixa-preta — três versões de instrumentação numa noite.**
+
+- **v1.9.8**: o **gravador de voo** — cada etapa do carregamento grava um marco no aparelho; `/?voo=1` mostra a caixa-preta (mesmo com a página quebrada) e `/?safe=1` abre só a tela inicial, sem o motor.
+- **v1.9.9**: os marcos entram no boot do motor (carregamento da arte, geração de texturas) + o **conta-giros**: cada arquivo e cada gerador anuncia a própria execução — no crash, fica registrado o item exato. E `/?canvas=1` passa a forçar o modo de desenho alternativo, para separar hipóteses.
+- **v1.9.10**: o conta-giros entra nos 12 blocos da construção da cena — a resolução que nomeou o culpado.
+- Tudo minúsculo e inerte para quem joga: são gravações locais no próprio aparelho, nada é enviado.
+
+## v1.9.7 — 28/08/2026
 
 **Tema: o jogo nunca mais responde com a página de erro do navegador.**
 
