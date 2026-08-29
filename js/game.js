@@ -195,7 +195,9 @@ async function bootGame() {
   ]);
 
   const config = {
-    type: Phaser.AUTO,
+    // v1.9.9 (CASO 2): /?canvas=1 força o renderer CANVAS — o teste que
+    // separa "WebGL do WebKit 26 morrendo" de "qualquer outra coisa".
+    type: window.__frCanvas ? Phaser.CANVAS : Phaser.AUTO,
     parent: 'game-container',
     scale: {
       mode: Phaser.Scale.FIT,

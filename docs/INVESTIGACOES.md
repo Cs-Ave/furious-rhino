@@ -384,6 +384,41 @@ aparece. O último marco do voo interrompido aponta o assassino: parou em
 
 ---
 
+### 28/08 (madrugada) — os voos chegam ao motor; o crash é INTERMITENTE
+
+Segunda rodada no aparelho do dono, ainda com a v1.9.8 no ar:
+
+- **Todos os voos registrados chegam completos ao `v8-engine`** (o quente em
+  95 ms). Neste aparelho a página SEMPRE alcança o motor — a morte, quando
+  vem, é na fase que a v1.9.8 não enxergava (preload/texturas/cena).
+- **O jogo normal voltou a abrir** — por acidente: o dono abriu `/?canvas=1`,
+  que a v1.9.8 ignora, e o que subiu foi o boot normal com WebGL, sem erro.
+  O "Um problema ocorreu repetidamente" é o disjuntor do iOS: depois de N
+  mortes ele desiste, e algum tempo depois rearma. **Crash intermitente,
+  provavelmente sensível ao estado do aparelho** (o JetsamEvent de 26/08
+  mostrava pressão de memória geral, com os Ajustes como maior processo).
+- **Correção de registro**: o UA do iOS congela o token do sistema — o
+  aparelho reporta "iPhone OS 18_7" com `Version/26.6.1`. O "benicio imune no
+  iOS 18.7" era artefato disso (ele também é Safari 26); a correlação real é
+  **Safari/WebKit 26.x**, agora pelo token `Version/`.
+
+| # | Hipótese | Estado | Evidência |
+|---|---|---|---|
+| C2-H5 | **Memória/jetsam sensível ao estado do aparelho**: a carga do boot (SVGs + 34 geradores + WebGL) empurra o processo para o teto QUANDO o resto do sistema já está espremido | 🟡 principal | intermitência; voos completos ao v8; jetsam de 26/08 com pressão geral; texturas nossas são pequenas (~20 MB) — é o pico somado ao ambiente |
+| C2-H4 | Bug determinístico do WebKit 26 em algo nosso | 🔻 enfraquecida | o mesmo boot que morria abriu sem mudar nada nosso |
+
+**v1.9.9 — a caixa-preta fica de plantão**: marcos v9→v15 dentro do boot do
+Phaser (progresso do preload em 25/50/75, TextureFactory, cena, 1º update) e o
+**conta-giros** (`fr_voo_passo`): cada arquivo carregado e cada um dos 34
+geradores sobrescreve um slot único — no próximo crash, o slot guarda o item
+exato em execução. E o `/?canvas=1` passa a valer de verdade (renderer CANVAS),
+para o teste WebGL×resto quando o episódio voltar.
+
+**Roteiro de plantão para qualquer aparelho que crashar**: deixar morrer →
+`/?voo=1` → fotografar (voo interrompido + ULTIMO PASSO FINO) → `/?canvas=1`
+para ver se em CANVAS sobrevive.
+
+
 ### A correção (v1.9.7) — implementada em 28/08, aguardando release
 
 Endurecer o `sw.js` nos quatro pontos, sem mudar a filosofia network-first:

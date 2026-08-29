@@ -18,6 +18,8 @@
       (function () {
         window.__frVoo = function () {};
         window.__frSafe = false;
+        window.__frPasso = function () {};
+        window.__frCanvas = false;
         try {
           var q = new URLSearchParams(location.search);
           var t0 = Date.now();
@@ -35,6 +37,7 @@
             document.write('<pre style="font:14px/1.7 monospace;padding:16px;white-space:pre-wrap;word-break:break-all">'
               + 'CAIXA-PRETA — FURIOUS RHINO\n\n'
               + 'ULTIMO VOO (interrompido se nao chegou a v8-engine):\n' + atu + '\n\n'
+              + 'ULTIMO PASSO FINO (o que rodava na hora da morte):\n' + (function () { try { return localStorage.getItem('fr_voo_passo') || '(vazio)'; } catch (e) { return '(sem storage)'; } })() + '\n\n'
               + 'VOO ANTERIOR:\n' + ant + '\n\n'
               + 'NAVEGADOR: ' + navigator.userAgent + '</pre>'
               + '<style>plaintext{display:none}</style><plaintext>');
@@ -46,6 +49,10 @@
             if (velho && velho !== '[]') localStorage.setItem('fr_voo_anterior', velho);
             localStorage.setItem('fr_voo_atual', '[]');
           } catch (e) { /* idem */ }
+          window.__frPasso = function (s) {
+            try { localStorage.setItem('fr_voo_passo', s); } catch (e) { /* sem storage */ }
+          };
+          window.__frCanvas = q.get('canvas') === '1';
           window.__frSafe = q.get('safe') === '1';
           window.__frVoo('v0-head');
         } catch (e) { /* o gravador jamais derruba a página que ele vigia */ }
@@ -2596,7 +2603,7 @@
 
         <span class="start-footer footer-left">by Thomas Avelino</span>
         <span class="start-footer footer-center">Estatísticas anônimas são coletadas · <a href="./?stats">/?stats</a></span>
-        <span class="start-footer footer-right" id="game-version">v1.9.8</span>
+        <span class="start-footer footer-right" id="game-version">v1.9.9</span>
     </div>
 
     <div id="ranking-modal" class="modal">

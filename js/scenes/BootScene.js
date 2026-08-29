@@ -9,6 +9,20 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
+    // v1.9.9 (CASO 2): a caixa-preta entra no boot do Phaser. Os voos do
+    // iPhone que crasha chegam completos ao v8-engine — a morte é AQUI
+    // dentro, e o conta-giros (__frPasso) guarda o último item em execução.
+    const voo = (m) => { if (typeof window !== 'undefined' && window.__frVoo) window.__frVoo(m); };
+    const passo = (s) => { if (typeof window !== 'undefined' && window.__frPasso) window.__frPasso(s); };
+    voo('v9-preload');
+    this.load.on('fileprogress', (f) => passo('carregando:' + f.key));
+    let m25 = false; let m50 = false; let m75 = false;
+    this.load.on('progress', (p) => {
+      if (p >= 0.25 && !m25) { m25 = true; voo('v9-load-25'); }
+      if (p >= 0.5 && !m50) { m50 = true; voo('v9-load-50'); }
+      if (p >= 0.75 && !m75) { m75 = true; voo('v9-load-75'); }
+    });
+    this.load.on('complete', () => voo('v10-loaded'));
     // Os sprites vivem em art/*.svg (editáveis em qualquer editor de SVG);
     // as dimensões de rasterização vêm do manifesto gerado, multiplicadas
     // pelo ART_RASTER_SCALE (supersampling para telas de alta densidade)
@@ -44,8 +58,12 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
+    const voo = (m) => { if (typeof window !== 'undefined' && window.__frVoo) window.__frVoo(m); };
+    voo('v11-texfab');
     TextureFactory.generate(this);
+    voo('v12-texfab-ok');
     this.createAnimations();
+    voo('v13-anims-ok');
     this.scene.start('GameScene');
   }
 

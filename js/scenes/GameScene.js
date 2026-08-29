@@ -25,6 +25,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
+    if (typeof window !== 'undefined' && window.__frVoo) window.__frVoo('v14-cena');
     this.physics.world.setFPS(60);
     // Ceiling-only world bounds: stops the infinite jump from flying the
     // rhino out of the scene (no side walls, no world floor).
@@ -2983,6 +2984,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    if (!this._vooTick1) { this._vooTick1 = true;
+      if (typeof window !== 'undefined' && window.__frVoo) window.__frVoo('v15-update1'); }
     // O early-return continua sendo a PRIMEIRA coisa: fora do try, nada aqui
     // pode lançar e é o caminho mais quente do jogo.
     if (!this.started || this.gameOver || this.won) return;

@@ -4,41 +4,44 @@ import { Constants } from '../utils/Constants.js';
 // generateTexture. Character art comes from SVG (see js/art/SvgSprites.js).
 export class TextureFactory {
   static generate(scene) {
-    this.generateWalls(scene);
-    this.generateSpikes(scene);
-    this.generateSpikeTower(scene);
-    this.generateGate(scene);
-    this.generateGateArmored(scene);
-    this.generateBossGates(scene);
-    this.generateTranqTower(scene);
-    this.generateTranqDart(scene);
-    this.generateGround(scene);
-    this.generateGroundCity(scene);
-    this.generateRamps(scene);
-    this.generateSkies(scene);
-    this.generateMountains(scene);
-    this.generateClouds(scene);
-    this.generateBackdrops(scene);
-    this.generateCars(scene);
-    this.generateForeground(scene);
-    this.generateBiomeArch(scene);
-    this.generatePortals(scene);
-    this.generateHazards(scene);
-    this.generateK9Projectile(scene);
+    // v1.9.9 (CASO 2): cada gerador anuncia a própria execução no
+    // conta-giros — no crash, o slot diz qual estava rodando.
+    const passo = (s) => { if (typeof window !== 'undefined' && window.__frPasso) window.__frPasso('texfab:' + s); };
+    passo('generateWalls'); this.generateWalls(scene);
+    passo('generateSpikes'); this.generateSpikes(scene);
+    passo('generateSpikeTower'); this.generateSpikeTower(scene);
+    passo('generateGate'); this.generateGate(scene);
+    passo('generateGateArmored'); this.generateGateArmored(scene);
+    passo('generateBossGates'); this.generateBossGates(scene);
+    passo('generateTranqTower'); this.generateTranqTower(scene);
+    passo('generateTranqDart'); this.generateTranqDart(scene);
+    passo('generateGround'); this.generateGround(scene);
+    passo('generateGroundCity'); this.generateGroundCity(scene);
+    passo('generateRamps'); this.generateRamps(scene);
+    passo('generateSkies'); this.generateSkies(scene);
+    passo('generateMountains'); this.generateMountains(scene);
+    passo('generateClouds'); this.generateClouds(scene);
+    passo('generateBackdrops'); this.generateBackdrops(scene);
+    passo('generateCars'); this.generateCars(scene);
+    passo('generateForeground'); this.generateForeground(scene);
+    passo('generateBiomeArch'); this.generateBiomeArch(scene);
+    passo('generatePortals'); this.generatePortals(scene);
+    passo('generateHazards'); this.generateHazards(scene);
+    passo('generateK9Projectile'); this.generateK9Projectile(scene);
     // v1.8.10 — As Areias do Tempo
-    this.generateGroundDesert(scene);
-    this.generateForegroundDesert(scene);
-    this.generateMarcoObelisco(scene);
-    this.generateArrowProjectile(scene);
-    this.generateFalcaoProjectile(scene);
-    this.generateTrackFlag(scene);
-    this.generateWeather(scene);
-    this.generateLeaf(scene);
-    this.generateDebris(scene);
-    this.generateSmoke(scene);
-    this.generateWindStreak(scene);
-    this.generateExplosionFlash(scene);
-    this.generateConfetti(scene);
+    passo('generateGroundDesert'); this.generateGroundDesert(scene);
+    passo('generateForegroundDesert'); this.generateForegroundDesert(scene);
+    passo('generateMarcoObelisco'); this.generateMarcoObelisco(scene);
+    passo('generateArrowProjectile'); this.generateArrowProjectile(scene);
+    passo('generateFalcaoProjectile'); this.generateFalcaoProjectile(scene);
+    passo('generateTrackFlag'); this.generateTrackFlag(scene);
+    passo('generateWeather'); this.generateWeather(scene);
+    passo('generateLeaf'); this.generateLeaf(scene);
+    passo('generateDebris'); this.generateDebris(scene);
+    passo('generateSmoke'); this.generateSmoke(scene);
+    passo('generateWindStreak'); this.generateWindStreak(scene);
+    passo('generateExplosionFlash'); this.generateExplosionFlash(scene);
+    passo('generateConfetti'); this.generateConfetti(scene);
   }
 
   // ---------------------------------------------------------------- walls

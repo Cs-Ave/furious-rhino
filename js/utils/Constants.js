@@ -3,7 +3,7 @@ import { SPRITE_PARAMS } from '../art/SpriteParams.js';
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
-  VERSION: '1.9.8',
+  VERSION: '1.9.9',
 
   // Rótulo humano de cada desfecho de corrida. Fonte única para o painel, o
   // resumo do jogador e os pushes — os três diziam a mesma coisa com palavras
