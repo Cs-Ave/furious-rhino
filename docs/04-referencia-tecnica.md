@@ -1,6 +1,6 @@
 # Furious Rhino — Referência técnica
 
-> Documentação da versão **1.10.0** · atualizada em 29/08/2026
+> Documentação da versão **1.10.1** · atualizada em 30/08/2026
 > Para quem vai dar manutenção. Complementa (não substitui) `GAME_DESIGN.md` (o design e suas razões) e `HANDOFF.md` (estado da última sessão de trabalho e tabelas completas de parâmetros).
 
 ## 1. Estrutura de pastas
@@ -197,6 +197,7 @@ Tudo em `js/utils/Constants.js` (deploy sempre necessário). Principais:
 | `VETERAN_MIN_RECORD_M` | 400 | v1.10: veterano é quem PROVOU (recorde da vida), não quem tentou 3 vezes — a régua antiga produzia a curva de aprendizado invertida (mediana de 57 m nas tentativas 31-50). Dica e roteiro seguem a mesma régua |
 | `NOVICE_CURVE_ENABLED` / `NOVICE_TIER_FLOORS` / `NOVICE_CURVE_TOP_M` | true / pisos t1-t3 / 800 | v1.10: lerp `f = min(1, recorde/800)` só nos EXTRAS de densidade dos tiers 1-3; `f ≥ 1` devolve a REFERÊNCIA do tier (veterano bit-idêntico, garantido por assert). Pesos letais intocados |
 | `DASH_DENY_FEEDBACK` / `DASH_BUFFER_MS` | true / 180 | v1.10: negação com som+tremor+vibração; toque no fim da recarga entra na fila e dispara sozinho (não conta como atrito — o buffer decide ANTES do feedback) |
+| `PHYSICS_MAX_DELTA_MS` | 50 | v1.10.1 (CASO 1, H2): teto do catch-up do Arcade — quadro patológico vira câmera lenta, nunca teleporte; o relógio `i` segue medindo o delta REAL |
 | `CHARGED_JUMP_MIN_MS` / `MARCOS_M` / `DEATH_TIPS` | 400 / [100,250,500,2300] / mapa | v1.10: telemetria `cj` conta no CRUZAMENTO do limiar (contar no release subcontava quem segura até pousar); marco dos 2200 foi a 2300 para não colidir com a festa do Pórtico |
 | `VETERAN_OPENING_START_X` | 2400 | v1.8.4: onde a roleta começa para o veterano (60 m — cedo, mas não os 34 m pré-v1.6 que matavam 83 de 512 corridas) |
 | `SCORE_WEIGHTS` | 8 pesos | v1.8.4: pontos por façanha — `wall` 5, `ramp` 5, `tower` 15, `animal` 3, `bossLayer` 25, `escape` 100, `blitz` 50, `legend` 400 |

@@ -230,6 +230,28 @@ inteira a cada coleta e guardam snapshot datado para o diff da próxima.
   para pontuá-la. Enquanto a janela for de 50, toda correção futura vai
   restaurar por baixo do que o jogador realmente fez.
 
+### 30/08 — H2 e H3 MITIGADAS na v1.10.1 (o pacote do caso)
+
+As duas hipóteses vivas ganharam correção defensiva — juntas, aceitando a
+perda de atribuição (cada uma é defeito por mérito próprio):
+
+- **H2 (catch-up sem teto)**: `PHYSICS_MAX_DELTA_MS: 50` clampa o delta que
+  chega ao Arcade (wrap no `world.update`, não fork). Quadro patológico vira
+  UM passo de câmera lenta — o mundo não avança às cegas. Provado em runtime:
+  um quadro de 3 s move o rino ≤ 30 px, não ~900.
+- **H3 (retrato às cegas)**: virar para o retrato agora PAUSA de verdade
+  (mesmo caminho da troca de aba, retomada humana), e **largar já em pé
+  também pausa** — a lacuna que o teste revelou: o listener de orientação só
+  dispara na mudança, e o started nasce numa graça de 150 ms.
+- **A sonda `i` continua honesta**: o clamp é só na física; o relógio do loop
+  segue medindo o delta real — congelamento ainda aparece como `i` < `s`.
+
+**Assinatura esperada no campo**: o `D4` pode continuar acendendo
+(congelamentos são reais e continuam sendo medidos), mas congelamento não
+pode mais produzir SALTO de posição, e corrida em retrato não existe mais.
+Se um salto de distância aparecer numa corrida ≥ v1.10.1, é uma TERCEIRA
+causa — e as duas primeiras estarão eliminadas por construção.
+
 ### Próximo passo
 
 A cascata fechou (`D3` = 0 em 25/08) e o pódio foi ajustado. O que sobra é o

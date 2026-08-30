@@ -84,6 +84,54 @@ const rep = await page.evaluate(() => {
 });
 ok('10. 50 crashes seguidos devolvem UMA tentativa so (idempotente)', rep === 40, `att=${rep}`);
 
+// ============ v1.10.1 — o pacote do CASO 1 (H2 + H3) ============
+{
+  const pC1 = await ctx.newPage();
+  const errC1 = [];
+  pC1.on('pageerror', (e) => errC1.push(String(e)));
+  await pC1.goto(ALVO, { waitUntil: 'networkidle' });
+  await pC1.waitForFunction(() => window.game && window.game.scene.getScene('GameScene'), null, { timeout: 20000 });
+  await pC1.waitForTimeout(500);
+
+  // H2: um quadro de 3 SEGUNDOS nao pode teleportar — o teto de 50ms o
+  // transforma em UM passo de camera lenta (~15px a 300px/s, nao ~900px).
+  const h2 = await pC1.evaluate(async () => {
+    const s = window.game.scene.getScene('GameScene');
+    if (!s.startTriggered) s.startRun();
+    await new Promise((r) => setTimeout(r, 250)); // graca de 150ms do started
+    const x0 = s.rhino.getSprite().x;
+    s.physics.world.update(0, 3000);
+    return { andou: Math.round(s.rhino.getSprite().x - x0) };
+  });
+  ok('11. H2: quadro de 3s vira camera lenta, nao teleporte (<= 30px)',
+    h2.andou >= 0 && h2.andou <= 30, `${h2.andou}px`);
+  await pC1.close();
+
+  // H3: contexto NASCIDO em retrato (resize de janela e bloqueado neste
+  // launch) — cobre tambem a lacuna real: LARGAR em pe tem de pausar.
+  const ctxRetrato = await browser.newContext({ viewport: { width: 500, height: 900 } });
+  const pR = await ctxRetrato.newPage();
+  await pR.goto(ALVO, { waitUntil: 'networkidle' });
+  await pR.waitForFunction(() => window.game && window.game.scene.getScene('GameScene'), null, { timeout: 20000 });
+  await pR.waitForTimeout(400);
+  await pR.evaluate(() => { window.game.scene.getScene('GameScene').startRun(); });
+  await pR.waitForTimeout(400); // a graca de 150ms + folga
+  const h3 = await pR.evaluate(() => {
+    const s = window.game.scene.getScene('GameScene');
+    return { paused: s.paused, started: s.started };
+  });
+  ok('12. H3: largar em RETRATO pausa de verdade (nada de correr as cegas)',
+    h3.started === true && h3.paused === true, JSON.stringify(h3));
+  const h3b = await pR.evaluate(() => {
+    const s = window.game.scene.getScene('GameScene');
+    s.resumeGame(); // a retomada e decisao humana — e funciona
+    return { depois: s.paused };
+  });
+  ok('13. H3b: a retomada humana funciona', h3b.depois === false, JSON.stringify(h3b));
+  ok('14. CASO 1: sem erros de JS nas paginas do pacote', errC1.length === 0, errC1.slice(0, 2).join(' | '));
+  await ctxRetrato.close();
+}
+
 console.log(`\n${pass}/${pass + fail} OK`);
 await browser.close();
 process.exit(fail ? 1 : 0);

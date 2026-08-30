@@ -39,6 +39,15 @@ export class GameScene extends Phaser.Scene {
       false, false, true, false
     );
     this.cameras.main.setBounds(0, 0, Constants.WORLD_END_PX + 1000, Constants.GAME_HEIGHT);
+
+    // v1.10.1 (CASO 1, H2): teto no catch-up — ver PHYSICS_MAX_DELTA_MS.
+    // Wrap e não fork: a física continua a do Phaser, só o delta é clampado.
+    // O relógio do loop (letra i) segue medindo o delta REAL — a sonda que
+    // separa congelamento de salto continua honesta.
+    const mundoFisico = this.physics.world;
+    const updateFisicaOriginal = mundoFisico.update.bind(mundoFisico);
+    mundoFisico.update = (time, delta) =>
+      updateFisicaOriginal(time, Math.min(delta, Constants.PHYSICS_MAX_DELTA_MS));
     this.cameras.main.setLerp(0.1, 0);
 
     passo('fundo');
@@ -1666,7 +1675,13 @@ export class GameScene extends Phaser.Scene {
 
     this.physics.resume();
     // Small grace so a stray click right after the overlay hides can't jump
-    this.time.delayedCall(150, () => { this.started = true; });
+    this.time.delayedCall(150, () => {
+      this.started = true;
+      // v1.10.1 (CASO 1, H3): quem LARGA já em pé pausa aqui — precisa ser
+      // DEPOIS do started (a guarda do pauseGame) e o listener de orientação
+      // só dispara na mudança, não no estado inicial.
+      if (window.matchMedia('(orientation: portrait)').matches) this.pauseGame();
+    });
 
     // v1.8.6 — a meta do desafio na largada: as estacas na pista marcam ONDE
     // (metros), mas quem decide é PONTOS — este toast diz o número a bater.
@@ -2508,6 +2523,16 @@ export class GameScene extends Phaser.Scene {
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) this.pauseGame();
     });
+
+    // v1.10.1 (CASO 1, H3): o RETRATO pausa DE VERDADE. O #rotate-overlay
+    // sempre foi só CSS — o jogo continuava rodando às cegas por baixo (o
+    // kukur estava em 485x1076 na corrida dos 44s; os congelamentos do D4
+    // idem). Mesmo caminho da troca de aba: pausa com o modal, e o jogador
+    // retoma quando volta à paisagem — pausa automática, retomada humana.
+    const retrato = window.matchMedia('(orientation: portrait)');
+    const aoGirar = () => { if (retrato.matches) this.pauseGame(); };
+    if (retrato.addEventListener) retrato.addEventListener('change', aoGirar);
+    else if (retrato.addListener) retrato.addListener(aoGirar); // Safari velho
 
     this.alignHudButtons();
     this.scale.on('resize', () => this.alignHudButtons());

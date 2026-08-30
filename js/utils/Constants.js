@@ -3,7 +3,7 @@ import { SPRITE_PARAMS } from '../art/SpriteParams.js';
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
-  VERSION: '1.10.0',
+  VERSION: '1.10.1',
 
   // Rótulo humano de cada desfecho de corrida. Fonte única para o painel, o
   // resumo do jogador e os pushes — os três diziam a mesma coisa com palavras
@@ -317,6 +317,13 @@ export const Constants = {
 
   // Gravity
   GRAVITY: 1400,
+  // v1.10.1 (CASO 1, H2): TETO do catch-up da física. O fixedStep do Arcade
+  // compensa atraso num while SEM limite — um único quadro de 85ms
+  // atravessava os 120px do gatilho do portão (a janela da cascata), e um
+  // congelamento de segundos viraria teleporte de centenas de metros. Com o
+  // teto, quadro patológico vira UM passo de câmera lenta: o mundo não
+  // avança às cegas. Quadro saudável (16-33ms) passa intacto — zero feel.
+  PHYSICS_MAX_DELTA_MS: 50,
 
   // Wall crack heights (fraction of wall height, top-down).
   // Ground top sits at y=620; tuned to jump reach:

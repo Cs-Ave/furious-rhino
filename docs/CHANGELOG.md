@@ -5,7 +5,15 @@
 
 ---
 
-## v1.10.0 — 29/08/2026 (versão atual) — 🎓 A ESCOLA DO RINO
+## v1.10.1 — 30/08/2026 (versão atual)
+
+**Tema: o congelamento não teleporta mais, e o retrato pausa de verdade.**
+
+- Quando o aparelho engasga (ou o jogo fica coberto), o motor de física compensava o tempo perdido de uma vez — um engasgo de segundos virava um **teleporte** de centenas de metros, a suspeita central do caso da "distância que salta". Agora a compensação tem **teto**: o quadro atrasado vira um instante de câmera lenta, e o mundo nunca avança sem você ver.
+- Girar o celular para o modo retrato mostrava o aviso de "gire o aparelho" — mas o jogo **continuava rodando às cegas por baixo**. Agora o retrato **pausa** (como trocar de aba), inclusive quando a corrida já começa com o aparelho em pé; a retomada é sua, no botão.
+- A sonda dos dois relógios continua medindo tudo — se ainda houver saltos de distância depois desta versão, é uma causa nova, e as duas antigas estarão eliminadas por construção.
+
+## v1.10.0 — 29/08/2026 — 🎓 A ESCOLA DO RINO
 
 **Tema: o início do jogo volta a ensinar — dificuldade por competência, nunca por contagem.**
 
