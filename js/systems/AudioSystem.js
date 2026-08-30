@@ -369,6 +369,21 @@ export class AudioSystem {
 
   // Quique no portão blindado sem quebrar nada: CLANG metálico — parciais
   // inarmônicas detunadas (timbre de metal) + impacto curto de ruído
+  // v1.10 "Escola do Rino": o "tec" da investida NEGADA — grave, 70ms,
+  // inconfundível com o whoosh do dash. A negação era silenciosa e 64% dos
+  // toques eram negados: o cooldown que ninguém vê é cooldown que ninguém
+  // aprende. É linguagem, não punição.
+  playDenyTick() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const g = this.envGain(this.sfxGain);
+    const o = this.osc('square', 110, g);
+    g.gain.linearRampToValueAtTime(0.12, t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+    o.start(t);
+    o.stop(t + 0.09);
+  }
+
   playClang() {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;

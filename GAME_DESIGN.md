@@ -1,6 +1,6 @@
 # FURIOUS RHINO — Documento de Design
 
-> Estado atual do jogo (v1.9.11). Este documento descreve o que **é**, não o que
+> Estado atual do jogo (v1.10.0). Este documento descreve o que **é**, não o que
 > se imaginou no começo — as decisões de v1.1 em diante estão registradas aqui
 > com o motivo, e várias delas foram tomadas a partir dos dados reais de
 > telemetria (ver "Decisões orientadas por dados" no fim).
@@ -1023,6 +1023,50 @@ recusar) e transforma o próximo crash de qualquer jogador em dado com uma
 foto. `tools/test-caixapreta.mjs` existe para que um refactor não a arranque
 em silêncio — um marco que some não quebra o jogo, quebra a investigação
 seguinte.
+
+---
+
+## 🎓 A Escola do Rino (v1.10) — dificuldade por competência, nunca por contagem
+
+A maior reforma do início desde a v1.6, e a mais orientada por dados da
+história do projeto (processo completo no `IDEIAS-FUTURAS.md` §Escola do
+Rino: radiografia + coorte + painel de 4 designers + revisão adversarial).
+O diagnóstico: a curva de aprendizado estava INVERTIDA — o jogador piorava
+com a prática, porque "veterano" era quem tinha 3 tentativas, e da 4ª
+corrida da vida em diante a roleta cheia (com a densidade dobrada de 16/08)
+começava aos 60 m. A mediana de 57 m nas tentativas 31-50 era exatamente o
+`VETERAN_OPENING_START_X`. Metade dos novatos morria sem nunca pular.
+
+As decisões, todas reversíveis por flag e medidas por telemetria própria:
+
+- **Aula até provar, não até contar**: a abertura-lição e as dicas duram até
+  o recorde da vida passar de 400 m. Os presos da era antiga VOLTAM à escola
+  no update — é o remédio, não o bug.
+- **A curva do novato é um lerp por competência** (`f = min(1, recorde/800)`)
+  aplicado SÓ aos extras de densidade dos tiers 1-3 — e `f ≥ 1` devolve a
+  **referência** do tier: o veterano joga o jogo de sempre POR CONSTRUÇÃO,
+  com assert travando isso. Sem penhasco: nada de "graduou → paredão".
+  Monte Carlo (`npm run simula-densidade`): estreia 1,4/100 m (a era A de
+  volta) → veterano 3,2 bit-idêntico. Pesos LETAIS intocados.
+- **A negação do dash ganhou voz** (som + tremor + vibração) e um buffer de
+  180 ms que honra o toque do fim da recarga. A revisão adversarial pegou
+  duas mentiras que a 1ª implementação contaria: o toque honrado recebia o
+  feedback de NEGAÇÃO antes de disparar (contradição sensorial), e contava
+  como atrito E como investida (viés mecânico na métrica-manchete x/(d+x)).
+  Regra que ficou: **o buffer decide primeiro; toque honrado não é atrito**.
+- **O pulo carregado conta no CRUZAMENTO do limiar**, não no release — a
+  revisão mostrou que contar no release subcontava exatamente o aluno
+  aplicado, que segura até pousar (o pouso zerava a flag antes do release).
+- **A morte ensina** (dica por causa, 3× na vida, + "faltaram X m") e os
+  **marcos** celebram a primeira vez além de 100/250/500/2300 m — o 2300 (e
+  não 2200) porque o cruzamento exato dos 2200 já tem a festa do Pórtico.
+
+Lições de processo registradas: o dash-fantasma (pendingDash órfão no
+knockback de chefe) só apareceu na revisão adversarial — input com fila
+PRECISA limpar a fila em toda transição forçada de estado; e a lacuna L2
+REABRIU uma release depois de fechada (fc/cj nasceram sem decodificador no
+painel) — agora há guarda bidirecional: toda chave nova do RUN_COUNTERS sem
+leitor no painel é teste vermelho.
 
 ---
 

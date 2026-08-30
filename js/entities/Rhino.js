@@ -27,6 +27,9 @@ export class Rhino {
     this.cooldownTimer = 0;
     this.wasAirborneDash = false;
     this.dashRefunded = false; // torre derrubada nesta investida: sem cooldown
+    // v1.10: toque negado no FIM do cooldown fica na fila e dispara ao
+    // recarregar (DASH_BUFFER_MS) — quem arma é a cena, no funil doDash.
+    this.pendingDash = false;
     // Quique do portão-fortaleza (v1.7): janela em que o FurySystem NÃO
     // reescreve velocityX. Contador por delta (não timestamp): congela junto
     // com a cena numa pausa e retoma exato.
@@ -84,6 +87,14 @@ export class Rhino {
     // Update jump charge
     if (this.isChargingJump) {
       const elapsed = time - this.jumpHoldStart;
+      // v1.10 (revisão): o pulo carregado conta AQUI, no cruzamento do
+      // limiar — no release ele subcontava justamente o aluno aplicado,
+      // que segura até pousar (o pouso zera isChargingJump antes do release).
+      if (!this.chargeCounted && elapsed >= Constants.CHARGED_JUMP_MIN_MS
+        && this.scene.runChargedJumps !== undefined) {
+        this.chargeCounted = true;
+        this.scene.runChargedJumps++;
+      }
       const t = Math.min(elapsed / Constants.JUMP_CHARGE_MS, 1);
       const targetV = Phaser.Math.Linear(Constants.JUMP_MIN_V, Constants.JUMP_MAX_V, t);
       if (this.sprite.body.velocity.y < 0 && this.sprite.body.velocity.y > targetV) {
@@ -108,6 +119,11 @@ export class Rhino {
       this.cooldownTimer += delta;
       if (this.cooldownTimer >= Constants.DASH_COOLDOWN_MS) {
         this.dashState = 'idle';
+        if (this.pendingDash) {
+          this.pendingDash = false;
+          // Pelo funil único da cena: conta, soa e dispara como um toque real
+          this.scene.doDash();
+        }
       }
     }
   }
@@ -117,6 +133,7 @@ export class Rhino {
     this.jumpCount++;
     this.isChargingJump = true;
     this.jumpHoldStart = this.scene.time.now;
+    this.chargeCounted = false; // v1.10: um cj por pressionada
     this.sprite.body.setVelocityY(Constants.JUMP_MIN_V);
   }
 
@@ -144,6 +161,9 @@ export class Rhino {
   // — isso deixaria a gravidade desligada e a velocidade travada em 750. Em
   // vez disso marca o estorno, e o fim natural do dash pula o cooldown.
   resetDash() {
+    // v1.10 (revisão): a devolução da torre não pode carregar um toque
+    // antigo — dash-fantasma segundos depois seria o oposto do ensino.
+    this.pendingDash = false;
     if (this.dashState === 'active') this.dashRefunded = true;
     else { this.dashState = 'idle'; this.cooldownTimer = 0; }
   }
@@ -156,6 +176,9 @@ export class Rhino {
   // cooldown cheio (1s) o ciclo do quique (~1,3s) deixava uma janela de
   // milissegundos colada no portão — impossível de acertar no toque.
   beginKnockback(vx, vy, ms) {
+    // v1.10 (revisão): o quique reinicia o cooldown — um toque bufferizado
+    // antes dele NÃO pode virar investida automática na volta do controle.
+    this.pendingDash = false;
     this.knockbackMsLeft = ms;
     if (this.dashState === 'active' && this.wasAirborneDash) {
       // Cancela o dash aéreo com segurança: religa a gravidade, senão o

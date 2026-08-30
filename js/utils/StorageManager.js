@@ -496,6 +496,13 @@ export class StorageManager {
     qu: 'cercoBounces',  // quiques na Barreira (3650m)
     qy: 'faraoBounces',  // quiques no Faraó (4700m)
     ql: 'boss3Bounces',  // quiques no Caçador-Mor (9995m)
+    // v1.10 "Escola do Rino" — o experimento viaja NA corrida:
+    // fc = fator da curva do novato ×100 (1-99; ausente = veterano, f>=1 —
+    //      cada corrida se autodescreve, e a leitura antes/depois é por `v`);
+    // cj = pulos CARREGADOS (segurou >= CHARGED_JUMP_MIN_MS) — mede se a
+    //      lição 4 do currículo ensinou o verbo que 47% nunca usaram.
+    fc: 'fatorCurva',
+    cj: 'chargedJumps',
   };
 
   // Até a v1.6.1 a fúria não entrava aqui por ser posicional (contida no
@@ -532,6 +539,44 @@ export class StorageManager {
 
   static setPurgeDone() {
     try { localStorage.setItem(this.PURGE_KEY, '1'); } catch (e) { /* modo privado: roda de novo, sem dano */ }
+  }
+
+  // --- v1.10 "Escola do Rino": contadores de ensino (por aparelho) ---
+  // Todos com try/catch implícito dispensado: getItem/setItem aqui seguem o
+  // padrão do arquivo (modo privado quebraria muito antes, no boot).
+  static DEATH_TIP_PREFIX = 'furious_rhino_tip_';
+
+  static getDeathTipCount(cause) {
+    return parseInt(localStorage.getItem(this.DEATH_TIP_PREFIX + cause) || '0', 10);
+  }
+
+  static addDeathTipCount(cause) {
+    localStorage.setItem(this.DEATH_TIP_PREFIX + cause, String(this.getDeathTipCount(cause) + 1));
+  }
+
+  static DASH_DENY_HINT_KEY = 'furious_rhino_deny_hints';
+
+  static getDashDenyHints() {
+    return parseInt(localStorage.getItem(this.DASH_DENY_HINT_KEY) || '0', 10);
+  }
+
+  static addDashDenyHint() {
+    localStorage.setItem(this.DASH_DENY_HINT_KEY, String(this.getDashDenyHints() + 1));
+  }
+
+  // Marcos de distância já celebrados na vida deste aparelho.
+  static MARCOS_KEY = 'furious_rhino_marcos';
+
+  static getMarcos() {
+    try {
+      const m = JSON.parse(localStorage.getItem(this.MARCOS_KEY));
+      return Array.isArray(m) ? m : [];
+    } catch (e) { return []; }
+  }
+
+  static addMarco(m) {
+    const lista = this.getMarcos();
+    if (!lista.includes(m)) { lista.push(m); localStorage.setItem(this.MARCOS_KEY, JSON.stringify(lista)); }
   }
 
   static addRun(meters, seconds = 0, cause = null, extra = null) {

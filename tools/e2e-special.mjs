@@ -16,6 +16,9 @@ const browser = await chromium.launch();
 const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
 await context.addInitScript(() => {
   localStorage.setItem('furious_rhino_attempts', '50');
+  // v1.10: veterano é RECORDE (>= 400m pula a aula; >= 800m joga o
+  // tier cheio) — a contagem de tentativas deixou de ser a régua
+  localStorage.setItem('furious_rhino_record', '2000');
   // Sonda claude-* (regra do CLAUDE.md), pra ficar filtrada do painel/digest
   // se algum dia escrever. Esta suíte não precisa validar a escrita real —
   // sem o opt-in furious_rhino_allow_local_write, StorageManager.allowsRemoteWrite()

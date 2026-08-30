@@ -3,11 +3,29 @@ import { SPRITE_PARAMS } from '../art/SpriteParams.js';
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
-  VERSION: '1.9.12',
+  VERSION: '1.10.0',
 
   // Rótulo humano de cada desfecho de corrida. Fonte única para o painel, o
   // resumo do jogador e os pushes — os três diziam a mesma coisa com palavras
   // diferentes. As CHAVES são o contrato com StorageManager.getDeaths().
+  // v1.10: a primeira vez da VIDA além de cada marco é celebrada (1000m tem
+  // a festa do portão; 2200m é a entrada do deserto que 93% nunca viu).
+  // (revisão v1.10: 2300 e não 2200 — o cruzamento exato dos 2200m já tem a
+  // festa do Pórtico KM 0: fanfarra + toast no MESMO y, no MESMO frame)
+  MARCOS_M: [100, 250, 500, 2300],
+
+  // v1.10: a morte que ENSINA — 1 linha por causa na tela de game over,
+  // no máximo 3 vezes por causa na vida (padrão BOSS_HINT_MAX_ENCOUNTERS).
+  // É a única superfície com a atenção total do jogador.
+  DEATH_TIPS: {
+    spike: '💡 Segure a ESQUERDA: quanto mais tempo, mais ALTO o pulo.',
+    wall: '💡 Invista (direita) na altura da fresta que BRILHA — fresta alta pede pulo antes.',
+    animal: '💡 Ícone de investida cinza? Não force — PULE por cima.',
+    dart: '💡 O clarão da torre avisa o tiro: pule no clarão, ou invista NA torre.',
+    tower: '💡 A torre cai com UMA investida — e ainda devolve a investida na hora.',
+    fall: '💡 SEGURE o pulo para carregar e alcançar mais longe.',
+  },
+
   CAUSE_LABELS: {
     wall: '🧱 Parede',
     spike: '🔺 Espinho',
@@ -51,6 +69,18 @@ export const Constants = {
   DASH_SPEED: 750,
   DASH_ACTIVE_MS: 200,
   DASH_COOLDOWN_MS: 1000,
+  // v1.10 "ESCOLA DO RINO": a negação do dash deixou de ser silenciosa —
+  // 64% dos toques de investida eram negados SEM feedback nenhum (era 39%),
+  // o maior vazamento de ensino do jogo. O "tec" + tremor do ícone é
+  // linguagem, não punição. O buffer guarda o toque negado no FIM do
+  // cooldown e dispara sozinho ao recarregar — "na dúvida, aceita" aplicado
+  // ao input (não muda o teto: continua 1 investida/s).
+  DASH_DENY_FEEDBACK: true,
+  DASH_BUFFER_MS: 180,
+  DASH_DENY_HINT_MAX: 3,   // "recarregando" só nas 3 primeiras negações da vida
+  // Pulo conta como CARREGADO (telemetria cj) segurando este mínimo — a
+  // régua do ensino da lição 4 (2000ms é a carga cheia).
+  CHARGED_JUMP_MIN_MS: 400,
 
   // v1.9.1: TETO DE PLAUSIBILIDADE da velocidade média de uma corrida (m/s).
   // NÃO é um teto de física — é a última linha de defesa antes de uma marca
@@ -269,13 +299,15 @@ export const Constants = {
   CHALLENGE_CACHE_TTL_PENDING_MS: 45 * 1000,
   CHALLENGE_STANDINGS_TTL_MS: 30 * 60 * 1000,  // stats dos aceitos: 1 getDoc por participante a cada 30min
 
-  // v1.8.4: a abertura-lição (OPENING_SCRIPT) existe porque, antes da v1.6,
-  // o primeiro obstáculo nascia aos 34m e 83 das 512 corridas medidas
-  // morriam exatamente ali. Quem já passou dessa fase não precisa mais da
-  // aula: com >= 3 tentativas o jogo pula o roteiro e solta a roleta já em
-  // x=2400 (60m). A régua é a MESMA de OPENING_HINT_MAX_ATTEMPTS de
-  // propósito — dica na tela e pista guiada somem juntas, no mesmo boot.
-  VETERAN_MIN_ATTEMPTS: 3,
+  // v1.10 "ESCOLA DO RINO": a régua do veterano deixou de ser CONTAGEM e
+  // virou COMPETÊNCIA. A v1.8.4 chamava de veterano quem tinha 3 tentativas
+  // — e os dados mostraram a curva de aprendizado INVERTIDA (mediana de 57m
+  // nas tentativas 31-50, exatamente o VETERAN_OPENING_START_X): o jogador
+  // era formado antes da 1ª prova e jogado na roleta cheia para sempre.
+  // Agora a aula dura até o jogador PROVAR: passou de 400m uma vez na vida
+  // (o recorde do aparelho), graduou. As dicas de tela seguem a MESMA régua
+  // — aula e dica somem juntas, como sempre foi de propósito.
+  VETERAN_MIN_RECORD_M: 400,
   VETERAN_OPENING_START_X: 2400,
 
   SPAWN_LOOKAHEAD_PX: 600,
@@ -674,6 +706,27 @@ export const Constants = {
   // v1.7 = 1,5 animais/100m; este preset = 3,2; teto com tudo a 100% = ~4,0
   // (o limite é o nº de slots — passar disso exige mexer nos PESOS, o que
   // facilita o jogo, ou nos gaps abaixo do piso do dash, não recomendado).
+  // v1.10 "ESCOLA DO RINO" — A CURVA DO NOVATO. O preset "denso sem
+  // facilitar" (16/08) dobrou a densidade de animais nos tiers iniciais
+  // (Monte Carlo: t1 3,2 · t2 4,8 · t3 6,0 animais/100m — npm run
+  // simula-densidade) e o funil da coorte nova desabou (36% → 6% passando
+  // dos 1000m). A correção NÃO mexe no jogo do veterano: os valores dos
+  // tiers continuam sendo o TETO, bit-idêntico para quem tem recorde >=
+  // NOVICE_CURVE_TOP_M. Abaixo disso, os EXTRAS de densidade fazem um lerp
+  // do piso ao teto por f = min(1, recorde/800): dificuldade por
+  // competência demonstrada, sem penhasco em graduação nenhuma. Os pesos
+  // LETAIS da roleta (wallW/spikeW/towerW) ficam intocados — a restrição
+  // de 16/08 ("não trocar obstáculo letal por animal") continua valendo.
+  NOVICE_CURVE_ENABLED: true,
+  NOVICE_CURVE_TOP_M: 800,
+  // Pisos (f=0, primeira corrida da vida). Mutáveis como os tiers: os
+  // sliders do ?debug=1 alcançam. Índice = tier (0..2); tiers 4+ sem piso.
+  NOVICE_TIER_FLOORS: [
+    { animalPackChance: 0.15, animalEscortChance: 0.10 },
+    { animalPackChance: 0.25, animalEscortChance: 0.20, comboChance: 0.05, gapMin: 720, animalSpeedMult: 1.05 },
+    { animalPackChance: 0.35, animalEscortChance: 0.30, comboChance: 0.10, gapMin: 650, animalSpeedMult: 1.15 },
+  ],
+
   DIFFICULTY_TIERS: [
     { gapMin: 850,  gapRand: 150, animalSpeedMult: 1.0,  animalLeadPx: 350, wallW: 0.42, spikeW: 0.20, towerW: 0.06, rampW: 0.10, comboChance: 0,    animalPackChance: 0.50, animalEscortChance: 0.60, towerIntervalMs: 1200, dartSpeed: 460 },
     { gapMin: 650,  gapRand: 140, animalSpeedMult: 1.15, animalLeadPx: 400, wallW: 0.33, spikeW: 0.15, towerW: 0.12, rampW: 0.10, comboChance: 0.15, animalPackChance: 0.55, animalEscortChance: 0.65, towerIntervalMs: 1000, dartSpeed: 460 },
@@ -706,11 +759,19 @@ export const Constants = {
     { x: 3600, kind: 'ramp',  variant: 'small',  hint: 'Suba o morro! 🏔️' },
     { x: 5000, kind: 'spike', variant: 'ground', hint: 'Toque à ESQUERDA para pular ⬅️' },
     { x: 6400, kind: 'wall',  variant: 'ground', hint: 'Toque à DIREITA para investir ➡️' },
+    // v1.10 "ESCOLA DO RINO" — as lições que faltavam. O pulo CARREGADO era
+    // cobrado (frestas altas, o combo tower-spike que o t2 solta) e NUNCA
+    // ensinado: 47% dos novatos morriam sem nunca ter pulado. O par de
+    // espinhos é a citação do combo — "1 pulo carregado limpa os dois" — e a
+    // parede MID ensina o verbo composto que a 2ª camada do chefe exige.
+    { x: 7800, kind: 'spike', variant: 'tower', hint: 'SEGURE à esquerda: pulo CARREGADO ⬆️' },
+    { x: 7980, kind: 'spike', variant: 'ground' },
+    { x: 9200, kind: 'wall', variant: 'mid', hint: 'Fresta no MEIO? Pule e invista 🎯' },
   ],
   // A roleta assume a partir daqui (190m) — 1200px depois da parede do script
-  OPENING_END_X: 7600,
-  // Dicas na tela só nas 3 primeiras corridas da vida do jogador
-  OPENING_HINT_MAX_ATTEMPTS: 3,
+  OPENING_END_X: 10400,
+  // v1.10: as dicas da abertura seguem a régua da graduação
+  // (VETERAN_MIN_RECORD_M) — aula e dica somem juntas, no mesmo boot.
 
   // 1º disparo da torre ao entrar em cena: só o tempo do telegraph —
   // "atira imediatamente quando entra na tela"
@@ -927,6 +988,32 @@ export const Constants = {
   },
 
   // Tier vigente para uma posição x do mundo (0–5; t6 = teto, clampado)
+  // v1.10: o tier que o NOVATO vê. f >= 1 (ou curva desligada, ou tier sem
+  // piso) devolve o objeto BASE — a MESMA referência, não uma cópia: o
+  // veterano roda o caminho de sempre por construção, e os sliders do
+  // ?debug=1 seguem vivos. Puro e testável no node (test-stats).
+  // v1.10 (revisão): a versão ESCALAR para o caminho quente — o update lê a
+  // velocidade dos animais por frame, e clonar o tier 60×/s para pegar UM
+  // número seria lixo de GC gratuito no aparelho fraco (que é exatamente o
+  // do novato). Mesma matemática do tierEfetivo, zero alocação.
+  animalSpeedMultEfetivo(x, f) {
+    const base = this.getTierFor(x).animalSpeedMult;
+    if (!this.NOVICE_CURVE_ENABLED || !(f < 1)) return base;
+    const piso = this.NOVICE_TIER_FLOORS[this.getTierIndex(x)];
+    if (!piso || piso.animalSpeedMult === undefined) return base;
+    return piso.animalSpeedMult + (base - piso.animalSpeedMult) * f;
+  },
+
+  tierEfetivo(x, f) {
+    const base = this.getTierFor(x);
+    if (!this.NOVICE_CURVE_ENABLED || !(f < 1)) return base;
+    const piso = this.NOVICE_TIER_FLOORS[this.getTierIndex(x)];
+    if (!piso) return base;
+    const out = { ...base };
+    for (const k of Object.keys(piso)) out[k] = piso[k] + (base[k] - piso[k]) * f;
+    return out;
+  },
+
   getTierIndex(x) {
     return Math.min(5, Math.floor(x / 8000));
   },

@@ -1,6 +1,6 @@
 # Furious Rhino — Referência técnica
 
-> Documentação da versão **1.9.12** · atualizada em 29/08/2026
+> Documentação da versão **1.10.0** · atualizada em 29/08/2026
 > Para quem vai dar manutenção. Complementa (não substitui) `GAME_DESIGN.md` (o design e suas razões) e `HANDOFF.md` (estado da última sessão de trabalho e tabelas completas de parâmetros).
 
 ## 1. Estrutura de pastas
@@ -83,7 +83,7 @@ Para os testes e ferramentas (Node 18+):
 
 ```bash
 npm install                     # só devDependencies
-npm run test-stats              # 127 asserts, sem navegador — inclui a agregação da aba Chefes com corridas verbatim
+npm run test-stats              # 142 asserts — inclui a Escola do Rino (lerp, guarda da L2, fc/cj) e a aba Chefes
 npm run test-score              # 101 asserts da pontuação composta, sem navegador
 npm run test-challenge          # 104 asserts da Arena de Desafios, sem navegador
 npm run test-skins              # ~93 asserts das skins, sem navegador (nº varia com o registry)
@@ -98,7 +98,7 @@ npm run test-bossproof          # 29 asserts da PROVA DO CHEFE (v1.9.6), sem nav
 npm run test-e2e-crash          # 11 asserts e2e: injeta exceção REAL no update — exige servidor
 npm run test-e2e-home           # 10 asserts e2e da home desacoplada (v1.9.3) — idem
 npm run perf-home               # REGRESSÃO DE PERFORMANCE da home (4G + CPU 4x) — idem
-npm run test-ramp               # 47 asserts em Chromium — exige o servidor acima no ar
+npm run test-ramp               # 54 asserts em Chromium — inclui o currículo estendido (14d/e) e o input da Escola (28a-e, máquina de estados pilotada à mão)
 npm run test-boss               # 18 asserts e2e da luta do portão — idem
 npm run test-boss2              # 14 asserts e2e da Muralha (2000m) — idem
 npm run test-boss3              # 10 asserts e2e do Guardião do Fim — idem
@@ -194,7 +194,10 @@ Tudo em `js/utils/Constants.js` (deploy sempre necessário). Principais:
 | `ANIMAL_PACK_OFFSET_PX` | 300 | distância do 2º animal do par (v1.8) |
 | `ANIMAL_KB_VX/VY_MIN/MAX` | 350..650 / −800..−500 | voo do animal atropelado: diagonal superior direita (v1.8) |
 | `OPENING_SCRIPT` | 3 passos | abertura guiada (rampa 90 m → espinho 125 m → parede 160 m) — **só para estreante desde a v1.8.4** |
-| `VETERAN_MIN_ATTEMPTS` | 3 | v1.8.4: a partir daqui o jogador pula a abertura-lição (mesma régua do `OPENING_HINT_MAX_ATTEMPTS`, então dica e roteiro somem juntos) |
+| `VETERAN_MIN_RECORD_M` | 400 | v1.10: veterano é quem PROVOU (recorde da vida), não quem tentou 3 vezes — a régua antiga produzia a curva de aprendizado invertida (mediana de 57 m nas tentativas 31-50). Dica e roteiro seguem a mesma régua |
+| `NOVICE_CURVE_ENABLED` / `NOVICE_TIER_FLOORS` / `NOVICE_CURVE_TOP_M` | true / pisos t1-t3 / 800 | v1.10: lerp `f = min(1, recorde/800)` só nos EXTRAS de densidade dos tiers 1-3; `f ≥ 1` devolve a REFERÊNCIA do tier (veterano bit-idêntico, garantido por assert). Pesos letais intocados |
+| `DASH_DENY_FEEDBACK` / `DASH_BUFFER_MS` | true / 180 | v1.10: negação com som+tremor+vibração; toque no fim da recarga entra na fila e dispara sozinho (não conta como atrito — o buffer decide ANTES do feedback) |
+| `CHARGED_JUMP_MIN_MS` / `MARCOS_M` / `DEATH_TIPS` | 400 / [100,250,500,2300] / mapa | v1.10: telemetria `cj` conta no CRUZAMENTO do limiar (contar no release subcontava quem segura até pousar); marco dos 2200 foi a 2300 para não colidir com a festa do Pórtico |
 | `VETERAN_OPENING_START_X` | 2400 | v1.8.4: onde a roleta começa para o veterano (60 m — cedo, mas não os 34 m pré-v1.6 que matavam 83 de 512 corridas) |
 | `SCORE_WEIGHTS` | 8 pesos | v1.8.4: pontos por façanha — `wall` 5, `ramp` 5, `tower` 15, `animal` 3, `bossLayer` 25, `escape` 100, `blitz` 50, `legend` 400 |
 | `SCORE_BLITZ_MAX_S / SCORE_BONUS_CAP / SCORE_MAX_TOTAL` | 20 / 1 / 20000 | v1.8.4: janela do blitz, teto do bônus (× metros) e teto do total (igual ao das rules) |

@@ -5,7 +5,21 @@
 
 ---
 
-## v1.9.12 — 29/08/2026 (versão atual)
+## v1.10.0 — 29/08/2026 (versão atual) — 🎓 A ESCOLA DO RINO
+
+**Tema: o início do jogo volta a ensinar — dificuldade por competência, nunca por contagem.**
+
+Os dados mostraram que o jogo tinha ficado quase impossível para quem chega: só 1 em cada 15 jogadores novos passava dos 1000 m (era 1 em 3), e a curva de aprendizado estava **invertida** — quanto mais a pessoa tentava, menos longe chegava, porque na 4ª corrida da vida o jogo a tratava como "veterana" e soltava a dificuldade cheia aos 60 m. Metade dos novatos morria sem nunca ter pulado.
+
+- **A aula dura até você provar** — quem ainda não passou de 400 m na vida joga com a abertura-lição e as dicas; passou uma vez, graduou. (Quem ficou preso na fase antiga volta à escola nesta atualização — é o remédio.)
+- **A dificuldade cresce com o seu recorde**: a densidade de perseguidores nos primeiros 600 m sobe suavemente do nível de estreia até o nível cheio conforme seu recorde vai de 0 a 800 m. **Quem tem recorde acima de 800 m joga exatamente o jogo de antes, sem tirar nem pôr** — é garantia de construção, não promessa.
+- **A investida aprendeu a dizer "não"**: toque durante a recarga agora tem som, tremor do ícone e vibração (era silencioso — 64% dos toques eram negados sem nenhum aviso). E um toque nos últimos instantes da recarga **fica guardado e dispara sozinho** quando ela termina.
+- **A escola ganhou as lições que faltavam**: o pulo CARREGADO (segurar para subir mais alto) — que o jogo cobrava e nunca ensinava — e a fresta do meio, com um par de espinhos que se vence com um único pulo carregado.
+- **A morte virou aula**: a tela de fim mostra uma dica específica da causa (até 3 vezes por causa) e "faltaram X m para o seu recorde".
+- **Marcos celebrados**: a primeira vez da vida além de 100/250/500/2300 m ganha fanfarra.
+- Tudo com **botão de desligar** e telemetria própria (cada corrida registra o estágio da curva) — as leituras de 2 e 4 semanas dirão, com número, se o novato voltou a aprender. Revisado por painel adversarial de 4 lentes antes de sair.
+
+## v1.9.12 — 29/08/2026
 
 **Tema: o painel ganha a aba 🛡️ Chefes — os dados novos finalmente têm onde aparecer.**
 

@@ -203,6 +203,10 @@ export function allRuns(docs, sinceS = since()) {
         u: num(r.u), y: num(r.y), i: num(r.i),
         zu: num(r.zu), zy: num(r.zy), zl: num(r.zl),
         qe: num(r.qe), qu: num(r.qu), qy: num(r.qy), ql: num(r.ql),
+        // v1.10: o experimento da Escola do Rino — fc (fator da curva ×100)
+        // e cj (pulos carregados). A revisão pegou a lacuna L2 REABRINDO uma
+        // release depois de fechada; o guarda novo do test-stats impede a 3ª.
+        fc: num(r.fc), cj: num(r.cj),
         g: str(r.g) || null, v: str(r.v) || null,
         attemptIndex: base + i + 1,
       });

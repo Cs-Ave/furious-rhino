@@ -56,13 +56,16 @@ export function densidade(tier, n = N, rng = Math.random) {
 // Só imprime quando chamado direto (o test-stats importa as funções puras)
 const invocado = process.argv[1] || '';
 if (invocado && import.meta.url === `file:///${invocado.replace(/\\/g, '/')}`) {
-  console.log('Monte Carlo da roleta — N=' + N + ' slots/tier\n');
-  console.log('tier  faixa       animais/slot  animais/100m');
-  Constants.DIFFICULTY_TIERS.slice(0, 3).forEach((t, i) => {
-    const d = densidade(t);
-    console.log(`t${i + 1}    ${String(i * 200) + '-' + String((i + 1) * 200) + 'm'}     `
-      + d.porSlot.toFixed(2).padStart(8) + '     ' + d.por100m.toFixed(1).padStart(8));
-  });
-  console.log('\n(1,5/100m era a densidade da era A; 3,2 foi a medição do preset de 16/08;');
-  console.log(' o alvo do piso novato da Escola do Rino é ~1,8-2,0 — ver o plano no IDEIAS-FUTURAS)');
+  console.log('Monte Carlo da roleta — N=' + N + ' slots/tier — v1.10 Escola do Rino\n');
+  console.log('tier   f=0 (estreia)   f=0.5 (rec 400m)   f=1 (veterano = jogo atual)');
+  for (let idx = 0; idx < 3; idx++) {
+    const x = idx * 8000 + 100;
+    const linha = [0, 0.5, 1].map((f) => {
+      const dd = densidade(Constants.tierEfetivo(x, f));
+      return dd.por100m.toFixed(1) + '/100m';
+    }).join('        ');
+    console.log('t' + (idx + 1) + '     ' + linha);
+  }
+  console.log('\n(f = min(1, recorde/800); f=1 devolve o tier ATUAL por referência —');
+  console.log(' o veterano joga o jogo de sempre, bit a bit. Alvo do piso: ~1,5-2,0/100m)');
 }

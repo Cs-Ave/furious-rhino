@@ -411,7 +411,15 @@ Ativos (por `updatedAt`): 23 nos últimos 7 dias · 58 nos últimos 30.
 
 ---
 
-## 🎓 ESCOLA DO RINO (v1.10) — plano APROVADO em 29/08, aguardando o descongelamento
+## 🎓 ESCOLA DO RINO — ✅ EXECUTADA na v1.10.0 (29/08, mesma noite do plano)
+
+> **Execução**: o dono decidiu romper o congelamento (as corridas do dia já
+> eram todas v1.9.11 sem disjuntor). P0+P1 completos; revisão adversarial de
+> 4 lentes com 0 altas/8 médias, TODAS acatadas (dash-fantasma no knockback,
+> buffer sem contradição sensorial nem duplo-conto, cj no cruzamento do
+> limiar, fc/cj no painel + guarda da L2, marco 2300). Rubber-band seguiu
+> cortado. **As métricas pré-registradas abaixo valem — leituras em 12/09 e
+> 26/09, por `v` de corrida.**
 
 > Origem: o dono observou que ~1% chega ao deserto e pediu análise de dados +
 > game design. Processo: radiografia + coorte própria + 3 leitores de código +

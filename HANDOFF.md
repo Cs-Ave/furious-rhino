@@ -1,4 +1,50 @@
-# Handoff — FURIOUS RHINO v1.9.11
+# Handoff — FURIOUS RHINO v1.10.0 — 🎓 A ESCOLA DO RINO
+
+**Data:** 29/08/2026 · **Status:** implementada, revisada e testada; nos
+portões. O dono rompeu o congelamento conscientemente (o dia já rodava
+inteiro em v1.9.11 sem disjuntor; a caixa-preta segue de plantão e separa
+qualquer regressão via /?voo=1).
+
+## 0. O que é
+
+Dificuldade e aula por COMPETÊNCIA (recorde), nunca por contagem: graduação
+aos 400 m; lerp de densidade f=min(1,recorde/800) nos tiers 1-3 com teto
+bit-idêntico (f≥1 devolve a REFERÊNCIA do tier — assert trava); dash que diz
+não (tec+tremor+buffer 180 ms que decide ANTES do feedback); lições 4-6 do
+currículo (pulo carregado); morte-que-ensina; marcos; telemetria fc/cj.
+Plano completo e métricas pré-registradas: IDEIAS-FUTURAS §Escola do Rino.
+
+## 1. A revisão adversarial (4 lentes) — 0 altas, 8 médias, todas acatadas
+
+| Achado | Correção |
+|---|---|
+| pendingDash ÓRFÃO no knockback de chefe → dash automático sem input na volta do controle | limpo em beginKnockback + resetDash |
+| Toque honrado pelo buffer recebia o pacote de NEGAÇÃO e contava x E d (viés na métrica-manchete) | o buffer decide PRIMEIRO; honrado não é atrito |
+| cj no release subcontava quem segura até pousar (o aluno aplicado) | conta no CRUZAMENTO do limiar |
+| fc/cj sem decodificador no painel — a L2 REABRIU uma release após fechar | fc/cj no allRuns + guarda bidirecional no test-stats |
+| Marco 2200 colidia frame-a-frame com a festa do Pórtico | 2300 |
+| Zero teste de runtime do input novo | 28a-e no e2e-ramp, máquina pilotada à mão (rAF de aba de teste é estrangulável — nada de esperas reais) |
+
+## 2. Verificação
+
+Bateria completa verde (node + 11 suítes Chromium; test-stats 142, ramp 54).
+Monte Carlo: estreia 1,4/100 m · rec-400 2,3 · veterano 3,2 bit-idêntico.
+Foto: lição 4 com hint na tela + morte-que-ensina + corrida gravada com
+{fc:1, v:1.10.0}. **Leituras pré-registradas: 12/09 e 26/09, por `v`.**
+
+## 3. Segue de pé
+
+- Prova de campo da v1.9.11 (CASO 2) — acumulando junto com a v1.10.
+- Pacote do CASO 1 (retrato + maxSubSteps) — próxima release técnica.
+- /atualizar-docs fino do 02 (o guia do jogador: abertura de 6 lições,
+  marcos, morte-que-ensina) — cabeçalho já bumpado.
+
+> ⚠️ Outra sessão trabalha neste repositório — conferir dono de arquivo
+> antes de commitar; nunca git add -A.
+
+---
+
+# Handoff anterior — FURIOUS RHINO v1.9.11
 
 **Data:** 29/08/2026 (madrugada) · **Status:** v1.9.11 em produção. O CASO 2
 saiu de "não abre e ninguém sabe por quê" para **correção mirada em dado**,

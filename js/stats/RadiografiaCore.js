@@ -48,7 +48,9 @@ export function decode(v) {
 // TODAS as chaves de lá: letra nova gravada sem leitor aqui = teste vermelho.
 export const RUN_LETTER_KEYS = ['w', 'r', 'o', 'a', 'j', 'd', 'x', 'p', 'f', 'n', 'b', 'q', 'z', 'e', 'h', 'l', 'u', 'y', 'i',
   // v1.9.5: as 7 de 2 caracteres — o alfabeto de 1 letra acabou no `i`
-  'zu', 'zy', 'zl', 'qe', 'qu', 'qy', 'ql'];
+  'zu', 'zy', 'zl', 'qe', 'qu', 'qy', 'ql',
+  // v1.10 Escola do Rino: o experimento viaja na corrida
+  'fc', 'cj'];
 
 // Significado curto de cada letra (imprime na cobertura do relatório)
 export const RUN_LETTER_DESC = {
@@ -70,6 +72,8 @@ export const RUN_LETTER_DESC = {
   zl: 'segundos de luta (Cacador-Mor 9995m)',
   qe: 'quiques (Muralha)', qu: 'quiques (Barreira)',
   qy: 'quiques (Farao)', ql: 'quiques (Cacador-Mor)',
+  fc: 'fator da curva do novato x100 (v1.10; ausente = veterano)',
+  cj: 'pulos carregados (segurou >= CHARGED_JUMP_MIN_MS, v1.10)',
 };
 
 const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);

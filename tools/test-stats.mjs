@@ -527,6 +527,73 @@ eq('rules têm o bloco challenges com leitura pública',
       z.furiaUsada, z.furiaNegada]; })(), [[0, 0, 0, 0, 0], 0, 0]);
 }
 
+// ---------- v1.10 "ESCOLA DO RINO" ----------
+// A garantia que NÃO pode quebrar: o veterano joga o jogo atual BIT A BIT.
+{
+  const { densidade } = await import('./simula-densidade.mjs');
+  const base = Constants.getTierFor(50);
+
+  eq('veterano (f=1): tierEfetivo devolve a PRÓPRIA referência do tier',
+    Constants.tierEfetivo(50, 1) === base, true);
+  eq('f inválido (NaN/undefined) também cai no caminho do veterano',
+    [Constants.tierEfetivo(50, NaN) === base, Constants.tierEfetivo(50, undefined) === base],
+    [true, true]);
+  eq('curva DESLIGADA: referência do tier mesmo com f=0',
+    (() => { Constants.NOVICE_CURVE_ENABLED = false;
+      const r = Constants.tierEfetivo(50, 0) === base;
+      Constants.NOVICE_CURVE_ENABLED = true; return r; })(), true);
+  eq('tier sem piso (t4+): referência do tier para qualquer f',
+    Constants.tierEfetivo(700 * 40, 0) === Constants.getTierFor(700 * 40), true);
+
+  eq('estreia (f=0): os pisos do t1 valem',
+    [Constants.tierEfetivo(50, 0).animalPackChance, Constants.tierEfetivo(50, 0).animalEscortChance],
+    [0.15, 0.1]);
+  eq('o lerp anda: f=0.5 fica entre piso e teto no t1',
+    (() => { const p = Constants.tierEfetivo(50, 0.5).animalPackChance;
+      return p > 0.15 && p < 0.5; })(), true);
+  eq('pesos LETAIS intocados no piso (restrição de 16/08)',
+    [Constants.tierEfetivo(50, 0).wallW, Constants.tierEfetivo(50, 0).spikeW],
+    [base.wallW, base.spikeW]);
+
+  // Monte Carlo (banda larga: Math.random) — a régua da decisão de design
+  const dEstreia = densidade(Constants.tierEfetivo(50, 0), 60000);
+  const dVet = densidade(Constants.tierEfetivo(50, 1), 60000);
+  eq('densidade da ESTREIA no t1 volta à vizinhança da era A (~1,5/100m)',
+    dEstreia.por100m > 1.1 && dEstreia.por100m < 2.2, true);
+  eq('densidade do VETERANO no t1 é a do preset atual (~3,2/100m)',
+    dVet.por100m > 2.7 && dVet.por100m < 3.7, true);
+
+  // As letras novas do experimento
+  localStorage.removeItem(StorageManager.RUNS_KEY);
+  StorageManager.addRun(300, 30, 'wall', { fatorCurva: 37, chargedJumps: 2, version: '1.10.0' });
+  StorageManager.addRun(500, 50, 'wall', { fatorCurva: 0, chargedJumps: 0, version: '1.10.0' });
+  const rsEscola = StorageManager.getRuns();
+  eq('fc e cj viajam na corrida do novato', [rsEscola[0].fc, rsEscola[0].cj], [37, 2]);
+  eq('veterano (fatorCurva 0) NÃO grava fc — cada corrida se autodescreve',
+    ['fc' in rsEscola[1], 'cj' in rsEscola[1]], [false, false]);
+
+  eq('a graduação é por RECORDE, e a constante existe',
+    Constants.VETERAN_MIN_RECORD_M, 400);
+  eq('o currículo tem as 6 lições e termina aos 260m',
+    [Constants.OPENING_SCRIPT.length, Constants.OPENING_END_X], [6, 10400]);
+  eq('toda causa com dica de morte é causa REAL do jogo',
+    Object.keys(Constants.DEATH_TIPS).every((c) => c in Constants.CAUSE_LABELS), true);
+
+  // O GUARDA (revisão v1.10): a lacuna L2 reabriu UMA release depois de
+  // fechada — fc/cj nasceram sem decodificador no painel. Toda chave do
+  // RUN_COUNTERS tem de sair do allRuns; letra nova sem leitor = vermelho
+  // (o espelho do assert que a radiografia já tinha, agora para o painel).
+  eq('allRuns decodifica TODA chave do RUN_COUNTERS (o guarda da L2)',
+    (() => {
+      localStorage.removeItem(StorageManager.RUNS_KEY);
+      const tudo = {};
+      for (const nome of Object.values(StorageManager.RUN_COUNTERS)) tudo[nome] = 1;
+      StorageManager.addRun(100, 10, 'wall', tudo);
+      const r = allRuns([{ id: 'g', attempts: 1, runs: StorageManager.getRuns() }], 0)[0];
+      return Object.keys(StorageManager.RUN_COUNTERS).filter((k) => !(k in r));
+    })(), []);
+}
+
 
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

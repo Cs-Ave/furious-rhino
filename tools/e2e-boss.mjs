@@ -18,6 +18,9 @@ const browser = await chromium.launch();
 const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
 await context.addInitScript(() => {
   localStorage.setItem('furious_rhino_attempts', '50');
+  // v1.10: veterano é RECORDE (>= 400m pula a aula; >= 800m joga o
+  // tier cheio) — a contagem de tentativas deixou de ser a régua
+  localStorage.setItem('furious_rhino_record', '2000');
   // Sonda claude-*, id curto DE PROPÓSITO: as rules exigem >= 16 chars para
   // criar, então esta suíte nunca grava um doc na coleção de produção
   localStorage.setItem('furious_rhino_player_id', 'claude-e2e-boss');

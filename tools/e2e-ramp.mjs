@@ -21,6 +21,9 @@ const context = await browser.newContext({ viewport: { width: 1280, height: 720 
 // Sem alerta de PWA no caminho e sem dicas da abertura sobrepondo a tela
 await context.addInitScript(() => {
   localStorage.setItem('furious_rhino_attempts', '50');
+  // v1.10: veterano é RECORDE (>= 400m pula a aula; >= 800m joga o
+  // tier cheio) — a contagem de tentativas deixou de ser a régua
+  localStorage.setItem('furious_rhino_record', '2000');
   // Sonda claude-* (regra do CLAUDE.md), pra ficar filtrada do painel/digest
   // se algum dia escrever. Esta suíte não precisa validar a escrita real —
   // sem o opt-in furious_rhino_allow_local_write, StorageManager.allowsRemoteWrite()
@@ -331,6 +334,9 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
   pv.on('console', (m) => { if (m.type() === 'error') errV.push(m.text()); });
   await pv.addInitScript(() => {
     localStorage.setItem('furious_rhino_attempts', '10');
+    // v1.10: veterano é RECORDE (>= 400m pula a aula; >= 800m joga o
+    // tier cheio) — a contagem de tentativas deixou de ser a régua
+    localStorage.setItem('furious_rhino_record', '2000');
     localStorage.setItem('furious_rhino_player_id', 'claude-e2e-ramp-veterano');
   });
   await pv.goto(`${BASE}/?debug=1`, { waitUntil: 'networkidle' });
@@ -394,6 +400,9 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
   // Jogador estreante: é quem recebe as dicas
   await p2.addInitScript(() => {
     localStorage.setItem('furious_rhino_attempts', '0');
+    // v1.10: o init do CONTEXTO semeia recorde 2000 (veterano); o teste de
+    // novato tem de zerar TAMBEM o recorde — a regua agora e competencia
+    localStorage.setItem('furious_rhino_record', '0');
     localStorage.setItem('furious_rhino_player_id', 'claude-e2e-ramp-novato');
   });
   await p2.goto(`${BASE}/?debug=1`, { waitUntil: 'networkidle' });
@@ -453,6 +462,17 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
     roteiro === 'ramp@3600,spike@5000,wall@6400' && opening.hints >= 3,
     `${roteiro} dicas=${opening.hints}`);
 
+
+  // v1.10 "Escola do Rino": as licoes 4-6 do curriculo — o pulo CARREGADO
+  // (par de espinhos, a citacao do combo tower-spike) e a fresta MID. A
+  // roleta so assume aos 260m (OPENING_END_X 10400).
+  const aulaNova = opening.seen.filter((o) => o.x > 6400 && o.x <= 10400)
+    .map((o) => o.kind + "@" + o.x).join(",");
+  ok('14d. o currículo estendido: o PAR de espinhos da lição do pulo carregado',
+    aulaNova.startsWith('spike@7800,spike@7980'), aulaNova);
+  ok('14e. a roleta não invade a escola (nada solto fora do roteiro até onde a sonda anda)',
+    opening.seen.every((o) => o.x <= 10400 ? [3600, 5000, 6400, 7800, 7980, 9200].includes(o.x) : true),
+    JSON.stringify(opening.seen.slice(0, 8)));
   errors.push(...err2);
   await p2.close();
 }
@@ -511,6 +531,9 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
   p4.on('console', (m) => { if (m.type() === 'error') err4.push(m.text()); });
   await p4.addInitScript(() => {
     localStorage.setItem('furious_rhino_attempts', '50');
+    // v1.10: veterano é RECORDE (>= 400m pula a aula; >= 800m joga o
+    // tier cheio) — a contagem de tentativas deixou de ser a régua
+    localStorage.setItem('furious_rhino_record', '2000');
     localStorage.setItem('furious_rhino_player_id', 'claude-e2e-ramp-portao');
   });
   await p4.goto(`${BASE}/?debug=1`, { waitUntil: 'networkidle' });
@@ -656,12 +679,64 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
 
 // ---------- 22-24. Teclas de PC, pausa e convite do apelido ----------
 {
+  // ============ v1.10 "ESCOLA DO RINO": input em runtime (página limpa) ============
+  // A revisão adversarial cobrou testes das mecânicas novas — e a 1ª versão
+  // deste bloco, dentro do p5, herdava o estado dos testes de pausa e mentia.
+  // Página própria: determinístico por manipulação direta (cronometrar toques
+  // reais contra um cooldown de 1s seria flaky).
+  const pEsc = await context.newPage();
+  const errEsc = [];
+  pEsc.on('pageerror', (e) => errEsc.push(String(e)));
+  await pEsc.goto(`${BASE}/?debug=1`, { waitUntil: 'networkidle' });
+  await pEsc.waitForFunction(() => window.game && window.game.scene.getScene('GameScene'), null, { timeout: 20000 });
+  await pEsc.waitForTimeout(600);
+  const escola = await pEsc.evaluate(() => {
+    const s = window.game.scene.getScene('GameScene');
+    const r = s.rhino;
+    if (!s.started) s.startRun();
+    // A máquina de estados é pilotada À MÃO (r.update com delta explícito):
+    // rAF de página de teste é estrangulável pelo Chromium e qualquer espera
+    // real vira flake — aqui, zero relógio, zero espera.
+    const antes = { d: s.runDashes, x: s.runDashWasted, cj: s.runChargedJumps };
+    s.doDash();                     // idle → dispara
+    s.doDash();                     // ACTIVE → negação dura (x+1), sem buffer
+    const meio = { d: s.runDashes, x: s.runDashWasted, pend: r.pendingDash };
+    r.update(s.time.now, 220);      // active(200ms) vence → cooldown
+    r.cooldownTimer = 900;          // últimos 100ms da recarga
+    s.doDash();                     // arma o buffer, NÃO conta atrito
+    const armado = { x: s.runDashWasted, pend: r.pendingDash };
+    r.update(s.time.now, 150);      // recarga vence → auto-dispara da fila
+    const fim = { d: s.runDashes, pend: r.pendingDash };
+    // cj determinístico: simula 500ms de carga recuando o jumpHoldStart
+    s.doJump();
+    r.jumpHoldStart = s.time.now - 500;
+    r.update(s.time.now, 16);       // cruza o limiar → conta
+    r.onLeftRelease();
+    return { antes, meio, armado, fim, cj: s.runChargedJumps };
+  });
+  ok('28a. negação DURA conta atrito e não arma buffer',
+    escola.meio.x === escola.antes.x + 1 && escola.meio.pend === false,
+    JSON.stringify(escola.meio));
+  ok('28b. toque no FIM do cooldown arma o buffer sem contar atrito',
+    escola.armado.pend === true && escola.armado.x === escola.meio.x,
+    JSON.stringify(escola.armado));
+  ok('28c. o buffer dispara sozinho ao recarregar e esvazia a fila',
+    escola.fim.d === escola.meio.d + 1 && escola.fim.pend === false,
+    JSON.stringify(escola.fim));
+  ok('28d. pulo segurado 500ms conta como CARREGADO (cj)',
+    escola.cj === escola.antes.cj + 1, String(escola.cj));
+  ok('28e. sem erros de JS na página da Escola', errEsc.length === 0, errEsc.slice(0, 2).join(' | '));
+  await pEsc.close();
+
   const p5 = await context.newPage();
   const err5 = [];
   p5.on('pageerror', (e) => err5.push(String(e)));
   p5.on('console', (m) => { if (m.type() === 'error') err5.push(m.text()); });
   await p5.addInitScript(() => {
     localStorage.setItem('furious_rhino_attempts', '50');
+    // v1.10: veterano é RECORDE (>= 400m pula a aula; >= 800m joga o
+    // tier cheio) — a contagem de tentativas deixou de ser a régua
+    localStorage.setItem('furious_rhino_record', '2000');
     localStorage.setItem('furious_rhino_player_id', 'claude-e2e-ramp-teclas');
     // Jogador com nome AUTOMÁTICO: é quem deve receber o convite
     localStorage.setItem('furious_rhino_player_name', 'Anonimo_99');
@@ -764,6 +839,8 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
     `attempts=${antesQuit.attempts}→${depoisQuit.attempts} runsIguais=${depoisQuit.runs === antesQuit.runs} start=${depoisQuit.startScreen}`);
 
   errors.push(...err5);
+
+
   await p5.close();
 }
 

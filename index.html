@@ -248,6 +248,7 @@
         }
 
         #game-over #record-message { margin-bottom: 2px; }
+        #game-over #death-tip { color: #ffd166; font-size: 14px; max-width: 520px; margin: 4px auto 0; }
         #game-over .btn-row { margin-top: 8px; }
 
         #game-over .record-beat {
@@ -2471,6 +2472,8 @@
         <p id="attempt-message" class="attempt-line"></p>
         <p id="gate-escape-message"></p>
         <p id="record-message"></p>
+        <!-- v1.10: a morte que ensina — dica por causa + meta do recorde -->
+        <p id="death-tip"></p>
         <p id="online-status"></p>
         <p id="medal-message"></p>
         <p id="share-status"></p>
@@ -2610,7 +2613,7 @@
 
         <span class="start-footer footer-left">by Thomas Avelino</span>
         <span class="start-footer footer-center">Estatísticas anônimas são coletadas · <a href="./?stats">/?stats</a></span>
-        <span class="start-footer footer-right" id="game-version">v1.9.12</span>
+        <span class="start-footer footer-right" id="game-version">v1.10.0</span>
     </div>
 
     <div id="ranking-modal" class="modal">

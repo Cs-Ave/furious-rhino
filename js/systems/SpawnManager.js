@@ -7,7 +7,11 @@ import { TranqDart } from '../entities/TranqDart.js';
 import { Ramp } from '../entities/Ramp.js';
 
 export class SpawnManager {
-  constructor(scene, { skipOpening = false } = {}) {
+  constructor(scene, { skipOpening = false, fNovato = 1 } = {}) {
+    // v1.10 "Escola do Rino": f = min(1, recorde/800), congelado na largada.
+    // f >= 1 (todo veterano de verdade) mantém o caminho antigo BIT A BIT —
+    // tierEfetivo devolve a própria referência do tier, não uma cópia.
+    this.fNovato = fNovato;
     this.scene = scene;
     // A abertura é roteirizada (Constants.OPENING_SCRIPT): o primeiro
     // obstáculo é uma rampa aos 90m, não uma parede aos 34m. Nos dados da
@@ -235,7 +239,10 @@ export class SpawnManager {
       // os valores VIVOS do tier a cada spawn: os sliders do ?debug=1
       // continuam valendo. Gaps/cadências ficam com o tier — o distrito só
       // mexe no QUE nasce, nunca no quanto.
-      const baseTier = Constants.getTierFor(this.nextSpawnX);
+      // v1.10: o novato vê o tier LERPADO (pisos em NOVICE_TIER_FLOORS);
+      // o distrito sobrepõe DEPOIS — pesos de distrito são cidade (1000m+),
+      // os pisos são tiers 1-3: nunca se encontram, mas a ordem fica clara.
+      const baseTier = Constants.tierEfetivo(this.nextSpawnX, this.fNovato);
       const area = Constants.cityAreaFor(this.nextSpawnX);
       const tier = area && Object.keys(area.weights).length
         ? { ...baseTier, ...area.weights }

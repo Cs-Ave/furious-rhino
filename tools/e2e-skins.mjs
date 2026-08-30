@@ -58,6 +58,9 @@ async function boot(seed = {}) {
     route.fulfill({ contentType: 'text/javascript', body: CANON_MODULE }));
   await context.addInitScript((s) => {
     localStorage.setItem('furious_rhino_attempts', '50');
+    // v1.10: veterano é RECORDE (>= 400m pula a aula; >= 800m joga o
+    // tier cheio) — a contagem de tentativas deixou de ser a régua
+    localStorage.setItem('furious_rhino_record', '2000');
     localStorage.setItem('furious_rhino_player_id', 'claude-e2e-skins');
     localStorage.setItem('furious_rhino_notify_off', '1');
     for (const [k, v] of Object.entries(s)) localStorage.setItem(k, v);

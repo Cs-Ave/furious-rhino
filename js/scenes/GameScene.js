@@ -58,9 +58,19 @@ export class GameScene extends Phaser.Scene {
     // v1.8.4: a abertura roteirizada é uma LIÇÃO — quem já correu algumas
     // vezes não precisa mais dela (e ficava com 190m de pista vazia, sem
     // nada para fazer nem pontuar). Mesma régua das dicas da abertura.
-    const skipOpening = StorageManager.getAttempts() >= Constants.VETERAN_MIN_ATTEMPTS;
+    // v1.10 "ESCOLA DO RINO": veterano é quem PROVOU (recorde >= 400m), não
+    // quem tentou 3 vezes — a régua antiga formava o aluno antes da 1ª prova
+    // e o jogava na roleta cheia para sempre (mediana de 57m nas tentativas
+    // 31-50 = exatamente o VETERAN_OPENING_START_X). Quem ficou preso na era
+    // antiga VOLTA à escola neste update: é o remédio, não o bug.
+    const skipOpening = StorageManager.getRecord() >= Constants.VETERAN_MIN_RECORD_M;
+    // O fator da curva do novato — congelado na criação da cena (o recorde
+    // só muda no endGame). Viaja na telemetria como `fc` (×100).
+    this.fatorNovato = Constants.NOVICE_CURVE_ENABLED
+      ? Math.min(1, StorageManager.getRecord() / Constants.NOVICE_CURVE_TOP_M)
+      : 1;
     passo('spawns');
-    this.spawnManager = new SpawnManager(this, { skipOpening });
+    this.spawnManager = new SpawnManager(this, { skipOpening, fNovato: this.fatorNovato });
     this.furySystem = new FurySystem(this);
 
     passo('chao');
@@ -293,6 +303,8 @@ export class GameScene extends Phaser.Scene {
     // Contadores de INPUT (telemetria v1.6.1): dizem se o jogador achou a
     // investida, e o `runDashWasted` mede a frustração com o cooldown
     this.runJumps = 0;
+    // v1.10: pulos CARREGADOS (segurou >= CHARGED_JUMP_MIN_MS) — letra cj
+    this.runChargedJumps = 0;
     this.runDashes = 0;
     this.runDashWasted = 0;
     this.runPauses = 0;
@@ -328,6 +340,11 @@ export class GameScene extends Phaser.Scene {
     this.runLoopMs = 0;
     // v1.8: skin concedida NESTA corrida (para a mensagem do fim de jogo)
     this.runSkinUnlocked = null;
+    // v1.10: marcos de distância NUNCA vistos por este aparelho (semeado
+    // pelo recorde: veterano não é parabenizado pelo que já fez há semanas)
+    this.marcosPendentes = Constants.MARCOS_M
+      .filter((m) => m > StorageManager.getRecord() && !StorageManager.getMarcos().includes(m))
+      .sort((a, b) => a - b);
     this.usedKeyboard = false;
     this.terrainRamp = null; // rampa em que o rino pisou no frame anterior
     // Tweens/timers de festa (fuga e cutscene de LENDA), para poderem ser
@@ -338,7 +355,7 @@ export class GameScene extends Phaser.Scene {
     // Dicas da abertura: só nas primeiras corridas da vida
     this.openingHintIndex = 0;
     this.showOpeningHints =
-      StorageManager.getAttempts() < Constants.OPENING_HINT_MAX_ATTEMPTS;
+      StorageManager.getRecord() < Constants.VETERAN_MIN_RECORD_M;
     // Modo infinito: estado do portão dos 1000m
     this.gateReached = false; // já cruzou a linha (dispara 1x)
     this.escaped = false;     // cruzou o portão = fugiu, saindo ou continuando
@@ -2398,7 +2415,28 @@ export class GameScene extends Phaser.Scene {
     } else {
       // Investida pedida durante o cooldown: o jogador QUIS investir e o jogo
       // disse não. É a medida direta de atrito com a espera do dash.
+      // v1.10 (revisão): o BUFFER decide PRIMEIRO. O toque que será honrado
+      // 0-180ms depois não pode receber o pacote de negação — o jogo diria
+      // NÃO e faria mesmo assim, contradição sensorial no sistema que esta
+      // versão vende como ensino. E ele NÃO conta como desperdício: `x` é a
+      // medida de atrito, e um toque honrado não é atrito (sem isto a
+      // métrica-manchete x/(d+x) cairia por artefato, não por aprendizado).
+      if (Constants.DASH_BUFFER_MS > 0 && this.rhino.dashState === 'cooldown'
+        && Constants.DASH_COOLDOWN_MS - this.rhino.cooldownTimer <= Constants.DASH_BUFFER_MS) {
+        this.rhino.pendingDash = true; // dispara sozinho ao recarregar
+        return;
+      }
       this.runDashWasted++;
+      // A negação de verdade ganha voz: tec + tremor + (3 primeiras) a dica.
+      if (Constants.DASH_DENY_FEEDBACK) {
+        this.audio.playDenyTick();
+        this.shakeDashIcon();
+        try { if (navigator.vibrate) navigator.vibrate(25); } catch (e) { /* opcional */ }
+        if (StorageManager.getDashDenyHints() < Constants.DASH_DENY_HINT_MAX) {
+          StorageManager.addDashDenyHint();
+          this.showToast('⏳ Investida recarregando — 1 segundo', { y: 250, size: 26, duration: 1500 });
+        }
+      }
     }
   }
 
@@ -3008,6 +3046,23 @@ export class GameScene extends Phaser.Scene {
     this.dashIconFull.setDepth(101);
   }
 
+  // v1.10: o ícone TREME e pisca vermelho quando a investida é negada — o
+  // par visual do "tec" sonoro. 120ms, sem tocar em física nenhuma.
+  shakeDashIcon() {
+    const alvos = [this.dashIconEmpty, this.dashIconFull].filter(Boolean);
+    if (!alvos.length || this._dashShakeAtivo) return;
+    this._dashShakeAtivo = true;
+    const x0 = alvos[0].x;
+    alvos.forEach((s) => s.setTint(0xff6b6b));
+    this.tweens.add({
+      targets: alvos, x: x0 + 4, duration: 30, yoyo: true, repeat: 2,
+      onComplete: () => {
+        alvos.forEach((s) => { s.setX(x0); s.clearTint(); });
+        this._dashShakeAtivo = false;
+      },
+    });
+  }
+
   updateDashIcon() {
     const progress = this.rhino.getDashCooldownRatio();
     // setCrop opera em px de TEXTURA (rasterizada a 2x)
@@ -3084,12 +3139,25 @@ export class GameScene extends Phaser.Scene {
       // spawnManager (a câmera travada da luta é o que suprime spawns).
       for (const bf of this.bossFights) bf.update(time, delta);
       // Animais leem o multiplicador do tier vigente por frame (padrão live)
+      // v1.10: a velocidade dos animais também respeita a curva do novato
       Constants.TIER_STATE.animalSpeedMult =
-        Constants.getTierFor(this.rhino.getSprite().x).animalSpeedMult;
+        Constants.animalSpeedMultEfetivo(this.rhino.getSprite().x, this.fatorNovato);
       this.spawnManager.update(this.cameras.main);
       this.updateDashIcon();
 
       this.updateScoreDisplay();
+
+      // v1.10: a primeira vez da VIDA além de cada marco é celebrada — o
+      // degrau que faltava entre 200m e o portão. Barato: 1 comparação.
+      if (this.marcosPendentes.length && this.started && !this.gameOver) {
+        const proximo = this.marcosPendentes[0];
+        if (this.rhino.getSprite().x / Constants.PIXELS_PER_METER >= proximo) {
+          this.marcosPendentes.shift();
+          StorageManager.addMarco(proximo);
+          this.showToast(`🏁 Primeira vez além de ${proximo}m!`, { y: 250, size: 30, duration: 2000 });
+          this.audio.playFanfare();
+        }
+      }
 
       // v1.9.4 — O GATILHO LEGADO POR POSIÇÃO virou exclusivo do debug.
       // Ele existia como fallback do modo invencível (é o que a documentação
@@ -3567,6 +3635,10 @@ export class GameScene extends Phaser.Scene {
       // v1.9.2: o relógio do LOOP (letra `i`) ao lado do relógio de parede
       // (`s`) — é o par que denuncia o bug do cronômetro
       loopS: Math.round(this.runLoopMs / 1000),
+      // v1.10 "Escola do Rino": o experimento viaja na corrida (fc 1-99;
+      // ausente = veterano) e o pulo carregado ganha medidor (cj).
+      fatorCurva: this.fatorNovato < 1 ? Math.min(99, Math.max(1, Math.round(this.fatorNovato * 100))) : 0,
+      chargedJumps: this.runChargedJumps,
       keyboard: this.usedKeyboard,
       version: Constants.VERSION,
       skin: this.skin ? this.skin.id : 'default',
@@ -3661,6 +3733,24 @@ export class GameScene extends Phaser.Scene {
       // Morreu no modo infinito: a fuga em si já estava garantida
       document.getElementById('gate-escape-message').textContent =
         this.escaped ? `🗽 Você escapou e ainda correu até ${distance}m!` : '';
+
+      // v1.10 "ESCOLA DO RINO": a morte vira aula — 1 linha por causa (máx.
+      // 3× por causa na vida, padrão do BOSS_HINT) + a meta concreta da
+      // próxima corrida. É a única superfície com atenção total do jogador.
+      const tipEl = document.getElementById('death-tip');
+      if (tipEl) {
+        let linha = '';
+        const dica = Constants.DEATH_TIPS[cause];
+        if (dica && StorageManager.getDeathTipCount(cause) < 3) {
+          StorageManager.addDeathTipCount(cause);
+          linha = dica;
+        }
+        const rec = StorageManager.getRecord();
+        if (!isNewRecord && rec > 0 && distance < rec) {
+          linha += (linha ? ' · ' : '') + `Faltaram ${rec - distance}m para o seu recorde.`;
+        }
+        tipEl.textContent = linha;
+      }
     }
 
     // Medalhas: avaliar e anunciar (persistidas — "Jogar Novamente" recarrega)
