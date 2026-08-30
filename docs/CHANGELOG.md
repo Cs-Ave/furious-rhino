@@ -5,7 +5,16 @@
 
 ---
 
-## v1.10.1 — 30/08/2026 (versão atual)
+## v1.11.0 — 30/08/2026 (versão atual) — 🔥 STREAKS
+
+**Tema: a chama dos dias seguidos — convite, nunca bronca.**
+
+- O histórico por dia existia há meses sem ninguém ler para isso. Agora ele vira a **sequência**: jogou em dias seguidos, a chama cresce. A regra é generosa — **ontem mantém a chama**: quem jogou ontem e ainda não jogou hoje vê um convite ("3 dias — vale mais um hoje?"), nunca uma cobrança. Chama apagada? A linha simplesmente some — zero culpa.
+- **Três medalhas novas**: 🔥 Chama Acesa (3 dias), 🕯️ Semana em Chamas (7) e 🌋 Mês Incendiado (30) — avaliadas pelo MELHOR streak da vida, então nunca "descaem".
+- A sequência aparece no box Campanha da tela inicial, e o estúdio de skins ganhou a chama como moeda: dá para criar uma skin que se desbloqueia com N dias seguidos.
+- Tudo local ao aparelho — nada novo é enviado a lugar nenhum.
+
+## v1.10.1 — 30/08/2026
 
 **Tema: o congelamento não teleporta mais, e o retrato pausa de verdade.**
 

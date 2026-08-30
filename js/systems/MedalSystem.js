@@ -46,6 +46,11 @@ export const MEDALS = [
   { id: 'farao_win', emoji: '🏺', name: 'Quebra-Faraó', desc: 'Derrote o Faraó de Bronze (4700m)', test: (s) => (s.faraoLayers || 0) >= 5 },
   { id: 'city_boss_win', emoji: '🧱', name: 'Queda da Muralha', desc: 'Derrube a Operação Muralha (2000m)', test: (s) => (s.boss2Layers || 0) >= 4 },
   { id: 'legend_world', emoji: '👑', name: 'Lenda do Mundo', desc: 'Vença o Caçador-Mor no fim do mundo', test: (s) => Boolean(s.legend) },
+  // v1.11 "Streaks" — a chama dos dias seguidos (ideia F do banco). Avaliadas
+  // pelo MELHOR streak da vida: a medalha nunca "descai" com a chama apagada.
+  { id: 'streak_3', emoji: '🔥', name: 'Chama Acesa', desc: 'Jogue 3 dias seguidos', test: (s) => (s.streakBest || 0) >= 3 },
+  { id: 'streak_7', emoji: '🕯️', name: 'Semana em Chamas', desc: 'Jogue 7 dias seguidos', test: (s) => (s.streakBest || 0) >= 7 },
+  { id: 'streak_30', emoji: '🌋', name: 'Mês Incendiado', desc: 'Jogue 30 dias seguidos', test: (s) => (s.streakBest || 0) >= 30 },
 ];
 
 export class MedalSystem {

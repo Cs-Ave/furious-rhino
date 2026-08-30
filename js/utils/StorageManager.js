@@ -652,6 +652,43 @@ export class StorageManager {
     while (keys.length > this.HISTORY_CAPS.days) delete h.days[keys.shift()];
   }
 
+  // --- v1.11 "Streaks": a chama dos dias seguidos ---
+  // Calculada SEMPRE do history.days que já existia há meses sem leitor (a
+  // ideia F do banco). Regra do "ontem mantém a chama": a sequência conta os
+  // dias consecutivos terminando HOJE ou ONTEM — quem jogou ontem e ainda não
+  // jogou hoje vê o convite, nunca a bronca. `contandoHoje` é o modo do
+  // endGame: a corrida que está terminando conta como "hoje" mesmo que o
+  // bumpDay ainda não tenha rodado neste fluxo.
+  // (Passo de 24h sobre dayKey local: o Brasil não tem mais horário de verão;
+  // numa borda exótica de fuso o erro é de 1 dia, a favor do jogador.)
+  static getStreak({ contandoHoje = false } = {}) {
+    const dias = this.getHistory().days;
+    const UM_DIA = 86400000;
+    const agora = Date.now();
+    const jogouHoje = contandoHoje || Boolean(dias[this.dayKey(agora)]);
+    let ancora;
+    if (jogouHoje) ancora = agora;
+    else if (dias[this.dayKey(agora - UM_DIA)]) ancora = agora - UM_DIA;
+    else return 0;
+    let n = jogouHoje && !dias[this.dayKey(agora)] ? 1 : 0;
+    if (n === 1) ancora -= UM_DIA; // hoje implicito ja contou; segue de ontem
+    while (dias[this.dayKey(ancora)]) { n++; ancora -= UM_DIA; }
+    return n;
+  }
+
+  static STREAK_BEST_KEY = 'furious_rhino_streak_best';
+
+  static getStreakBest() {
+    return parseInt(localStorage.getItem(this.STREAK_BEST_KEY) || '0', 10);
+  }
+
+  // Monotônico, como todo recorde da casa. Devolve o melhor (novo ou antigo).
+  static bumpStreakBest(n) {
+    const best = Math.max(this.getStreakBest(), Math.floor(Number(n) || 0));
+    localStorage.setItem(this.STREAK_BEST_KEY, String(best));
+    return best;
+  }
+
   // Uma chamada por fim de corrida. Rótulos vazios são ignorados (geo pode
   // não ter respondido ainda).
   static addHistory({ clientSig, geoLabel, version, meters = 0 } = {}) {

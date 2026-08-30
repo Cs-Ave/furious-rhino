@@ -1,6 +1,6 @@
 # Furious Rhino — Guia funcional
 
-> Documentação da versão **1.10.0** · atualizada em 29/08/2026
+> Documentação da versão **1.11.0** · atualizada em 30/08/2026
 > Cada funcionalidade do jogo: o que faz, como o usuário interage e exemplos práticos. Termos técnicos vêm explicados entre parênteses na primeira vez.
 
 ## 1. Controles
@@ -143,7 +143,7 @@ Depois de gasto, o medidor volta a encher com a distância (~900 m por carga). A
 - **Título em chamas** — "FURIOUS RHINO" em fonte cartoon com labaredas e brasas animadas (a fonte vem da internet; sem conexão, o jogo usa uma parecida do próprio aparelho — nada quebra).
 - **Pódio mundial ao vivo** — os 3 primeiros do ranking em pedestais de ouro/prata/bronze, cada um representado pela **skin que usava quando cravou a marca** (marcas antigas, de antes da v1.8.1, aparecem com o rinoceronte original), com nome, distância e **há quantos dias segura a posição** ("no trono há 12d"). Aqui a contagem é da **posição**: se alguém novo assume o 1º lugar, os contadores de quem caiu recomeçam naquele dia (efeito cascata) — diferente da lista completa do top 10, que mede a idade de cada marca. O pódio se atualiza sozinho (a cada 5 minutos) e funciona offline com a última foto conhecida. **Desde a v1.9.3 ele também é repintado na hora** quando a sua posição muda: ao terminar uma corrida que sobe ao ranking, ao reabrir o jogo e ao fechar o Top 10 — antes disso o dado novo era guardado mas a tela só mudava no recarregamento seguinte.
 - **O degrau VOCÊ** — um quarto pedestal tracejado ao lado do 3º lugar, com uma seta dourada apontando: sua skin animada, sua posição no mundo, o botão **🎨 Trocar skin** e a provocação de quantos metros faltam para o pódio (ou "🛡️ defenda o seu posto!", para quem já está lá).
-- **Box Campanha** — recorde, tentativas, fugas, "maior inimigo" (a causa de morte mais comum) e um **minigráfico das últimas 10 corridas** (barra dourada = a melhor; linha tracejada = o recorde), com os botões de apelido e "Minhas estatísticas completas".
+- **Box Campanha** — recorde, tentativas, fugas, "maior inimigo", a **sequência de dias** (v1.11: a chama 🔥 — só aparece acesa, e quem jogou ontem vê o convite para manter) (a causa de morte mais comum) e um **minigráfico das últimas 10 corridas** (barra dourada = a melhor; linha tracejada = o recorde), com os botões de apelido e "Minhas estatísticas completas".
 - **Diário da Fuga** — a área de notícias: o primeiro card é o **aviso do criador** (editado no console do Firebase, sem publicar código — é onde as novidades de cada versão são anunciadas); os demais são acontecimentos do próprio jogador: skin desbloqueada, **entrou no pódio**, **perdeu o pódio**, recorde novo. Cada acontecimento aparece uma única vez.
 - As instruções de jogo (pulo/investida) ficam em texto ao lado do **TOQUE PARA COMEÇAR** pulsante — e tocar em qualquer lugar livre da tela continua iniciando a corrida.
 - **A tela aparece antes de o jogo terminar de carregar (v1.9.3)** — pódio, recorde, gráfico e Diário são desenhados assim que a página abre, com os dados guardados no aparelho, sem esperar o motor do jogo. No celular isso adiantou a tela em cerca de **4 segundos**. Se você tocar nesse intervalo, o texto vira **"preparando a fuga..."** e a corrida **começa sozinha** assim que dá — sem precisar tocar de novo, e sem gastar duas tentativas.
@@ -162,7 +162,7 @@ Os registros e o ranking:
 
 ## 8. Medalhas
 
-27 conquistas salvas no aparelho (conferido no `MedalSystem.js`) (não dependem de internet). Desde a v1.8.1 elas são vistas dentro de **"📊 Minhas estatísticas"** (a faixa de ícones saiu da tela inicial para dar lugar ao pódio). Exemplos:
+30 conquistas salvas no aparelho (conferido no `MedalSystem.js`; as 3 da chama — 3/7/30 dias seguidos — chegaram na v1.11) (não dependem de internet). Desde a v1.8.1 elas são vistas dentro de **"📊 Minhas estatísticas"** (a faixa de ícones saiu da tela inicial para dar lugar ao pódio). Exemplos:
 
 | Medalha | Como ganhar |
 |---|---|

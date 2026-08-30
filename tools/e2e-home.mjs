@@ -90,5 +90,29 @@ const semear = () => {
 }
 
 console.log(`\n${pass}/${pass + fail} OK`);
+
+// ---------- v1.11 "Streaks": a pílula da chama na home ----------
+{
+  const ctxSt = await browser.newContext({ viewport: { width: 1280, height: 720 } });
+  const pSt = await ctxSt.newPage();
+  await pSt.addInitScript(() => {
+    const UM = 86400000; const hoje = Date.now();
+    const dk = (ms) => { const d = new Date(ms); const p = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; };
+    localStorage.setItem('furious_rhino_history', JSON.stringify({
+      days: { [dk(hoje)]: { r: 2 }, [dk(hoje - UM)]: { r: 3 }, [dk(hoje - 2 * UM)]: { r: 1 } } }));
+    localStorage.setItem('furious_rhino_notify_off', '1');
+  });
+  await pSt.goto(ALVO, { waitUntil: 'networkidle' });
+  await pSt.waitForTimeout(1200);
+  const pill = await pSt.evaluate(() => {
+    const w = document.getElementById('start-streak-wrap');
+    return { visivel: w && !w.hidden, texto: (document.getElementById('start-streak') || {}).textContent };
+  });
+  ok('streaks: a pílula da chama aparece com 3 dias seguidos',
+    pill.visivel === true && /3 dias seguidos/.test(pill.texto || ''), JSON.stringify(pill));
+  await ctxSt.close();
+}
+
 await browser.close();
 process.exitCode = fail ? 1 : 0;

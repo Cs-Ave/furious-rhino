@@ -60,6 +60,8 @@ export class SkinSystem {
       attempts: StorageManager.getAttempts(),
       wins: StorageManager.getWins(),
       animals: StorageManager.getAnimalsTotal(),
+      // v1.11: a chama como moeda de skin ({streakBest: 7} no /?setup)
+      streakBest: StorageManager.getStreakBest(),
     };
   }
 
@@ -187,6 +189,7 @@ export class SkinSystem {
       return joined.charAt(0).toUpperCase() + joined.slice(1) + suffix;
     }
     if (skin.access.type === 'total') {
+      if (cond.streakBest) parts.push(`jogue ${cond.streakBest} dias seguidos`);
       if (cond.attempts) parts.push(`jogue ${cond.attempts} corrida${cond.attempts > 1 ? 's' : ''}`);
       if (cond.wins) parts.push(`complete ${cond.wins} fuga${cond.wins > 1 ? 's' : ''}`);
       if (cond.animals) parts.push(`atropele ${cond.animals} anima${cond.animals > 1 ? 'is' : 'l'}`);

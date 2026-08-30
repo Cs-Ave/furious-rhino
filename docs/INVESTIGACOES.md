@@ -232,6 +232,10 @@ inteira a cada coleta e guardam snapshot datado para o diff da próxima.
 
 ### 30/08 — H2 e H3 MITIGADAS na v1.10.1 (o pacote do caso)
 
+> **30/08, portão humano fechado**: o dono girou o aparelho no meio de uma
+> corrida em produção — pausou na hora, retomou no botão. H3 confirmada em
+> campo, não só em Playwright.
+
 As duas hipóteses vivas ganharam correção defensiva — juntas, aceitando a
 perda de atribuição (cada uma é defeito por mérito próprio):
 

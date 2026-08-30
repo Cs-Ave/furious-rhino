@@ -527,6 +527,37 @@ eq('rules têm o bloco challenges com leitura pública',
       z.furiaUsada, z.furiaNegada]; })(), [[0, 0, 0, 0, 0], 0, 0]);
 }
 
+// ---------- v1.11 "STREAKS": a chama dos dias seguidos ----------
+// Regra do "ontem mantém a chama": convite, nunca bronca. Toda a régua sai
+// do history.days que existia há meses sem leitor (ideia F do banco).
+{
+  const UM = 86400000;
+  const hoje = Date.now();
+  const semear = (dias) => localStorage.setItem(StorageManager.HISTORY_KEY,
+    JSON.stringify({ days: Object.fromEntries(dias.map((k) => [StorageManager.dayKey(hoje - k * UM), { r: 1 }])) }));
+
+  semear([0, 1, 2]);
+  eq('streak: hoje + 2 anteriores = 3', StorageManager.getStreak(), 3);
+  semear([1, 2]);
+  eq('streak: ontem mantém a chama (2, sem bronca)', StorageManager.getStreak(), 2);
+  semear([2]);
+  eq('streak: anteontem sozinho = chama apagada (0)', StorageManager.getStreak(), 0);
+  semear([0, 2]);
+  eq('streak: buraco quebra a sequência (1)', StorageManager.getStreak(), 1);
+  semear([]);
+  eq('streak: contandoHoje força o dia da corrida que termina (1)',
+    StorageManager.getStreak({ contandoHoje: true }), 1);
+  semear([1]);
+  eq('streak: ontem + a corrida de agora = 2',
+    StorageManager.getStreak({ contandoHoje: true }), 2);
+  localStorage.removeItem(StorageManager.STREAK_BEST_KEY);
+  StorageManager.bumpStreakBest(5);
+  StorageManager.bumpStreakBest(3);
+  eq('streakBest é monotônico, como todo recorde da casa',
+    StorageManager.getStreakBest(), 5);
+  localStorage.removeItem(StorageManager.HISTORY_KEY);
+}
+
 // ---------- v1.10 "ESCOLA DO RINO" ----------
 // A garantia que NÃO pode quebrar: o veterano joga o jogo atual BIT A BIT.
 {

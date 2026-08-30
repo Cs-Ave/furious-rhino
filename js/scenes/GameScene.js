@@ -3780,8 +3780,12 @@ export class GameScene extends Phaser.Scene {
 
     // Medalhas: avaliar e anunciar (persistidas — "Jogar Novamente" recarrega)
     const animalsTotal = StorageManager.addAnimalsHit(this.runAnimalsHit);
+    // v1.11 "Streaks": a corrida que termina conta como hoje (contandoHoje) —
+    // o bumpDay do addHistory roda mais abaixo, e a medalha não pode esperar.
+    const streakBest = StorageManager.bumpStreakBest(
+      StorageManager.getStreak({ contandoHoje: true }));
     const newMedals = MedalSystem.evaluateRun({
-      distance, won, isNewRecord, hadPreviousRecord,
+      distance, won, isNewRecord, hadPreviousRecord, streakBest,
       escaped: this.escaped,
       wallsBroken: this.runWallsBroken, animalsTotal,
       rampsSmashed: this.runRampsSmashed, towersDowned: this.runTowersDowned,

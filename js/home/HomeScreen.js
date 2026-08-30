@@ -425,6 +425,21 @@ export class HomeScreen {
     if (att) att.textContent = StorageManager.getAttempts();
     if (wins) wins.textContent = StorageManager.getWins();
     if (cause) cause.textContent = this.topCauseLabel();
+    // v1.11 "Streaks": a pílula da chama. COPY SEMPRE CONVITE, NUNCA BRONCA —
+    // chama apagada = linha some (zero culpa); ontem sem hoje = convite.
+    const streakWrap = document.getElementById('start-streak-wrap');
+    const streakEl = document.getElementById('start-streak');
+    if (streakWrap && streakEl) {
+      const n = StorageManager.getStreak();
+      if (n <= 0) streakWrap.hidden = true;
+      else {
+        streakWrap.hidden = false;
+        const jogouHoje = Boolean(StorageManager.getHistory().days[StorageManager.dayKey()]);
+        streakEl.textContent = jogouHoje
+          ? (n === 1 ? '1 dia — volte amanhã e faça 2!' : `${n} dias seguidos!`)
+          : (n === 1 ? 'ontem contou — jogue hoje e faça 2!' : `${n} dias — vale mais um hoje?`);
+      }
+    }
     this.renderStartChart();
   }
 

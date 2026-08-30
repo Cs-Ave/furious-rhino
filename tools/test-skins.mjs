@@ -318,5 +318,24 @@ try { registryParsed = JSON.parse(jsonSlice); } catch (e) { /* fica null */ }
 eq('SkinRegistry.js: miolo é JSON estrito', Array.isArray(registryParsed), true);
 eq('SkinRegistry.js: mesmo conteúdo importado', registryParsed ? registryParsed.length : 0, SKINS.length);
 
+// ---------- v1.11 "Streaks": a chama como moeda de skin e medalha ----------
+{
+  const { MEDALS } = await import('../js/systems/MedalSystem.js');
+  const chama = MEDALS.filter((m) => m.id.startsWith('streak_'));
+  eq('as 3 medalhas da chama existem (3/7/30)',
+    chama.map((m) => m.id), ['streak_3', 'streak_7', 'streak_30']);
+  eq('a medalha usa o MELHOR streak — nunca descai com a chama apagada',
+    [chama[0].test({ streakBest: 3 }), chama[0].test({ streakBest: 2 }), chama[0].test({})],
+    [true, false, false]);
+  eq('totalsData expõe streakBest para o /?setup usar como condição',
+    'streakBest' in SkinSystem.totalsData(), true);
+  eq('conditionMet aceita { streakBest: 7 } como qualquer total',
+    [SkinSystem.conditionMet({ streakBest: 7 }, { streakBest: 9 }),
+      SkinSystem.conditionMet({ streakBest: 7 }, { streakBest: 6 })], [true, false]);
+  eq('requirementText fala a língua da chama',
+    SkinSystem.requirementText({ access: { type: 'total', condition: { streakBest: 7 } }, desc: '' })
+      .toLowerCase().includes('7 dias seguidos'), true);
+}
+
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

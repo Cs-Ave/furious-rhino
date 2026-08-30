@@ -1,6 +1,6 @@
 # FURIOUS RHINO — Documento de Design
 
-> Estado atual do jogo (v1.10.0). Este documento descreve o que **é**, não o que
+> Estado atual do jogo (v1.11.0). Este documento descreve o que **é**, não o que
 > se imaginou no começo — as decisões de v1.1 em diante estão registradas aqui
 > com o motivo, e várias delas foram tomadas a partir dos dados reais de
 > telemetria (ver "Decisões orientadas por dados" no fim).
@@ -1067,6 +1067,26 @@ PRECISA limpar a fila em toda transição forçada de estado; e a lacuna L2
 REABRIU uma release depois de fechada (fc/cj nasceram sem decodificador no
 painel) — agora há guarda bidirecional: toda chave nova do RUN_COUNTERS sem
 leitor no painel é teste vermelho.
+
+---
+
+## 🔥 Streaks (v1.11) — a chama que convida, nunca cobra
+
+A ideia F do banco, executada como desenhada: o `history.days` (meses de dado
+sem leitor) vira a sequência de dias seguidos. As decisões de design:
+
+- **"Ontem mantém a chama"**: a sequência conta terminando hoje OU ontem —
+  quem jogou ontem vê convite ("3 dias — vale mais um hoje?"), nunca bronca.
+  Chama apagada = a linha SOME. Culpa não retém ninguém; convite talvez.
+- **Medalhas pelo MELHOR streak** (3/7/30): conquistas nunca descaem — perder
+  a chama não humilha o troféu.
+- **A chama como moeda de skin**: `{streakBest: N}` no /?setup, mesmo molde
+  das condições de total. A esteira de skins ganha um eixo de constância.
+- Tudo local, zero Firestore: o streak é derivável do `history.days` que já
+  sobe — nenhuma chave nova, nenhum rules bump.
+
+Métrica-alvo (leitura junto com as da Escola, 12/09 e 26/09): os 59% de
+jogadores de um-dia-só — a alavanca F foi desenhada exatamente para eles.
 
 ---
 

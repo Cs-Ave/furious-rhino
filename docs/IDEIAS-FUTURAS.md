@@ -753,7 +753,7 @@ diária; a semanal editada à mão dá a cadência sem criar obrigação.
 **Custo** M · **Impacto** alto na retenção (§4.1) · **Depende de** nada (B e C
 enriquecem, mas não bloqueiam).
 
-### F. Streaks 📐
+### F. Streaks ✅ **v1.11.0** (30/08) — executada como desenhada
 
 `history.days` existe há meses e ninguém lê para isso. Streak corrente calculado
 no cliente (regra do "ontem mantém a chama"), melhor streak persistido local,

@@ -1,6 +1,6 @@
 # Furious Rhino — Referência técnica
 
-> Documentação da versão **1.10.1** · atualizada em 30/08/2026
+> Documentação da versão **1.11.0** · atualizada em 30/08/2026
 > Para quem vai dar manutenção. Complementa (não substitui) `GAME_DESIGN.md` (o design e suas razões) e `HANDOFF.md` (estado da última sessão de trabalho e tabelas completas de parâmetros).
 
 ## 1. Estrutura de pastas
@@ -83,10 +83,10 @@ Para os testes e ferramentas (Node 18+):
 
 ```bash
 npm install                     # só devDependencies
-npm run test-stats              # 142 asserts — inclui a Escola do Rino (lerp, guarda da L2, fc/cj) e a aba Chefes
+npm run test-stats              # 149 asserts — inclui a Escola do Rino (lerp, guarda da L2, fc/cj) e a aba Chefes
 npm run test-score              # 101 asserts da pontuação composta, sem navegador
 npm run test-challenge          # 104 asserts da Arena de Desafios, sem navegador
-npm run test-skins              # ~93 asserts das skins, sem navegador (nº varia com o registry)
+npm run test-skins              # ~98 asserts das skins, sem navegador (nº varia com o registry)
 npm run test-integrate          # 49 asserts da integração do /?setup, sem navegador
 npm run test-sprites            # 31 asserts da camada de sprites (v1.8.9), sem navegador
 npm run test-radiografia        # 62 asserts da radiografia (v1.8.7), sem navegador e SEM rede
