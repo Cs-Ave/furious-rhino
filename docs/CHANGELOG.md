@@ -5,7 +5,23 @@
 
 ---
 
-## v1.11.0 — 30/08/2026 (versão atual) — 🔥 STREAKS
+## v1.12.0 — 30/08/2026 (versão atual) — 🦁 O ZOO QUE FICA PARA TRÁS (parte 1 de 3)
+
+**Tema: os primeiros 1000 m ganham identidade — as "três gêmeas" se separam e as fronteiras viram portas de verdade.**
+
+Redesign visual planejado por painel multi-domínio (direção de arte, level design, game design, narrativa ambiental + auditoria de custo/legibilidade) sobre dossiê fotográfico e inventário de código. 90% dos jogadores vivem só nos 1000 m iniciais — e os 3 primeiros biomas eram a mesma cena com adesivos trocados. Programa em 3 releases; esta é a primeira (jaulas/aviário/savana + o ritual de fronteira).
+
+- **Cada ala tem chão próprio** (na tela 100% do tempo, era o maior traidor): concreto de serviço com faixa amarela nas jaulas, piso claro com canteiros e penas no aviário, laterita vermelha com capim seco na savana.
+- **Paredes por ala**: o aviário quebra treliça de ferro do domo; a savana, muralha de taipa com riscos de garra. As jaulas MANTÊM o tijolo âmbar (é a alvenaria do zoo que o veterano conhece). A fresta continua clara sobre corpo escuro — a linguagem não muda.
+- **Portais de verdade nas fronteiras**: o arco genérico deu lugar ao **Portão do Viveiro** (ferro verde com cúpula de gaiola e portas escancaradas) e à **Porteira do Safári** (troncos, telhado de sapê, chifres, placa pendurada em correntes) — cada um com uma **vitrine do próximo bioma no vão**, e o fundo novo agora **aparece ANTES do arco** (o mundo seguinte visto através do portal). Placa creme e bandeirolas preservadas em todos: o ritual que o jogador reconhece.
+- **A travessia é um acontecimento**: flash na cor do bioma de destino, revoada de pássaros aos 200 m (eles escapam JUNTO), manada de zebras no horizonte aos 400 m.
+- **Narrativa ambiental**: a fuga contada por objetos — cadeado caído e jaulas abertas nas jaulas (com o portão monumental "ZOO" e o giroflex do alarme ao fundo), o Grande Domo com a rede rasgada no aviário, a cerca arrebentada PARA FORA e o baobá gigante na savana. A torre de dardo deixou de ser castelo medieval: virou torre de vigia do tratador (mesma silhueta, mesma seteira — o vocabulário letal não muda).
+- **A savana perdeu as montanhas NEVADAS** (mesas e kopjes ocre no lugar); jaulas e aviário mantêm as nevadas de propósito — são "o mundo lá fora".
+- **Zona de respeito nos arcos** (decisão do dono, 30/08): obstáculo nenhum nasce colado nos 4 arcos ([−450 px, +250 px], com guarda de vão ocupado) — corrige a parede fotografada NA FRENTE da placa do bioma. ⚠️ Única mudança que toca spawn: **a leitura da Escola do Rino de 26/09 deve cortar por `v` da corrida** (≥ 1.12.0 tem as zonas). A abertura-lição é isenta por construção — as lições ficam onde a medição as conhece. Nota de ratificação (achado da revisão adversarial): a guarda de vão ocupado vale para TODAS as zonas sem spawn — de brinde, parceiros de combo que em janelas raríssimas (80-280 px) nasciam DENTRO das zonas dos portais da cidade ou das arenas de boss deixam de nascer; e as rampas silenciam também na aproximação da zona (a rampa não pode transbordar para dentro dela).
+- **Fila de toasts**: label de bioma, dica da Escola e marco de distância (as três vozes que colidiam na foto da linha de base) não se atropelam mais no mesmo y — a dica nunca espera (é a variável medida), o marco espera a tela desocupar. Vozes raras sem prioridade (fúria cheia, torre derrubada) seguem como antes.
+- Custo de boot: +20 texturas procedurais (12 de parede, 3 chãos, 2 primeiros planos, 1 horizonte, 2 portais) — zero SVG novo, zero arquivo novo, padrão anti-crash WebKit mantido em tudo. Dificuldade, física, elencos, clima e céu **intocados** (Monte Carlo bit-idêntico: 1,4/2,3/3,2 por tier).
+
+## v1.11.0 — 30/08/2026 — 🔥 STREAKS
 
 **Tema: a chama dos dias seguidos — convite, nunca bronca.**
 

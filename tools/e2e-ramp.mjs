@@ -267,9 +267,11 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
       wallW: 0, spikeW: 0, towerW: 0, rampW: 0, comboChance: 0,
       animalPackChance: 1, gapMin: 600, gapRand: 0,
     });
-    sm.nextSpawnX = 7000;
+    // v1.12: longe da zona de respeito do arco dos 200m ([7550, 8250]) —
+    // a sonda mede a roleta, não a zona
+    sm.nextSpawnX = 4000;
     // câmera sintética: spawnObstacles só lê scrollX e width
-    sm.spawnObstacles({ scrollX: 6500, width: 1280 });
+    sm.spawnObstacles({ scrollX: 3500, width: 1280 });
     const vivos = sm.getAnimalsGroup().children.entries.filter((e) => e.active);
     const count = vivos.length;
     // Knockback: o atropelado voa para a diagonal superior DIREITA
@@ -304,8 +306,9 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
       wallW: 1, spikeW: 0, towerW: 0, rampW: 0, comboChance: 0,
       animalPackChance: 0, animalEscortChance: 1, gapMin: 600, gapRand: 0,
     });
-    sm.nextSpawnX = 7000;
-    sm.spawnObstacles({ scrollX: 6500, width: 1280 });
+    // v1.12: fora da zona de respeito do arco (mesma razão do 10b)
+    sm.nextSpawnX = 4000;
+    sm.spawnObstacles({ scrollX: 3500, width: 1280 });
     const animais = sm.getAnimalsGroup().children.entries.filter((e) => e.active);
     const paredes = sm.getWallsGroup().children.entries.filter((e) => e.active);
     // cada parede em x deve ter um animal terrestre a +280
@@ -503,9 +506,12 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
     const s = window.game.scene.keys.GameScene;
     s.invincible = true;
     const planted = s.trackMarks.map((m) => m.x);
+    // v1.12: a sonda escuta o paintToast (o que o jogador VÊ) — o anunciador
+    // pode re-agendar um marco que colidiu com o label de bioma, e contar as
+    // CHAMADAS do showToast contaria a mesma provocação duas vezes
     const toasts = [];
-    const orig = s.showToast.bind(s);
-    s.showToast = (t, o) => { toasts.push(t); return orig(t, o); };
+    const orig = s.paintToast.bind(s);
+    s.paintToast = (t, o) => { toasts.push(t); return orig(t, o); };
     const sp = s.rhino.getSprite();
     await new Promise((r) => { const tick = () => (sp.x > 12600 ? r() : requestAnimationFrame(tick)); tick(); });
     return { planted, toasts, ticks: document.querySelectorAll('#progress-marks .rival-mark').length };

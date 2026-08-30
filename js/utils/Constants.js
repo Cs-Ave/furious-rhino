@@ -3,7 +3,7 @@ import { SPRITE_PARAMS } from '../art/SpriteParams.js';
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
-  VERSION: '1.11.0',
+  VERSION: '1.12.0',
 
   // Rótulo humano de cada desfecho de corrida. Fonte única para o painel, o
   // resumo do jogador e os pushes — os três diziam a mesma coisa com palavras
@@ -805,6 +805,56 @@ export const Constants = {
     return Math.min(this.BIOMES.length - 1, Math.floor(x / 8000));
   },
 
+  // ------------------------------- v1.12: alas do zoo ("O Zoo que Fica Para
+  // Trás") — a extensão da máquina de áreas para ANTES do portão, o "débito
+  // pago uma vez" que cidade (v1.8.7) e deserto (v1.8.10) já pagaram. O zoo
+  // era a única fase onde skinFor devolvia '' para tudo: tijolo âmbar, torre
+  // medieval e chão de grama idênticos por 1000m, enquanto 90% dos jogadores
+  // vivem exatamente aqui. Chaveada pelo NOME do bioma (1 ala = 1 bioma por
+  // ora; sub-áreas finas, se um dia vierem, viram tabela com `from` como a
+  // CITY_DISTRICTS). Campos todos opcionais — ausente, vale o legado:
+  //   wallSkin  — família da parede quebrável ('' = tijolo âmbar do zoo)
+  //   propSkin  — família de espinho/torre/rampa (v1.13: '-mato')
+  //   ground/fg — chão e primeiro plano do trecho (canvas idênticos aos
+  //               legados: o tileSprite troca por setTexture, regra da casa)
+  //   mountains — cordilheira do horizonte (a savana não tem neve)
+  // NADA aqui toca getBiomeIndex/getTierIndex/weatherFor — visual apenas;
+  // elenco e pesos do trecho continuam 100% com os tiers (Escola do Rino).
+  ZOO_ALAS: {
+    // Jaulas mantém o tijolo âmbar de propósito: é a alvenaria do zoo e o
+    // que o veterano de 200 corridas reconhece — muda o chão, não a parede.
+    jaulas: { ground: 'ground-jaulas' },
+    aviario: { wallSkin: '-aviario', ground: 'ground-aviario', fg: 'bg-fg-aviario' },
+    savana: {
+      wallSkin: '-savana', ground: 'ground-savana', fg: 'bg-fg-savana',
+      mountains: 'bg-mountains-savana',
+    },
+    // floresta/pantano entram na v1.13 ("Mata e Água") — até lá, legado
+    floresta: {},
+    pantano: {},
+  },
+
+  // A ala do zoo que contém x, ou null (do portão em diante manda a cidade)
+  zooAlaFor(x) {
+    if (x >= this.WIN_DISTANCE_PX) return null;
+    return this.ZOO_ALAS[this.BIOMES[this.getBiomeIndex(x)]] || null;
+  },
+
+  // v1.12 — zona de respeito dos arcos de bioma (defeito fotografado em 3 de
+  // 3 fronteiras: parede nascendo NA FRENTE da placa). Assimétrica de
+  // propósito: o respiro grande fica ANTES (meia-largura do arco + largura da
+  // parede + margem de leitura — o portal precisa ler como CENÁRIO) e a cauda
+  // curta devolve a pista logo após o flash/toast, sem criar a "pausa
+  // garantida" previsível que uma janela simétrica de ±450 criaria.
+  ARCH_CLEAR_BEFORE_PX: 450,
+  ARCH_CLEAR_AFTER_PX: 250,
+
+  // v1.12 — o crossfade de bioma dispara este tanto ANTES da fronteira: com
+  // os 500ms de fade e a velocidade de cruzeiro, o alpha chega a ~1 na
+  // passagem do arco — o jogador vê o mundo novo ATRAVÉS do portal. Só vale
+  // dentro do zoo (o fade-ahead para no portão; ver updateAtmosphere).
+  BIOME_FADE_AHEAD_PX: 520,
+
   // ------------------------------------ v1.8.7: distritos da cidade (ideia J)
   // A cidade deixa de ser um skin infinito e vira um arco em 3 distritos
   // (dorme → acorda → caça) + Brecha + rodovia. O dado que motiva (§4.3 do
@@ -899,14 +949,19 @@ export const Constants = {
     return i < 0 ? null : this.CITY_DISTRICTS[i];
   },
 
-  // Família de skin de um obstáculo na posição x. Fora da cidade '' (zoo);
-  // dentro, a PAREDE tem família por distrito (wallSkin) e todo o resto
-  // (espinho/torre/rampa) usa o propSkin da área — v1.8.10: era '-city'
+  // Família de skin de um obstáculo na posição x. Antes do portão manda a
+  // ala do zoo (v1.12 — wallSkin/propSkin opcionais, ausente = '' legado);
+  // dentro da cidade, a PAREDE tem família por distrito (wallSkin) e todo o
+  // resto (espinho/torre/rampa) usa o propSkin da área — v1.8.10: era '-city'
   // hard-coded, o que vestiria espinho/torre/rampa do deserto de concreto
   // urbano; áreas sem propSkin (as 4 da cidade + Brecha) caem no -city.
   skinFor(x, kind = 'wall') {
     const area = this.cityAreaFor(x);
-    if (!area) return '';
+    if (!area) {
+      const ala = this.zooAlaFor(x);
+      if (!ala) return '';
+      return (kind === 'wall' ? ala.wallSkin : ala.propSkin) || '';
+    }
     return kind === 'wall' ? area.wallSkin : (area.propSkin || '-city');
   },
 

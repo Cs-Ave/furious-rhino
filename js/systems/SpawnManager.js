@@ -148,6 +148,25 @@ export class SpawnManager {
       { from: 55700, to: 56300, resumeX: 56300 }, // 1400m — Viaduto do Centro
       { from: 71700, to: 72300, resumeX: 72300 }, // 1800m — Checkpoint da Contenção
       { from: 87700, to: 88300, resumeX: 88300 }, // 2200m — Pórtico (KM 0): v1.8.10, a entrada do deserto
+
+      // v1.12 — zona de respeito dos ARCOS DE BIOMA do zoo (200/400/600/800m).
+      // Defeito fotografado em 3 de 3 fronteiras: parede nascendo na frente
+      // da placa (o teste era só pelo centro do spawn, e zona nenhuma existia
+      // aqui). Assimétrica [−450, +250]: o respiro grande fica ANTES, onde
+      // serve à leitura do portal (meia-largura do arco + parede + margem);
+      // a cauda curta devolve a pista logo após o flash — janela simétrica
+      // criaria 900px de pausa garantida e previsível a cada 200m. SEM
+      // `anchor` (mesma lição dos portais da cidade: anchor criaria sombra
+      // de combo de 1500px sem luta nenhuma por perto). Decisão do dono em
+      // 30/08: entra JÁ na v1.12 — a leitura de 26/09 corta por `v`. A
+      // abertura roteirizada é ISENTA por construção (o ramo do roteiro nem
+      // consulta zonas): as lições da Escola, inclusive o par 7800/7980,
+      // ficam exatamente onde a medição as conhece.
+      ...[1, 2, 3, 4].map((i) => ({
+        from: i * 8000 - Constants.ARCH_CLEAR_BEFORE_PX,
+        to: i * 8000 + Constants.ARCH_CLEAR_AFTER_PX,
+        resumeX: i * 8000 + Constants.ARCH_CLEAR_AFTER_PX,
+      })),
     ];
   }
 
@@ -303,8 +322,13 @@ export class SpawnManager {
         continue;
       } else {
         // O animal anda contra o rino: o vão antes dele encolhe até o
-        // encontro — nasce mais à frente para compensar
+        // encontro — nasce mais à frente para compensar.
+        // v1.12: o avanço de animalLeadPx (350-500px) podia pousar o animal
+        // DENTRO de uma zona de respeito que o cursor respeitou (achado da
+        // revisão adversarial) — mesma guarda dos parceiros: dentro da zona,
+        // o slot simplesmente não nasce e o gap segue normal.
         this.nextSpawnX += tier.animalLeadPx;
+        if (this.inNoSpawnZone(this.nextSpawnX)) continue;
         this.spawnAnimal(this.nextSpawnX);
         // v1.8: par de animais — um segundo logo à frente, por tier. A guarda
         // repete a do laço porque o offset pode cruzar a fronteira que o
@@ -515,21 +539,29 @@ export class SpawnManager {
       pattern = 'wall-animal'; // pool esgotado: cai no par de sempre
     }
 
+    // v1.12 — guarda do VÃO OCUPADO: o par nasce com offset fixo e podia
+    // invadir uma zona sem spawn que o x base respeitou (a parede colada no
+    // arco das fotos era exatamente isto). Mesma guarda do escort/pack: o
+    // parceiro dentro da zona simplesmente não nasce; o span conta igual.
     if (pattern === 'wall-animal') {
       this.spawnWall(x);
       // Espécie terrestre do bioma local (v1.7): o par continua ensinando
       // "quebre a parede, pule o bicho", só o elenco muda de cenário
-      this.spawnAnimal(x + 280, this.pickBiomeAnimal(x + 280, 'ground'));
+      if (!this.inNoSpawnZone(x + 280)) {
+        this.spawnAnimal(x + 280, this.pickBiomeAnimal(x + 280, 'ground'));
+      }
       return 280;
     }
     if (pattern === 'spike-bird') {
       this.spawnSpike(x, 'ground');
-      const type = this.pickBiomeAnimal(x + 220, 'fly');
-      this.spawnAnimal(x + 220, type, Constants.flyerSpawnY(type));
+      if (!this.inNoSpawnZone(x + 220)) {
+        const type = this.pickBiomeAnimal(x + 220, 'fly');
+        this.spawnAnimal(x + 220, type, Constants.flyerSpawnY(type));
+      }
       return 220;
     }
     this.spawnSpike(x, 'tower');
-    this.spawnSpike(x + 180, 'ground');
+    if (!this.inNoSpawnZone(x + 180)) this.spawnSpike(x + 180, 'ground');
     return 180;
   }
 

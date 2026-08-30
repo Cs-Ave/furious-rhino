@@ -626,5 +626,39 @@ eq('rules têm o bloco challenges com leitura pública',
 }
 
 
+// ------------------------- v1.12 "O Zoo que Fica Para Trás" -------------------------
+// A máquina de áreas estendida para antes do portão: skinFor por ala, a
+// tabela ZOO_ALAS e a zona de respeito dos arcos. Visual puro — nada aqui
+// pode tocar tier/clima (os asserts de tierEfetivo acima são o guarda disso).
+{
+  eq('ZOO_ALAS cobre exatamente os 5 biomas do zoo',
+    Object.keys(Constants.ZOO_ALAS).sort(),
+    Constants.BIOMES.slice(0, 5).slice().sort());
+  eq('skinFor por faixa do zoo: jaulas mantém o tijolo, aviário/savana têm família',
+    [0, 8000, 16000, 24000, 32000].map((x) => Constants.skinFor(x, 'wall')),
+    ['', '-aviario', '-savana', '', '']);
+  eq('props do zoo seguem legado até a v1.13 (propSkin ausente = \'\')',
+    [0, 8000, 16000, 24000, 32000].map((x) => Constants.skinFor(x, 'tower')),
+    ['', '', '', '', '']);
+  eq('a cidade continua byte a byte (skinFor pós-portão intocado)',
+    [Constants.skinFor(40000, 'wall'), Constants.skinFor(40000, 'tower'),
+      Constants.skinFor(88000, 'wall'), Constants.skinFor(88000, 'tower')],
+    ['-suburbio', '-city', '-ruina', '-egito']);
+  eq('zooAlaFor devolve null do portão em diante (lá manda a cidade)',
+    Constants.zooAlaFor(Constants.WIN_DISTANCE_PX), null);
+  eq('zona de respeito dos arcos: assimétrica [-450, +250]',
+    [Constants.ARCH_CLEAR_BEFORE_PX, Constants.ARCH_CLEAR_AFTER_PX], [450, 250]);
+  eq('o fade-ahead dispara ANTES até da zona de respeito começar (o fundo novo ' +
+    'já se forma quando os spawns param — 520 > 450)',
+    Constants.BIOME_FADE_AHEAD_PX > Constants.ARCH_CLEAR_BEFORE_PX, true);
+  eq('as lições 7800/7980 da Escola continuam DENTRO da janela do arco dos 200m ' +
+    '(a abertura roteirizada é isenta da zona por construção — se uma lição sair ' +
+    'da janela, este assert avisa que a geografia da medição mudou)',
+    Constants.OPENING_SCRIPT.filter((s) =>
+      s.x >= 8000 - Constants.ARCH_CLEAR_BEFORE_PX &&
+      s.x < 8000 + Constants.ARCH_CLEAR_AFTER_PX).map((s) => s.x),
+    [7800, 7980]);
+}
+
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

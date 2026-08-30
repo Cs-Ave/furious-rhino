@@ -1732,6 +1732,9 @@ export class GameScene extends Phaser.Scene {
     // Biomas por trecho de 200m: cada camada é um PAR de tileSprites — A é
     // a base, B recebe a textura nova e faz o crossfade (switchBiome)
     this.biomeIndex = 0;
+    // v1.12 — o índice do FADE anda ~520px à frente do biomeIndex (o
+    // crossfade dispara antes do arco); nasce alinhado com ele
+    this.biomeFadeIndex = 0;
     // v1.8.7 — distritos da cidade (Estado de Alerta): -1 = fora da régua
     // da cidade (o rino nasce no zoo); switchArea assume dali em diante
     this.cityAreaIndex = Constants.getCityAreaIndex(0);
@@ -1919,7 +1922,7 @@ export class GameScene extends Phaser.Scene {
     for (const m of this.trackMarks) {
       if (m.passed || x < m.x) continue;
       m.passed = true;
-      this.showToast(m.msg, { y: 260, size: 30, duration: 1900 });
+      this.showToast(m.msg, { y: 260, size: 30, duration: 1900, kind: 'marco' });
       if (m.fanfare) this.audio.playFanfare();
       else this.audio.playSectorPass();
     }
@@ -1930,26 +1933,39 @@ export class GameScene extends Phaser.Scene {
   // acontecimento. v1.8.7: generalizado para uma TABELA de marcos — os arcos
   // de bioma do zoo (i×8000; os 32000 já têm o portão) + os três portais dos
   // distritos, cada um com textura própria e um efeito ao cruzar (fx).
+  // v1.12 — arcos do zoo com portal próprio por fronteira: o material do
+  // bioma de DESTINO (o portal anuncia o que vem), fx de travessia e labelDy
+  // acompanhando a altura/placa de cada canvas. floresta/pantano ganham os
+  // seus na v1.13 ("Mata e Água") — até lá, o arco genérico.
+  static ZOO_ARCHES = {
+    aviario: { tex: 'arch-aviario', labelDy: 372, fx: 'revoada' },
+    savana: { tex: 'arch-savana', labelDy: 160, fx: 'manada' },
+  };
+
   createSectorArches() {
     const marks = [];
     for (let i = 1; i < Constants.BIOMES.length - 1; i++) {
+      const key = Constants.BIOMES[i];
+      const spec = GameScene.ZOO_ARCHES[key] || {};
       marks.push({
-        x: i * 8000, tex: 'biome-arch',
-        label: Constants.BIOMES[i].toUpperCase(), labelDy: 274,
+        x: i * 8000, tex: spec.tex || 'biome-arch',
+        label: key.toUpperCase(), labelDy: spec.labelDy || 274, fx: spec.fx,
       });
     }
-    // Portais do Estado de Alerta (labelDy acompanha a altura de cada canvas)
+    // Portais do Estado de Alerta (labelDy acompanha a altura de cada canvas;
+    // lightLabel = texto claro com contorno, o estilo dos marcos urbanos —
+    // os arcos do zoo mantêm o texto escuro da placa creme)
     marks.push({
       x: 56000, tex: 'portal-viaduto',
-      label: 'VIADUTO DO CENTRO', labelDy: 294, fx: 'siren',
+      label: 'VIADUTO DO CENTRO', labelDy: 294, fx: 'siren', lightLabel: true,
     });
     marks.push({
       x: 72000, tex: 'portal-checkpoint',
-      label: 'CHECKPOINT DA CONTENÇÃO', labelDy: 274, fx: 'klaxon',
+      label: 'CHECKPOINT DA CONTENÇÃO', labelDy: 274, fx: 'klaxon', lightLabel: true,
     });
     marks.push({
       x: 88000, tex: 'portal-rodovia',
-      label: 'RODOVIA — KM 0', labelDy: 294, fx: 'fanfare',
+      label: 'RODOVIA — KM 0', labelDy: 294, fx: 'fanfare', lightLabel: true,
     });
     // v1.8.10 — obeliscos de fronteira das etapas do deserto, SEM fx (o
     // flash/sting/toast é do switchArea; os bosses são os marcos físicos
@@ -1970,9 +1986,9 @@ export class GameScene extends Phaser.Scene {
       this.add.text(m.x, Constants.GROUND_TOP - m.labelDy, m.label, {
         fontFamily: '"Arial Black", Arial, sans-serif',
         fontSize: '22px',
-        color: m.fx ? '#e8e9ec' : '#5e3618',
-        stroke: m.fx ? '#1f2531' : undefined,
-        strokeThickness: m.fx ? 5 : 0,
+        color: m.lightLabel ? '#e8e9ec' : '#5e3618',
+        stroke: m.lightLabel ? '#1f2531' : undefined,
+        strokeThickness: m.lightLabel ? 5 : 0,
       }).setOrigin(0.5).setDepth(-0.9);
       // Só os portais novos têm efeito de passagem (molde do updateTrackMarks)
       if (m.fx) this.portalMarks.push({ x: m.x, fx: m.fx, passed: false });
@@ -2006,7 +2022,70 @@ export class GameScene extends Phaser.Scene {
         // Pórtico da Rodovia: a saída triunfal de quem atravessou a cidade
         this.audio.playFanfare();
         this.showToast('🛣️ VOCÊ ATRAVESSOU A CIDADE!', { y: 250, size: 34, duration: 2400 });
+      } else if (m.fx === 'revoada') {
+        // v1.12 — Portão do Viveiro: os pássaros escapam JUNTO com o rino
+        this.playRevoada();
+      } else if (m.fx === 'manada') {
+        // v1.12 — Porteira do Safári: a manada corre no horizonte
+        this.playManada();
       }
+    }
+  }
+
+  // v1.12 — coreografias one-shot de travessia (zero spawn, zero física):
+  // decoração em camadas de parallax, imagens temporárias destruídas ao fim.
+  // Revoada dos 200m: 9 pássaros (SVGs já em memória, escala 0.2 como o
+  // SKY_LIFE) decolam em leque do fundo e somem pelo alto.
+  playRevoada() {
+    const species = Constants.BIRD_SPECIES;
+    for (let i = 0; i < 9; i++) {
+      const sp = species[i % species.length];
+      const b = this.add.image(70 + Math.random() * 380, 460 + Math.random() * 100,
+        `animal-bird-${sp}`).setScrollFactor(0).setDepth(-18.5).setScale(0.2);
+      // batida de asas por troca de textura (o truque do skyBird)
+      const flap = this.time.addEvent({
+        delay: 140, repeat: 13,
+        callback: () => {
+          if (!b.active) return;
+          b.setTexture(`animal-bird-${sp}${flap.repeatCount % 2 ? '-flap' : ''}`);
+        },
+      });
+      this.tweens.add({
+        targets: b,
+        x: b.x + 460 + Math.random() * 320,
+        y: 60 + Math.random() * 130,
+        duration: 1500 + Math.random() * 500,
+        ease: 'Sine.easeOut',
+        onComplete: () => {
+          flap.remove();
+          this.tweens.add({
+            targets: b, alpha: 0, duration: 220, onComplete: () => b.destroy(),
+          });
+        },
+      });
+    }
+  }
+
+  // Manada dos 400m: 5 zebras em silhueta dessaturada correm da direita para
+  // a esquerda ATRÁS da cerca (depth entre far e near) e somem em ~3s.
+  playManada() {
+    for (let i = 0; i < 5; i++) {
+      const z = this.add.image(1360 + i * 130 + Math.random() * 50,
+        508 + (i % 2) * 12, 'animal-zebra')
+        .setScrollFactor(0).setDepth(-18.6).setScale(0.34)
+        .setTint(0xb99e6e).setAlpha(0.85);
+      this.tweens.add({
+        targets: z,
+        x: -180 - i * 40,
+        duration: 2600 + i * 160,
+        ease: 'Linear',
+        onComplete: () => z.destroy(),
+      });
+      // galope: quique curto contínuo enquanto atravessa
+      this.tweens.add({
+        targets: z, y: z.y - 7, duration: 190, yoyo: true, repeat: 8,
+        ease: 'Sine.easeInOut',
+      });
     }
   }
 
@@ -2117,6 +2196,11 @@ export class GameScene extends Phaser.Scene {
     passo('colisores');
     this.physics.add.collider(this.rhino.getSprite(), solo);
 
+    // v1.12 — o chão da ALA já na largada (a corrida nasce nas jaulas com o
+    // concreto de serviço, não com a grama genérica). O funil único do
+    // applyAreaEnvironment resolve ground/fg/montanhas/céu-vida.
+    this.applyAreaEnvironment(Constants.cityAreaFor(0));
+
     // Animais terrestres pisam no chão (pulos do macaco/zebra com arco real);
     // abatidos pelo dash e os voadores atravessam e reciclam fora da tela
     this.physics.add.collider(
@@ -2172,6 +2256,19 @@ export class GameScene extends Phaser.Scene {
       this.atmoLayers.forEach((l) => l.setTint(tint));
     }
 
+    // v1.12 — fade-ahead: o crossfade do fundo dispara ~520px ANTES da
+    // fronteira, para o mundo novo já existir do outro lado do portal quando
+    // o rino o atravessa (a "sensação de mudança" pedida pelo dono). Só
+    // dentro do zoo: pré-carregar o backdrop da cidade durante a luta do
+    // portão estragaria a arena do boss — lá o switchBiome rearma sozinho.
+    if (x + Constants.BIOME_FADE_AHEAD_PX < Constants.WIN_DISTANCE_PX) {
+      const ahead = Constants.getBiomeIndex(x + Constants.BIOME_FADE_AHEAD_PX);
+      if (ahead !== this.biomeFadeIndex) {
+        this.biomeFadeIndex = ahead;
+        this.startBiomeFade(Constants.BIOMES[ahead]);
+      }
+    }
+
     // Bioma do trecho atual (crossfade a cada 200m até a liberdade)
     const idx = Constants.getBiomeIndex(x);
     if (idx !== this.biomeIndex) this.switchBiome(idx);
@@ -2198,6 +2295,13 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  // v1.12 — o flash de travessia ganha a COR do bioma de destino (a
+  // identidade da área, precedente do AREA_FLASH da cidade). Tints CLAROS de
+  // propósito: flash escuro derrubaria o contraste dos obstáculos. Floresta e
+  // pântano entram na v1.13 (o violeta precisa de teste sobre o céu de
+  // crepúsculo antes de fechar) — até lá, o branco de sempre.
+  static BIOME_FLASH = { aviario: 0xb8ecff, savana: 0xffd9a0 };
+
   switchBiome(idx) {
     const first = this.biomeIndex === undefined;
     this.biomeIndex = idx;
@@ -2210,13 +2314,15 @@ export class GameScene extends Phaser.Scene {
     // explodindo, fogos, confete, dois toasts). Um segundo flash e um terceiro
     // toast aqui só atropelariam.
     if (!first && this.started && key !== 'cidade') {
-      const flash = this.add.rectangle(640, 360, 1280, 720, 0xffffff)
+      const flash = this.add.rectangle(640, 360, 1280, 720,
+        GameScene.BIOME_FLASH[key] || 0xffffff)
         .setScrollFactor(0).setDepth(50).setAlpha(0.35);
       this.tweens.add({
         targets: flash, alpha: 0, duration: 260,
         onComplete: () => flash.destroy(),
       });
-      this.showToast(Constants.BIOME_LABELS[key] || key, { y: 200, size: 32, duration: 1800 });
+      this.showToast(Constants.BIOME_LABELS[key] || key,
+        { y: 200, size: 32, duration: 1800, kind: 'biome' });
       this.audio.playSectorPass();
     }
 
@@ -2227,15 +2333,31 @@ export class GameScene extends Phaser.Scene {
     // área no mesmo frame; consultar a área por x aqui garante a ordem).
     this.applyAreaEnvironment(Constants.cityAreaFor(this.rhino.getSprite().x));
 
-    // Teleportes de debug podem pular vários biomas com o tween anterior no
-    // ar: mata o tween e recomeça o crossfade da camada B do zero
+    // v1.12: o crossfade normalmente JÁ disparou ~520px antes do arco (o
+    // fade-ahead do updateAtmosphere — o mundo novo visto ATRAVÉS do portal).
+    // Aqui só o rearma quem chegou sem ele: teleporte de debug, ou a entrada
+    // na cidade (o fade-ahead PARA no portão de propósito — pré-carregar o
+    // backdrop urbano mudaria a arena do boss no meio da luta).
+    if (this.biomeFadeIndex !== idx) {
+      this.biomeFadeIndex = idx;
+      this.startBiomeFade(key);
+    }
+  }
+
+  // O crossfade em si (500ms, par B sobre par A). Extraído do switchBiome na
+  // v1.12 para poder disparar ANTES da fronteira. Protocolo anti-teleporte:
+  // mata tween em voo e recomeça a camada B do zero.
+  startBiomeFade(key) {
     this.tweens.killTweensOf([this.bgFarB, this.bgNearB]);
     this.bgFarB.setTexture(`bg-far-${key}`).setAlpha(0);
     this.bgNearB.setTexture(`bg-near-${key}`).setAlpha(0);
     this.tweens.add({
       targets: [this.bgFarB, this.bgNearB],
       alpha: 1,
-      // 500ms para casar com a passagem do arco pela tela
+      // 500ms: disparado ~520px antes do arco, o alpha chega a ~1 exatamente
+      // na passagem (velocidade de cruzeiro na casa dos 300-500px/s) — a
+      // duração NÃO estica (fade longo = 4 tiles com alpha parcial por
+      // segundos, fill-rate dobrado em aparelho fraco)
       duration: 500,
       onComplete: () => {
         // Consolida na base A e libera B para a próxima fronteira
@@ -2279,8 +2401,16 @@ export class GameScene extends Phaser.Scene {
   applyAreaEnvironment(area) {
     const biome = Constants.BIOMES[this.biomeIndex] || Constants.BIOMES[0];
     const city = biome === 'cidade';
-    this.ground.setTexture((area && area.ground) || (city ? 'ground-city' : 'ground'));
-    this.bgFg.setTexture((area && area.fg) || (city ? 'bg-fg-city' : 'bg-fg'));
+    // v1.12 — as ALAS DO ZOO entram na mesma cadeia de precedência: área da
+    // cidade vence quando define; fora dela, a ala do bioma; ausente, legado.
+    const ala = city ? null : (Constants.ZOO_ALAS[biome] || null);
+    this.ground.setTexture((area && area.ground)
+      || (city ? 'ground-city' : (ala && ala.ground) || 'ground'));
+    this.bgFg.setTexture((area && area.fg)
+      || (city ? 'bg-fg-city' : (ala && ala.fg) || 'bg-fg'));
+    // A cordilheira do horizonte por ala (a savana não tem neve). Troca seca
+    // sob o flash, precedente do grama→asfalto; fora do zoo volta à clássica.
+    this.bgMountains.setTexture((ala && ala.mountains) || 'bg-mountains');
     this.applySkyLife((area && area.skyLife) || biome);
     // Tráfego só existe na cidade — e some quando a área diz cars:false
     // (não há carros na areia); religa sozinho ao voltar a uma área com cars
@@ -2321,7 +2451,9 @@ export class GameScene extends Phaser.Scene {
       // Brecha e as etapas do deserto também anunciam (o label da área);
       // o triunfo do pórtico em si fica com o updatePortals. Áreas sem
       // label (rodovia legada, deserto profundo) trocam em silêncio.
-      if (area.label) this.showToast(area.label, { y: 200, size: 32, duration: 1800 });
+      if (area.label) {
+        this.showToast(area.label, { y: 200, size: 32, duration: 1800, kind: 'biome' });
+      }
     }
 
     const bg = GameScene.AREA_BACKDROP[area.key];
@@ -2449,7 +2581,8 @@ export class GameScene extends Phaser.Scene {
         try { if (navigator.vibrate) navigator.vibrate(25); } catch (e) { /* opcional */ }
         if (StorageManager.getDashDenyHints() < Constants.DASH_DENY_HINT_MAX) {
           StorageManager.addDashDenyHint();
-          this.showToast('⏳ Investida recarregando — 1 segundo', { y: 250, size: 26, duration: 1500 });
+          this.showToast('⏳ Investida recarregando — 1 segundo',
+            { y: 250, size: 26, duration: 1500, kind: 'hint' });
         }
       }
     }
@@ -2856,7 +2989,9 @@ export class GameScene extends Phaser.Scene {
     if (!step) { this.showOpeningHints = false; return; }
     if (x < step.x - 600) return;
     this.openingHintIndex++;
-    if (step.hint) this.showToast(step.hint, { y: 210, size: 30, duration: 1800 });
+    if (step.hint) {
+      this.showToast(step.hint, { y: 210, size: 30, duration: 1800, kind: 'hint' });
+    }
   }
 
   // ---------------------------------------------------------------- terreno
@@ -3179,7 +3314,8 @@ export class GameScene extends Phaser.Scene {
         if (this.rhino.getSprite().x / Constants.PIXELS_PER_METER >= proximo) {
           this.marcosPendentes.shift();
           StorageManager.addMarco(proximo);
-          this.showToast(`🏁 Primeira vez além de ${proximo}m!`, { y: 250, size: 30, duration: 2000 });
+          this.showToast(`🏁 Primeira vez além de ${proximo}m!`,
+            { y: 250, size: 30, duration: 2000, kind: 'marco' });
           this.audio.playFanfare();
         }
       }
@@ -3490,7 +3626,41 @@ export class GameScene extends Phaser.Scene {
   }
 
   // Aviso rápido fixo na tela, sem modal: a corrida nunca espera o jogador
-  showToast(text, { y = 300, size = 44, color = '#ffd700', duration = 2200 } = {}) {
+  // v1.12 — o ANUNCIADOR: três vozes disputavam o mesmo y (label de bioma +
+  // dica da Escola + marco de distância colidiam ilegíveis, foto da linha de
+  // base). Regras do painel de design, na ordem:
+  //   kind 'hint'  — prioridade de TEMPO: a dica é a variável em medição da
+  //                  Escola e NUNCA espera; se o label de bioma é dono da
+  //                  tela, ela desce um degrau (y ≥ 260) e sai já.
+  //   kind 'biome' — prioridade de LUGAR: dono do y na travessia (1,5s).
+  //   kind 'marco' — espera a tela desocupar (re-agenda uma vez, ~1,2s).
+  //   sem kind     — comportamento de sempre, byte a byte.
+  showToast(text, opts = {}) {
+    const { y = 300, size = 44, color = '#ffd700', duration = 2200, kind } = opts;
+    const now = this.time.now;
+    if (kind === 'marco' && !opts.jaEsperou && now < (this.toastBusyUntil || 0)) {
+      this.time.delayedCall(this.toastBusyUntil - now + 80, () => {
+        if (!this.gameOver && !this.won) {
+          this.showToast(text, { ...opts, jaEsperou: true });
+        }
+      });
+      return null;
+    }
+    let yy = y;
+    if (kind === 'hint') {
+      if (now < (this.biomeOwnsUntil || 0)) yy = Math.max(y, 260);
+      this.hintOwnsUntil = now + 1500;
+    }
+    if (kind === 'biome') {
+      // dica recente no y ~210? o label sobe um degrau (nenhum dos dois espera)
+      if (now < (this.hintOwnsUntil || 0)) yy = Math.min(y, 140);
+      this.biomeOwnsUntil = now + 1500;
+    }
+    if (kind) this.toastBusyUntil = Math.max(this.toastBusyUntil || 0, now + 1200);
+    return this.paintToast(text, { y: yy, size, color, duration });
+  }
+
+  paintToast(text, { y = 300, size = 44, color = '#ffd700', duration = 2200 } = {}) {
     const toast = this.add.text(640, y, text, {
       fontFamily: '"Arial Black", Arial, sans-serif',
       fontSize: `${size}px`,

@@ -31,6 +31,11 @@ export class TextureFactory {
     // v1.8.10 — As Areias do Tempo
     passo('generateGroundDesert'); this.generateGroundDesert(scene);
     passo('generateForegroundDesert'); this.generateForegroundDesert(scene);
+    // v1.12 — O Zoo que Fica Para Trás (alas do zoo)
+    passo('generateGroundZoo'); this.generateGroundZoo(scene);
+    passo('generateForegroundZoo'); this.generateForegroundZoo(scene);
+    passo('generateMountainsSavana'); this.generateMountainsSavana(scene);
+    passo('generateZooArches'); this.generateZooArches(scene);
     passo('generateMarcoObelisco'); this.generateMarcoObelisco(scene);
     passo('generateArrowProjectile'); this.generateArrowProjectile(scene);
     passo('generateFalcaoProjectile'); this.generateFalcaoProjectile(scene);
@@ -57,7 +62,7 @@ export class TextureFactory {
 
     for (const [pos, name] of heights) {
       for (const skin of ['', '-city', '-suburbio', '-vidro', '-contencao',
-        '-ruina', '-piramide']) {
+        '-ruina', '-piramide', '-aviario', '-savana']) {
         this.generateCrackedWallVariant(scene, `cracked-${name}${skin}`, pos, skin, name);
         this.generateBrokenWallVariant(scene, `cracked-${name}${skin}-broken`, pos, skin, name);
       }
@@ -158,6 +163,26 @@ export class TextureFactory {
       gold: 0xd4af37, lapis: 0x1e4b8f, glyph: 0x7a5f34,
       metal: 0x8a939f, metalDark: 0x59616b,
       band: 0xf0e2c0, bandLight: 0xfaf0d6, bandLine: 0x7a5f34,
+    },
+    // ------- v1.12 "O Zoo que Fica Para Trás": famílias das ALAS DO ZOO ----
+    // zoo: true = corpo inteiro (sem coroamento de prédio, sem topo cortado
+    // em y=100) e pintor próprio (drawZooWall) — são muros de zoo, não
+    // fachadas. A banda da fresta continua CLARA sobre corpo escuro (regra).
+    '-aviario': {
+      // Treliça do Grande Domo: ferro pintado de verde-petróleo, vãos de
+      // vidro esverdeado, losangos rebitados e um passarinho pousado no topo
+      style: 'aviario', zoo: true,
+      body: 0x2e4a44, glass: 0x28383e, glassLight: 0x3a5a52,
+      iron: 0x243c38, ironLight: 0x4a6b62, rivet: 0x9fc4b0,
+      band: 0xe8d9a8, bandLight: 0xf4e8c4, bandLine: 0x3a4a44,
+    },
+    '-savana': {
+      // Taipa/muralha-cupim: terra socada em estratos, rachaduras de sol,
+      // riscos de garra e capim seco brotando do topo
+      style: 'savana', zoo: true,
+      body: 0x6e4228, bodyDark: 0x54301c, bodyLight: 0x86522f,
+      strata: 0x5e3a22, grass: 0xd9b36a, grassDark: 0xb5854f,
+      band: 0xe8cf9a, bandLight: 0xf4dfae, bandLine: 0x6b4a2a,
     },
   };
 
@@ -866,16 +891,150 @@ export class TextureFactory {
     }
   }
 
+  // v1.12 — pintor das famílias de ALA DO ZOO (paletas com zoo:true no
+  // FACADES): muro inteiro, sem coroamento de prédio. Mesma assinatura do
+  // drawBricks/drawFacade para ser drop-in nos dois variants; floreios em Y
+  // ABSOLUTO do canvas com guarda de dentro-do-trecho (regra do drawFacade —
+  // o broken pinta em segmentos). A banda da fresta segue CLARA sobre corpo
+  // escuro (drawConcreteBand com a paleta da família).
+  static drawZooWall(g, x0, y0, w, h, inBand, P) {
+    if (inBand) { this.drawConcreteBand(g, x0, y0, w, h, P); return; }
+    const y1 = y0 + h;
+
+    if (P.style === 'aviario') {
+      // Treliça do Grande Domo: painéis de vidro escuro entre montantes de
+      // ferro, losangos diagonais rebitados — a parede é uma fatia do domo
+      g.fillStyle(P.glass, 1);
+      g.fillRect(x0, y0, w, h);
+      // colunas de vidro mais claro alternadas (leitura de curtain de aviário)
+      g.fillStyle(P.glassLight, 0.5);
+      for (let cx = x0 + 12; cx < x0 + w - 12; cx += 44) {
+        g.fillRect(cx, y0, 16, h);
+      }
+      // montantes horizontais de ferro (passo 60, alinhado ao canvas)
+      g.fillStyle(P.body, 1);
+      for (let y = Math.ceil(y0 / 60) * 60; y < y1; y += 60) {
+        const hh = Math.min(8, y1 - y);
+        if (hh > 0) g.fillRect(x0, y, w, hh);
+      }
+      // losangos da treliça: diagonais nos dois sentidos (passo 50, 45°),
+      // com rebite claro nos cruzamentos — clipe manual no trecho [y0, y1].
+      // ironLight de propósito: iron sobre o vidro escuro sumia (foto da
+      // 1ª prova) e a parede lia como torre lisa, não como treliça.
+      g.lineStyle(3, P.ironLight, 0.8);
+      for (let base = -Math.ceil(w / 50) * 50; base < 720; base += 50) {
+        // descendo: (x0, base) → (x0+w, base+w); subindo: espelho
+        const segs = [
+          [x0, base, x0 + w, base + w],
+          [x0, base + w, x0 + w, base],
+        ];
+        for (const [ax, ay, bx, by] of segs) {
+          if ((ay < y0 && by < y0) || (ay > y1 && by > y1)) continue;
+          const t0 = Math.max(0, Math.min(1, (y0 - ay) / (by - ay)));
+          const t1 = Math.max(0, Math.min(1, (y1 - ay) / (by - ay)));
+          const lo = Math.min(t0, t1), hi = Math.max(t0, t1);
+          g.lineBetween(
+            ax + (bx - ax) * lo, ay + (by - ay) * lo,
+            ax + (bx - ax) * hi, ay + (by - ay) * hi
+          );
+        }
+      }
+      g.fillStyle(P.rivet, 0.9);
+      for (let y = Math.ceil(y0 / 50) * 50; y < y1; y += 50) {
+        g.fillCircle(x0 + 8, y, 2.5);
+        g.fillCircle(x0 + w - 8, y, 2.5);
+        if (y + 25 < y1) g.fillCircle(x0 + w / 2, y + 25, 2.5);
+      }
+      // topo do muro: montante curvo (fatia do domo) + passarinho pousado e
+      // uma pena presa na tela — só quando o trecho contém o topo do canvas
+      if (y0 <= 6) {
+        g.fillStyle(P.body, 1);
+        g.fillRect(x0, 0, w, 10);
+        g.lineStyle(6, P.ironLight, 1);
+        g.beginPath();
+        g.arc(x0 + w / 2, 46, 52, Math.PI * 1.15, Math.PI * 1.85);
+        g.strokePath();
+        // passarinho-silhueta pousado no topo
+        g.fillStyle(0x1c2c28, 1);
+        g.fillEllipse(x0 + 30, 4, 14, 9);
+        g.fillCircle(x0 + 37, -1, 4.5);
+        g.fillStyle(0xf5a623, 1);
+        g.fillTriangle(x0 + 41, -2, x0 + 41, 1, x0 + 45, -0.5);
+        // pena clara presa na treliça
+        g.fillStyle(0xf4e8c4, 0.9);
+        g.fillEllipse(x0 + 72, 30, 5, 12);
+      }
+      // bordas de ferro (pilares próprios da família)
+      g.fillStyle(P.body, 1);
+      g.fillRect(x0, y0, 6, h);
+      g.fillRect(x0 + w - 6, y0, 6, h);
+      g.fillStyle(P.ironLight, 0.6);
+      g.fillRect(x0 + 4, y0, 2, h);
+      return;
+    }
+
+    // savana — taipa/muralha-cupim: terra socada em estratos irregulares
+    g.fillStyle(P.body, 1);
+    g.fillRect(x0, y0, w, h);
+    // estratos horizontais (passo 34, offset alternado — leitura de taipa)
+    for (let y = Math.floor(y0 / 34) * 34; y < y1; y += 34) {
+      const row = Math.floor(y / 34);
+      const yy = Math.max(y, y0);
+      const hh = Math.min(y + (row % 2 ? 12 : 8), y1) - yy;
+      if (hh <= 0) continue;
+      g.fillStyle(row % 3 === 0 ? P.strata : P.bodyDark, 0.45);
+      g.fillRect(x0 + (row % 2) * 8, yy, w - (row % 2) * 8, hh);
+    }
+    g.fillStyle(P.bodyLight, 0.35);       // sol batendo na face esquerda
+    g.fillRect(x0 + 8, y0, 10, h);
+    // rachaduras de sol ramificadas (Y absoluto + guarda de trecho)
+    g.lineStyle(2.5, P.bodyDark, 0.9);
+    for (const cy of [150, 470, 640]) {
+      if (cy - 40 < y0 || cy + 44 > y1) continue;
+      g.strokePoints([
+        { x: x0 + 20, y: cy - 38 }, { x: x0 + 34, y: cy - 10 },
+        { x: x0 + 26, y: cy + 12 }, { x: x0 + 46, y: cy + 40 },
+      ], false);
+      g.lineBetween(x0 + 34, cy - 10, x0 + 52, cy - 22);
+      g.lineBetween(x0 + 26, cy + 12, x0 + 12, cy + 26);
+    }
+    // riscos de garra (território) — três sulcos paralelos
+    if (430 >= y0 && 500 <= y1) {
+      g.lineStyle(4, P.bodyDark, 0.8);
+      for (let i = 0; i < 3; i++) {
+        g.lineBetween(x0 + 58 + i * 11, 434, x0 + 48 + i * 11, 496);
+      }
+    }
+    // capim seco brotando do topo do muro
+    if (y0 <= 4) {
+      g.fillStyle(P.bodyDark, 1);
+      g.fillRect(x0, 0, w, 6);
+      for (let tx = x0 + 6; tx < x0 + w - 4; tx += 14) {
+        g.fillStyle(tx % 28 < 14 ? P.grass : P.grassDark, 1);
+        g.fillTriangle(tx, 6, tx + 6, 6, tx + 2 + ((tx * 7) % 5) - 2, -10 - ((tx * 13) % 9));
+      }
+    }
+    // bordas arredondadas da taipa (sombra nos flancos)
+    g.fillStyle(P.bodyDark, 0.7);
+    g.fillRect(x0, y0, 4, h);
+    g.fillRect(x0 + w - 4, y0, 4, h);
+  }
+
   static generateCrackedWallVariant(scene, key, crackPos, skin = '', crown = 'ground') {
     const w = 100, h = 720;
     const C = Constants.COLORS;
     const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    // v1.8.7: qualquer skin não-vazio é fachada urbana — muda só a PALETA
-    const urban = skin !== '';
+    // v1.8.7: skin não-vazio é fachada urbana — muda só a PALETA.
+    // v1.12: paleta com zoo:true é MURO de ala do zoo (pintor próprio,
+    // corpo inteiro, sem coroamento de prédio).
     const P = this.facadePalette(skin);
-    const paint = urban
-      ? (gg, x0, y0, ww, hh, inBand) => this.drawFacade(gg, x0, y0, ww, hh, inBand, P)
-      : this.drawBricks.bind(this);
+    const zooFam = skin !== '' && !!P.zoo;
+    const urban = skin !== '' && !zooFam;
+    const paint = zooFam
+      ? (gg, x0, y0, ww, hh, inBand) => this.drawZooWall(gg, x0, y0, ww, hh, inBand, P)
+      : urban
+        ? (gg, x0, y0, ww, hh, inBand) => this.drawFacade(gg, x0, y0, ww, hh, inBand, P)
+        : this.drawBricks.bind(this);
 
     const bandTop = crackPos * h - Constants.CRACK_BAND_HALF;
     const bandBottom = crackPos * h + Constants.CRACK_BAND_HALF;
@@ -903,12 +1062,13 @@ export class TextureFactory {
     g.lineBetween(30, bandTop - 14, 24, bandTop + 4);
     g.lineBetween(70, bandBottom - 4, 76, bandBottom + 14);
 
-    // pillar edges (os skins de cidade já têm os seus pilares de concreto)
-    if (!urban) {
+    // pillar edges (os skins de cidade já têm os seus pilares de concreto;
+    // as famílias de zoo desenham as próprias bordas no drawZooWall)
+    if (!urban && !zooFam) {
       g.fillStyle(C.wallMortar, 0.8);
       g.fillRect(0, 0, 3, h);
       g.fillRect(w - 3, 0, 3, h);
-    } else {
+    } else if (urban) {
       // POR ÚLTIMO: desenhado antes, a fachada o cobriria
       this.drawCityCrown(g, crown, w, skin);
     }
@@ -923,11 +1083,14 @@ export class TextureFactory {
     const w = 100, h = 720;
     const C = Constants.COLORS;
     const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const urban = skin !== '';
     const P = this.facadePalette(skin);
-    const paint = urban
-      ? (gg, x0, y0, ww, hh, inBand) => this.drawFacade(gg, x0, y0, ww, hh, inBand, P)
-      : this.drawBricks.bind(this);
+    const zooFam = skin !== '' && !!P.zoo;
+    const urban = skin !== '' && !zooFam;
+    const paint = zooFam
+      ? (gg, x0, y0, ww, hh, inBand) => this.drawZooWall(gg, x0, y0, ww, hh, inBand, P)
+      : urban
+        ? (gg, x0, y0, ww, hh, inBand) => this.drawFacade(gg, x0, y0, ww, hh, inBand, P)
+        : this.drawBricks.bind(this);
 
     const cy = crackPos * h;
     const holeTop = cy - 70;
@@ -968,11 +1131,11 @@ export class TextureFactory {
     g.fillTriangle(4, holeBottom, 50, holeBottom, 26, holeBottom - 18);
     g.fillTriangle(40, holeBottom, 96, holeBottom, 70, holeBottom - 14);
 
-    if (!urban) {
+    if (!urban && !zooFam) {
       g.fillStyle(C.wallMortar, 0.8);
       if (holeTop > 0) g.fillRect(0, 0, 3, holeTop);
       if (holeBottom < h) g.fillRect(0, holeBottom, 3, h - holeBottom);
-    } else if (holeTop > 100) {
+    } else if (urban && holeTop > 100) {
       // Sem isto a parede perderia a torre no frame da explosão. As três
       // alturas passam (o buraco mais alto começa em y=110); a guarda existe
       // para uma altura de fresta futura não desenhar coroa dentro do buraco.
@@ -1735,48 +1898,63 @@ export class TextureFactory {
   // e bandeirinha verde com cruz veterinária.
   static generateTranqTower(scene) {
     const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const stone = 0x8f99a3, stoneDark = 0x747e88, joint = 0x59626b, slit = 0x23272c;
+    // v1.12 — a torre de pedra MEDIEVAL era o objeto mais alienígena do zoo
+    // (parecia castelo no meio das jaulas). Vira TORRE DE VIGIA DO TRATADOR:
+    // madeira pintada de verde-zoo com telhado de zinco. Mesmo canvas 84x120,
+    // MESMA seteira em (36,70) — o disparo sai de this.y + 38
+    // (TranqTower.preUpdate); mover a abertura desalinharia o dardo. A
+    // bandeirinha veterinária fica: é a assinatura (e o humor) da torre.
+    const wood = 0x3f6b52, woodDark = 0x2e523e, woodLight = 0x5c8a68;
+    const leg = 0x4a3524, slit = 0x23272c;
 
-    // corpo de pedra com fiadas de blocos alternadas
-    g.fillStyle(stone, 1);
-    g.fillRect(6, 14, 72, 106);
-    for (let y = 14; y < 120; y += 16) {
-      const off = (Math.floor(y / 16) % 2) * 18;
-      g.fillStyle(stoneDark, 1);
-      for (let x = 6 + off; x < 78; x += 36) {
-        g.fillRect(x, y, Math.min(16, 78 - x), 14);
-      }
-    }
-    g.lineStyle(2, joint, 0.7);
-    for (let y = 14; y <= 118; y += 16) g.lineBetween(6, y, 78, y);
-    g.fillStyle(joint, 0.9);
-    g.fillRect(6, 14, 3, 106);
-    g.fillRect(75, 14, 3, 106);
-    // sombra lateral (volume cilíndrico da torre)
+    // pernas de madeira crua (a torre é palafita de mirante)
+    g.fillStyle(leg, 1);
+    g.fillRect(12, 96, 8, 24);
+    g.fillRect(64, 96, 8, 24);
+    g.fillStyle(0x35261a, 1);                      // travessa diagonal
+    g.fillTriangle(14, 118, 20, 118, 68, 100);
+    g.fillTriangle(64, 100, 70, 100, 16, 118);
+
+    // cabine de tábuas pintadas de verde-zoo
+    g.fillStyle(wood, 1);
+    g.fillRect(6, 28, 72, 74);
+    g.lineStyle(2, woodDark, 0.8);                 // juntas das tábuas
+    for (let y = 40; y < 102; y += 12) g.lineBetween(6, y, 78, y);
+    g.fillStyle(woodDark, 0.9);                    // quinas
+    g.fillRect(6, 28, 4, 74);
+    g.fillRect(74, 28, 4, 74);
+    g.fillStyle(woodLight, 0.5);                   // luz na quina esquerda
+    g.fillRect(10, 28, 3, 74);
+    // sombra lateral (volume)
     g.fillStyle(0x000000, 0.12);
-    g.fillRect(60, 14, 18, 106);
+    g.fillRect(60, 28, 18, 74);
+    // janelinha de observação com o vidro escuro
+    g.fillStyle(0x23313c, 1);
+    g.fillRect(14, 38, 20, 14);
+    g.lineStyle(2, woodDark, 1);
+    g.strokeRect(14, 38, 20, 14);
 
-    // ameias (3 merlões)
-    [4, 33, 62].forEach((x) => {
-      g.fillStyle(stone, 1);
-      g.fillRect(x, 0, 18, 16);
-      g.lineStyle(2, joint, 0.8);
-      g.strokeRect(x, 0, 18, 16);
-    });
+    // telhado de ZINCO com beiral
+    g.fillStyle(0xb8bec4, 1);
+    g.fillTriangle(0, 28, 84, 28, 42, 8);
+    g.fillStyle(0x9aa0a6, 1);
+    g.fillTriangle(42, 8, 84, 28, 62, 28);         // água em sombra
+    g.fillStyle(0x8a939f, 1);                      // beiral
+    g.fillRect(0, 26, 84, 4);
 
     // seteira escura de onde sai o dardo (peito do rino no chão: y≈85 aqui)
     g.fillStyle(slit, 1);
     g.fillRect(36, 70, 10, 32);
     g.fillCircle(41, 70, 5);
 
-    // bandeirinha verde com cruz veterinária branca
+    // bandeirinha verde com cruz veterinária branca (agora no topo do zinco)
     g.lineStyle(3, 0x4a3524, 1);
-    g.lineBetween(70, 0, 70, 14);
+    g.lineBetween(70, 2, 70, 22);
     g.fillStyle(0x3fa34d, 1);
-    g.fillTriangle(69, 0, 69, 11, 50, 5);
+    g.fillTriangle(69, 2, 69, 13, 50, 7);
     g.fillStyle(0xffffff, 1);
-    g.fillRect(58, 4, 7, 2);
-    g.fillRect(60.5, 1.5, 2, 7);
+    g.fillRect(58, 6, 7, 2);
+    g.fillRect(60.5, 3.5, 2, 7);
 
     g.generateTexture('tranq-tower', 84, 120);
     g.destroy();
@@ -2039,6 +2217,100 @@ export class TextureFactory {
     }
 
     g.generateTexture('ground-desert', w, h);
+    g.destroy();
+  }
+
+  // v1.12 — chãos das ALAS DO ZOO: o chão está na tela 100% do tempo e era o
+  // maior traidor das "três gêmeas" (a mesma faixa de grama verde por 1000m).
+  // Mesmo canvas 1280x100 dos irmãos (o tileSprite troca por setTexture).
+  static generateGroundZoo(scene) {
+    const w = 1280, h = 100;
+
+    // ---- jaulas: concreto de ala de serviço + faixa amarela + grama aparada
+    let g = scene.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(0x9a9284, 1);                      // concreto
+    g.fillRect(0, 12, w, h - 12);
+    g.fillStyle(0x6fa04e, 1);                      // grama aparada (borda)
+    g.fillRect(0, 0, w, 12);
+    g.fillStyle(0x578040, 1);                      // recorte baixinho, regular
+    for (let x = 0; x < w; x += 20) g.fillTriangle(x, 12, x + 20, 12, x + 10, 15);
+    g.fillStyle(0x578040, 0.5);
+    g.fillRect(0, 0, w, 3);
+    g.fillStyle(0x6e675c, 0.8);                    // juntas de placa
+    for (let x = 0; x < w; x += 160) g.fillRect(x, 12, 3, h - 12);
+    g.fillStyle(0xd8b84a, 1);                      // faixa amarela de serviço
+    for (let x = 0; x < w; x += 80) g.fillRect(x + 8, 40, 52, 6);
+    let seed = 17;
+    let rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+    for (let i = 0; i < 18; i++) {                 // manchas do concreto
+      g.fillStyle(i % 2 === 0 ? 0x8a8274 : 0xa8a094, 1);
+      g.fillCircle(rnd() * w, 22 + rnd() * 70, 2 + rnd() * 3);
+    }
+    g.fillStyle(0x7a5230, 0.9);                    // palha varrida para o canto
+    [220, 640, 1060].forEach((x) => g.fillEllipse(x, 78, 40, 8));
+    g.generateTexture('ground-jaulas', w, h);
+    g.destroy();
+
+    // ---- aviário: piso claro de passeio, canteiros e penas caídas
+    g = scene.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(0xb8ae9a, 1);                      // piso claro
+    g.fillRect(0, 12, w, h - 12);
+    g.fillStyle(0x5f8a52, 1);                      // canteiro na borda
+    g.fillRect(0, 0, w, 12);
+    g.fillStyle(0x4a7040, 1);
+    for (let x = 0; x < w; x += 16) g.fillTriangle(x, 12, x + 16, 12, x + 8, 17);
+    g.fillStyle(0x4a7040, 0.5);
+    g.fillRect(0, 0, w, 3);
+    g.fillStyle(0x9a9080, 0.8);                    // juntas do lajotão
+    for (let x = 0; x < w; x += 128) g.fillRect(x, 12, 3, h - 12);
+    g.fillStyle(0x9a9080, 0.5);
+    g.fillRect(0, 52, w, 2);
+    seed = 29;
+    rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+    for (let i = 0; i < 14; i++) {                 // penas brancas e rosa
+      const px = rnd() * w, py = 24 + rnd() * 64;
+      g.fillStyle(i % 3 === 0 ? 0xd96a8a : 0xf4efe6, 0.95);
+      g.fillEllipse(px, py, 10, 4);
+      g.fillStyle(i % 3 === 0 ? 0xb8506e : 0xd8d2c4, 0.9);
+      g.fillRect(px - 5, py - 0.5, 10, 1);
+    }
+    g.fillStyle(0x6fb7d8, 0.85);                   // poça da banheira transbordada
+    g.fillEllipse(900, 84, 60, 10);
+    g.generateTexture('ground-aviario', w, h);
+    g.destroy();
+
+    // ---- savana: laterita vermelha + capim seco dourado
+    g = scene.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(0xa5522e, 1);                      // laterita
+    g.fillRect(0, 12, w, h - 12);
+    g.fillStyle(0xd9b36a, 1);                      // capim seco (borda)
+    g.fillRect(0, 0, w, 12);
+    g.fillStyle(0xb5854f, 1);
+    // passo 16 divide 1280 e cada lâmina cabe no próprio passo — a emenda
+    // do tile fecha sem lâmina cortada (regra das outras faixas de chão)
+    for (let x = 0; x < w; x += 16) {
+      g.fillTriangle(x, 12, x + 10, 12, x + 4 + ((x * 7) % 5), 12 - 8 - ((x * 11) % 7));
+    }
+    g.fillStyle(0xb5854f, 0.5);
+    g.fillRect(0, 0, w, 3);
+    g.fillStyle(0x8a4426, 0.9);                    // crosta rachada (passo 80
+    for (let x = 0; x < w; x += 80) {              //  divide 1280; tudo ≤ 74)
+      g.fillRect(x + 16, 34, 40, 2);
+      g.fillRect(x + 44, 60, 30, 2);
+      g.fillRect(x + 40, 34, 2, 28);
+    }
+    seed = 41;
+    rnd = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
+    for (let i = 0; i < 20; i++) {                 // seixos e torrões
+      g.fillStyle(i % 2 === 0 ? 0x8a4426 : 0xbf6a3e, 1);
+      g.fillCircle(rnd() * w, 24 + rnd() * 68, 2 + rnd() * 3);
+    }
+    g.fillStyle(0x6b4a2a, 0.9);                    // pegadas de casco (a manada)
+    [340, 380, 760, 800, 1180].forEach((x) => {
+      g.fillEllipse(x, 70, 9, 6);
+      g.fillEllipse(x + 14, 66, 9, 6);
+    });
+    g.generateTexture('ground-savana', w, h);
     g.destroy();
   }
 
@@ -2516,6 +2788,52 @@ export class TextureFactory {
     g.destroy();
   }
 
+  // v1.12 — horizonte da SAVANA: mesas e kopjes ocre no lugar da cordilheira
+  // NEVADA (o defeito mais gritante das fotos da linha de base — neve na
+  // savana). Jaulas/aviário MANTÊM as nevadas de propósito: são "o mundo lá
+  // fora" que o rino quer alcançar. Mesmo canvas 640x300; formas de borda
+  // duplicadas ±640 para a emenda (regra do generateMountains).
+  static generateMountainsSavana(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    const back = 0xc9a45e, front = 0xb0855a, shade = 0x9a6f45;
+
+    // mesas (topo chato) ao fundo
+    const mesa = (x, wTop, hTop) => {
+      g.fillTriangle(x - wTop * 0.85, 300, x - wTop * 0.5, hTop, x, 300);
+      g.fillRect(x - wTop * 0.5, hTop, wTop, 300 - hTop);
+      g.fillTriangle(x + wTop * 0.5, hTop, x + wTop * 0.85, 300, x, 300);
+    };
+    g.fillStyle(back, 1);
+    mesa(120, 150, 160);
+    mesa(430, 190, 140);
+    mesa(120 + 640, 150, 160);   // cópias de emenda
+    mesa(430 - 640, 190, 140);
+
+    // kopjes (pedras empilhadas arredondadas) na frente
+    g.fillStyle(front, 1);
+    const kopje = (x, s) => {
+      g.fillEllipse(x, 262, 150 * s, 80 * s);
+      g.fillEllipse(x - 40 * s, 232, 90 * s, 60 * s);
+      g.fillEllipse(x + 34 * s, 224, 70 * s, 52 * s);
+      g.fillEllipse(x + 6 * s, 196, 52 * s, 40 * s);
+    };
+    kopje(250, 1);
+    kopje(580, 0.8);
+    kopje(580 - 640, 0.8);
+    g.fillStyle(shade, 0.6);                       // sombra dos kopjes
+    g.fillEllipse(280, 268, 90, 40);
+    g.fillEllipse(606, 262, 66, 30);
+    g.fillEllipse(606 - 640, 262, 66, 30);
+
+    // acácia solitária na mesa maior (silhueta, longe do detalhe)
+    g.fillStyle(shade, 1);
+    g.fillRect(426, 108, 5, 34);
+    g.fillEllipse(428, 104, 64, 14);
+
+    g.generateTexture('bg-mountains-savana', 640, 300);
+    g.destroy();
+  }
+
   // Slow drifting fluffy clouds (own parallax layer)
   static generateClouds(scene) {
     const w = 640, h = 200;
@@ -2617,11 +2935,60 @@ export class TextureFactory {
       g.fillStyle(c1, 1);
       g.fillRect(0, 246, 640, 14);
     };
-    const fence = (g) => {
+    // v1.12 — a CERCA-BARÔMETRO: a mesma cerca atravessa as alas variando o
+    // ESTADO (íntegra → portão de serviço aberto → tábuas quebradas para
+    // fora) e conta a fuga sem custar uma chave nova. opts.gap = x de um
+    // portão de serviço escancarado; opts.broken = tábuas arrebentadas.
+    const fence = (g, opts = {}) => {
       g.fillStyle(C.fenceBrown, 1);
-      for (let x = 16; x < 640; x += 80) g.fillRect(x, 130, 10, 130);
-      g.fillRect(0, 150, 640, 9);
-      g.fillRect(0, 195, 640, 9);
+      for (let x = 16; x < 640; x += 80) {
+        // o vão do portão fica sem postes; o quebrado derruba um poste
+        if (opts.gap !== undefined && x > opts.gap && x < opts.gap + 90) continue;
+        if (opts.broken && x === 336) {            // poste tombado
+          g.save();
+          g.translateCanvas(x, 260);
+          g.rotateCanvas(-0.5);
+          g.fillRect(0, -130, 10, 130);
+          g.restore();
+          continue;
+        }
+        g.fillRect(x, 130, 10, 130);
+      }
+      const rail = (y) => {
+        if (opts.gap !== undefined) {
+          g.fillRect(0, y, opts.gap, 9);
+          g.fillRect(opts.gap + 100, y, 640 - opts.gap - 100, 9);
+        } else if (opts.broken) {
+          // tábuas arrebentadas PARA FORA no meio do lanço
+          g.fillRect(0, y, 300, 9);
+          g.fillRect(400, y, 240, 9);
+          g.save();
+          g.translateCanvas(302, y + 4);
+          g.rotateCanvas(0.35);
+          g.fillRect(0, -4, 54, 9);
+          g.restore();
+          g.save();
+          g.translateCanvas(398, y + 2);
+          g.rotateCanvas(-0.45);
+          g.fillRect(-52, -4, 52, 9);
+          g.restore();
+        } else {
+          g.fillRect(0, y, 640, 9);
+        }
+      };
+      rail(150);
+      rail(195);
+      if (opts.gap !== undefined) {
+        // a folha do portão escancarada contra a cerca (passou alguém grande)
+        g.save();
+        g.translateCanvas(opts.gap + 6, 254);
+        g.rotateCanvas(0.55);
+        g.fillStyle(C.fenceBrown, 1);
+        g.fillRect(0, -116, 9, 116);
+        g.fillRect(0, -110, 78, 8);
+        g.fillRect(0, -60, 78, 8);
+        g.restore();
+      }
     };
     const flowersOn = (g, list) => {
       list.forEach(([x, y, c]) => {
@@ -3023,27 +3390,112 @@ export class TextureFactory {
     };
 
     // ================= 0–200m: JAULAS — é daqui que ele foge =================
+    // v1.12: o alarme acabou de disparar. O landmark é o PORTÃO MONUMENTAL de
+    // entrada do zoo com a torre do relógio — a fuga começou e você o vê
+    // ficando para trás. Narrativa por OBJETOS, nunca por perseguidores.
     makeFar('jaulas', (g) => {
       hills(g, 0x8fb87a, 0x7ba468);
-      keeperHut(g, 458);
-      bigCage(g, 54, 150, 'lion');
-      bigCage(g, 240, 128, 'tiger');
-      noticeBoard(g, 200, 236);
-      visitors(g, 396);
+      // portão monumental "ZOO" (letras em barras, sem Text) + relógio
+      const zooGate = (x) => {
+        const base = FAR_BASE;
+        g.fillStyle(0xd8cdb4, 1);                  // pilares monumentais
+        g.fillRect(x, base - 128, 26, 128);
+        g.fillRect(x + 128, base - 128, 26, 128);
+        g.fillStyle(0x3f6b52, 1);                  // arco-letreiro verde-zoo
+        g.fillRect(x - 6, base - 150, 166, 34);
+        g.fillStyle(0xd8cdb4, 1);                  // "ZOO" em barras
+        const lz = x + 24;
+        g.fillRect(lz, base - 144, 26, 4);         // Z
+        g.fillRect(lz, base - 126, 26, 4);
+        g.fillTriangle(lz + 22, base - 140, lz + 26, base - 140, lz + 2, base - 126);
+        [lz + 38, lz + 72].forEach((ox) => {       // O O
+          g.lineStyle(4, 0xd8cdb4, 1);
+          g.strokeCircle(ox + 11, base - 133, 9);
+        });
+        g.fillStyle(0x3f6b52, 1);                  // torre do relógio
+        g.fillRect(x + 60, base - 196, 34, 46);
+        g.fillTriangle(x + 52, base - 196, x + 102, base - 196, x + 77, base - 216);
+        g.fillStyle(0xf3e2b8, 1);                  // mostrador
+        g.fillCircle(x + 77, base - 174, 11);
+        g.lineStyle(2, 0x3a4152, 1);
+        g.lineBetween(x + 77, base - 174, x + 77, base - 181);
+        g.lineBetween(x + 77, base - 174, x + 83, base - 172);
+        // cancela levantada (ninguém fechou a saída a tempo)
+        g.fillStyle(0xe8e9ec, 1);
+        g.save();
+        g.translateCanvas(x + 128, base - 60);
+        g.rotateCanvas(-1.1);
+        g.fillRect(0, -6, 92, 8);
+        g.restore();
+        g.fillStyle(0xff6b5e, 1);
+        g.fillRect(x + 124, base - 66, 10, 12);
+      };
+      zooGate(452);
+      keeperHut(g, 60);
+      // giroflex âmbar ACESO no poste da cabana (estático — luz piscando na
+      // zona de lição seria ímã de atenção; veto do painel respeitado)
+      g.fillStyle(0x59616b, 1);
+      g.fillRect(176, FAR_BASE - 170, 5, 74);
+      g.fillStyle(0xffb84a, 1);
+      g.fillEllipse(178.5, FAR_BASE - 174, 14, 10);
+      g.fillStyle(0xffb84a, 0.22);                 // halo quente, alpha baixo
+      g.fillCircle(178.5, FAR_BASE - 174, 22);
+      bigCage(g, 204, 150, 'lion');
+      // jaulão com a PORTA ABERTA (grade interrompida) — poleiro vazio da fuga
+      const openCage = (x, w2) => {
+        const top = FAR_BASE - 128;
+        g.fillStyle(0x6b7078, 1);
+        g.fillRect(x - 6, top, w2 + 12, 14);
+        g.fillRect(x - 6, FAR_BASE - 8, w2 + 12, 8);
+        g.fillStyle(0x2b3138, 0.35);
+        g.fillRect(x, top + 8, w2, 116);
+        g.fillStyle(0x8a929c, 1);                  // grades SÓ até o meio
+        for (let i = 0; i * 22 < w2 * 0.55; i++) g.fillRect(x + 4 + i * 22, top + 8, 7, 116);
+        g.save();                                  // a porta-grade escancarada
+        g.translateCanvas(x + w2 - 4, FAR_BASE - 8);
+        g.rotateCanvas(0.5);
+        g.fillRect(0, -108, 7, 108);
+        g.fillRect(0, -104, 34, 6);
+        g.fillRect(0, -46, 34, 6);
+        g.restore();
+      };
+      openCage(316, 118);
+      noticeBoard(g, 150, 236);
       haze(g);
     });
     makeNear('jaulas', (g) => {
       hedgeRow(g, 0x40712a, 0x548f36);
       fence(g);
       nearCage(g, 296);
-      padlock(g, 361, 176, 1.2);
+      // v1.12: o cadeado agora está CAÍDO no chão, arrebentado — a jaula do
+      // rino ficou para trás aberta (o de fechado era o símbolo da v1.6)
+      g.save();
+      g.translateCanvas(368, 246);
+      g.rotateCanvas(1.25);
+      padlock(g, 0, 0, 1.1);
+      g.restore();
       trough(g, 90);
+      // balde de ração tombado + ração espalhada (o tratador saiu correndo)
+      g.save();
+      g.translateCanvas(508, 238);
+      g.rotateCanvas(1.35);
+      g.fillStyle(0x8a939f, 1);
+      g.fillRect(-13, -30, 26, 30);
+      g.fillStyle(0x6e7681, 1);
+      g.fillRect(-13, -30, 26, 6);
+      g.restore();
+      g.fillStyle(0xb4552f, 1);
+      [[478, 252], [463, 256], [492, 258], [450, 250], [505, 254]].forEach(([px, py]) =>
+        g.fillCircle(px, py, 3));
       flowersOn(g, [
-        [50, 232, 0xe85a8a], [180, 240, 0xffd94a], [520, 236, 0xffffff], [604, 230, 0xe85a8a],
+        [50, 232, 0xe85a8a], [180, 240, 0xffd94a], [604, 230, 0xe85a8a],
       ]);
     });
 
     // ================= 200–400m: AVIÁRIO — o céu é o tema =================
+    // v1.12: o GRANDE DOMO — um único arco de treliça cruzando o tile inteiro
+    // (substitui os dois domos tímidos), com a rede rasgada por onde os
+    // pássaros escapam JUNTO com o rino. O landmark de parallax do bioma.
     makeFar('aviario', (g) => {
       hills(g, 0x9ccfae, 0x83bd9a);
       // Bando cruzando o fundo. As bordas ganham cópia ±640 (emenda).
@@ -3055,45 +3507,112 @@ export class TextureFactory {
         if (x < 40) flyBird(g, x + 640, y, s);
         if (x > 600) flyBird(g, x - 640, y, s);
       });
-      // Palmeiras dentro da faixa segura (x 36..604 contando a largura das
-      // folhas): nas bordas elas sairiam cortadas na emenda do tile.
       palm(g, 108, 0.9);
       palm(g, 540, 0.8);
-      dome(g, 250, 1.25);
-      dome(g, 470, 0.9);
-      visitors(g, 372);
+      // O GRANDE DOMO: raio 240, arco de 81..559 (dentro da faixa de emenda)
+      const R = 240, cx = 320, cy = FAR_BASE + 46;
+      g.lineStyle(7, 0x8a929c, 1);
+      g.beginPath(); g.arc(cx, cy, R, Math.PI, 0); g.strokePath();
+      g.lineStyle(4, 0x9aa4ae, 1);
+      g.beginPath(); g.arc(cx, cy, R - 22, Math.PI, 0); g.strokePath();
+      [-0.8, -0.55, -0.28, 0, 0.28, 0.55, 0.8].forEach((f) => {
+        const dx = f * R;
+        g.lineStyle(4, 0x8a929c, 1);
+        g.lineBetween(cx + dx, cy - 6, cx + dx, cy - Math.sqrt(R * R - dx * dx));
+      });
+      g.fillStyle(0x777d85, 1);                    // anel da base
+      g.fillRect(cx - R - 8, FAR_BASE + 38, R * 2 + 16, 10);
+      g.fillCircle(cx, cy - R - 4, 7);             // remate
+      // a REDE RASGADA no alto: fios soltos pendendo do arco
+      g.lineStyle(2, 0x8a929c, 0.9);
+      [[250, -0.3], [292, 0.2], [336, -0.15]].forEach(([bx, sway]) => {
+        const by = cy - Math.sqrt(R * R - (bx - cx) * (bx - cx)) + 4;
+        g.lineBetween(bx, by, bx + 10 * sway, by + 26);
+        g.lineBetween(bx + 10 * sway, by + 26, bx + 16 * sway, by + 44);
+      });
+      // pássaros ESCAPANDO pelo rasgo (em leque para fora)
+      flyBird(g, 262, 120, 0.9, 0x2e4a44);
+      flyBird(g, 300, 96, 0.8, 0x2e4a44);
+      flyBird(g, 338, 112, 0.7, 0x2e4a44);
+      // aves ainda dentro (pontinhos coloridos, a assinatura do dome antigo)
+      [[210, 300, 0xe85a5a], [352, 276, 0xffd94a], [430, 310, 0x4f8fe8]]
+        .forEach(([bx, by, c]) => { g.fillStyle(c, 1); g.fillCircle(bx, by, 5); });
+      visitors(g, 570);
       haze(g);
     });
+    // v1.12: "escapando juntos" — poleiros VAZIOS, casinhas de porta aberta,
+    // penas pelo canteiro; o portão de serviço da cerca ficou escancarado.
     makeNear('aviario', (g) => {
       hedgeRow(g, 0x3f8a6e, 0x58a583);
-      fence(g);
-      perch(g, 120);
+      fence(g, { gap: 430 });
+      // poleiro vazio (os passarinhos da v1.6 foram embora) + uma pena presa
+      g.fillStyle(C.fenceBrown, 1);
+      g.fillRect(120, 120, 10, 140);
+      g.fillRect(230, 120, 10, 140);
+      g.fillRect(110, 130, 140, 8);
+      g.fillStyle(0xf4efe6, 0.95);
+      g.fillEllipse(176, 136, 5, 11);
       nestBox(g, 330, 118);
+      // a segunda casinha com a portinhola ARRANCADA pendurada
       nestBox(g, 470, 142);
+      g.save();
+      g.translateCanvas(493, 168);
+      g.rotateCanvas(0.9);
+      g.fillStyle(0x6b4a24, 1);
+      g.fillRect(-6, 0, 12, 14);
+      g.restore();
       birdBath(g, 240);
-      flowersOn(g, [[80, 236, 0xffffff], [420, 238, 0xffd94a], [600, 232, 0xe85a8a]]);
+      // penas brancas e rosa espalhadas no canteiro
+      [[86, 240, 0xf4efe6], [150, 250, 0xd96a8a], [382, 246, 0xf4efe6],
+        [548, 242, 0xf4efe6], [600, 250, 0xd96a8a]].forEach(([px, py, c]) => {
+        g.fillStyle(c, 0.95);
+        g.fillEllipse(px, py, 11, 4);
+      });
+      flowersOn(g, [[80, 236, 0xffffff], [420, 238, 0xffd94a]]);
     });
 
     // ================= 400–600m: SAVANA — sol baixo e bicho grande ==========
+    // v1.12: o landmark é o BAOBÁ gigante — silhueta inconfundível contra o
+    // haze dourado ("morri perto do baobá" vira referência espacial).
     makeFar('savana', (g) => {
       // Nada de sol aqui: o céu (bg-sky-*) já tem o seu, e um objeto único
       // numa textura de 640px aparece DUAS vezes por tela.
       hills(g, 0xd9c27e, 0xc8ad62);
       acacia(g, 96, 1.05);
-      acacia(g, 566, 0.8);
+      // BAOBÁ: tronco cônico maciço + copa achatada de galhos grossos
+      const baobab = (x) => {
+        const base = FAR_BASE;
+        g.fillStyle(0x7a5230, 1);                  // tronco que alarga na base
+        g.fillTriangle(x - 34, base, x - 14, base - 150, x, base);
+        g.fillTriangle(x + 34, base, x + 14, base - 150, x, base);
+        g.fillRect(x - 15, base - 150, 30, 150);
+        g.fillStyle(0x8d6b3f, 1);                  // lado ao sol
+        g.fillRect(x + 4, base - 146, 10, 146);
+        g.lineStyle(9, 0x7a5230, 1);               // galhos grossos e curtos
+        g.lineBetween(x - 8, base - 148, x - 52, base - 186);
+        g.lineBetween(x + 8, base - 148, x + 54, base - 182);
+        g.lineBetween(x, base - 150, x - 4, base - 196);
+        g.fillStyle(0x6a9a3a, 1);                  // copa achatada e larga
+        g.fillEllipse(x, base - 196, 180, 34);
+        g.fillStyle(0x7fae48, 1);
+        g.fillEllipse(x - 24, base - 204, 130, 24);
+      };
+      baobab(492);
       termiteMound(g, 306, 0.9);
       giraffeSil(g, 196, 1);
-      lionSil(g, 408, 0.95);
-      rocks(g, 470, 350);
+      lionSil(g, 380, 0.95);
+      rocks(g, 260, 350);
       haze(g);
     });
+    // v1.12: a cerca aqui já está ARREBENTADA para fora — algo grande passou
+    // (a lenda do próprio rino, contada pelo cenário).
     makeNear('savana', (g) => {
       g.fillStyle(0xc89a58, 1);
       g.fillRect(0, 246, 640, 14);
       waterhole(g, 430, 190);
       grassTufts(g, 0xbfae5e, 0xa9984e);
       rocks(g, 90, 244);
-      fence(g);
+      fence(g, { broken: true });
     });
 
     // ================= 600–800m: FLORESTA TROPICAL — mata fechada ===========
@@ -3968,6 +4487,70 @@ export class TextureFactory {
     g.destroy();
   }
 
+  // v1.12 — primeiros planos das alas do zoo (aviário e savana; jaulas fica
+  // com o bg-fg legado). Mesma faixa visível (linhas 0..60), silhueta escura
+  // que leva o tint atmosférico, emenda ±640 nas formas de borda.
+  static generateForegroundZoo(scene) {
+    const w = 640, h = 120;
+
+    // ---- aviário: folhagem tropical (costela-de-adão) na beirada
+    let g = scene.make.graphics({ x: 0, y: 0, add: false });
+    const AV_DARK = 0x24382e, AV_DARKER = 0x16241d;
+    g.fillStyle(AV_DARKER, 1);
+    g.fillRect(0, 34, w, h - 34);
+    // folhas largas em leque: elipses inclinadas via translate/rotate
+    const leafFan = (bx) => {
+      [[-0.7, 26], [-0.3, 34], [0.15, 36], [0.55, 30], [0.9, 22]].forEach(([ang, len], i) => {
+        g.save();
+        g.translateCanvas(bx, 40);
+        g.rotateCanvas(ang - Math.PI / 2);
+        g.fillStyle(i % 2 === 0 ? AV_DARK : AV_DARKER, 1);
+        g.fillEllipse(len / 2, 0, len, 11);
+        // recortes da costela-de-adão (entalhes escuros na borda da folha)
+        g.fillStyle(0x0e1712, 1);
+        g.fillTriangle(len * 0.4, 5, len * 0.55, 5, len * 0.48, 0);
+        g.fillTriangle(len * 0.65, -5, len * 0.8, -5, len * 0.72, 0);
+        g.restore();
+      });
+    };
+    for (let x = 26; x < w; x += 72) {
+      leafFan(x);
+      if (x < 60) leafFan(x + w);
+      if (x > w - 60) leafFan(x - w);
+    }
+    g.fillStyle(AV_DARK, 1);
+    g.fillRect(0, 34, w, 8);
+    g.generateTexture('bg-fg-aviario', w, h);
+    g.destroy();
+
+    // ---- savana: capim alto queimado, lâminas finas com espiguetas
+    g = scene.make.graphics({ x: 0, y: 0, add: false });
+    const SV_DARK = 0x4a3a22, SV_DARKER = 0x33291a;
+    g.fillStyle(SV_DARKER, 1);
+    g.fillRect(0, 34, w, h - 34);
+    const tallTuft = (bx) => {
+      for (let i = -4; i <= 4; i++) {
+        g.fillStyle(i % 2 === 0 ? SV_DARK : SV_DARKER, 1);
+        const tall = 30 + ((i * 11) % 15) + (i === 0 ? 14 : 0);
+        g.fillTriangle(bx - 3, 38, bx + 3, 38, bx + i * 7, 38 - tall);
+        // espigueta no topo de algumas lâminas
+        if ((i + bx) % 3 === 0) {
+          g.fillStyle(0x5c4a2c, 1);
+          g.fillEllipse(bx + i * 7, 34 - tall, 5, 9);
+        }
+      }
+    };
+    for (let x = 16; x < w; x += 58) {
+      tallTuft(x);
+      if (x < 60) tallTuft(x + w);
+      if (x > w - 60) tallTuft(x - w);
+    }
+    g.fillStyle(SV_DARK, 1);
+    g.fillRect(0, 34, w, 8);
+    g.generateTexture('bg-fg-savana', w, h);
+    g.destroy();
+  }
+
   // ------------------------------------------------------ arco de setor
   // Marco físico da troca de bioma: um objeto que ATRAVESSA a tela, que é o
   // que torna a transição legível (o crossfade sozinho passava despercebido).
@@ -4003,6 +4586,214 @@ export class TextureFactory {
     });
 
     g.generateTexture('biome-arch', w, h);
+    g.destroy();
+  }
+
+  // ------------------------------------------- v1.12: portais das alas do zoo
+  // O alvo central do redesign: cada fronteira vira uma PORTA real do zoo que
+  // o rino atravessa, no material do bioma de DESTINO — com o ritual sagrado
+  // preservado (placa creme + bandeirolas, as MESMAS cores do biome-arch).
+  // No vão, uma VITRINE do próximo bioma pintada na própria textura (baked:
+  // a 400px/s ninguém percebe que não parallaxa) — sempre mais CLARA que a
+  // moldura ("claro = passagem") e sem faixa vertical clara estreita (nada
+  // que lembre a banda de fresta). Molde dos portais da cidade: canvas único,
+  // origin (0.5,1) no chão, zero física.
+  static generateZooArches(scene) {
+    this.generateArchAviario(scene);
+    this.generateArchSavana(scene);
+  }
+
+  static ARCH_PLATE = 0xe8c477;
+  static ARCH_PLATE_D = 0xbb964e;
+  static ARCH_FLAGS = [0xff6b5e, 0xffd166, 0x6fcf97, 0x6aa9ff];
+
+  // 200m — "PORTÃO DO VIVEIRO" (jaulas → aviário): arco de ferro verde-zoo
+  // com cúpula de gaiola, portas de tela escancaradas (alguém passou correndo
+  // antes) e a vitrine clara do aviário no vão.
+  static generateArchAviario(scene) {
+    const w = 420, h = 420;
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    const IRON = 0x2e4a44, IRON_D = 0x243c38, IRON_L = 0x4a6b62, MESH = 0x9fc4b0;
+
+    // ---- vitrine do aviário no vão (pintada primeiro; a estrutura emoldura)
+    g.fillStyle(0xdff0e4, 1);                      // céu do viveiro (menta claro)
+    g.fillRect(94, 122, 232, 218);
+    g.fillStyle(0xcde8d6, 1);
+    g.fillRect(94, 210, 232, 130);
+    g.fillStyle(0xbcd8c4, 1);                      // faixa do horizonte
+    g.fillRect(94, 290, 232, 50);
+    g.fillStyle(0x9fc4b0, 1);                      // chão claro do outro lado
+    g.fillRect(94, 340, 232, 80);
+    // domos ao longe (silhueta suave) + bando em V
+    g.lineStyle(4, 0x8fb4a0, 1);
+    g.beginPath(); g.arc(160, 300, 42, Math.PI, 0); g.strokePath();
+    g.beginPath(); g.arc(268, 306, 30, Math.PI, 0); g.strokePath();
+    g.lineStyle(2.5, 0x6b8f7c, 0.9);
+    [[150, 180, 1], [200, 158, 0.8], [252, 186, 0.9]].forEach(([bx, by, s]) => {
+      g.lineBetween(bx - 9 * s, by, bx, by - 5 * s);
+      g.lineBetween(bx, by - 5 * s, bx + 9 * s, by);
+    });
+
+    // ---- estrutura de ferro
+    // pilares
+    [[64, 30], [326, 30]].forEach(([px, pw]) => {
+      g.fillStyle(IRON, 1); g.fillRect(px, 96, pw, h - 96);
+      g.fillStyle(IRON_D, 1); g.fillRect(px + pw - 8, 96, 8, h - 96);
+      g.fillStyle(IRON_L, 0.6); g.fillRect(px + 3, 96, 4, h - 96);
+      g.fillStyle(IRON_D, 1); g.fillRect(px - 10, h - 22, pw + 20, 22); // pé
+      g.fillStyle(MESH, 0.9);                       // rebites
+      for (let y = 116; y < h - 30; y += 44) g.fillCircle(px + pw / 2, y, 3);
+    });
+    // travessa
+    g.fillStyle(IRON, 1); g.fillRect(10, 96, w - 20, 26);
+    g.fillStyle(IRON_D, 1); g.fillRect(10, 116, w - 20, 6);
+
+    // cúpula de gaiola sobre a travessa (fatia do Grande Domo)
+    g.lineStyle(6, IRON, 1);
+    g.beginPath(); g.arc(210, 96, 92, Math.PI, 0); g.strokePath();
+    g.lineStyle(4, IRON_L, 1);
+    g.beginPath(); g.arc(210, 96, 74, Math.PI, 0); g.strokePath();
+    g.lineStyle(3, IRON, 0.9);                     // ribs verticais da cúpula
+    [-0.66, -0.33, 0, 0.33, 0.66].forEach((f) => {
+      const dx = f * 92;
+      g.lineBetween(210 + dx, 96, 210 + dx, 96 - Math.sqrt(92 * 92 - dx * dx));
+    });
+    g.fillStyle(IRON_L, 1);                        // remate no topo
+    g.fillCircle(210, 2, 6);
+
+    // portas de TELA escancaradas para fora (encostadas nos pilares).
+    // Ângulo 0.28 de propósito: com 0.42 o topo da folha saía do canvas e a
+    // porta aparecia DECEPADA com aresta reta (achado da revisão adversarial)
+    const meshDoor = (px, dir) => {
+      g.save();
+      g.translateCanvas(px, h - 4);
+      g.rotateCanvas(0.28 * dir);
+      g.fillStyle(IRON_D, 1);
+      g.fillRect(dir < 0 ? -14 : 0, -158, 14, 158);
+      g.lineStyle(2, MESH, 0.8);                   // malha da tela
+      for (let y = -148; y < -10; y += 22) {
+        g.lineBetween(dir < 0 ? -14 : 0, y, dir < 0 ? 0 : 14, y + 10);
+      }
+      g.restore();
+    };
+    meshDoor(58, -1);
+    meshDoor(362, 1);
+
+    // ---- o ritual: placa creme + bandeirolas (as mesmas do biome-arch)
+    g.fillStyle(this.ARCH_PLATE_D, 1); g.fillRect(101, 22, 218, 52);
+    g.fillStyle(this.ARCH_PLATE, 1); g.fillRect(105, 26, 210, 44);
+    g.fillStyle(this.ARCH_PLATE_D, 1);
+    for (let i = 0; i < 4; i++) g.fillCircle(115 + i * 63, 31, 3);
+    this.ARCH_FLAGS.forEach((c, i) => {
+      const bx = 128 + i * 48;
+      g.fillStyle(c, 1);
+      g.fillTriangle(bx, 122, bx + 30, 122, bx + 15, 150);
+    });
+
+    g.generateTexture('arch-aviario', w, h);
+    g.destroy();
+  }
+
+  // 400m — "PORTEIRA DO SAFÁRI" (aviário → savana): pórtico de troncos com
+  // telhado de sapê e chifres, porteira batida contra as laterais e a vitrine
+  // quente da savana (acácia + girafa) no vão.
+  static generateArchSavana(scene) {
+    const w = 440, h = 360;
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    const WOOD = 0x6b4a2a, WOOD_D = 0x4d341c, WOOD_L = 0x8a6242;
+    const STRAW = 0xd9b36a, STRAW_D = 0xb5854f;
+
+    // ---- vitrine da savana no vão
+    g.fillStyle(0xf4dfae, 1);                      // céu quente
+    g.fillRect(92, 146, 256, 154);
+    g.fillStyle(0xe8cf9a, 1);
+    g.fillRect(92, 236, 256, 64);
+    g.fillStyle(0xc9a45e, 1);                      // chão dourado
+    g.fillRect(92, 300, 256, 60);
+    // acácia + girafa em silhueta clara (mais claras que a moldura)
+    g.fillStyle(STRAW_D, 1);
+    g.fillRect(270, 240, 5, 60);                   // acácia: tronco + galhos
+    g.fillTriangle(258, 246, 288, 246, 272, 262);
+    g.fillEllipse(273, 240, 84, 13);               // copa achatada larga
+    g.fillStyle(0xc9a45e, 1);
+    g.fillRect(166, 268, 5, 32);                   // girafa: 4 pernas
+    g.fillRect(176, 268, 5, 32);
+    g.fillRect(188, 268, 5, 32);
+    g.fillRect(196, 268, 5, 32);
+    g.fillEllipse(183, 264, 42, 20);               // corpo
+    g.fillRect(197, 228, 6, 40);                   // pescoço (cabeça ABAIXO
+    g.fillEllipse(204, 227, 15, 8);                //  da placa, senão some)
+    g.fillRect(201, 219, 2, 8);                    // ossículos
+    g.fillRect(206, 219, 2, 8);
+
+    // ---- estrutura de troncos
+    [[56, 36], [348, 36]].forEach(([px, pw]) => {
+      g.fillStyle(WOOD, 1); g.fillRect(px, 118, pw, h - 118);
+      g.fillStyle(WOOD_D, 1); g.fillRect(px + pw - 9, 118, 9, h - 118);
+      g.fillStyle(WOOD_L, 0.6); g.fillRect(px + 4, 118, 5, h - 118);
+      g.fillStyle(WOOD_D, 0.9);                    // nós do tronco
+      g.fillEllipse(px + pw / 2, 190, 10, 14);
+      g.fillEllipse(px + pw / 2 - 6, 280, 8, 11);
+      g.fillStyle(WOOD_D, 1); g.fillRect(px - 10, h - 22, pw + 20, 22); // pé
+    });
+    g.fillStyle(WOOD, 1); g.fillRect(16, 118, w - 32, 28);
+    g.fillStyle(WOOD_D, 1); g.fillRect(16, 140, w - 32, 6);
+
+    // telhado de SAPÊ com franjas + chifres estilizados no topo
+    g.fillStyle(STRAW, 1);
+    g.fillTriangle(20, 118, 420, 118, 220, 46);
+    g.fillStyle(STRAW_D, 1);
+    g.fillTriangle(70, 118, 370, 118, 220, 66);
+    g.fillStyle(STRAW, 1);
+    g.fillTriangle(110, 118, 330, 118, 220, 82);
+    g.fillStyle(STRAW_D, 0.9);                     // franja do beiral
+    for (let x = 34; x < 410; x += 24) {
+      g.fillTriangle(x, 118, x + 16, 118, x + 8, 132);
+    }
+    // chifres CRAVADOS na cumeeira (hastes saindo do sapê + pontas curvas —
+    // soltos no ar liam como ganchos, não como chifres)
+    g.fillStyle(0xe8dfc0, 1);
+    g.fillRect(206, 40, 5, 16);
+    g.fillRect(229, 40, 5, 16);
+    g.lineStyle(5, 0xe8dfc0, 1);
+    g.beginPath(); g.arc(200, 40, 11, Math.PI * 0.9, Math.PI * 1.75); g.strokePath();
+    g.beginPath(); g.arc(240, 40, 11, Math.PI * 1.25, Math.PI * 0.1); g.strokePath();
+
+    // porteira de madeira BATIDA contra as laterais (aberta de vez). O topo
+    // tomba para FORA (dir) e as pranchas apontam para o vão — geometria
+    // conferida ponto a ponto para caber no canvas (a versão 0.5 rad com
+    // pranchas para fora saía da textura e a folha aparecia amputada;
+    // achado da revisão adversarial)
+    const gateLeaf = (px, dir) => {
+      g.save();
+      g.translateCanvas(px, h - 6);
+      g.rotateCanvas(0.34 * dir);
+      g.fillStyle(WOOD_D, 1);
+      g.fillRect(dir < 0 ? 0 : -12, -132, 12, 132);
+      g.fillStyle(WOOD, 1);                        // três pranchas horizontais
+      for (const py of [-118, -80, -42]) {
+        g.fillRect(dir < 0 ? 0 : -34, py, 34, 10);
+      }
+      g.restore();
+    };
+    gateLeaf(50, -1);
+    gateLeaf(390, 1);
+
+    // ---- o ritual: placa creme PENDURADA em correntes + bandeirolas
+    g.lineStyle(3, 0x8a929c, 1);                   // correntes
+    g.lineBetween(172, 146, 178, 176);
+    g.lineBetween(268, 146, 262, 176);
+    g.fillStyle(this.ARCH_PLATE_D, 1); g.fillRect(126, 176, 188, 48);
+    g.fillStyle(this.ARCH_PLATE, 1); g.fillRect(130, 180, 180, 40);
+    g.fillStyle(this.ARCH_PLATE_D, 1);
+    for (let i = 0; i < 4; i++) g.fillCircle(140 + i * 53, 185, 3);
+    this.ARCH_FLAGS.forEach((c, i) => {
+      const bx = i < 2 ? 96 + i * 34 : 244 + (i - 2) * 34 + 34;
+      g.fillStyle(c, 1);
+      g.fillTriangle(bx, 146, bx + 26, 146, bx + 13, 170);
+    });
+
+    g.generateTexture('arch-savana', w, h);
     g.destroy();
   }
 
