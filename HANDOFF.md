@@ -26,6 +26,14 @@ em UMA noite de loop com o dono reproduzindo no próprio iPhone.
 
 ## 2. Como retomar
 
+**PLANO APROVADO 29/08 — 🎓 Escola do Rino (v1.10)**: a jogabilidade do
+início, por dados (curva de aprendizado invertida; "veterano" = 3 tentativas;
+47% dos novatos nunca pularam). Plano completo + métricas pré-registradas no
+`IDEIAS-FUTURAS.md` §Escola do Rino. Baseline: `npm run simula-densidade`
+(t1 3,2 · t2 4,8 · t3 6,0 animais/100 m). **Executa DEPOIS da prova de campo
+da v1.9.11** — vira a release seguinte ao descongelamento, na frente do
+pacote do CASO 1 se o dono confirmar a prioridade.
+
 - **A prova do caso é de campo**: o dono jogando alguns dias sem ver o
   disjuntor. Fechou → registrar 🏁 no CASO 2 ("WebKit 26 × TileSprite
   gigante"). Morreu de novo → `/?voo=1` aponta o próximo cômodo (os

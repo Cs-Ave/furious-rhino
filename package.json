@@ -30,6 +30,7 @@
     "test-integrate": "node tools/test-integrate.mjs",
     "test-e2e-setup": "node tools/e2e-setup.mjs",
     "radiografia": "node tools/radiografia.mjs",
+    "simula-densidade": "node tools/simula-densidade.mjs",
     "test-radiografia": "node tools/test-radiografia.mjs",
     "test-reassign": "node tools/test-reassign.mjs",
     "digest": "node tools/daily-digest.mjs --dry-run",

@@ -411,6 +411,80 @@ Ativos (por `updatedAt`): 23 nos últimos 7 dias · 58 nos últimos 30.
 
 ---
 
+## 🎓 ESCOLA DO RINO (v1.10) — plano APROVADO em 29/08, aguardando o descongelamento
+
+> Origem: o dono observou que ~1% chega ao deserto e pediu análise de dados +
+> game design. Processo: radiografia + coorte própria + 3 leitores de código +
+> painel de 4 designers (onboarding/curva/progressão/cético) via workflows.
+> **Execução SÓ depois da prova de campo da v1.9.11** — inclusive porque a
+> hipótese rival (o crash iOS contaminando a coorte recente) se resolve na
+> mesma espera.
+
+### O diagnóstico em três engrenagens
+
+1. **A curva de aprendizado está INVERTIDA** (achado mais sólido): era ≤1.8.3,
+   o jogador melhorava (mediana 157→417 m por faixa de tentativa); era ≥1.8.4,
+   ele piora (188→126→**57 m**) — e 57 m é EXATAMENTE o
+   `VETERAN_OPENING_START_X` (60 m): morre no 1º obstáculo da roleta cheia.
+2. **"Veterano" = 3 tentativas** (v1.8.4): da 4ª corrida da vida, sem aula,
+   roleta cheia aos 60 m ("29 animais nos primeiros 200 m, contra zero").
+3. **Verbos não ensinados**: pulo carregado NUNCA tem aula; negação do dash é
+   silenciosa (64% dos toques negados, era 39%); **47% dos novatos morrem nas
+   5 primeiras corridas sem nunca pular**.
+
+**Monte Carlo baseline (29/08, `npm run simula-densidade` — o MESMO
+instrumento que validará a v1.10):** t1 = 0,74 animal/slot = **3,2/100 m**
+(bate com a medição de 16/08 — instrumento validado) · t2 = **4,8** · t3 =
+**6,0/100 m**. A escalada é mais íngreme do que o dossiê supunha; o novato
+mediano (177 m) morre exatamente na subida t1→t2.
+
+**Auditoria do cético (aceita):** coorte 25/08+ (n=6) é anedota; era de
+código se mede pelo `v` da corrida, nunca por firstSeen (43/73 aparelhos
+rodam versões velhas); o crash iOS é hipótese rival para a retenção recente.
+
+### A proposta (P0 = a release; P1 = junto ou na sequência)
+
+Princípio: **aula e dificuldade por COMPETÊNCIA (`bestM`), nunca por contagem.**
+
+- **P0.1 Graduação**: `skipOpening` vira `getRecord() < 400` (nova
+  `VETERAN_MIN_RECORD_M`); dicas na mesma régua. Os presos da era B voltam à
+  escola no update — é o remédio, não o bug.
+- **P0.2 Curva do novato**: `f = min(1, bestM/800)` aplicado SÓ aos extras
+  dos tiers 1-3 (lerp piso→teto; teto = valores atuais, **bit-idêntico para
+  bestM ≥ 800** — o veterano não sente nada, por construção). Pisos:
+  t1 pack .15 / escort .10 · t2 .25/.20, combo .05, gapMin 720, speedMult
+  1.05 · t3 .35/.30, combo .10, gapMin 650, speedMult 1.15. Pesos letais
+  INTOCADOS (restrição de 16/08 respeitada). Kill-switch
+  `NOVICE_CURVE_ENABLED` + pisos mutáveis (sliders ?debug=1).
+- **P0.3 O dash diz NÃO**: "tec" + tremor/borda no ícone + vibrate(25) na
+  negação; dica nas 3 primeiras da vida; opcional `DASH_BUFFER_MS: 180`.
+- **P0.4 Telemetria junto**: chaves `fc` (=round(f*100), omitida p/ veterano)
+  e `cj` (pulos carregados) em runs[].
+- **P1.1 Currículo**: OPENING_SCRIPT ganha a lição do pulo CARREGADO (par
+  tower-spike roteirizado) + parede `mid`; OPENING_END 190→260 m.
+- **P1.2 A morte que ensina**: 1 linha por causa no game over (máx. 3× por
+  causa na vida) + "Faltaram Y m para o seu recorde".
+- **P1.3 Marcos**: primeira vez em 100/250/500/1000/2200 m celebrada.
+- **Cortado**: rubber-band (redundante com P0.1); A/B por paridade (braços
+  não fecham n com 10-20 novatos/semana) — ship p/ todo novato + antes/depois
+  pré-registrado por `v`, com A/B documentado como fallback.
+
+### Métricas pré-registradas (leitura em 2 e 4 semanas, por `v` de corrida)
+
+| Métrica | Hoje | Alvo |
+|---|---|---|
+| % novatos passando de 400 m em ≤10 tentativas (PRIMÁRIA) | ~? (baseline por `v`) | subir claramente |
+| Curva: mediana tent. 16-30 ≥ mediana 1-5 | invertida (126 < 188) | desinvertida |
+| Negação do dash na faixa 0-200 m | ~51% | < 30% |
+| Vidas com `j=0` nas 5 primeiras corridas | 47% | < 20% |
+| GUARDA-CORPO: corridas sem `fc` (veteranos) | — | distribuição INALTERADA |
+
+**Rollback**: `NOVICE_CURVE_ENABLED: false` (1 flag); script de abertura (3
+linhas); cada item com flag própria. **Atenção de teste**: as suítes e2e que
+semeiam `attempts ≥ 3` para pular a abertura passam a semear `record ≥ 800`.
+
+---
+
 ## 3. Como reproduzir a radiografia
 
 > **22/08/2026 — este § virou histórico.** A ideia **K** entregou o script
