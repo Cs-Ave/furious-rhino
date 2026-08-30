@@ -36,8 +36,8 @@ Foto: lição 4 com hint na tela + morte-que-ensina + corrida gravada com
 
 - Prova de campo da v1.9.11 (CASO 2) — acumulando junto com a v1.10.
 - Pacote do CASO 1 (retrato + maxSubSteps) — próxima release técnica.
-- /atualizar-docs fino do 02 (o guia do jogador: abertura de 6 lições,
-  marcos, morte-que-ensina) — cabeçalho já bumpado.
+- ~~/atualizar-docs fino do 02/03~~ ✅ feito no fechamento de 29/08 (a Escola
+  no guia do jogador e o mecanismo no 03).
 
 > ⚠️ Outra sessão trabalha neste repositório — conferir dono de arquivo
 > antes de commitar; nunca git add -A.

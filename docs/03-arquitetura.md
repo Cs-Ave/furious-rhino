@@ -1,6 +1,6 @@
 # Furious Rhino — Arquitetura
 
-> Documentação da versão **1.9.11** · atualizada em 29/08/2026
+> Documentação da versão **1.10.0** · atualizada em 29/08/2026
 > Visão técnica intermediária: como o projeto é organizado, os principais componentes e como eles conversam. Pressupõe noções de programação, mas explica os termos específicos do projeto.
 
 ## 1. Filosofia
@@ -168,7 +168,9 @@ Pontos que merecem destaque:
 - **Densidade de animais além da roleta** (v1.8): dois mecanismos somam animais sem substituir obstáculo nenhum — o **par** (`animalPackChance`: sorteou animal, chance de um segundo a 300 px) e a **escolta** (`animalEscortChance` + `maybeEscort()`: parede/espinho/torre pode nascer com um animal logo atrás, na coreografia dos combos). Os dois respeitam as zonas livres da arena do boss e da chegada. O teto do sistema é ~4 animais/100 m — a partir daí só mexendo nos pesos (o que troca letalidade por bicho).
 - Obstáculo que sai da tela pela esquerda volta ao pool.
 - **A espécie do animal sai do elenco do bioma local** (`BIOME_ANIMALS` + `pickBiomeAnimal(x, modo)`, v1.7): 27 espécies, cada trecho com as suas — e os combos pedem o modo certo (`ground` para o par parede+animal, `fly` para espinho+rasante).
-- **Abertura roteirizada** (`OPENING_SCRIPT`): os 3 primeiros obstáculos são fixos (rampa → espinho → parede, em ordem de lição); a roleta só assume aos 190 m.
+- **Abertura roteirizada** (`OPENING_SCRIPT`): os primeiros obstáculos são fixos, em ordem de lição — v1.10: **seis passos** (rampa → espinho → parede → par de espinhos do pulo CARREGADO → parede MID), com a roleta assumindo aos 260 m. Quem recebe a aula é decidido por **competência**: `getRecord() < VETERAN_MIN_RECORD_M (400)` — não mais por contagem de tentativas, que produzia a curva de aprendizado invertida documentada no `GAME_DESIGN.md` §Escola do Rino.
+- **A curva do novato (v1.10)**: `Constants.tierEfetivo(x, f)` com `f = min(1, recorde/800)` faz o lerp dos EXTRAS de densidade (pisos em `NOVICE_TIER_FLOORS`, mutáveis pelos sliders) sobre os tiers 1-3. O contrato central: **`f ≥ 1` devolve a própria referência do tier** — o veterano roda o caminho de sempre por construção, com assert travando isso (inclusive `NaN`, `undefined` e a flag desligada). O caminho quente do update usa a variante escalar `animalSpeedMultEfetivo` (zero alocação por frame). O `SpawnManager` recebe `fNovato` congelado na largada; os pesos letais da roleta ficam intocados.
+- **O buffer da investida (v1.10)**: toque negado nos últimos `DASH_BUFFER_MS` (180 ms) arma `rhino.pendingDash`, que dispara pelo funil `doDash` da cena quando o cooldown vence. Duas regras da revisão adversarial: **o buffer decide ANTES do feedback de negação** (toque honrado não recebe o "não" nem conta como atrito — senão a métrica x/(d+x) cairia por artefato), e **toda transição forçada de estado limpa a fila** (`beginKnockback`/`resetDash` — sem isso, um quique de chefe dispararia investida automática sem input).
 - A partir do tier 3 entram **combos** (pares de obstáculos com offset fixo, ex.: parede + animal logo atrás, que força pular em vez de investir duas vezes).
 - **As arenas de boss são zonas livres unificadas (v1.8.5)**: `noSpawnZones()` descreve as zonas como DADOS (`{from, to, resumeX, anchor}`) — arena do portão (WIN−1300 a WIN+1000), arena do Cerco (mesma geometria em 80000) e a chegada da LENDA (últimos 1500 px, onde o Guardião mora de graça). `inNoSpawnZone(x)` substitui as 4 cópias antigas da checagem (laço principal, par de animais, escolta e `rampFits`), e `nearBossArena(x)` impede o combo de partir um par na aproximação de qualquer âncora. Depois do portão (x ≥ 40000), todo obstáculo nasce com **skin `-city`** (mesmas hitboxes, outro grafismo).
 
