@@ -1,6 +1,6 @@
 # Furious Rhino — Arquitetura
 
-> Documentação da versão **1.9.7** · atualizada em 28/08/2026
+> Documentação da versão **1.9.11** · atualizada em 29/08/2026
 > Visão técnica intermediária: como o projeto é organizado, os principais componentes e como eles conversam. Pressupõe noções de programação, mas explica os termos específicos do projeto.
 
 ## 1. Filosofia
@@ -184,6 +184,28 @@ A solução: a rampa **não tem corpo físico**. Ela expõe uma função pura `s
 
 **Os alvos dos bosses (v1.7; três desde a v1.8.5) seguem o mesmo princípio.** Nenhum deles tem corpo físico: o contato é uma banda de x em altura total + um *clamp* posicional (a posição é limitada, nunca a velocidade), e o recuo é o `Rhino.beginKnockback()` — que abre uma janela em que o `FurySystem` **não reescreve** `velocityX` (a reescrita por frame contra um corpo sólido é exatamente a receita do soft-lock das rampas). O recuo decai sozinho e, quando a janela fecha, a reescrita normal reacelera o rinoceronte para a frente — e a investida volta do cooldown **junto com o controle**.
 
+
+### O chão: visual na câmera, física numa zona (v1.9.11)
+
+Mesma família de decisão da rampa — **o que o jogador vê e o que o motor
+calcula não precisam ser o mesmo objeto**. Até a v1.9.10 o chão era um
+`tileSprite` de **404.000 px de largura** cobrindo o mundo inteiro, com o
+corpo estático em cima dele. O comentário jurava "largura de 404000px não
+aloca bitmap" — e no WebGL de desktop é verdade. No **WebKit 26** (iOS 26),
+algo nesse caminho estoura o processo da página: a caixa-preta pegou dois
+voos morrendo com o conta-giros parado em `cena:chao`.
+
+Hoje são duas coisas: um `tileSprite` **do tamanho da tela** preso à câmera
+(`setScrollFactor(0)`) e rolado por `tilePositionX = scrollX` no update — o
+padrão de 1280 px alinha 1:1 com o mundo, então o visual é idêntico —, e uma
+**zona invisível** (`this.groundBody`) do tamanho do mundo com o corpo
+estático: matemática pura do Arcade, nada chega ao renderer. O `switchBiome`
+continua um `setTexture` no visual fino, e o chão segue nos `atmoLayers`
+(escurece ao anoitecer). É o mesmo padrão que `bgFg`/`bgCars` já usavam.
+
+**A lição, que vale além do chão**: "não aloca bitmap" é uma verdade do
+renderer que você testou, não uma propriedade da API. Geometria de tamanho
+de mundo é uma aposta em cada motor novo.
 ## 6. Dados: o que vai para onde
 
 | Dado | Onde mora | Observação |
@@ -222,6 +244,43 @@ Configuração em **três camadas**, da mais forte para a mais fraca — a de ci
 Os pushes são POSTs JSON direto do navegador para o ntfy (o tópico vai no corpo, mantendo a requisição *simple* e evitando preflight CORS). O resumo da sessão usa `sendBeacon` (API que garante o envio mesmo com a página fechando).
 
 O **resumo diário** é outro caminho: `tools/daily-digest.mjs` roda num cron do GitHub Actions (23h UTC), lê o Firestore via REST e publica no ntfy — **não passa** pelo `config/notify`.
+
+## 8b. A caixa-preta (v1.9.8→v1.9.11)
+
+Instrumentação de diagnóstico para o tipo de falha em que **não há console,
+não há telemetria e a página morre antes de qualquer código nosso registrar
+algo** — o CASO 2 (`INVESTIGACOES.md`): iPhones com WebKit 26 mostrando "Um
+problema ocorreu repetidamente". A ideia é a mesma da sonda `i` do CASO 1:
+**fazer a própria página deixar rastro**.
+
+- **Gravador de voo** (primeiro `<script>` do `index.html`, antes de fontes
+  e CSS): cada etapa do carregamento grava um marco SÍNCRONO em
+  `localStorage.fr_voo_atual` — `v0-head` → `v1-css` → `v2-body` → `v3-dom`
+  → `v4-phaser-pre` → `v5-phaser-pos` → `v6-module` → `v7-home` →
+  `v8-engine` → `v9-preload` (+25/50/75) → `v10-loaded` → `v11-texfab` →
+  `v12-texfab-ok` → `v13-anims-ok` → `v14-cena` → `v14b-cena-ok` →
+  `v15-update1`. O voo que não chega ao fim fica guardado; o anterior é
+  arquivado em `fr_voo_anterior` antes de cada boot (um crash-loop
+  sobrescreveria a evidência).
+- **Conta-giros** (`fr_voo_passo`): um slot ÚNICO, sobrescrito a cada item
+  — cada arquivo do preload, cada um dos 34 geradores do `TextureFactory` e
+  cada um dos 10 blocos do `GameScene.create()`. O marco diz o cômodo; o
+  conta-giros diz o móvel. Foi ele que nomeou `cena:chao`.
+- **`/?voo=1`** mostra tudo e **neutraliza o resto do documento** com um
+  `<plaintext>` escrito durante o parse — se o assassino morar no nosso CSS,
+  o viewer sobrevive mesmo assim. (O `window.stop()` foi testado e removido:
+  impedia o `DOMContentLoaded` e o `<plaintext>` já basta.)
+- **`/?safe=1`** para na home, sem Phaser e sem as ~150 texturas;
+  **`/?canvas=1`** força `Phaser.CANVAS`. São as duas bisseções: motor sim/
+  não, e WebGL sim/não.
+
+**Custo e contrato**: o gravador nasce com stubs inertes e embrulha TODO
+acesso a storage em `try/catch` — ele roda antes de tudo, e uma exceção ali
+levaria o jogo junto (o modo privado do Safari, que recusa `localStorage`, é
+justamente o cenário de quem já está com problema). Nada é enviado: é
+gravação local. Fica **de plantão** em produção — qualquer aparelho que
+crashar vira dado com uma foto. `tools/test-caixapreta.mjs` trava os marcos
+para que um refactor não arranque o instrumento em silêncio.
 
 ## 9. PWA e cache
 

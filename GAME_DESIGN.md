@@ -1,6 +1,6 @@
 # FURIOUS RHINO — Documento de Design
 
-> Estado atual do jogo (v1.9.7). Este documento descreve o que **é**, não o que
+> Estado atual do jogo (v1.9.11). Este documento descreve o que **é**, não o que
 > se imaginou no começo — as decisões de v1.1 em diante estão registradas aqui
 > com o motivo, e várias delas foram tomadas a partir dos dados reais de
 > telemetria (ver "Decisões orientadas por dados" no fim).
@@ -989,6 +989,43 @@ As decisões de design que ficaram:
 
 ---
 
+## 🕳️ O chão de 404.000 pixels (v1.9.11) — e a caixa-preta que o encontrou
+
+Um jogador não conseguia abrir o jogo no iPhone: "Um problema ocorreu
+repetidamente". Sem console, sem telemetria, sem nada — a página morria
+antes de qualquer código nosso registrar algo. As decisões que saíram disso
+são duas, e a de método vale mais que a técnica.
+
+**1. Crash sem console se resolve fazendo a página deixar rastro.** Três
+releases de instrumentação em uma noite, cada uma estreitando o cerco:
+marcos no carregamento (a morte é depois do motor) → marcos no boot do
+Phaser (é dentro do `create` da cena, sempre no mesmo ponto) → conta-giros
+nos blocos do `create` (**`cena:chao`**). Foi o dono reproduzindo no próprio
+aparelho e mandando foto da caixa-preta a cada rodada. **Instrumentar é
+mais barato que adivinhar** — e a alternativa era chutar em um motor que
+não temos como depurar.
+
+**2. O que o jogador vê e o que o motor calcula não precisam ser o mesmo
+objeto.** O chão era um único elemento de 404.000 px de largura cobrindo o
+mundo. O comentário no código jurava "não aloca bitmap", e no desktop é
+verdade — mas o WebKit 26 morre com ele. Virou o padrão que o próprio fundo
+já usava: uma faixa do tamanho da tela acompanhando a câmera, e a física
+numa zona invisível do tamanho do mundo. Visual idêntico, jogo idêntico.
+
+É a mesma família da decisão da rampa (*rampa é terreno, não corpo de
+física*) e a lição generaliza: **"é seguro" é uma verdade do renderer que
+você testou, não uma propriedade da API.** Geometria do tamanho do mundo é
+uma aposta em cada motor novo.
+
+**O instrumento fica.** A caixa-preta não foi removida depois de resolver o
+caso: custa ~zero (gravação local, nada enviado, stubs inertes se o storage
+recusar) e transforma o próximo crash de qualquer jogador em dado com uma
+foto. `tools/test-caixapreta.mjs` existe para que um refactor não a arranque
+em silêncio — um marco que some não quebra o jogo, quebra a investigação
+seguinte.
+
+---
+
 ## 📈 Decisões orientadas por dados (v1.6)
 
 Leitura de 48 jogadores, 981 tentativas, 512 corridas e 945 mortes da v1.5:
@@ -1039,6 +1076,7 @@ números de 24/08/2026 — os que dependem do registry de skins variam com ele:
 | `npm run test-sprites` | 31 | O **portão da aba Sprites**: contrato do SpriteParams, merge no Constants, paridade art/↔manifesto↔sw, w/h==viewBox, invariantes de spawn (elencos com terrestre, floresta sem voador, jaulas sem par) |
 | `npm run test-radiografia` | 62 | A radiografia: fixture sintética das 3 eras, conferência com o digest, `flattenRuns ⊇ RUN_COUNTERS`, determinismo byte a byte, zero writes por text-assert |
 | `npm run test-crash` | 76 | A rede de proteção (v1.9.1): a guarda de plausibilidade contra os dados REAIS de produção, a ordem do `endGame` e o contrato do `crashToHome` — que **mudou de sentido na v1.9.5**: a sessão quebrada agora **grava** a corrida com causa `crash`. **v1.9.6**: a faxina do aparelho, incluindo o assert que prova que ela **destrava** o `bestSent` de quem foi corrigido **v1.9.7**: os 8 asserts do CASO 2 no sw.js |
+| `npm run test-caixapreta` | 37 | A instrumentação do CASO 2 travada por text-assert: os 20 marcos do voo, o conta-giros (preload, 34 geradores, 10 blocos do `create`, 3 sub-marcos do chão), o `<plaintext>` do viewer, os modos `safe`/`canvas` e o contrato de segurança do gravador |
 | `npm run test-fix-ranking` | 32 | A classificação que decide quem perde a marca e quem tem a dele restaurada, com corridas **verbatim** de produção. Duas causas: o cronômetro (mentiu no tempo) e a cascata dos chefes (distância sem a luta). A restauração só desce, e sem corrida suja ninguém é tocado |
 | `npm run test-bossproof` | 29 | A **prova do chefe** (v1.9.6): as três corridas que passaram do portão com zero camadas reprovadas, e as do MESMO jogador em que ele lutou e morreu aprovadas — é o assert que garante que a régua não pune quem perdeu. Mais o `desde` de cada chefe, a margem de quem morre na âncora, e as duas absolvições que mantêm a regra da casa: chefe fora do elenco e chefe sem contador |
 | `npm run test-investiga` | 31 | Os 5 detectores da linha de investigação perene, sem rede. Cada um com fixture de acerto **e** de falso-positivo — o `D5` nasceu acusando quem entra na arena e morre ali, que é jogo normal |

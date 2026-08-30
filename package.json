@@ -22,6 +22,7 @@
     "investiga": "node tools/investiga.mjs",
     "test-investiga": "node tools/test-investiga.mjs",
     "test-crash": "node tools/test-crash.mjs",
+    "test-caixapreta": "node tools/test-caixapreta.mjs",
     "test-e2e-crash": "node tools/e2e-crash.mjs",
     "test-challenge": "node tools/test-challenge.mjs",
     "test-e2e-deserto": "node tools/e2e-deserto.mjs",
