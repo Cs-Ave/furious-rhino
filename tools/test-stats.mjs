@@ -15,7 +15,7 @@ globalThis.localStorage = {
 
 const { Constants } = await import('../js/utils/Constants.js');
 const { StorageManager } = await import('../js/utils/StorageManager.js');
-const { aggregate } = await import('../js/stats/StatsDashboard.js');
+const { aggregate, allRuns, aggregateBosses } = await import('../js/stats/StatsDashboard.js');
 
 let pass = 0;
 let fail = 0;
@@ -471,6 +471,62 @@ eq('rules têm o bloco challenges com leitura pública',
   eq('...e a versao, para saber em qual build travou', c.v, '1.9.5');
   localStorage.removeItem('furious_rhino_runs');
 }
+// ---------- v1.9.12: a aba Chefes (lacunas L2 + L4) ----------
+// Corridas VERBATIM de produção (regra da casa desde o fix-ranking: fixture
+// de gente real se copia, não se imagina — já erramos duas vezes inventando).
+{
+  // A primeira vitória legítima do Portão na era pós-cascata: Caio Lindão,
+  // 28/08 — 10s de luta, 2 quiques, morreu num dardo aos 1228m.
+  const caioPortao = { t: 1787785138, m: 1228, s: 135, c: 'dart', w: 6, r: 3,
+    a: 5, j: 102, d: 24, x: 2, f: 1, b: 3, q: 2, z: 10, i: 135, v: '1.9.5' };
+  // O calça larga morrendo NA Muralha com 2 camadas e 1 quique (25/08).
+  const muralhaMorte = { m: 1990, s: 194, c: 'boss2', w: 18, r: 7, o: 15,
+    a: 20, j: 9552, d: 59, x: 265, f: 2, z: 3, e: 2, h: 6, i: 194, qe: 1,
+    k: 1, v: '1.9.5', g: 'rinorob', t: 1787695000 };
+  // O congelamento do Palito (D4): loop 6s, parede 9s — a sonda i em campo.
+  const paletoFreeze = { t: 1787681800, m: 57, s: 9, i: 6, c: 'animal', j: 10, v: '1.9.5' };
+  // Corrida antiga sem letra nova nenhuma: o decodificador zera, não quebra.
+  const velha = { t: 100, m: 500, s: 60, c: 'wall' };
+  // Morrer NO CHEFE aquém da âncora: calça larga aos 990m com 2 camadas
+  // (verbatim). Com a âncora exata, é o ramo camada/cronômetro/causa que o
+  // classifica — a corrida que prova que os ORs não são decorativos.
+  const boss990 = { m: 990, s: 98, c: 'boss', w: 1, r: 4, o: 2, a: 3, j: 15,
+    d: 48, x: 451, b: 2, z: 6, i: 91, k: 1, v: '1.9.5', g: 'rinorob', t: 1787695100 };
+  // SINTÉTICA rotulada (caso-limite): fúria negada em arena. O n real existe
+  // na base (2 registros), mas em corridas longas demais para fixture.
+  const furiaNegadaRun = { t: 1787695200, m: 1005, s: 110, c: 'boss', z: 4, n: 2, v: '1.9.5' };
+
+  const docs = [{ id: 'x1', attempts: 6, runs: [caioPortao, muralhaMorte, paletoFreeze, velha, boss990, furiaNegadaRun] }];
+  const rs = allRuns(docs, 0); // sinceS=0: sem filtro de período
+
+  eq('allRuns decodifica as letras que faltavam (e/h/i/qe)',
+    [rs[1].e, rs[1].h, rs[1].i, rs[1].qe], [2, 6, 194, 1]);
+  eq('allRuns decodifica versão e skin como texto',
+    [rs[1].v, rs[1].g], ['1.9.5', 'rinorob']);
+  eq('corrida antiga: letra ausente vira 0, não undefined',
+    [rs[3].e, rs[3].zu, rs[3].ql, rs[3].i], [0, 0, 0, 0]);
+
+  const agg = aggregateBosses(rs);
+  eq('a aba tem os cinco chefes, na ordem da estrada',
+    agg.chefes.map((c) => c.nome), ['Portão', 'Muralha', 'Barreira', 'Faraó', 'Caçador-Mor']);
+  const portao = agg.chefes[0];
+  eq('Portão: os 990m do calça larga chegam pelo ramo da LUTA (âncora exata)',
+    portao.chegaram, 4);
+  eq('Portão: a vitória do Caio conta (b=3); mediana só de quem lutou',
+    [portao.venceram, portao.lutaram, portao.medianaLutaS], [1, 4, 5]);
+  const muralha = agg.chefes[1];
+  eq('Muralha: morrer NA arena é chegada (c=boss2), não invisibilidade',
+    [muralha.chegaram, muralha.venceram, muralha.quiques, muralha.mortes], [1, 0, 1, 1]);
+  eq('Barreira/Faraó/Caçador-Mor: ninguém chegou — zeros honestos',
+    agg.chefes.slice(2).map((c) => c.chegaram), [0, 0, 0]);
+  eq('a fúria ganha leitor (lacuna L4): usada em 2, NEGADA em 2 (n somado)',
+    [agg.furiaUsada, agg.furiaNegada], [2, 2]);
+  eq('o contrato do vazio: cinco chefes zerados, fúria zerada',
+    (() => { const z = aggregateBosses([]); return [
+      z.chefes.map((c) => c.chegaram + c.lutaram + c.venceram + c.medianaLutaS),
+      z.furiaUsada, z.furiaNegada]; })(), [[0, 0, 0, 0, 0], 0, 0]);
+}
+
 
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

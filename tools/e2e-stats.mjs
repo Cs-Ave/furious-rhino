@@ -230,9 +230,9 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
   ok('painel: card de recorde com nome', /recorde —/.test(body));
   ok('painel: funil com degrau do portão (1000m)', /1000m 🗽/.test(body));
 
-  // v1.6.1: o rolo único virou abas. Sem chave são 5 (sem "Jogadores").
+  // v1.6.1: o rolo único virou abas. Sem chave são 6 (sem "Jogadores").
   const tabs = page.locator('.stats-tabs button');
-  ok('painel: 5 abas no modo público', await tabs.count() === 5, `${await tabs.count()}`);
+  ok('painel: 6 abas no modo público (v1.9.12: + Chefes)', await tabs.count() === 6, `${await tabs.count()}`);
   ok('painel: sem chave não expõe a aba Jogadores',
     !(await page.locator('.stats-tabs').textContent()).includes('Jogadores'));
 
@@ -257,12 +257,20 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
     await page.locator('.stats-period button.on').first().textContent() === '7 dias');
 
   // Todas as abas renderizam com dado real
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 6; i++) {
     await tabs.nth(i).click();
     await page.waitForTimeout(500);
     const text = await page.locator('.stats-content').textContent();
     ok(`aba ${i + 1} renderiza conteúdo`, text.length > 120, `${text.length} chars`);
   }
+
+  // v1.9.12: a aba Chefes tem wiring próprio travado — cards + tabela-funil
+  await tabs.nth(4).click();
+  await page.waitForTimeout(500);
+  ok('aba Chefes: a tabela-funil renderiza', await page.locator('.bosses-table').count() === 1);
+  ok('aba Chefes: colunas do funil presentes',
+    /Chegaram/.test(await page.locator('.stats-content').textContent())
+    && /Venceram/.test(await page.locator('.stats-content').textContent()));
 
   ok('painel: sem chave não expõe a lista de jogadores',
     await page.locator('.players-table').count() === 0);
@@ -326,8 +334,8 @@ const fatal = (errors) => errors.filter((e) => !/net::|Failed to load resource|E
 
   // v1.6.1: com a chave aparece a 6ª aba, e a lista mora dentro dela
   const tabs = page.locator('.stats-tabs button');
-  ok('detalhado: 6ª aba "Jogadores" liberada pela chave', await tabs.count() === 6);
-  await tabs.nth(5).click();
+  ok('detalhado: aba \"Jogadores\" liberada pela chave (7 abas)', await tabs.count() === 7);
+  await tabs.nth(6).click();
   await page.waitForTimeout(600);
 
   const rows = page.locator('.players-table tbody tr');

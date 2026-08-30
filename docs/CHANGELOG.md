@@ -5,7 +5,16 @@
 
 ---
 
-## v1.9.11 — 29/08/2026 (versão atual)
+## v1.9.12 — 29/08/2026 (versão atual)
+
+**Tema: o painel ganha a aba 🛡️ Chefes — os dados novos finalmente têm onde aparecer.**
+
+- Desde 25/08 os cinco chefes lutam de verdade e são medidos (tempos de luta, quiques, camadas) — mas esses dados só apareciam num relatório de terminal. A página pública `/?stats` ganhou a aba **🛡️ Chefes**: o funil de cada um (chegaram → lutaram → venceram, com a taxa), o tempo mediano de luta, os quiques e as mortes em arena — respeitando o filtro de período.
+- De carona, o decodificador do painel passou a ler **todas** as informações de cada corrida (era cego para 14 delas) e a **fúria negada nas arenas** — coletada desde a v1.8 e nunca mostrada — ganhou seu gráfico.
+- A régua é **a mesma do relatório de radiografia**, de propósito: dois instrumentos que divergem para a mesma base são piores que um. E a nota da aba lista as cegueiras honestas dos dados (informações que só existem a partir de certas versões).
+- Nada do jogo em si mudou — o congelamento até a prova de campo da v1.9.11 continua valendo; a aba é uma página separada que o jogo nunca carrega.
+
+## v1.9.11 — 29/08/2026
 
 **Tema: o chão de 404.000 pixels — a correção que a caixa-preta apontou.**
 

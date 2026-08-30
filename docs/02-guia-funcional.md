@@ -1,6 +1,6 @@
 # Furious Rhino — Guia funcional
 
-> Documentação da versão **1.9.7** · atualizada em 28/08/2026
+> Documentação da versão **1.9.12** · atualizada em 29/08/2026
 > Cada funcionalidade do jogo: o que faz, como o usuário interage e exemplos práticos. Termos técnicos vêm explicados entre parênteses na primeira vez.
 
 ## 1. Controles
@@ -224,7 +224,7 @@ Instalado, o jogo abre em tela cheia, na horizontal, e **funciona sem internet**
 
 ## 12. Painel `/?stats` (para o administrador)
 
-Página pública de estatísticas agregadas: `https://cs-ave.github.io/furious-rhino/?stats`. Seis abas:
+Página pública de estatísticas agregadas: `https://cs-ave.github.io/furious-rhino/?stats`. Sete abas (a 🛡️ **Chefes** chegou na v1.9.12: o funil chegaram → lutaram → venceram de cada um dos cinco, tempos de luta, quiques e a fúria negada nas arenas):
 
 | Aba | O que mostra |
 |---|---|

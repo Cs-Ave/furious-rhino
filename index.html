@@ -2299,6 +2299,13 @@
             -webkit-overflow-scrolling: touch;
         }
 
+        /* v1.9.12: a tabela da aba Chefes — mesma cara da players-table,
+           classe própria porque o e2e afirma que .players-table não existe
+           no modo público */
+        .bosses-table { width: 100%; border-collapse: collapse; font-size: 14px; white-space: nowrap; }
+        .bosses-table th { text-align: left; padding: 8px 10px; color: #4ecdc4; border-bottom: 1px solid rgba(78, 205, 196, 0.35); }
+        .bosses-table td { padding: 7px 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); }
+
         .players-table {
             width: 100%;
             border-collapse: collapse;
@@ -2603,7 +2610,7 @@
 
         <span class="start-footer footer-left">by Thomas Avelino</span>
         <span class="start-footer footer-center">Estatísticas anônimas são coletadas · <a href="./?stats">/?stats</a></span>
-        <span class="start-footer footer-right" id="game-version">v1.9.11</span>
+        <span class="start-footer footer-right" id="game-version">v1.9.12</span>
     </div>
 
     <div id="ranking-modal" class="modal">

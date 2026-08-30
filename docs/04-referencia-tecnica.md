@@ -1,6 +1,6 @@
 # Furious Rhino — Referência técnica
 
-> Documentação da versão **1.9.11** · atualizada em 29/08/2026
+> Documentação da versão **1.9.12** · atualizada em 29/08/2026
 > Para quem vai dar manutenção. Complementa (não substitui) `GAME_DESIGN.md` (o design e suas razões) e `HANDOFF.md` (estado da última sessão de trabalho e tabelas completas de parâmetros).
 
 ## 1. Estrutura de pastas
@@ -83,7 +83,7 @@ Para os testes e ferramentas (Node 18+):
 
 ```bash
 npm install                     # só devDependencies
-npm run test-stats              # 117 asserts, sem navegador
+npm run test-stats              # 127 asserts, sem navegador — inclui a agregação da aba Chefes com corridas verbatim
 npm run test-score              # 101 asserts da pontuação composta, sem navegador
 npm run test-challenge          # 104 asserts da Arena de Desafios, sem navegador
 npm run test-skins              # ~93 asserts das skins, sem navegador (nº varia com o registry)
@@ -106,7 +106,7 @@ npm run test-special            # 25 asserts e2e da FÚRIA TOTAL, biomas e desab
 npm run test-e2e-deserto        # 14 asserts e2e das Areias do Tempo (v1.8.10) — idem
 npm run test-e2e-skins          # 15 asserts e2e das skins — idem
 npm run test-e2e-setup          # 28 asserts e2e do estúdio /?setup — idem (2 ramos: gerador no ar/parado)
-npm run test-e2e-stats          # 69 asserts e2e da telemetria em Chromium — idem
+npm run test-e2e-stats          # 72 asserts e2e da telemetria em Chromium — idem (7 abas com a chave)
 npm run test-investiga          # 31 asserts dos 5 detectores (v1.9.4), sem navegador e SEM rede
 npm run investiga               # passa os 5 detectores na produção (só leitura); --salvar grava o retrato datado
 npm run radiografia             # análise de usabilidade completa contra a produção (só leitura)

@@ -14,7 +14,7 @@ import { ScoreSystem } from '../systems/ScoreSystem.js';
 // Imports permitidos: só Constants e ScoreSystem — ambos comprovadamente
 // puros (é o mesmo contrato que deixa tools/test-score.mjs rodar no node).
 // PROIBIDO importar StatsDashboard (arrasta LeaderboardSystem→StorageManager
-// →localStorage) — e o allRuns() de lá não decodifica p/v/g/e/h/l.
+// →localStorage) — e desde a v1.9.12 o allRuns() de lá decodifica TODAS as chaves (era a lacuna L2).
 //
 // Determinismo é contrato: `nowS` é INJETADO (nunca Date.now() aqui dentro) e
 // toda iteração de mapa sai ordenada — duas chamadas sobre o mesmo dado

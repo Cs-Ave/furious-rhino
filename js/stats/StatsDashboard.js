@@ -1,6 +1,7 @@
 import { getDb } from '../systems/LeaderboardSystem.js';
 import { ScoreSystem } from '../systems/ScoreSystem.js';
 import { Constants } from '../utils/Constants.js';
+import { CHEFES } from '../systems/BossProof.js';
 import {
   comboChart, histogram, heatmap, donut, stepArea, lineChart, treemap, chartBox,
 } from './Charts.js';
@@ -52,6 +53,7 @@ const TABS = [
   { id: 'dificuldade', label: '💀 Dificuldade', draw: tabDifficulty },
   { id: 'engajamento', label: '📈 Engajamento', draw: tabEngagement },
   { id: 'mecanicas', label: '💨 Mecânicas', draw: tabMechanics },
+  { id: 'chefes', label: '🛡️ Chefes', draw: tabBosses },
   { id: 'publico', label: '🌍 Público', draw: tabAudience },
   { id: 'jogadores', label: '👥 Jogadores', draw: tabPlayers, detailOnly: true },
 ];
@@ -180,7 +182,7 @@ function since() {
 // Todas as corridas de todos os jogadores, achatadas. `attemptIndex` é o
 // número da tentativa na VIDA do jogador: `runs` é a janela das últimas 50,
 // então a primeira delas é a de número (attempts - runs.length + 1).
-function allRuns(docs, sinceS = since()) {
+export function allRuns(docs, sinceS = since()) {
   const out = [];
   for (const d of docs) {
     if (!Array.isArray(d.runs)) continue;
@@ -194,6 +196,14 @@ function allRuns(docs, sinceS = since()) {
         w: num(r.w), r: num(r.r), o: num(r.o), a: num(r.a),
         j: num(r.j), d: num(r.d), x: num(r.x), f: num(r.f), k: num(r.k),
         b: num(r.b), q: num(r.q), z: num(r.z), n: num(r.n),
+        // v1.9.12 (lacuna L2): o decodificador passa a cobrir TODAS as chaves
+        // de runs[] — o painel era cego para 7 letras e para as 7 chaves de
+        // 2 caracteres da v1.9.5, e os dados de chefe acumulavam sem aba.
+        p: num(r.p), e: num(r.e), h: num(r.h), l: num(r.l),
+        u: num(r.u), y: num(r.y), i: num(r.i),
+        zu: num(r.zu), zy: num(r.zy), zl: num(r.zl),
+        qe: num(r.qe), qu: num(r.qu), qy: num(r.qy), ql: num(r.ql),
+        g: str(r.g) || null, v: str(r.v) || null,
         attemptIndex: base + i + 1,
       });
     });
@@ -312,8 +322,7 @@ function tabOverview(root) {
     card(`${((agg.standalone / agg.players) * 100).toFixed(0)}%`, 'com PWA instalado'),
   );
   root.append(cards);
-  root.append(el('p', 'stats-note',
-    'Os cartões acima são totais VITALÍCIOS por aparelho — não respondem ao filtro de período.'));
+  root.append(notaChefes());
 
   // O pedido explícito: jogadores únicos/dia contra execuções/dia
   const window = periodDays || 30;
@@ -948,6 +957,130 @@ function runsChart(runs) {
 
 // Exportada para o grupo de testes (tools/test-stats.mjs). A FORMA do retorno
 // é contrato desse teste — chaves novas podem entrar, as antigas não saem.
+// v1.9.12 — 🛡️ CHEFES. A régua por chefe vem da MESMA tabela que o envio ao
+// ranking e os desafios usam (BossProof.CHEFES: âncora/camadas derivadas de
+// Constants); aqui só se acrescenta o que é de leitura — a letra do
+// cronômetro, a do quique e a causa de morte de cada um (espelho do
+// RUN_COUNTERS do StorageManager). "Chegada" segue a semântica da
+// radiografia: cruzou a âncora, quebrou camada, marcou cronômetro OU morreu
+// pela causa do chefe — sem isso, quem morre NA arena contaria como "não
+// chegou" e o funil mentiria para cima.
+const REGUA_CHEFES = {
+  b: { luta: 'z', quique: 'q', causa: 'boss' },
+  e: { luta: 'h', quique: 'qe', causa: 'boss2' },
+  u: { luta: 'zu', quique: 'qu', causa: 'cerco' },
+  y: { luta: 'zy', quique: 'qy', causa: 'farao' },
+  l: { luta: 'zl', quique: 'ql', causa: 'boss3' },
+};
+
+// Pura e exportada (o test-stats a testa com corridas verbatim de produção).
+// Recebe a saída de allRuns(); devolve uma linha por chefe + os agregados de
+// fúria — o `n` (negada na arena) finalmente tem leitor (lacuna L4).
+export function aggregateBosses(runsArr) {
+  const mediana = (xs) => {
+    if (!xs.length) return 0;
+    const s = [...xs].sort((a, b) => a - b);
+    const k = Math.floor(s.length / 2);
+    return s.length % 2 ? s[k] : Math.round((s[k - 1] + s[k]) / 2);
+  };
+  const chefes = CHEFES.map((c) => {
+    const rg = REGUA_CHEFES[c.chave];
+    // ÂNCORA EXATA, como a radiografia (revisão v1.9.12): morrer na FACE da
+    // âncora sem lutar não conta metragem — mas os ramos de camada/cronômetro/
+    // causa pegam quem de fato entrou na arena. Uma margem aqui faria os
+    // números do painel divergirem dos da radiografia para a mesma base.
+    const chegou = runsArr.filter((r) => r.m >= c.m
+      || r[c.chave] > 0 || r[rg.luta] > 0 || r.c === rg.causa);
+    const lutas = chegou.filter((r) => r[rg.luta] > 0);
+    return {
+      chave: c.chave, nome: c.nome, m: c.m, exigidas: c.exigidas,
+      chegaram: chegou.length,
+      lutaram: lutas.length,
+      venceram: chegou.filter((r) => r[c.chave] >= c.exigidas).length,
+      medianaLutaS: mediana(lutas.map((r) => r[rg.luta])),
+      quiques: chegou.reduce((a, r) => a + r[rg.quique], 0),
+      mortes: chegou.filter((r) => r.c === rg.causa).length,
+    };
+  });
+  return {
+    chefes,
+    furiaUsada: runsArr.filter((r) => r.f > 0).length,
+    furiaNegada: runsArr.reduce((a, r) => a + r.n, 0),
+  };
+}
+
+// A honestidade da aba mora aqui (revisão v1.9.12): cada ressalva desta nota
+// corresponde a uma cegueira REAL dos dados, e a régua é a MESMA da
+// radiografia de propósito — dois instrumentos que divergem para a mesma
+// base são piores que um.
+function notaChefes() {
+  return el('p', 'stats-note',
+    'Chegada = cruzou a âncora, quebrou camada, marcou cronômetro ou morreu pela causa do chefe — a MESMA régua da radiografia. Dados por corrida (janela das últimas 50 por jogador), respeitando o filtro de período. Duas cegueiras de era no período "tudo": as letras de camada nasceram com cada chefe (Portão v1.7.1, Muralha v1.8.5, Barreira/Faraó v1.8.10) — corrida mais antiga conta chegada e nunca vitória, deflacionando a Taxa —, e os cronômetros da Barreira/Faraó/Caçador-Mor existem só desde a v1.9.5. E a coluna Mortes conta corridas desta janela; a radiografia usa o contador vitalício deaths — os dois podem diferir.');
+}
+
+function tabBosses(root) {
+  const runs = allRuns(cache.docs);
+  root.append(el('h2', null, '🛡️ Os cinco chefes'));
+  if (!runs.length) {
+    root.append(el('p', 'stats-status', 'Sem corridas no período.'));
+    root.append(notaChefes());
+    return;
+  }
+  const agg = aggregateBosses(runs);
+  const soma = (k) => agg.chefes.reduce((a, c) => a + c[k], 0);
+
+  const cards = el('div', 'stat-cards');
+  cards.append(
+    card(soma('lutaram'), 'lutas travadas'),
+    card(soma('venceram'), 'chefes derrubados'),
+    card(soma('mortes'), 'mortes em arena'),
+    card(agg.furiaNegada, 'fúrias negadas na arena'),
+  );
+  root.append(cards);
+
+  // A tabela-funil: uma linha por chefe, na ordem da estrada. Classe
+  // própria (bosses-table) DE PROPÓSITO: o e2e afirma que `.players-table`
+  // não existe no modo público, e essa afirmação continua verdadeira.
+  const wrap = el('div', 'table-wrap');
+  const table = el('table', 'bosses-table');
+  const thead = el('thead');
+  const hrow = el('tr');
+  for (const h of ['Chefe', 'Chegaram', 'Lutaram', 'Venceram', 'Taxa',
+    'Luta mediana', 'Quiques', 'Mortes']) hrow.append(el('th', null, h));
+  thead.append(hrow);
+  const tbody = el('tbody');
+  for (const c of agg.chefes) {
+    const tr = el('tr');
+    const taxa = c.chegaram ? `${Math.round((100 * c.venceram) / c.chegaram)}%` : '—';
+    tr.append(
+      el('td', null, `${c.nome} (${c.m}m)`),
+      el('td', null, `${c.chegaram}`),
+      el('td', null, `${c.lutaram}`),
+      el('td', null, `${c.venceram}`),
+      el('td', null, taxa),
+      el('td', null, c.medianaLutaS ? `${c.medianaLutaS}s` : '—'),
+      el('td', null, `${c.quiques}`),
+      el('td', null, `${c.mortes}`),
+    );
+    tbody.append(tr);
+  }
+  table.append(thead, tbody);
+  wrap.append(table);
+  root.append(wrap);
+
+  // A fúria na arena: quantos ainda tentam o truque antigo (bloqueado na v1.8)
+  if (agg.furiaUsada || agg.furiaNegada) {
+    root.append(el('h2', null, '🔥 A fúria e as arenas'));
+    root.append(barChart([
+      ['🔥 corridas que usaram a Fúria Total', agg.furiaUsada],
+      ['🔒 ativações negadas dentro de arena', agg.furiaNegada],
+    ]));
+  }
+
+  root.append(el('p', 'stats-note',
+    'Chegada = cruzou a âncora, quebrou camada, marcou cronômetro ou morreu pela causa do chefe (a régua da radiografia). Dados por corrida — janela das últimas 50 por jogador — e respeitam o filtro de período. Os cronômetros da Barreira, do Faraó e do Caçador-Mor existem desde a v1.9.5: lutas anteriores a 25/08 são invisíveis para a coluna de tempo.'));
+}
+
 export function aggregate(docs) {
   const agg = {
     players: docs.length,
