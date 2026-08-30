@@ -447,6 +447,25 @@ instrumentação transformaram "não abre" em um nome de bloco de código.
 
 ---
 
+### 29/08 — a prova de campo COMEÇOU, e um achado que muda a leitura do "crash"
+
+- **As 10 corridas de 29/08 já são v1.9.11** (Avelino e Teco-17), zero
+  divergência de relógio. O contador da prova está correndo: alguns dias
+  assim e o caso fecha 🏁 como "WebKit 26 × TileSprite gigante".
+- **Quarto aparelho WebKit 26 com congelamento**: Anonimo_61 (`2cbdb0c3`,
+  iPad, iPadOS **26.5**) tem uma corrida com `i` << `s` na era v1.9.5 — além
+  de Palito (26.6), do iPhone do dono (26.6.1) e do benicio (Version/26).
+- **Resultado NULO que vale ouro: ZERO corridas com causa `crash` em toda a
+  era v1.9.4+.** A instrumentação da v1.9.5 (gravar a corrida travada) nunca
+  disparou em campo — porque as mortes reais são **do processo** (jetsam/
+  WebKit), não exceções de JS: o `crashToHome` nunca chega a rodar. A rede
+  da v1.9.1 enxerga exceção; morte de processo, só a **caixa-preta** vê.
+  Corrige a expectativa registrada no CASO 1 de que "basta um travamento em
+  campo para ler `i` contra `s` no crash gravado" — o dado equivalente vem
+  do voo interrompido, não da causa `crash`.
+
+---
+
 ### A correção (v1.9.7) — implementada em 28/08, aguardando release
 
 Endurecer o `sw.js` nos quatro pontos, sem mudar a filosofia network-first:

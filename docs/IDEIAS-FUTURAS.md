@@ -378,6 +378,39 @@ Ativos (por `updatedAt`): 23 nos últimos 7 dias · 58 nos últimos 30.
 
 ---
 
+## Radiografia PÓS-CASCATA — 2026-08-29 (a primeira era em que os chefes existem)
+
+> 86 corridas em v1.9.4+ (25→29/08), sondas filtradas. Amostra PEQUENA —
+> nada aqui é conclusão, tudo é baseline para a leitura de daqui a algumas
+> semanas. É o primeiro funil da história do jogo em que os 5 chefes lutam
+> de verdade e são medidos.
+
+| Chefe | Chegaram | Lutaram | Venceram | Luta média |
+|---|---|---|---|---|
+| Portão (1000 m) | 5 | 5 | **1** | 4 s |
+| Muralha em diante | 0 | 0 | 0 | — |
+
+- **O jogo é vencível na era nova**: o Caio Lindão derrubou o portão em
+  **10 s de luta com 2 quiques** (28/08, v1.9.5) e morreu num dardo aos
+  1.228 m. Primeira vitória legítima do portão desde a v1.9.4 — e ninguém
+  ainda pisou na Muralha, que segue **invicta na história do jogo**.
+- **Taxa de vitória do portão: 1/5** (era ~66% na baseline v1.7, 43/65).
+  n=5 não conclui nada, mas é o número a acompanhar: se ficar nessa faixa
+  com n maior, o portão pós-correção é um paredão — e a doutrina dos bosses
+  (ideia M) tem seu primeiro dado real.
+- **A parede mata cedo**: das 41 mortes em parede, mediana aos **171 m**,
+  p25 aos 79 m. Metade do funil morre no primeiro quarteirão — dado para o
+  tuning do tier 1 quando houver amostra.
+- **O custo do CASO 2 em atividade**: 62 corridas em 25/08 → **4** em 26/08
+  → 2 em 27/08 (a janela do crash-loop, com os aparelhos Apple travados
+  fora) → 8 em 28/08 → 10 em 29/08, **todas já em v1.9.11** (Avelino e
+  Teco-17), zero divergência de relógio até aqui.
+- **Congelamentos (i << s) em DOIS iPads da era nova**: Palito (iPadOS 26.6,
+  4 corridas) e Anonimo_61 (iPadOS **26.5**, 1 corrida) — o terceiro e
+  quarto aparelhos WebKit 26 do CASO 2/1.
+
+---
+
 ## 3. Como reproduzir a radiografia
 
 > **22/08/2026 — este § virou histórico.** A ideia **K** entregou o script
