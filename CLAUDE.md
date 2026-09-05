@@ -12,6 +12,7 @@ Auto-runner de ação para web mobile (paisagem): um rinoceronte foge do zoológ
 | Dúvidas pontuais do dono já respondidas (documento vivo — registrar novas ali) | `docs/QA-Registro.md` |
 | Ideias ainda não implementadas + a radiografia dos dados dos jogadores (banco vivo, sem versão prometida) | `docs/IDEIAS-FUTURAS.md` |
 | Problemas EM ABERTO: hipóteses vivas, as já descartadas e os detectores (documento vivo) | `docs/INVESTIGACOES.md` |
+| A revisão geral de 05/09 por inteiro: benchmark com fontes, leituras de código e os 6 pareceres do painel (material bruto; o destilado está no IDEIAS-FUTURAS §N) | `docs/revisao-2026-09-05/` |
 | Todo o tuning numérico | `js/utils/Constants.js` |
 
 ## Regras que não se negociam

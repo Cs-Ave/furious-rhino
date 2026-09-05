@@ -1,0 +1,158 @@
+# Parecer do Cético da Casa — revisão geral de 05/09/2026
+
+## 0. O que conferi no código antes de decidir (só leitura)
+
+| Fato | Onde | Consequência |
+|---|---|---|
+| `history.size() <= 6`; o cliente grava 5 (`clients, geos, versions, days, firstSeenS`) | `firestore.rules:117-119`, `js/utils/StorageManager.js:616-625` | Há UMA vaga — e `src` a consome. O mapa `history` fica FECHADO (6/6) a partir da Régua. `getHistory()` normaliza para as 5 chaves conhecidas: `src` tem de entrar no normalizador ou some no ciclo seguinte. |
+| `runs` só valida `is list && size() <= 50` | `firestore.rules:111-113` | Letras novas de 1-2 chars não tocam rules. Custo real = leitor no `RadiografiaCore` (o `test-radiografia` cobra). |
+| `scores` é `hasOnly` de 7 chaves; `stats` de 12; medalhas não estão em nenhum | `firestore.rules:26, 97-99` | Medalhas são locais. `gate_clean` custa zero rules. |
+| `deaths.size() <= 17`, 17 usadas | `firestore.rules:110` | Nenhuma causa nova de morte (o Espelho do Faraó mataria como `farao`). |
+| `def.hunterOffsetX ?? 58`, `def.hunterY ?? 96` — nenhuma def preenche; `midpoint`, `callSfx`, `telegraphStyle` não existem | `js/systems/BossFight.js:60`, grep vazio | Os "ganchos existentes" do dossiê são metade existentes: mover o atirador é grátis; o resto é código novo (pequeno). |
+| `playBossHorn/playSirenShort/playKlaxon/playThunder/playAreaSting` existem | `js/systems/AudioSystem.js:416-514` | `callSfx` por chefe não pede som novo. |
+| `k9-projectile` é textura procedural 24×12 | `js/systems/TextureFactory.js:5472` | "Rim no K9" é edição de gerador, não SVG à mão. |
+| Phaser entra por `document.write` CONDICIONAL (pula em `/?stats`, `/?setup`, modo safe) | `index.html:2816-2820` | `<script defer>` não é drop-in: a dívida #4 exige loader assíncrono com espera por `window.Phaser`. |
+| `?desafio` não existe em `js/`; `NewsSystem.push` já emite `podium:in/out`; `getLastRank` e `getEncounters` existem | grep; `GameScene.js:926-929`; `BossFight.js:109` | G é do zero (M mesmo); "alguém passou você" é extensão de 10 linhas; a placa "7ª vez · melhor 4 s" tem a base pronta. |
+| `SkinRegistry`: 1 skin de façanha (`towersDowned 5 + bossLayers 3`); `streakBest` está no `totalsData` e nenhuma skin usa | `SkinRegistry.js:72`, `SkinSystem.js:63-64` | Escada de skins é XS de código; o custo é a arte do dono. |
+| Versão 1.12.0 nos 4 lugares, `CACHE = furious-rhino-v1120` | — | Cada release aqui = bump nos 4 + sw. |
+| Bateria: ~25 scripts npm (~10 e2e em Chromium) + validação do dono em desktop e celular + 3 portões | `package.json:6-38`, memória do ritual | Custo fixo por release ≈ meio dia a um dia. O código não é o gargalo; o ritual é (v1.11.0 e v1.12.0 saíram no MESMO dia, 30/08). |
+| O plano Zoo já fixa "delta de boot no celular do dono (`/?voo=1`) é critério de aceite" e "zero SVG novo no cenário" | plano `mutable-toast.md:48-51, 191` | O orçamento de boot já tem instrumento e régua; eu só os aplico às propostas novas. |
+| `switchBiome` → `startBiomeFade('cidade')` e, no mesmo update, `switchArea(0)` | `GameScene.js:2274-2279, 2341-2344` | A ordem confirma a tese da arte (os 3 pedestres de `makeNear('cidade')` são arte morta): remover é higiene, custo zero. |
+
+Dois fatos que ninguém do painel escreveu e mudam leituras:
+
+- **`ReassignSystem` existe** (`js/systems/ReassignSystem.js:150`, "Identidade restaurada"): já houve perda de identidade em produção. No iOS, o Safari pode apagar o storage script-writable de site NÃO instalado após ~7 dias de uso do navegador sem interação com o site (regra ITP; PWAs instalados são isentos — 32 aparelhos; a confirmar no aparelho). Jogador "esfriado" que volta pelo broadcast pode voltar como aparelho NOVO (UUID novo, streak e `runs[]` zerados) e ser contado como "novo via link". A leitura de reengajamento precisa dessa ressalva; sintoma nos dados: apelido já existente em `scores` com `stats` recém-nascido.
+- **O ritmo de código não é o limite**: o dev entrega duas versões num dia; o que limita é validação do dono + bateria + 3 portões. Por isso o calendário conta em releases, não em dias de código.
+
+## 1. Conflitos entre painelistas — e a decisão
+
+| # | Conflito | Decisão | Por quê |
+|---|---|---|---|
+| C1 | Arte: dessaturar skyline, fórmula de luz 0,14→0,08, LED/telão/jersey sem vermelho-ciano — vs identidade da cidade (e a fórmula é GLOBAL: toca o entardecer do zoo e a noite do deserto) | **Rim primeiro** (local, medido pela suíte); reserva de matiz em L2 (é o que separa letal de cenário — aceito); **fórmula e skyline dessaturado só em L3 condicional**, se o critério ≥3:1 falhar em algum ponto, com 2 prints (zoo entardecer, deserto noite) no Portão 2 | A queixa é "não separa"; o rim resolve a separação sem tocar na cor do mundo. Mudança global sem dado do deserto viola a régua da casa. |
+| C2 | Muralha: "mãos quietas até n≥15" (analista/doutrina) vs "legibilidade agora, na versão do F1" (chefes) | **Chefes têm razão**: cobertura ZERO com letra = não há baseline a contaminar. UM pacote cosmético (laser duplo, contorno do holo, rim no K9 e no Comandante, contorno do glow, `callSfx`, dica própria, ponto médio cosmético em 2 restantes) numa única versão (Farol) — e depois silêncio; era-gate `v ≥ Farol`. Tabela, enrage, ordem, shutter e RIFLE_B seguem esperando n≥15 | O momento mais barato de mexer é antes da primeira luta contada. Dois pacotes = dois reinícios de contagem. |
+| C3 | Pista do Dia por semente (retenção: "construir agora, publicar após 26/09") vs Escola em medição | **Nem construir antes de 26/09**; depois, **banco com gatilho** (≥20 ativos/7d por 2 semanas). Letra `dy` cortada: a data deriva de `t`; `md=2` basta | Tocar 16 pontos de RNG do `SpawnManager` é refatorar spawn dentro da janela — "bit-idêntico por padrão" é promessa até ter assert. E o valor está superestimado: mesma pista só para `bestM ≥ 800` (25 aparelhos), placar = WhatsApp; com 12 ativos, ranking diário de 3 pessoas. |
+| C4 | Missões: veto antigo "sem diárias automáticas" vs reinterpretação (retenção) vs "metas só sobre letras existentes" (analista) | Veto **mantido para conteúdo editorial que expira** (motivo original: lista vazia + bronca). **Metas pessoais geradas, sem prazo, liberadas** — com a regra do analista (só sobre `w r o a j d x p f cj m g` + `history.days`, recomputáveis). Mas `MissionSystem` (M) vai ao **banco**: a "próxima medalha como estaca" (XS, na Jornada) entrega o "próximo alvo à vista" por 5% do custo; reabrir se corridas/sessão não mexer | Mesma intenção, custo 20× menor, zero letra. |
+| C5 | Morte com contexto (Jornada) vs caixa nova do game over (UX) vs "QUASE!"/copy positiva (retenção) vs "dicas de morte e marcos congelados" (o próprio analista, §5) | **Dois tempos.** Régua = layout/DOM/CSS com **strings idênticas** (CTA acima da dobra, share visível, `p:empty`, rodapé fixo, grid do top 10). Jornada = **toda** a copy da tela de morte num único bump (kicker por causa, delta de uma frase por prioridade, barra das alas, "QUASE!"). Mover "faltaram X m" de `#death-tip` para o slot do delta é layout — aceito na Régua | A dica de morte é insumo da Escola (o analista a congelou e está certo); uma `v` só para toda mudança de copy. |
+| C6 | Ordem aprovada em 30/08 (v1.13 Mata e Água → v1.14 Jornada) vs "Jornada antes" (analista sugere; UX exige a caixa antes dela; retenção quer (d)+(e), que É o conteúdo da Jornada) | **Recomendo inverter, renumerando** (Jornada = v1.13, Mata e Água = v1.14) para `v` continuar monotônico. **Decisão do dono** | Jornada é apresentação (cabe logo após 26/09) e carrega a copy do game over e as estacas; Mata e Água é spawn (coreografias 600/800/950) e precisa de pré-registro próprio e baseline limpa. Na ordem antiga, a Jornada cai DENTRO da janela de leitura de Mata e Água. |
+| C7 | `ui` (analista: bitmask na ÚLTIMA corrida + `send()` extra) vs `rs`/`rt` (UX: na PRÓXIMA corrida, zero write extra) vs `dl` (retenção) vs `md` (analista) | **`rs` + `rt`** antes de 26/09; **`md`** (1 = link, 2 = diário) quando os modos existirem. `ui`, `dl`, `dy` caem | "Um write por fim de corrida" é contrato. A população "morreu, olhou e foi embora" é medida pela própria retenção D1 — não precisa de letra. |
+| C8 | "Dois toques → um" via `autoStart` (retenção) vs "impossível pelo gesto de áudio" (UX) | **Veto ao `autoStart`**; aceito o "modo re-jogo" da UX (CTA pulsando, convite adiado, 2 toques sempre) e a dívida #4 como spike medido | Web Audio exige gesto (no WebKit fica suspenso); largada sem o jogador pronto produz mortes com `j=0` nos primeiros metros — contamina exatamente "% de vidas com `j=0`" da Escola; e tira a escolha. |
+| C9 | Poki/CrazyGames: "após medir cota" (analista) vs "só playtest" (retenção) | **Veto à distribuição no trimestre**; playtest só se a inscrição não exigir SDK/i18n. Gatilho: retorno ao 2º dia > 50% em 2 leituras + 3 varreduras trocadas + toque→corrida ≤ 4 s a frio | Partição de storage em iframe (identidade), SW morto, i18n G, links externos, anúncios vs "≤2 toques", varreduras O(N²): o jogo seria enterrado no período de teste com 57% um-dia-só. |
+| C10 | G antes ou depois de 26/09; broadcast quando | **Código de G em 12-19/09** (não toca spawn/física); **broadcast do dono só APÓS o snapshot de 26/09** | A estaca do amigo no zoo é estímulo novo em 0-400 m para novatos de link → `src` nasce antes (Régua) e a Escola estratifica por `src` (o braço `org` é o comparável). O broadcast traria 55 pessoas no mesmo dia e deformaria a distribuição de streaks/`history.days` da leitura 2. |
+| C11 | Flash branco de entrada (dossiê) vs "flash = tiro vem" (arte) | **Veto ao flash** | Vocabulário do jogo vale mais que um truque de contraste. |
+| C12 | `cars:false` por distrito (dossiê) vs `carsAlpha` (arte) | **`carsAlpha`** 0,45 / 1 / 0,6 — campo visual opcional, molde do `cars:false` | Preserva identidade; Subúrbio não é o pior distrito. |
+| C13 | F1 e G "cabem antes de 26/09" — ordem entre eles | **G antes de F1** | F1 serve ≤12 aparelhos a ~2 corridas pós-portão/semana e seu KPI só fecha com aquisição; uma semana de Desafio antes do Farol ainda produz o braço "antes" do F1 com letras de cliente atual (hoje o "antes" é todo 1.7.x). |
+| C14 | Instrumento: 11 itens do analista vs capacidade | Régua: **1, 2, 3, 8, 9, 11 obrigatórios** (o que 12/09 e 26/09 precisam); 4, 6, 7 recomendados (julgam F1/F3/G); 5 e 10 podem escorregar para o Farol | Se a Régua atrasar, 12/09 sai à mão como 05/09 — o snapshot de hoje é o que não pode faltar. |
+| C15 | Boss "M" (shutter, Espelho, `extraHunters`, ~1 semana) após 26/09 (chefes) vs audiência ≤4 aparelhos | **Banco com gatilho**: ≥5 aparelhos com chegada à Barreira (`u`/`zu`) na janela com letra | Coerente com o gatilho do 3º boss. Uma semana de um dev para 4 pessoas enquanto a aquisição está em zero é a alocação errada. |
+| C16 | Relâmpago atrás do gameplay + chuva mais fraca (arte: "clima não está congelado") | **Aceito no Farol** (1000-1200 m, visual) — verificar a ordem de profundidade contra neblina e fg; overlay segue 1280×720 com `scrollFactor 0` | Hoje o clarão a depth 50 colapsa o contraste por 140 ms na tempestade dos 1000 m. |
+
+## 2. Calendário
+
+**Régua de corte para "antes de 26/09"**: entra o que é apresentação, UI, legibilidade e instrumentação **e não muda o que o novato encontra em 0-400 m nem o copy que o ensina**. Fica de fora: spawn, pesos, física, densidade, `NOVICE_CURVE_*`, `OPENING_*`, cooldown/`DASH_BUFFER_MS`, copy de dica/marco/streak, sinalização nova no zoo (estacas, placas, "ALA x/5") e qualquer refatoração do `SpawnManager` (mesmo "bit-idêntica"). O congelamento acaba em 26/09 **mesmo que a leitura saia com n insuficiente** — isso é resultado a registrar, não motivo para estender; e não se relaxa antes, porque o produto do congelamento é a disciplina "uma mudança de gameplay por bump, por `v`", a mesma que vai tornar Mata e Água legível.
+
+**A revisão reordena a fila? Sim.** Três releases de patch (Régua, Desafio, Farol) entram antes de o programa Zoo retomar, e recomendo inverter Jornada e Mata e Água (C6).
+
+### 2.1 Sequência de releases
+
+| Quando | Release | Conteúdo | Custo | Pré-requisitos | O que mede |
+|---|---|---|---|---|---|
+| **05/09 (hoje)** | snapshot | `npm run radiografia -- --json > tools/snapshots/radiografia-2026-09-05.json` — o "antes" oficial. Zero código | 0 | — | Coluna Δ de todas as leituras seguintes |
+| **≤ 11/09** | **v1.12.1 "Régua"** | Instrumento (corte por `v` em toda seção, seções Escola/Streaks pré-registradas, `BASELINE_20260905`, snapshots CLI, testes; se couber: causa×distrito, fricção pós-morte, atribuição). **F3 só layout**: caixa nova do game over/win (IDs mantidos, strings idênticas), CTA fixo 52/46/44 px, share visível, `p:empty`, grid do top 10 com `tabular-nums` + ellipsis, `.modal` genérico com safe-area/dvh, `body.ended`, z 450, pausa em retrato sem "Continuar", skins/medalhas/desafio compactos, safe-area direita da home, `e2e-overlays`. **`history.src`** (+ normalizador), **`rs`/`rt`** (`restart-btn` vira listener). Docs: HANDOFF (3 releases atrás) + transcrever o banco do painel para IDEIAS-FUTURAS | P/M (3-4 dias + ritual) | Nenhum | 12/09 sai do script; latência pós-morte e P(recorrida ≤ 60 s) por `v` (n ≥ 100 pares ≈ 3 semanas); `rs&1`, `rs&2` |
+| 12/09 | Leitura 1 | Escola/Streaks por `v` (n insuficiente esperado); snapshot | — | — | Registrar o silêncio |
+| **12 → 19/09** | **v1.12.2 "Desafio"** | **G**: `/?desafio=<m>&de=<nome>` sanitizado, banner na home com um CTA, estaca do amigo na pista, "devolver o desafio" no game over (abre o `#nickname-modal` existente), persistência local 7 dias, `md=1`. **Reengajamento local**: cards "novidades desde a sua última visita" (tabela `CHANGELOG_CARDS`, zero rede) e "alguém passou você" (extensão do `podium:in/out` para qualquer rank cacheado). Carona: skins alcançáveis (`meters 300/600`, `escaped`, `streakBest 3`) se o dono fizer a arte. **Sem broadcast ainda** | M (3-4 dias + ritual) | `src` no ar (Régua); share acima da dobra (Régua) | Existência de `src=link` (≥ 5); corridas `md=1`; loop A→B→A |
+| **19/09 → 03/10** | **v1.12.3 "Farol"** | **F1** L1+L2: suíte `e2e-legibilidade` + modo cinza (baseline ANTES), rim nos 36 SVGs, reserva de matiz (~14 fills), 5 runners fora do near + rastro de objetos, paleta dos bg-cars + `carsAlpha`, torre-poste/espinho/mobiliário, relâmpago atrás do gameplay; L3 (corpos, fórmula, skyline) só onde o critério falhar. **Muralha cosmética** (C2) + **boss P**: rótulos M1, `hints.how` por chefe, `callSfx`, `midpoint` genérico só cosmético (Portão 1 restante, Muralha 2 restantes), moldura branca quando alinhado, `showTimer` + "sua melhor", `gate_clean`, placa "7ª vez · melhor 4 s", sirene 2 s pós-Portão, contorno duplo do glow. Instrumento restante (5 chefes impressos, R-18..R-21) | P-M (4-5 dias + ritual) | Régua (suíte de contraste usa o molde e2e) | Aceite técnico: borda ≥ 3:1 e ΔL* ≥ 30 nos 4 pontos de teste; KPI: `dart` em 1000-1400 por `v` (15/braço direção, 40 veredito); guard-rails do Portão (full-clear ≥ 75%, mediana `z` 3-6 s); contagem da Muralha começa |
+| **26/09** | Leitura 2 | Fecha o congelamento; snapshot. **À noite: broadcast do dono** no grupo com `?desafio=<recorde>&de=<nome>` | 0 | Desafio no ar ≥ 1 semana | % dos 55 lapsos com dia novo em ≤ 7 dias (n=55, ±13 p.p.); novos/semana por `src` |
+| encaixe (junto do Farol ou solto) | Spike de boot | Loader do Phaser sem `document.write` (injeção `async=false` + espera por `window.Phaser`); medir preload com `/?voo=1` no celular do dono; decidir a divisão do preload (dívida #2) | M (1 dia) | Nenhum | v3-dom→v5-phaser-pos e toque→corrida a frio; `rt` mediana. Sobe de prioridade se toque→corrida a frio > 4 s antes do broadcast |
+| **out/1ª quinzena** | **v1.13 "Jornada"** (renumerada) | DecorDirector (RNG isolado), "ALA x/5", **morte com contexto = toda a copy do game over** (kicker por causa, delta de uma frase por prioridade recorde/próximo marco/rival/desafio, "QUASE!", barra das 5 alas parametrizada), placa de recorde, **próxima medalha como estaca**, near-miss social ("faltaram 42 m para passar Fulano"), stings | M (5-7 dias + ritual) | Farol publicado; 26/09 lido | Corridas/sessão por `v`; retorno ao 2º dia por `src`; `rs&4` (se < 10% rolam, o que está abaixo da dobra é lixo); latência pós-morte |
+| **out/2ª quinzena → nov** | **v1.14 "Mata e Água"** (renumerada) | Como aprovado em 30/08 (portais, grounds/fg, `-mato`, glassTank, BIOME_FEEL, coreografias 600/800/950) | G (7-10 dias + ritual) | ≥ 1 semana após a Jornada; pré-registro escrito ANTES: aparelhos com `bestM ≥ 800` e `≥ 1000` por `v`, mortes 600-950 por causa; delta de boot no `/?voo=1` como aceite | As duas métricas pré-registradas + boot |
+| gatilhos | banco | Pista do Dia (≥ 20 ativos/7d por 2 semanas, `md=2`); MissionSystem (corridas/sessão não mexeu após a Jornada); Boss M (≥ 5 chegadas à Barreira com letra); M6 Replay (n ≥ 15 Muralha); vizinhos no top 10 (lote B da UX); Poki (C9); 3º boss (≥ 5 aparelhos `bestM ≥ 5000`) | — | — | — |
+
+### 2.2 O que espera o quê
+
+- **Espera 26/09**: qualquer spawn/física/densidade (Mata e Água), sinalização nova no zoo (estacas, placa, "ALA"), copy da tela de morte (Jornada), refatoração de RNG (Pista do Dia), elenco por distrito na cidade.
+- **Espera n ≥ 15 na Muralha com letra e era-gate**: `BOSS_MURALHA`, enrage, `BOSS2_LAYERS`, shutter/hazard, holofote com função de jogo, RIFLE_B, M6. No ritmo atual, um trimestre; com o Desafio funcionando, semanas.
+- **Espera gatilho de audiência**: Barreira/Faraó/Guardião (Boss M), 3º boss.
+- **Não espera nada** (e por isso vai primeiro): snapshot, instrumento, layout do game over, `src`, G, reengajamento local.
+
+## 3. Orçamento
+
+**Firestore (plano Spark, ~50 mil leituras e ~20 mil escritas/dia — conferir no console).**
+- Hoje: < 200 leituras/dia (12 ativos × 8-12 por boot), 50-100 escritas/dia. Pós-broadcast (60 voltas num dia): ~700 leituras + ~250 escritas. Folga > 95%. As alavancas do plano somam +0 (G, `src`, `rs/rt`, cards locais); +1-3 leituras/boot só quando perseguidor/vizinhos entrarem.
+- **Rules: nenhuma publicação antes de 26/09** — `src` usa a 6ª e ÚLTIMA vaga de `history`; `runs[]` é livre; medalhas são locais. Registrar em CLAUDE.md/HANDOFF: **`history` fechado (6/6) a partir da Régua**; `client` não se usa (reconstruído por envio). Depois: no máximo 1 publicação opcional (variante B do diário, banco).
+- Tamanho de doc: +2 chaves curtas × 50 corridas ≈ +600 bytes. Irrelevante.
+- Bombas de escala (não deste trimestre): `checkName`, `fetchDirectory` e `/?stats` leem coleções inteiras — O(N) por chamada. R-21 alerta quando N × visitas estimadas > 10 mil/dia. Condição de Poki, não de agora.
+- Testes: `e2e-overlays` e `e2e-legibilidade` nascem com `probeContext()` (sonda `claude-*`, `notify_off`, sem opt-in de escrita) — a lição de 08/08 vale para toda suíte nova.
+
+**Boot/perf (régua do plano Zoo: delta de boot no celular do dono via `/?voo=1` é critério de aceite).**
+- Rim em 36 SVGs à mão: zero request, zero textura, zero canvas maior; custo = rasterização com `feMorphology` no load (< 3 ms por arquivo no celular, < 0,1 s no total) — medir mesmo assim.
+- Régua e Desafio: zero textura (CSS/DOM/JS). Se G virar módulo novo → `ASSETS` do `sw.js` + bump.
+- Farol: **zero textura nova** — torre, espinho, near/far, cars e FACADES são edições em geradores existentes; `kennelOpen` desenha dentro das `muralha-gate-N` já geradas; `carsAlpha`, laser, holo e holofote são alpha/Graphics em runtime. Modo cinza = filtro CSS no canvas SÓ sob `?debug=1` (força camada de composição; jamais em produção).
+- Jornada: DecorDirector com 2-4 sprites (plano) + placa — pequeno; medir.
+- Mata e Água: o maior custo de boot do trimestre (portais, grounds/fg de dois biomas, montanhas, `-mato`, glassTank) — o motivo para o spike de preload (dívida #2) vir ANTES dela, e para a `-pantano` continuar condicionada ao boot como o plano já diz.
+- Toque→corrida a frio (~6 s na 1ª visita) é o funil de conversão de G: todo link é primeira visita. Medir no Portão 2 do Desafio; se > 4 s, o spike sobe para antes do broadcast.
+
+**Capacidade (um dev).**
+- Custo fixo por release ≈ meio dia a um dia (bateria de ~25 scripts, ~10 deles Chromium; validação do dono em desktop e celular; 3 portões; `/atualizar-docs`; bump 4 lugares + sw). Teto sustentável: **1 release/semana**.
+- 05/09 → 31/10 = 8 semanas = 8 slots; o plano usa 6 (Régua, Desafio, Farol, spike, Jornada, Mata e Água) — 2 de folga para hotfix. O crash-loop iOS de 25-28/08 é o lembrete de que a folga não é opcional.
+- Se algo tiver de cair para caber: o Farol pode atravessar 26/09 sem custo de método (só afeta ≥ 1000 m e o Portão); a Régua e o Desafio não podem.
+
+## 4. Riscos técnicos por proposta
+
+| Proposta | Risco | Mitigação / critério |
+|---|---|---|
+| Rim SVG (F1) | WebKit: filtro SVG dentro de `<img>` (é como `load.svg` rasteriza) é suportado, mas o Safari já cortou regiões de filtro e ignorou filtros com escala fracionária; halo cortado onde a arte encosta na borda do viewBox (pés na linha do chão); frames pares sem rim = cintilação | Assert no `test-sprites` via resvg ("há pixels claros no anel"); print no iPhone do dono no Portão 2; fallback = traço duplicado (M); script idempotente nos 36 arquivos + assert "todo `enemy-*.svg` tem `id="rim"`" (protege contra um `export-art --force` acidental). `?canvas=1` indiferente (raster no load). Hitbox intocada (canvas não cresce). |
+| Reserva de matiz / paletas | Identidade (LED ciano→âmbar muda a cara do Despertar); a fórmula é global | Prints antes/depois + modo cinza; fórmula e skyline só em L3 condicional (C1). |
+| Relâmpago depth −17,3 | Ordem contra neblina/fg pode inverter | Conferir constantes de profundidade; mesmo retângulo 1280×720 com `scrollFactor 0` (WebGL: nada do tamanho do mundo). |
+| Game over / top 10 (CSS) | `100dvh` falha no cold start do PWA; `env()` exige `viewport-fit=cover` (já está); `-webkit-mask-image` esconde a última linha; `position:sticky` em `li` dentro de `ol` com overflow; `display:contents` tem bugs de acessibilidade no WebKit; `e2e-stats` assere `display === 'block'`; `e2e-boss`/`e2e-deserto` leem `#game-over-title`/`h1` | Fallback `vh` sob `@media (display-mode: standalone)`; `padding-bottom` 18 px no container que rola; emitir spans planos em vez de `display:contents`; `#game-over` continua `display:block` e o `<h1 id="game-over-title">` continua existindo; `onclick` inline vira `pointerdown` stopPropagation + `click` (contrato do toque); nenhum elemento novo da home na faixa (640,650). |
+| `history.src`, `rs`, `rt`, `md` | `getHistory()` normaliza para 5 chaves (`src` some no ciclo seguinte); `sessionStorage` pode não existir (modo privado); letra sem leitor deixa `test-radiografia` vermelho; `history` fecha em 6/6 | Normalizador + assert; try/catch com "ausência = home fria"; leitores no `RadiografiaCore` no mesmo commit; documentar o fechamento. WebKit/ITP: aparelhos iOS não instalados podem renascer (§0) — ressalva na leitura de reengajamento, sem mitigação barata. |
+| G (Desafio por link) | Entrada hostil por URL; og estático (preview não personaliza); 1ª visita a frio ≈ 6 s; estaca do amigo no zoo é estímulo em 0-400 m; HomeScreen não toca Phaser | Clamp 1..10000, `de` 3-12 chars com whitelist, `textContent`, banner nunca é link, fora do padrão = home normal; aceitar o preview; medir toque→corrida a frio (§3); `src=link` estratificado na Escola; banner é DOM na home, a estaca é plantada pela GameScene lendo localStorage; `md` só grava > 0. |
+| Boss P (Farol) | `midpoint`/`callSfx` são código novo no `BossFight` (parametrizar, nunca `if def.id`); shake em câmera travada; moldura "alinhado" por frame; ponto médio da Muralha é telegraph de fase | Ganchos genéricos com def por tabela; precedente do `defeatMuralha` (shake 320/0,014); comparação de bandas é barata; ponto médio da Muralha entra no MESMO pacote e depois silêncio (era-gate). `gate_clean` = medalha local (zero rules). |
+| Spike de boot (`defer`) | `document.write` é condicional (`/?stats`, `/?setup`, safe): `<script defer>` estático carregaria 1,2 MB no painel; scripts dinâmicos são `async` por padrão | Injeção dinâmica com `async=false` + `game.js` aguardando promessa do loader; testar `/?stats`, `/?setup`, `__frSafe`, `?canvas=1`; medir `/?voo=1` v3→v5. |
+| Pista do Dia (banco) | 16 pontos de RNG = refatoração de spawn; "bit-idêntico" sem prova; esgotamento de pool e `tierEfetivo` quebram o "mesma pista" | Só após 26/09; `?seed=` + hash da sequência de spawn em e2e como assert de determinismo e de "default intocado". |
+| Boss M (banco) | Espelho = 2 texturas + `TimedHazard.KINDS` + hazard dentro da arena ("arena sem spawn"); shutter vs "dash mata em 1 toque" | Interpretações do dono antes de codar; causa `farao` já existe (sem rules). |
+| Poki (banco) | Partição de storage em iframe cross-site (Safari) = perda de identidade/streak/`runs[]`; SW/PWA sem sentido; 3 varreduras O(N²); i18n G; anúncios ditam a cadência do "≤ 2 toques" | Gatilhos de C9; modo `?embed=1` honesto ("sem memória") antes de qualquer teste. |
+
+## 5. Vetos e cortes
+
+**Vetos (motivo em uma linha):**
+- `autoStart` após o reload — gesto de áudio no WebKit, mortes com `j=0` contaminam a Escola, tira a escolha (C8).
+- `send()` extra no game over para a letra `ui` — quebra "um write por fim de corrida"; a informação já sai de D1 e de `rs` (C7).
+- Letras `ui`, `dl`, `dy` — redundantes com `rs`, `md` e `t` (C7).
+- Flash branco de entrada — "flash = tiro vem" (C11).
+- Elenco por distrito — é spawn; e sem dado que separe "não viu a torre" de "não viu o dardo".
+- Fórmula de luz e skyline dessaturado sem o critério falhar — mudança global sem dado do deserto (C1).
+- Pista do Dia antes de 26/09, em construção ou publicação (C3).
+- Missões editoriais que expiram; MissionSystem antes de a Jornada mostrar seu número (C4).
+- Boss M (shutter/Espelho/`extraHunters`) sem gatilho; RIFLE_B no Portão sem a condição do designer (≥ 50% dos full-clears ≤ 6 s E queixa persistente); 3º boss; rotação de ordem/arsenal; checkpoint; HP no rino; hit-stop; cutscene que pausa o runner; escalar entidade com corpo — todos por doutrina já escrita.
+- Poki/CrazyGames neste trimestre (C9). Push/ntfy (a retenção está certa: acelera a desinstalação de um jogo ao qual ainda não se volta). Loja, moedas, login, ghost/replay, modal por morte — mantidos.
+- Campo de 1º nível em `stats`; usar a vaga de `client`; qualquer letra sem leitor no `RadiografiaCore`.
+- Estender o congelamento além de 26/09 por causa de um n insuficiente.
+
+**Cortes de escopo (aceita a ideia, reduz a fatia):**
+- F3: copy (kicker, "QUASE!", delta por prioridade) sai da Régua e vai para a Jornada; vizinhos no top 10 (consulta nova + `id` no cache) vai ao lote B/banco.
+- F1: L3 (retoque de corpo em 9 espécies, fórmula, skyline) condicional ao critério; `makeNear('cidade')` só higiene.
+- F2: só o pacote P (rótulos, voz, ponto médio cosmético, cronômetro, moldura, legibilidade); "cada chefe um verbo" espera audiência.
+- Instrumento: 11 itens viram 6 obrigatórios + 3 recomendados + 2 adiáveis (C14).
+- Retenção: (i) fica só no que é local + broadcast; rivais fixos e perseguidor vão para depois da Jornada; eventos por modificador ficam fora do trimestre.
+
+## 6. Top-12 final (impacto ÷ custo)
+
+| # | Ideia | Custo | Veredito | Métrica que a julga |
+|---|---|---|---|---|
+| 1 | Snapshot de 05/09 + radiografia com corte por `v` e seções pré-registradas | P/M | **v1.12.1 Régua** | Leitura de 12/09 sai do script com Δ vs 05/09 e "n insuficiente" onde n < mínimo |
+| 2 | Game over / vitória / top 10 em layout novo (CTA acima da dobra, share visível, grid) — strings idênticas | P | **v1.12.1 Régua** | Latência pós-morte mediana e P(recorrida ≤ 60 s) por `v` (n ≥ 100 pares); `rs&1`, `rs&2`; corridas/sessão por `v` |
+| 3 | `history.src` + `rs`/`rt` | P | **v1.12.1 Régua** | Existência em ≥ 5 docs até 12/09; é o que separa "voltou gente" de "melhorou o jogo" em toda leitura seguinte |
+| 4 | Desafio por link (G) + broadcast do dono em 26/09 | M | **v1.12.2 Desafio** | Novos/semana com `src=link` (5 = existência, 20 = direção de D7); % dos 55 lapsos com dia novo ≤ 7 d após o broadcast; corridas `md=1`; loop A→B→A |
+| 5 | Rim da cidade + reserva de matiz + figurantes fora do near + `carsAlpha` + torre/espinho + relâmpago (F1) | P-M | **v1.12.3 Farol** | Aceite técnico: contraste de borda ≥ 3:1 e ΔL* ≥ 30 nos 4 pontos (baseline hoje 1,01-1,09); KPI: participação de `dart` em 1000-1400 por `v` (15/braço direção, 40 veredito) |
+| 6 | Muralha legível + boss P (rótulos, `callSfx`, ponto médio cosmético, cronômetro "sua melhor", moldura alinhada, `gate_clean`, placa de encontros) | S-M | **v1.12.3 Farol** | Guard-rails do Portão mantidos (full-clear ≥ 75%, mediana `z` 3-6 s, fúria negada `n` estável); `gate_clean` ≥ 40% dos full-clears; contagem da Muralha começa (mortes com `e=0` ≤ 40% quando n ≥ 15) |
+| 7 | Reengajamento local: "novidades desde a última visita" + "alguém passou você" | XS | **v1.12.2 Desafio** | % dos lapsos que voltam (existência/direção, ±13 p.p.); `history.days` |
+| 8 | Jornada: morte com contexto + toda a copy positiva + barra das alas + próxima medalha como estaca + placa + near-miss social | M | **v1.13 (renumerada), pós-26/09** | Corridas/sessão por `v`; retorno ao 2º dia por `src`; `rs&4`; latência pós-morte |
+| 9 | Mata e Água (aprovada 30/08) | G | **v1.14 (renumerada), ≥ 1 semana após a Jornada** | Aparelhos `bestM ≥ 800` e `≥ 1000` por `v`; mortes 600-950 por causa; delta de boot dentro do critério |
+| 10 | Skins alcançáveis (`meters 300/600`, `escaped`, `streakBest 3`) | XS + arte do dono | **Carona no Desafio ou na Jornada** | Adoção `g` por `v` (R-10 mostrou dobrar com skin nova) |
+| 11 | Spike de boot: loader do Phaser sem `document.write` + medição/divisão do preload | M | **Encaixe; antes do broadcast se toque→corrida a frio > 4 s** | `/?voo=1` v3→v5; toque→corrida a frio no celular do dono; `rt` mediana |
+| 12 | Pista do Dia por semente (share estilo Wordle) | S-M | **Banco com gatilho** (≥ 20 ativos/7d por 2 semanas, após 26/09, `md=2`) | Dias com corrida por aparelho ativo/semana; corridas `md=2` vs sem, mesma `v` |
+
+Fora da lista, no banco com gatilho: MissionSystem/metas 3×3 (se a estaca da próxima medalha não mover corridas/sessão), vizinhos no top 10, rivais fixos e perseguidor, Boss M "cada chefe um verbo" (≥ 5 chegadas à Barreira), M6 Replay (n ≥ 15), variante B do diário (1 publicação de rules), Poki (C9), 3º boss (≥ 5 aparelhos `bestM ≥ 5000`).
+
+**A frase para o dono**: o painel produziu quatro pacotes bons e um diagnóstico que os reordena — o jogo não está perdendo quem joga, está sem gente entrando. Antes de 26/09 só entra o que mede, o que cabe na tela e o que traz alguém pela porta; tudo o que muda a pista espera a data, e tudo o que serve a quatro pessoas espera as pessoas.
+
+Arquivos de referência: `C:\Users\crist\MobileGame\firestore.rules`, `C:\Users\crist\MobileGame\js\utils\StorageManager.js`, `C:\Users\crist\MobileGame\js\systems\BossFight.js`, `C:\Users\crist\MobileGame\js\systems\AudioSystem.js`, `C:\Users\crist\MobileGame\js\scenes\GameScene.js`, `C:\Users\crist\MobileGame\index.html`, `C:\Users\crist\MobileGame\package.json`, `C:\Users\crist\MobileGame\sw.js`, `C:\Users\crist\MobileGame\docs\IDEIAS-FUTURAS.md`, `C:\Users\crist\.claude\plans\vamos-iniciar-um-planejamento-mutable-toast.md`.

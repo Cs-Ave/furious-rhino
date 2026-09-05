@@ -42,7 +42,7 @@ Bateria completa verde: test-stats **157** · test-radiografia **91** · caixapr
 
 ## 5. A revisão geral de 05/09 — a fila aprovada
 
-Painel de 5 especialistas (dados, arte/legibilidade, chefes, UX mobile, retenção) + cético, sobre a radiografia do dia, os 3 feedbacks e benchmark. **Diagnóstico**: a retenção melhorou (57% um-dia-só, era 69%); o que colapsou foi a ENTRADA (1 novo/semana; 44 execuções em 7 dias contra 235). Cidade e chefes são conteúdo que ≤18 e ≤5 aparelhos veem.
+Painel de 5 especialistas (dados, arte/legibilidade, chefes, UX mobile, retenção) + cético, sobre a radiografia do dia, os 3 feedbacks e benchmark. **Dossiê completo em `docs/revisao-2026-09-05/`** (benchmark com fontes, leituras de código, os 6 pareceres); destilado em IDEIAS-FUTURAS §N. **Diagnóstico**: a retenção melhorou (57% um-dia-só, era 69%); o que colapsou foi a ENTRADA (1 novo/semana; 44 execuções em 7 dias contra 235). Cidade e chefes são conteúdo que ≤18 e ≤5 aparelhos veem.
 
 | Release | Quando | Conteúdo |
 |---|---|---|

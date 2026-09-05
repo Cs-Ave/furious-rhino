@@ -1592,6 +1592,10 @@ indistinguível a 400 px/s).
 
 ## N. Revisão geral — 05/09/2026 (o que o painel deixou no banco)
 
+> **Material bruto completo: `docs/revisao-2026-09-05/`** — o benchmark com as
+> fontes, a radiografia do dia, as 3 leituras de código e os 6 pareceres do
+> painel. Esta seção é só o destilado.
+>
 > Sessão de revisão pedida pelo dono sobre **dados + 3 feedbacks + benchmark**:
 > radiografia do dia, 3 leitores de código, painel de 5 especialistas (analista
 > de dados, direção de arte/legibilidade, design de chefes, UX mobile, retenção
