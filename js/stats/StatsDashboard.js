@@ -207,6 +207,9 @@ export function allRuns(docs, sinceS = since()) {
         // e cj (pulos carregados). A revisão pegou a lacuna L2 REABRINDO uma
         // release depois de fechada; o guarda novo do test-stats impede a 3ª.
         fc: num(r.fc), cj: num(r.cj),
+        // v1.12.1: como a corrida começou (rs = bitmask do fim de corrida
+        // anterior) e quanto tempo levou para recomeçar (rt, em segundos)
+        rs: num(r.rs), rt: num(r.rt),
         g: str(r.g) || null, v: str(r.v) || null,
         attemptIndex: base + i + 1,
       });

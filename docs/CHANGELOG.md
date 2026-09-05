@@ -5,7 +5,20 @@
 
 ---
 
-## v1.12.0 — 30/08/2026 (versão atual) — 🦁 O ZOO QUE FICA PARA TRÁS (parte 1 de 3)
+## v1.12.1 — 05/09/2026 (versão atual) — 📏 A RÉGUA
+
+**Tema: o fim de corrida cabe na tela, o top 10 alinha, e o jogo passa a medir o que estava cego.**
+
+Primeira das três releases da revisão geral de 05/09 (painel de 5 especialistas + cético sobre os dados, três feedbacks do dono e benchmark de runners). Esta é a que **não muda nada do que se joga** — só o que se vê depois da corrida e o que se consegue medir.
+
+- **A tela de fim de corrida foi refeita para caber.** Era a queixa nº 3: no iPhone 17 Pro em paisagem os botões ficavam abaixo da dobra e era preciso rolar para achar "Jogar Novamente". A caixa agora tem três faixas — o resultado (metros grandes, pontos ao lado, quanto faltou para o recorde, a dica), os detalhes que rolam com um sinal de fade, e um **rodapé fixo com o botão grande** que nunca sai da tela. Vale para a vitória também (que não tinha limite de altura nenhum — na LENDA a caixa era cortada). Não era caso raro: **48 dos 75 aparelhos** da base têm tela de lado curto o bastante para o problema aparecer.
+- **O top 10 virou uma tabela de verdade.** Nome comprido agora corta com reticências em vez de quebrar em duas linhas, e a coluna de pontos começa no mesmo lugar em todas as linhas (era a segunda metade da queixa nº 3). As 10 posições cabem na tela de celular sem rolar.
+- **Modais em tela baixa**: skins, medalhas, desafios, PWA e pausa ganharam versão compacta; todos respeitam as bordas seguras do aparelho (a ilha dinâmica do iPhone deixava o canto direito da home embaixo dela). E em retrato o botão "Continuar" da pausa some — ele retomava a corrida às cegas, atrás do aviso de girar o celular.
+- **A radiografia aprendeu a cortar por versão.** As cinco métricas da Escola do Rino e as dos Streaks, que estavam pré-registradas desde 29/08, agora saem do script (com ⚪ onde ainda não há amostra — o silêncio também é resultado). Ganhou ainda: causa da morte cruzada com o LUGAR (o mapa antigo era vitalício e sem distância — foi assim que apareceu que na cidade noturna o dardo triplica de participação), streaks reconstruídos, fricção pós-morte, atribuição de origem e quatro regras novas de alerta. A fotografia de 05/09 fica congelada ao lado da de 16/08 como segunda baseline.
+- **Duas medidas novas por corrida** (sem enviar nada a mais): se a corrida veio do botão "Jogar de novo" e quantos segundos se passou desde a morte anterior. O jogo nunca soube se quem morria voltava. (Hoje: mediana de **9 segundos** e 86% recorrem em menos de um minuto — o "só mais uma" está funcionando.)
+- Zero mudança em dificuldade, física, spawn, elencos, clima ou céu: o congelamento da medição da Escola (leituras em 12/09 e 26/09) segue intacto.
+
+## v1.12.0 — 30/08/2026 — 🦁 O ZOO QUE FICA PARA TRÁS (parte 1 de 3)
 
 **Tema: os primeiros 1000 m ganham identidade — as "três gêmeas" se separam e as fronteiras viram portas de verdade.**
 

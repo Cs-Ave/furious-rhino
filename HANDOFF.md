@@ -1,4 +1,125 @@
-# Handoff — FURIOUS RHINO v1.10.0 — 🎓 A ESCOLA DO RINO
+# Handoff — FURIOUS RHINO v1.12.1 — 📏 A RÉGUA
+
+**Data:** 05/09/2026 · **Status:** implementada e testada; nos portões.
+Primeira das três releases da **revisão geral de 05/09** (ver §5).
+
+## 0. O que é
+
+A release que **não muda nada do que se joga**: conserta o fim de corrida
+para caber em tela curta (feedback F3 do dono), alinha o top 10, compacta os
+modais — e dá ao jogo os instrumentos que faltavam para julgar tudo o que
+vem depois. Zero spawn, zero física, zero densidade: o congelamento da
+medição da Escola (12/09 e 26/09) fica intacto.
+
+## 1. O que entrou
+
+| Frente | O quê |
+|---|---|
+| **Fim de corrida (F3)** | `#game-over` e `#game-win` na MESMA caixa de 3 faixas: `.go-hero` (fixo) · `.go-extra` (rola com fade) · `.go-actions` (rodapé fixo, botão 52/46/44 px). `max-height` com `dvh` + fallback `vh` sob `display-mode: standalone` (o dvh nasce errado no cold start do PWA). z 450 (acima do rotate-overlay 400, abaixo dos modais 500). `p:empty{display:none}` devolveu ~80 px de ar. `body.ended` tira guias e pausa da frente. **IDs preservados** — as 5 suítes que leem `#game-over-title`/`display:block` seguem verdes. |
+| **Top 10** | A grade mudou de lugar: era `display:grid` por `<li>` (colunas NÃO são compartilhadas entre grids diferentes — cada linha tinha as suas e os pontos começavam em x diferente). Agora o `<ol>` é o grid e os `<li>` são `display:contents`; nome com ellipsis, pontos com `tabular-nums`, coluna da espadinha reservada na linha VOCÊ. |
+| **Modais** | Bloco genérico no FIM da folha (mesma especificidade → a última vence): safe-area, `dvh`, compactação `≤500px` para skins/medalhas/desafio/PWA. Retrato esconde "Continuar" da pausa (retomava às cegas atrás do "gire o celular"). |
+| **Instrumento** | `RadiografiaCore` v1.1.0: corte por `v` (`opts.corte`, default = versão corrente) + **5 seções novas** — Escola pré-registrada (corte próprio em 1.10.0), Streaks recomputados do `history.days`, causa×lugar com as fronteiras dos distritos, fricção pós-morte, atribuição. `BASELINE_20260905` congelada ao lado da de 16/08. Regras R-18 (dardo do Subúrbio) · R-19 (fricção) · R-20 (atribuição) · R-21 (cota do Firestore). CLI ganhou `--corte=`, `--corte-escala=` e `--anterior=<snapshot>`. |
+| **Telemetria** | `rs` (bitmask: 1 botão · 2 share · 4 rolou extras) e `rt` (segundos desde a morte anterior) em `runs[]` — via `sessionStorage.fr_replay`, **sem write extra**. `history.src` ('link'/'org') carimbado uma vez no 1º boot. |
+
+## 2. Números de 05/09 que a release já produziu
+
+- Fricção pós-morte reconstruída: **616 pares · mediana 9 s · 86% recorrem em ≤60 s** (o "só mais uma" funciona).
+- **48 de 75** aparelhos com lado curto ≤520 px — a população do overflow do F3.
+- Escola por `v`: primária 63% (15/24) antes de 1.10 · ⚪ depois (n=1). Streaks: 11 aparelhos com melhor ≥3.
+- Dardo em 1000–1400 m: **27% das mortes** (n=37) contra ~7% no zoo — a assinatura numérica do F1, que a v1.12.3 "Farol" vai atacar.
+
+## 3. Verificação
+
+Bateria completa verde: test-stats **157** · test-radiografia **91** · caixapreta 37 · score 101 · crash 76 · skins 98 · bossproof 29 · e2e-ramp 54 · home 11 · crash 15 · boss 18 · special 25 · deserto 14 · boss2 14 · boss3 10 · skins 15 · setup 28 · stats · **e2e-overlays 94 (nova)**. Monte Carlo inalterado por construção.
+
+## 4. Armadilhas que esta release registrou
+
+- **Grid não compartilha colunas entre containers.** `display:grid` em cada `<li>` parece resolver alinhamento de tabela e não resolve: a grade tem de estar no pai, com `display:contents` nas linhas.
+- **O guarda bidirecional da L2 pegou de novo** (`rs`/`rt` sem decodificador no `allRuns` do painel) — pela 2ª vez desde que existe. Letra nova = leitor em DOIS lugares: `RadiografiaCore.RUN_LETTER_KEYS` e `StatsDashboard.allRuns`.
+- **`history` está FECHADO em 6/6 chaves** (as rules validam `size() <= 6`) — `src` gastou a última vaga. Campo novo daqui em diante entra dentro de um balde existente ou em `runs[]`. E toda chave precisa aparecer no normalizador do `getHistory()`, senão some no ciclo seguinte.
+- **Par de latência precisa dos dois relógios**: sem `s` (corridas pré-1.6) a largada é indeterminável — aceitar isso enchia a série de zeros falsos.
+- `client.screen` vem como `"402x874@3"` (o `@dpr` faz parte do formato) — regex que exigia fim de string media zero aparelhos.
+
+## 5. A revisão geral de 05/09 — a fila aprovada
+
+Painel de 5 especialistas (dados, arte/legibilidade, chefes, UX mobile, retenção) + cético, sobre a radiografia do dia, os 3 feedbacks e benchmark. **Diagnóstico**: a retenção melhorou (57% um-dia-só, era 69%); o que colapsou foi a ENTRADA (1 novo/semana; 44 execuções em 7 dias contra 235). Cidade e chefes são conteúdo que ≤18 e ≤5 aparelhos veem.
+
+| Release | Quando | Conteúdo |
+|---|---|---|
+| **v1.12.1 Régua** ✅ | 05/09 | esta |
+| **v1.12.2 Desafio** | 12→19/09 | ideia G (`?desafio=&de=`), estaca do amigo, "devolver o desafio", cards "novidades desde a sua última visita", "alguém passou você" |
+| **v1.12.3 Farol** | 19/09→03/10 | F1 passe de legibilidade da cidade (rim claro nos 36 SVGs, reserva de matiz, figurantes fora do bg-near, `carsAlpha`, torre-poste) + boss pacote P (rótulos M1, dica por chefe, `callSfx`, ponto médio cosmético, cronômetro, `gate_clean`) + suíte `e2e-legibilidade` |
+| 26/09 | leitura 2 | fecha o congelamento; **broadcast do dono** com link-desafio DEPOIS do snapshot |
+| **v1.13 Jornada** | out/1ª q. | (era v1.14) DecorDirector, "ALA x/5", toda a copy do fim de corrida, placa de recorde, próxima medalha como estaca |
+| **v1.14 Mata e Água** | out/2ª q. | (era v1.13) o programa Zoo parte 2 — toca spawn, por isso vai depois |
+
+Banco com gatilho: Pista do Dia (≥20 ativos/7d), MissionSystem, "cada chefe um verbo" (≥5 chegadas à Barreira), M6 Replay (n≥15 Muralha), vizinhos no top 10, Poki, 3º boss. Vetados: `autoStart` no reload, flash branco de entrada, push, loja/moedas/login/ghost/checkpoint.
+
+## 6. Segue de pé
+
+- Leituras pré-registradas **12/09 e 26/09**, por `v` (≥1.10 Escola, ≥1.12 zonas de respeito).
+- Prova de campo do CASO 2 (caixa-preta de plantão) e CASO 1 (terceira causa se houver salto ≥v1.10.1).
+- Snapshots: `tools/snapshots/radiografia-2026-09-05.json` é o "antes" oficial da revisão.
+
+> ⚠️ Outra sessão trabalha neste repositório — conferir dono de arquivo
+> antes de commitar; nunca git add -A.
+
+---
+
+# Handoff anterior — FURIOUS RHINO v1.12.0 — 🦁 O ZOO QUE FICA PARA TRÁS (1 de 3)
+
+**Data:** 30/08/2026 · **Status:** em produção (commit `1f79fb8`).
+
+Redesign visual dos 0–1000 m, parte 1: chão por ala (concreto de serviço /
+piso claro com penas / laterita), paredes `-aviario` (treliça do domo) e
+`-savana` (taipa com riscos de garra), portais próprios nas duas primeiras
+fronteiras (`arch-aviario` "Portão do Viveiro", `arch-savana` "Porteira do
+Safári") com vitrine do bioma de destino no vão, **crossfade antecipado 520 px**
+(o mundo novo visto ATRAVÉS do portal), flash na cor do destino, revoada aos
+200 m e manada aos 400 m, narrativa por objetos (portão monumental ZOO, jaulas
+abertas, cadeado caído, Grande Domo rasgado, cerca-barômetro, baobá), torre de
+dardo repintada como vigia do tratador (seteira (36,70) e bandeirinha
+intocadas), fim das montanhas nevadas na savana. **Máquina `ZOO_ALAS`** estende
+`CITY_DISTRICTS` para antes do portão (`skinFor`/`zooAlaFor`). Única mudança de
+spawn: **zona de respeito [−450, +250] nos 4 arcos** com guarda de vão ocupado
+(decisão do dono; a leitura de 26/09 corta por `v`). Fila de toasts (dica nunca
+espera; marco espera a tela). +20 texturas procedurais, zero SVG novo, Monte
+Carlo bit-idêntico.
+
+Revisão adversarial: 3 médias corrigidas (animal primário furando a zona,
+portas dos portais decepadas no canvas, texto de assert invertido).
+
+---
+
+# Handoff anterior — FURIOUS RHINO v1.11.0 — 🔥 STREAKS
+
+**Data:** 30/08/2026 · **Status:** em produção.
+
+A chama dos dias seguidos sobre o `history.days` que já subia há meses sem
+leitor (ideia F). Regra generosa — **"ontem mantém a chama"**: quem jogou
+ontem e ainda não jogou hoje vê convite, nunca bronca; chama apagada some da
+tela. `StorageManager.getStreak({contandoHoje})` + `streakBest` monotônico;
+3 medalhas (`streak_3/7/30`) pelo MELHOR streak (nunca "descaem"); condição
+de skin `{streakBest:N}`; pílula no box Campanha. **Zero Firestore, zero
+chave nova** — tudo derivado do que já existia.
+
+---
+
+# Handoff anterior — FURIOUS RHINO v1.10.1 — o congelamento não teleporta mais
+
+**Data:** 30/08/2026 · **Status:** em produção; portão humano do CASO 1 fechado
+pelo dono em campo ("testado o giro, funcionou").
+
+Pacote do CASO 1: `PHYSICS_MAX_DELTA_MS: 50` clampa o delta no wrap do
+`physics.world.update` (um quadro de 3 s move o rino ≤30 px, não ~900 — o
+engasgo virou câmera lenta, nunca teleporte) e o **retrato PAUSA de verdade**
+(matchMedia + a lacuna de largar já em pé, dentro da graça de 150 ms do
+`started`). H2 e H3 eliminadas por construção: salto de distância em corrida
+≥ v1.10.1 é uma TERCEIRA causa.
+
+---
+
+# Handoff anterior — FURIOUS RHINO v1.10.0 — 🎓 A ESCOLA DO RINO
 
 **Data:** 29/08/2026 · **Status:** implementada, revisada e testada; nos
 portões. O dono rompeu o congelamento conscientemente (o dia já rodava

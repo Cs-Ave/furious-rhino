@@ -1526,7 +1526,144 @@ para tudo que julga a Muralha.
 | **Aba de missões no `/?setup`** | O console do Firebase já cobre a edição do `config/missions` |
 | **3º boss aos 3.000 m** | Só com dado que justifique — gatilho quantificado pela doutrina M: **≥5 aparelhos com bestM ≥5000 OU ≥10 corridas/janela ≥4700 m, em duas radiografias consecutivas**. (Nota 23/08: a Barreira dos 3650 m saiu na v1.8.10 por decisão de fase — miniboss do deserto —, não por esse gatilho, que segue valendo para qualquer âncora no deserto profundo) |
 | **Push a jogadores** | O ntfy é canal do administrador; notificar jogador é outra natureza de produto |
-| **Missões diárias automáticas** | Base de 51 não sustenta a esteira; vira lista vazia |
+| **Missões diárias automáticas** | Base de 51 não sustenta a esteira; vira lista vazia (05/09: o veto vale para conteúdo EDITORIAL que expira — metas pessoais geradas, sem prazo, sobre letras existentes, ficam liberadas) |
+
+---
+
+## O programa "O Zoo que Fica Para Trás" (30/08) — partes 2 e 3 📐
+
+> Redesign visual dos 0–1000 m em 3 releases, desenhado por painel
+> multi-domínio + cético sobre dossiê fotográfico. A **parte 1 saiu na
+> v1.12.0**; as outras duas estão aprovadas pelo dono e, depois da revisão de
+> 05/09, **trocaram de ordem** (a Jornada é apresentação e vem antes; Mata e
+> Água toca spawn e precisa de baseline limpa).
+
+**Regras de aceite (valem para as duas)**: máquina `ZOO_ALAS` +
+`skinFor`/`zooAlaFor`; NADA toca `getBiomeIndex`/`getTierIndex`/`weatherFor`;
+céu, clima, elencos e posições intocados; fresta clara sobre corpo escuro;
+tint jamais em gameplay; 4 assinaturas proibidas em cenário novo (massa de
+tijolo âmbar, especular de aço, ameias, banda-clara-sobre-escuro); figurantes
+do elenco letal jamais no `bg-near`; luz acesa só em cenário não-letal;
+lianas/franjas terminam em y≤380 (a banda de voo é [410,565]); partículas em
+depth −1.5, ≤900 ms, cap ~24; tiles de 640 px com emenda ±640;
+`fillVerticalGradient`; chão fino preso à câmera; **máx. 12 chaves de parede
+por release**; **delta de boot no celular do dono (`/?voo=1`) é critério de
+aceite**.
+
+- **v1.13 "Jornada"** (era v1.14): DecorDirector com **RNG próprio e isolado
+  do stream de spawn (inegociável)** — 2-4 sprites já carregados por bioma,
+  posição/presença por `runSeed`, metade por seed diário; label "ALA 2/5 —
+  VIVEIRO DAS AVES"; **toda a copy do fim de corrida num único bump** (kicker
+  `causa · ala`, barra das 5 alas no slot `#go-track` que a v1.12.1 já deixou
+  pronto, delta por prioridade — recorde → perto do recorde → 2ª/3ª melhor →
+  marco à frente → neutro-positivo —, "QUASE!" quando o alvo estava a ≤10%);
+  marcador de recorde como **PLACA** (não bandeirinha — bandeirinha é
+  vocabulário da torre de dardo); **próxima medalha não conquistada como
+  estaca** (a escada do `MedalSystem` já existe: sempre um alvo a 100-300 m);
+  near-miss social ("faltaram 42 m para passar Fulano"); stings por bioma.
+- **v1.14 "Mata e Água"** (era v1.13): `propSkin: '-mato'` para
+  savana/floresta/pântano (`spike-tower-mato` cupinzeiro, `tranq-tower-mato`
+  totem com bandeirinha mantida, `ramp-*-mato`); portais `arch-floresta`
+  ("Túnel de Dossel", lianas y≤380, vão escuro = a penumbra é a vitrine) e
+  `arch-pantano` ("Ponte do Brejo" com lampiões — handshake com o pôr do sol
+  dos 800 m); `ground-floresta`, `ground-pantano` (poças ESTÁTICAS),
+  `bg-fg-*`, `bg-mountains-pantano`; **sem parede nova** (`-floresta` cortada
+  — penumbra + neblina 0,34 já disfarçam; `-pantano` condicionada ao boot);
+  conserto do `glassTank` (~820 m, lê como torre crua no crepúsculo); muro
+  exterior fininho no `bg-far`; placas "SAÍDA →"; cerca-barômetro 4-5;
+  coreografias 600/800/~950 m; **BIOME_FEEL** (`onDash`/`onLand`/`onSmash`
+  com emitters existentes, cap 6-8/burst, suprimido com clima roteirizado);
+  flashes verde-mata e violeta (**testar o violeta sobre o céu de crepúsculo
+  ANTES** — flash escuro sobre dusk derruba a leitura dos espinhos).
+  Pré-registro escrito ANTES: aparelhos com `bestM ≥800` e `≥1000` por `v`,
+  mortes 600-950 por causa, delta de boot.
+
+**Banco do programa** (levantado pelo painel, sem versão prometida): muro em
+3 estágios com sub-áreas do pântano; variantes de `bg-far` por seed; poças
+pulsantes; insígnias por ala; fita de progresso no HUD; micro-celebração das
+lições (reavaliar pós-26/09); 5 torres de dardo por bioma. **Vetados**:
+figurantes do elenco letal em `bg-near`, hit-stop, moedas/colecionáveis,
+variação de clima/céu por seed, regenerar backdrop por corrida, panfleto
+animado no primeiro plano da abertura, vitrine viva com `setCrop` (veto
+permanente — render extra por portal em cena; a versão assada é
+indistinguível a 400 px/s).
+
+---
+
+## N. Revisão geral — 05/09/2026 (o que o painel deixou no banco)
+
+> Sessão de revisão pedida pelo dono sobre **dados + 3 feedbacks + benchmark**:
+> radiografia do dia, 3 leitores de código, painel de 5 especialistas (analista
+> de dados, direção de arte/legibilidade, design de chefes, UX mobile, retenção
+> e aquisição) e o cético consolidando. Decisões do dono: 3 patches antes do
+> programa Zoo; Jornada antes de Mata e Água; chefes = pacote P agora, verbos
+> por gatilho; broadcast só depois do snapshot de 26/09.
+>
+> **Diagnóstico que reordenou tudo:** a retenção MELHOROU (57% um-dia-só, era
+> 69%; 43% voltam; D7 20-29% contra ~4% de referência arcade). O que colapsou
+> foi a ENTRADA — 1 novo na última semana cheia, 44 execuções em 7 dias contra
+> 235 nas anteriores. Cidade (F1) e chefes (F2) são conteúdo que ≤18 e ≤5
+> aparelhos veem; o fim de corrida (F3) é a única tela que TODA corrida
+> atravessa. Daí a fila: medir e caber → trazer gente → embelezar.
+
+### Executado
+
+| Release | O quê |
+|---|---|
+| **v1.12.1 "Régua"** ✅ 05/09 | fim de corrida/top 10/modais em tela curta; instrumento com corte por `v` + 5 seções; `rs`/`rt`/`history.src` |
+
+### Aprovado, ainda não executado
+
+- **v1.12.2 "Desafio"** (12→19/09) — a ideia **G** (§766) sai do banco: `/?desafio=<m>&de=<nome>` com sanitização estrita (clamp 1..10000, `de` 3-12 chars whitelist, `textContent`, banner nunca é link), estaca do amigo na pista via `createTrackMarks`, "devolver o desafio" no fim de corrida (sem apelido abre o `#nickname-modal` — é onde o visitante vira jogador), persistência local 7 dias, letra `md:1`. Mais: cards **"novidades desde a sua última visita"** (tabela `CHANGELOG_CARDS` em código + `NewsSystem.push`, zero rede) e **"alguém passou você"** (estende o `podium:in/out` para qualquer rank cacheado). Carona: skins alcançáveis (`meters 300/600`, `escaped`, `streakBest 3`) se o dono fizer a arte.
+- **v1.12.3 "Farol"** (19/09→03/10) — o passe de legibilidade da cidade (F1) e o pacote P dos chefes (F2). Detalhe em §N.1 e §N.2.
+- **v1.13 "Jornada"** e **v1.14 "Mata e Água"** — o programa Zoo, com a ordem INVERTIDA em relação à aprovação de 30/08 (a Jornada é apresentação e carrega a copy do fim de corrida; Mata e Água toca spawn e precisa de baseline limpa).
+
+### N.1 — O passe de legibilidade da cidade (F1) 📐
+
+**A queixa**: "o contraste da fase da cidade não está bom, o cenário está confundindo com os inimigos". **A assinatura no dado**: na faixa 1000–1400 m o dardo responde por **27% das mortes** (n=37) contra ~7% no zoo.
+
+**As causas, no código**: (a) inimigos cinza-azul-escuro (`suit #333e52`, `drone #31353e`, `dronezig/dronesent #33363c`, `tropa #232c38`, `k9 #2b2620`, `gatobeco #1c1c22`, `helinews #2e4a6b`, `camionete #586430`) sobre fundo tintado pela noite (`light 0,55` → prédios ≈`#2e3754`, contenção ≈`#0f1421`) — os inimigos NÃO recebem tint (a regra está certa), mas a matiz é a mesma e a luminância, próxima; razão de contraste medida: **1,01–1,09**. (b) figurantes humanoides no `bg-near` (3 `pedestrian` em `makeNear('cidade')` — arte morta — e **5 `runner` em `makeNear('vidro')`**, na linha dos pés dos inimigos, com a anatomia do `enemy-person`), violando o veto que a própria v1.12 escreveu para o zoo. (c) `bg-cars` decorativo com carros vermelho/branco a 30 px de altura dos carros LETAIS. (d) vermelho `#ff4a5e` e ciano `#4ad1ff` compartilhados por cenário e telegraph. (e) tarja amarelo/preto em obstáculo letal E em jersey decorativa. (f) `tranq-tower-city` = poste cinza entre postes cinza. (g) contorno dos SVGs é ESCURO (`#17171b`, ~0,8 px CSS no iPhone) — sobre fundo escuro não separa nada.
+
+**A regra proposta (L1, a que resolve sozinha)**: **rim da cidade** — halo claro externo `#e6eef7` a 0,85, raio 2 (1,6 nos voadores), via `<filter id="rim">` com `feMorphology dilate` + `feFlood`, aplicado ATRÁS do conteúdo em cada `enemy-*.svg` (18 espécies × 2 frames = 36 arquivos; edição à mão é permitida — **nunca `export-art --force`**). Canvas e hitbox intocados (precedente do dardo v1.8.3). Contraste medido do rim: **7,8 sobre o skyline noturno; 11,1 sobre a contenção**. Risco a validar no aparelho: filtro SVG dentro de `<img>` (é como o `load.svg` rasteriza) — fallback = traço duplicado.
+
+**L2 (reserva de matiz)**: vermelho e ciano puros só no que se MOVE contra você ou ATIRA; amarelo/preto só no que mata por contato; cenário em cinzas frios e âmbar. ~14 fills mudam (telão PROCURADO → `0xb86068`/`0x6f9fb5`, LED das lojas → `0xffd9a0`, strobe → luz-piloto, jersey → faixa refletiva `0xcfd4da`, meio-fio, toldo, orelhão, `FACADES['-vidro'].ledA/B`, mastro da `-contencao`). Mais: 5 runners fora do near (→ rastro de objetos: bolsa caída, jornais, lixeira tombada, placa FECHADO), `bg-cars` dessaturado com `carsAlpha` por distrito (0,45/1/0,6 — campo no molde do `cars:false`), torre-poste com assinatura própria (caixa `0xb9c2d1` + cintas vermelhas + brasa na seteira — **seteira (36,70) intocada**), filete claro na tampa do `spike-tower-city`, relâmpago da tempestade para depth −17,3 (hoje o clarão a depth 50 colapsa o contraste por 140 ms).
+
+**L3 (condicional)**: retoque de corpo em 9 espécies, fórmula de luz (azul 0,14→0,08) e skyline dessaturado — só onde o critério de aceite falhar, com prints do zoo ao entardecer e do deserto à noite (a fórmula é GLOBAL).
+
+**Verificação**: `tools/e2e-legibilidade.mjs` (molde do `e2e-boss`; `jimp` já é devDependency) em 4 pontos — D1 x=55800 limpo, **D2 x=58000 na chuva (o mais escuro)**, D2-dia x=66000, D3 x=82000. Por espécie: screenshot A (sprite visível) e B (`setVisible(false)`, cena pausada), máscara |A−B|, borda = máscara − erosão, anel de fundo = dilatação. **Aceite: contraste de borda ≥3,0 (WCAG 1.4.11) E |ΔL*| ≥30**; fundo com P95 de L* ≤45 à noite. Rodar ANTES (baseline) e depois. Modo cinza no `TuningPanel` (`canvas.style.filter='grayscale(1)'`, só sob `?debug=1`). **KPI de campo**: participação de `dart` em 1000–1400 m por `v` (15/braço = direção, 40 = veredito).
+
+### N.2 — Chefes: o pacote P (F2) 📐
+
+**A queixa**: "boss fights todos muito parecidos, sempre sendo o chefe da muralha". **O achado**: os 5 SÃO a mesma muralha 240×620 com bandas nas MESMAS 3 alturas, mesmo glow, mesmos pips, câmera igual, atirador no MESMO ponto (`ax+58, y96` — `def.hunterOffsetX`/`hunterY` existem e **ninguém usa**), mesma buzina e a **mesma frase** `'💥 INVISTA na fresta que brilha!'` nos cinco. O que muda: pele, ordem das camadas e uma coluna de milissegundos. **A audiência da queixa é ≤5 aparelhos** (Portão: 18-25; Muralha 5; Barreira 4; Faraó 1; Guardião 0) e a Muralha tem cobertura ZERO das letras `e`/`h`.
+
+**Entra no Farol (P — serve à massa e não contamina medição)**: M1 inteiro (rótulos "Cerco" na Muralha em `ScoreSystem.js:139/146`, `Constants.js` "Capturador", enrage da Barreira `45000` literal → constante, radiografia iterando `cerco`/`farao`); `hints.how` **por chefe**; `callSfx` por def (os sons já existem); `midpoint` genérico usado só COSMETICAMENTE (Portão em 1 camada restante: klaxon + farol vermelho + moldura 1,2× + toast "ÚLTIMA — NO ALTO!"; Muralha em 2: sirene + strobe + canil aberto); **moldura BRANCA quando alinhado** (o ensino dentro da luta, sem toast); `cam.shake(120, 0.006)` na quebra; cronômetro na luta + "sua melhor" + medalha local `gate_clean` (`q=0`) + placa "Portão — 7ª vez · melhor 4 s" (`getEncounters` existe); `playSirenShort` 2 s após o `crossGate`; contorno escuro do glow nos cinco. **Muralha legível AGORA** (a única janela barata: sem baseline, nada a contaminar): laser duplo (4 px escuro sob 2 px vermelho), holo com contorno duplo, rim no `k9-projectile` e no `muralha-hunter`, holofote ambiente azul-frio na luta.
+
+**Espera n≥15 com letra e gate de era**: `BOSS_MURALHA`, enrage, `BOSS2_LAYERS`, shutter/hazard, holofote com função de jogo, `*_RIFLE_B`, M6 Replay. **Espera gatilho de audiência (≥5 chegadas à Barreira com letra)**: "cada chefe = um verbo" — Barreira com posto baixo + shutter, Faraó com o Espelho dormente, Guardião com `holo` na 3ª camada.
+
+**Guard-rails do Portão** (que segue pedágio-ritual por decisão): full-clear ≥75%, mediana `z` 3-6 s, fúria negada estável. **Não fazer**: HP no rino, checkpoint, rotacionar ordem/arsenal, hit-stop, cutscene que pausa o runner, escalar entidade com corpo, endurecer o Portão.
+
+### N.3 — Banco com gatilho (não fazer antes de o gatilho disparar)
+
+| Ideia | Gatilho |
+|---|---|
+| **Pista do Dia** (semente por data, share estilo Wordle; `md:2`) | ≥20 ativos/7d por 2 semanas, **e só depois de 26/09** — semear a roleta é tocar 16 pontos de RNG do `SpawnManager` |
+| **MissionSystem** (ideia E, metas 3-por-vez) | se a "próxima medalha como estaca" (v1.13, 5% do custo) não mover corridas/sessão |
+| **"Cada chefe, um verbo"** | ≥5 aparelhos com chegada à Barreira (`u`/`zu`) na janela, com letra |
+| **M6 Replay do Confronto** | n≥15 na Muralha |
+| **Vizinhos no top 10** (consulta "abaixo" + `id` no cache de rivais) | depois da Jornada |
+| **Poki / CrazyGames** | retorno ao 2º dia >50% em 2 leituras + toque→corrida ≤4 s a frio (hoje ~6 s na 1ª visita) — e ainda assim há partição de storage em iframe, que apaga identidade e streak |
+| **3º boss / deserto profundo** | o gatilho de sempre (≥5 aparelhos com bestM ≥5000) |
+
+### N.4 — Vetados nesta revisão (com o motivo)
+
+| O quê | Por quê |
+|---|---|
+| **`autoStart` depois do reload** (1 toque em vez de 2) | o gesto de áudio do WebKit exige toque novo; largar sozinho produz mortes com `j=0` e contamina justamente a métrica da Escola |
+| **Flash branco ao inimigo entrar na tela** | no vocabulário do jogo flash = "tiro vem" (torre, camionete, sentinela) — diluir isso custa mais do que rende |
+| **Trocar o elenco por distrito** para resolver contraste | elenco é spawn, e o dado não separa "não viu a torre" de "não viu o dardo" |
+| **Letras `ui`/`dl`/`dy`** | redundantes com `rs`, `md` e `t`; e `ui` exigiria um `send()` extra, quebrando "um write por fim de corrida" |
+| **Fórmula de luz e skyline dessaturado sem o critério falhar** | mudança GLOBAL (toca o entardecer do zoo e a noite do deserto) sem dado do deserto |
+| **Estender o congelamento além de 26/09** por n insuficiente | n insuficiente é resultado a registrar, não motivo para adiar |
 
 ---
 

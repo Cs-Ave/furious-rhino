@@ -1,6 +1,6 @@
 # FURIOUS RHINO — Documento de Design
 
-> Estado atual do jogo (v1.11.0). Este documento descreve o que **é**, não o que
+> Estado atual do jogo (v1.12.1). Este documento descreve o que **é**, não o que
 > se imaginou no começo — as decisões de v1.1 em diante estão registradas aqui
 > com o motivo, e várias delas foram tomadas a partir dos dados reais de
 > telemetria (ver "Decisões orientadas por dados" no fim).

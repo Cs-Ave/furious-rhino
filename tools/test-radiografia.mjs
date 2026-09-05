@@ -207,6 +207,90 @@ ok('markdown: ressalvas regeradas com cobertura por letra', r1.markdown.includes
 ok('markdown: baseline citada', r1.markdown.includes(BASELINE_20260816.quando));
 ok('markdown: nunca vaza NaN/undefined', !/NaN|undefined/.test(r1.markdown));
 
+// ---------- 10b. v1.12.1 "Régua": as seções da leitura por versão ----------
+{
+  // A fixture tem 'a1' (1.7.1), 'b2' (1.8.5) e 'c3' (sem `v`). Com o corte da
+  // Escola em 1.10.0, TODAS as corridas com `v` caem no lado "antes" — é o
+  // caso real de 05/09 e o que o relatório precisa dizer sem mentir.
+  eq('escola: corte próprio (a release medida), não a versão corrente',
+    r1.metricas.escola.corte, '1.10.0');
+  eq('escola: corridas com v < corte caem em "antes"',
+    r1.metricas.escola.antes.n > 0 && r1.metricas.escola.depois.n === 0, true);
+  eq('escola: mínimos pré-registrados existem e não são zero',
+    Object.values(r1.metricas.escola.minimos).every((v) => v > 0), true);
+  ok('escola: guarda-corpo separa as corridas SEM fc (veterano)',
+    r1.metricas.escola.antes.guardaCorpo.n === r1.metricas.escola.antes.n);
+  // corte genérico: 1.8.8 na chamada → a1 (1.7.1) antes, b2 (1.8.5) antes
+  eq('corte genérico usa opts.corte (default = versão do jogo)', r1.meta.corte, '1.8.8');
+
+  // Streaks recomputados: a1 jogou D(2) e D(1) = 2 dias seguidos; b2 idem
+  eq('streaks: mensuráveis = docs com history.days', r1.metricas.streaks.mensuraveis, 2);
+  eq('streaks: melhor sequência reconstruída do history.days',
+    r1.metricas.streaks.maiorMelhor, 2);
+  ok('streaks: nenhum aparelho inventado com chama de 30 dias',
+    r1.metricas.streaks.melhor30 === 0);
+
+  // Causa × lugar: as bandas cobrem o mundo inteiro e somam a janela
+  const somaBandas = r1.metricas.causaLugar.reduce((a, b) => a + b.n, 0);
+  eq('causa×lugar: as bandas cobrem TODAS as corridas da janela',
+    somaBandas, r1.metricas.totais.corridasJanela);
+  const b1000 = r1.metricas.causaLugar.find((b) => b.faixa.startsWith('1000–1400'));
+  ok('causa×lugar: a faixa do Subúrbio existe separada (o painel para em "1000m+")', !!b1000);
+  const bDeserto = r1.metricas.causaLugar.find((b) => b.faixa.startsWith('2200'));
+  ok('causa×lugar: o deserto não cai no mesmo balde da cidade', !!bDeserto);
+
+  // Fricção: par IMPOSSÍVEL não entra na conta. A fixture tem 3 corridas de
+  // 'b2' com o MESMO `t` (dado sintético) — a largada da seguinte cairia
+  // ANTES do fim da anterior. Aceitar isso envenenaria a mediana com
+  // negativos; o filtro `dt >= 0` é o que guarda a série.
+  eq('fricção: pares com tempo impossível (t igual/negativo) são descartados',
+    r1.metricas.friccao.pares, 0);
+  eq('fricção: sem letras rs/rt na fixture, a leitura MEDIDA fica zerada',
+    r1.metricas.friccao.medido.n, 0);
+  // O mesmo cálculo sobre um par LEGÍTIMO tem de contar
+  {
+    const legit = radiografia({
+      stats: [{
+        id: 'z9', attempts: 2, wins: 0, playTimeS: 100, bestM: 300, deaths: {},
+        runs: [{ t: NOW - 300, m: 100, s: 40, c: 'wall', v: '1.12.1' },
+          { t: NOW - 200, m: 300, s: 50, c: 'wall', v: '1.12.1', rs: 1, rt: 50 }],
+        gameVersion: '1.12.1', updatedAt: NOW - 200,
+        client: { screen: '402x874@3' },
+      }],
+    }, { nowS: NOW, versaoJogo: '1.12.1' });
+    eq('fricção: par legítimo entra e a latência é fim→largada', legit.metricas.friccao.pares, 1);
+    eq('fricção: latência = (t − s) da 2ª menos t da 1ª', legit.metricas.friccao.medianaS, 50);
+    eq('fricção: letras rs/rt lidas quando existem',
+      [legit.metricas.friccao.medido.viaBotao, legit.metricas.friccao.medido.medianaRtS], [1, 50]);
+    eq('fricção: tela curta reconhece o formato real "402x874@3"',
+      [legit.metricas.friccao.telaCurta, legit.metricas.friccao.telaConhecida], [1, 1]);
+  }
+
+  // Atribuição: a fixture é anterior ao carimbo → tudo "sem src"
+  eq('atribuição: docs sem carimbo contam separado (não viram "orgânico")',
+    r1.metricas.atribuicao.semSrc, 3);
+
+  // Markdown das seções novas
+  ok('markdown: seção da Escola com o corte declarado',
+    r1.markdown.includes('Leituras pré-registradas — Escola do Rino'));
+  ok('markdown: ⚪ aparece onde o n não alcança o mínimo', r1.markdown.includes('⚪ (n='));
+  ok('markdown: seção de streaks', r1.markdown.includes('### Streaks (v1.11)'));
+  ok('markdown: seção causa × lugar', r1.markdown.includes('### Causa da morte × lugar'));
+  ok('markdown: seção de fricção pós-morte', r1.markdown.includes('### Fricção pós-morte'));
+  ok('markdown: seção de atribuição', r1.markdown.includes('### Atribuição'));
+  ok('markdown: a baseline de 05/09 é citada ao lado da de 16/08',
+    r1.markdown.includes('2026-09-05') || r1.markdown.includes('05/09'));
+
+  // As regras novas do motor. R-18/R-19 falam sempre (com ⚪ quando falta
+  // amostra); R-20 é evento; R-21 é um ALARME — só aparece quando a
+  // estimativa de leituras encosta na cota, e ficar calada é o certo.
+  const ids = r1.insights.map((i) => i.id);
+  for (const id of ['R-18', 'R-19', 'R-20']) {
+    ok(`motor: ${id} presente (com ⚪ quando falta amostra)`, ids.includes(id));
+  }
+  ok('motor: R-21 (cota do Firestore) fica calada com a base pequena', !ids.includes('R-21'));
+}
+
 // ---------- 11. Higiene dos fetchers (text-asserts, molde do test-stats) ----------
 const cliSrc = readFileSync(join(ROOT, 'tools', 'radiografia.mjs'), 'utf8');
 ok('CLI: filtro ^claude- presente', cliSrc.includes('^claude-'));

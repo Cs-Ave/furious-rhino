@@ -50,7 +50,9 @@ export const RUN_LETTER_KEYS = ['w', 'r', 'o', 'a', 'j', 'd', 'x', 'p', 'f', 'n'
   // v1.9.5: as 7 de 2 caracteres — o alfabeto de 1 letra acabou no `i`
   'zu', 'zy', 'zl', 'qe', 'qu', 'qy', 'ql',
   // v1.10 Escola do Rino: o experimento viaja na corrida
-  'fc', 'cj'];
+  'fc', 'cj',
+  // v1.12.1 Régua: a fricção entre uma corrida e a seguinte
+  'rs', 'rt'];
 
 // Significado curto de cada letra (imprime na cobertura do relatório)
 export const RUN_LETTER_DESC = {
@@ -74,6 +76,9 @@ export const RUN_LETTER_DESC = {
   qy: 'quiques (Farao)', ql: 'quiques (Cacador-Mor)',
   fc: 'fator da curva do novato x100 (v1.10; ausente = veterano)',
   cj: 'pulos carregados (segurou >= CHARGED_JUMP_MIN_MS, v1.10)',
+  // v1.12.1 — como a corrida COMECOU (o jogo era cego para isso)
+  rs: 'origem do reinicio (bitmask: 1 botao, 2 share, 4 rolou extras)',
+  rt: 'segundos entre a morte anterior e esta largada (so com rs&1)',
 };
 
 const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
@@ -222,8 +227,55 @@ export const BASELINE_20260816 = Object.freeze({
   bonusSimulado: { medianaPct: 0, p95Pct: 13.7, spearman: 0.993 },
 });
 
+// ------------------------------------------- segunda baseline congelada
+// A fotografia de 05/09/2026 — o "antes" da revisão geral (3 feedbacks +
+// queda de ritmo). Mesma disciplina da de 16/08: NUNCA reescrever. A de
+// 16/08 responde "o que mudou desde o levantamento fundador"; esta responde
+// "o que mudou desde a revisão", que é a pergunta das leituras de 12/09,
+// 26/09 e 03/10. O JSON cru do dia vive em tools/snapshots/.
+export const BASELINE_20260905 = Object.freeze({
+  quando: '2026-09-05',
+  jogadores: 75, execucoes: 2350, fugas: 131, horasJogadas: 30.9,
+  ranking: 66, recordeM: 5185,
+  corridasJanela: 1164, docsComHistory: 56, mensuraveisDias: 56,
+  funilBestM: { 100: 64, 200: 55, 300: 46, 500: 41, 800: 25, 1000: 18, 1400: 8, 2000: 5, 3000: 4, 5000: 1, 10000: 0 },
+  posPortao: { n: 57, medianaM: 1198, p90M: 2581, maxM: 5185 },
+  umDiaSo: 0.57, retorno2oDia: 0.43, corridasPorSessao: 3.9,
+  ritmo7d: { atual: 44, anterior: 235 },
+  ativos7d: 12, ativos30d: 67,
+  boss1: { lutas: 51, fullClear: 36, medianaS: 4, mortes: 20 },
+  atritoDash: 0.64, precisaoMediana: 0.50, furiaNegada: 3,
+  skinsJogadores: 21,
+  // O corte manual de 05/09 que motivou o passe de legibilidade (F1): na
+  // faixa 1000–1400 m o dardo TRIPLICA de participação nas mortes.
+  dardo1000a1400: { participacao: 0.27, n: 37 },
+  // Ainda não medidos em 05/09 (nascem com a v1.12.1) — ficam null para o
+  // relatório dizer "sem baseline" em vez de inventar zero.
+  latenciaPosMorteS: null, taxaRejogo: null, novosPorSrc: null,
+});
+
 // Marcas do funil — as MESMAS do §2.2, para comparação célula a célula
 export const FUNIL_MARCAS = [100, 200, 300, 500, 800, 1000, 1400, 2000, 3000, 5000, 10000];
+
+// v1.12.1 — bandas de distância com as fronteiras que IMPORTAM para leitura
+// de conteúdo: os 5 trechos do zoo, os 3 distritos da cidade e o deserto.
+// O heatmap do painel para em "1000m+" e o mapa `deaths` é vitalício sem
+// distância: cruzar causa × lugar só era possível à mão (foi assim em 05/09).
+export const BANDAS_DISTANCIA = [
+  { rot: '0–200', de: 0, ate: 200 },
+  { rot: '200–400', de: 200, ate: 400 },
+  { rot: '400–600', de: 400, ate: 600 },
+  { rot: '600–800', de: 600, ate: 800 },
+  { rot: '800–1000', de: 800, ate: 1000 },
+  { rot: '1000–1400 🚦', de: 1000, ate: 1400 },
+  { rot: '1400–1800 📡', de: 1400, ate: 1800 },
+  { rot: '1800–2200 🚨', de: 1800, ate: 2200 },
+  { rot: '2200–3650 🐫', de: 2200, ate: 3650 },
+  { rot: '3650+ 🏺', de: 3650, ate: Infinity },
+];
+
+export const CAUSAS_CONHECIDAS = ['wall', 'spike', 'animal', 'dart', 'tower',
+  'boss', 'boss2', 'cerco', 'farao', 'boss3', 'fall', 'crash'];
 
 // ------------------------------------------------------------- formatadores
 const fmtInt = (n) => ScoreSystem.fmtNum(n);
@@ -642,18 +694,260 @@ export function radiografia({ stats = [], scores = [], challenges = [] } = {}, o
   const cobertura = {};
   for (const key of RUN_LETTER_KEYS) cobertura[key] = runs.filter((r) => r[key] > 0).length;
 
+  // ============================================ v1.12.1 "RÉGUA" — as seções
+  // que faltavam para as leituras de 12/09 e 26/09 saírem do SCRIPT em vez
+  // de conta avulsa. Todas cortam por `v` da corrida (nunca por firstSeen —
+  // 52% dos aparelhos rodam versões velhas) e todas dizem o n.
+
+  // O corte: default = a versão corrente. Uma corrida é "depois" quando o
+  // `v` dela é ≥ corte; "antes" quando é menor; "?" quando não há `v` e o
+  // histórico do doc não desempata (cliente pré-1.6.1).
+  const corte = str(opts.corte) || versaoJogo;
+  const ladoDoCorte = (r) => {
+    if (r.v) return semverCmp(r.v, corte) >= 0 ? 'depois' : 'antes';
+    return r.era === 'A' ? 'antes' : '?';
+  };
+  const fatiaCorte = (rows) => {
+    const out = { antes: [], depois: [], indef: [] };
+    for (const r of rows) {
+      const lado = ladoDoCorte(r);
+      if (lado === 'depois') out.depois.push(r);
+      else if (lado === 'antes') out.antes.push(r);
+      else out.indef.push(r);
+    }
+    return out;
+  };
+
+  // ------------------------------------ 15. Escola do Rino (pré-registrada)
+  // As 5 métricas EXATAS do pré-registro (IDEIAS-FUTURAS §Escola). Honestidade
+  // embutida: no ritmo de 1-2 novatos/semana a primária sai ⚪ — a seção existe
+  // para o dia em que houver n, e para registrar o silêncio enquanto não houver.
+  const porAparelho = new Map();
+  for (const r of runs) {
+    if (!porAparelho.has(r.id)) porAparelho.set(r.id, []);
+    porAparelho.get(r.id).push(r);
+  }
+  const escolaLado = (rows) => {
+    // (1) PRIMÁRIA — % de novatos que passam de 400 m em ≤10 tentativas.
+    // "Novato" = aparelho com alguma corrida marcada pela curva (`fc`), que é
+    // como cada corrida se autodescreve desde a v1.10; nas eras sem `fc` o
+    // proxy é o próprio attemptIndex ≤ 10.
+    const ids = new Set(rows.map((r) => r.id));
+    let comJanela = 0;
+    let passaram400 = 0;
+    let vidasJ0 = 0;
+    let vidasCedo = 0;
+    for (const id of [...ids].sort()) {
+      const doAparelho = rows.filter((r) => r.id === id);
+      const dez = doAparelho.filter((r) => r.attemptIndex <= 10);
+      if (dez.length >= 3) { // ⚪ para quem mal começou: 3 corridas visíveis
+        comJanela++;
+        if (dez.some((r) => r.m >= 400)) passaram400++;
+      }
+      const cinco = doAparelho.filter((r) => r.attemptIndex <= 5);
+      for (const r of cinco) { vidasCedo++; if (r.j === 0) vidasJ0++; }
+    }
+    // (2) CURVA — a mediana das tentativas 16-30 tem de alcançar a das 1-5
+    const medPorFaixa = (de, ate) => mediana(rows
+      .filter((r) => r.attemptIndex >= de && r.attemptIndex <= ate).map((r) => r.m));
+    const n15 = rows.filter((r) => r.attemptIndex <= 5).length;
+    const n1630 = rows.filter((r) => r.attemptIndex >= 16 && r.attemptIndex <= 30).length;
+    // (3) NEGAÇÃO DO DASH na faixa 0-200 m — a fricção que a v1.10 atacou
+    const cedo = rows.filter((r) => r.m < 200);
+    const negadas = cedo.reduce((a, r) => a + r.x, 0);
+    const disparadas = cedo.reduce((a, r) => a + r.d, 0);
+    // (5) GUARDA-CORPO — as corridas SEM `fc` são de veterano: a distribuição
+    // delas tem de ficar INALTERADA (a promessa "bit-idêntico" da v1.10)
+    const vet = rows.filter((r) => !r.fc);
+    return {
+      n: rows.length,
+      primaria: {
+        aparelhos: comJanela, passaram: passaram400,
+        taxa: comJanela ? passaram400 / comJanela : null,
+      },
+      curva: { n15, medianaM15: medPorFaixa(1, 5), n1630, medianaM1630: medPorFaixa(16, 30) },
+      dash0a200: {
+        n: cedo.length, negadas, disparadas,
+        taxa: (negadas + disparadas) ? negadas / (negadas + disparadas) : null,
+      },
+      semPular: { vidas: vidasCedo, comJ0: vidasJ0, taxa: vidasCedo ? vidasJ0 / vidasCedo : null },
+      guardaCorpo: { n: vet.length, medianaM: mediana(vet.map((r) => r.m)), p90M: quantil(vet.map((r) => r.m), 0.9) },
+    };
+  };
+  // O corte da ESCOLA é o da release medida (v1.10.0), não o da versão
+  // corrente: a pergunta pré-registrada é "a Escola desinverteu a curva?".
+  // O corte genérico (`corte`) responde outra pergunta — "o que mudou na
+  // última release" — e governa as demais seções novas.
+  const corteEscola = str(opts.corteEscola) || '1.10.0';
+  const ladoEscola = (r) => {
+    if (r.v) return semverCmp(r.v, corteEscola) >= 0 ? 'depois' : 'antes';
+    return r.era === 'A' ? 'antes' : '?';
+  };
+  const fatiaEscola = { antes: [], depois: [], indef: [] };
+  for (const r of runs) {
+    const lado = ladoEscola(r);
+    if (lado === 'depois') fatiaEscola.depois.push(r);
+    else if (lado === 'antes') fatiaEscola.antes.push(r);
+    else fatiaEscola.indef.push(r);
+  }
+  const escola = {
+    corte: corteEscola,
+    antes: escolaLado(fatiaEscola.antes),
+    depois: escolaLado(fatiaEscola.depois),
+    indefinidas: fatiaEscola.indef.length,
+    // Mínimos declarados ANTES de olhar o número (pré-registro é isso)
+    minimos: { primaria: 15, curva: 15, dash: 40, semPular: 20, guardaCorpo: 40 },
+  };
+
+  // ------------------------------------------------- 16. Streaks (v1.11)
+  // Recomputados do `history.days` com a MESMA regra do cliente ("ontem
+  // mantém a chama"): o streak nunca sobe ao servidor, então a única forma de
+  // medir a alavanca F é reconstruí-la aqui.
+  const streakDe = (dias) => {
+    const chaves = Object.keys(dias || {}).filter((k) => /^\d{4}-\d{2}-\d{2}$/.test(k)).sort();
+    if (!chaves.length) return { atual: 0, melhor: 0 };
+    const set = new Set(chaves);
+    let melhor = 0;
+    let corrida = 0;
+    let anterior = null;
+    for (const k of chaves) {
+      corrida = (anterior && dayIndexOf(k) === dayIndexOf(anterior) + 1) ? corrida + 1 : 1;
+      if (corrida > melhor) melhor = corrida;
+      anterior = k;
+    }
+    // Corrente: conta para trás a partir de hoje ou de ontem (a graça)
+    let ancora = null;
+    if (set.has(hoje)) ancora = hoje;
+    else if (set.has(dayKeyOfIndex(hojeIdx - 1))) ancora = dayKeyOfIndex(hojeIdx - 1);
+    let atual = 0;
+    if (ancora) {
+      let idx = dayIndexOf(ancora);
+      while (set.has(dayKeyOfIndex(idx))) { atual++; idx--; }
+    }
+    return { atual, melhor };
+  };
+  const streaksPorDoc = stats
+    .filter((d) => d.history && d.history.days && Object.keys(d.history.days).length)
+    .map((d) => ({ id: d.id, ...streakDe(d.history.days), ativo: num(d.updatedAt) >= nowS - 7 * 86400 }));
+  const streaks = {
+    mensuraveis: streaksPorDoc.length,
+    atualDist: { um: 0, doisTres: 0, quatroSeis: 0, seteMais: 0 },
+    melhor3: streaksPorDoc.filter((s) => s.melhor >= 3).length,
+    melhor7: streaksPorDoc.filter((s) => s.melhor >= 7).length,
+    melhor30: streaksPorDoc.filter((s) => s.melhor >= 30).length,
+    ativosComChama: streaksPorDoc.filter((s) => s.ativo && s.atual >= 2).length,
+    ativos: streaksPorDoc.filter((s) => s.ativo).length,
+    maiorMelhor: streaksPorDoc.reduce((a, s) => Math.max(a, s.melhor), 0),
+    // Coorte da v1.11 (publicada 30/08) vs anteriores — só existência até n≥15
+    coorte: { novos: 0, novosVoltaram: 0, antigos: 0, antigosVoltaram: 0 },
+  };
+  for (const s of streaksPorDoc) {
+    if (s.atual >= 7) streaks.atualDist.seteMais++;
+    else if (s.atual >= 4) streaks.atualDist.quatroSeis++;
+    else if (s.atual >= 2) streaks.atualDist.doisTres++;
+    else if (s.atual === 1) streaks.atualDist.um++;
+  }
+  const CORTE_STREAK_S = Math.floor(new Date('2026-08-30T00:00:00Z').getTime() / 1000);
+  for (const d of stats) {
+    if (!d.history || !d.history.days) continue;
+    const nDias = Object.keys(d.history.days).length;
+    const novo = num(d.history.firstSeenS) >= CORTE_STREAK_S;
+    if (novo) { streaks.coorte.novos++; if (nDias >= 2) streaks.coorte.novosVoltaram++; } else { streaks.coorte.antigos++; if (nDias >= 2) streaks.coorte.antigosVoltaram++; }
+  }
+
+  // -------------------------------------- 17. Causa × lugar (o corte de 05/09)
+  // O mapa `deaths` é vitalício e sem distância; o heatmap do painel para em
+  // "1000m+". Isto cruza as duas coisas na janela, com as fronteiras dos
+  // distritos — é a seção que enxerga o dardo do Subúrbio (F1).
+  const causaLugar = BANDAS_DISTANCIA.map((b) => {
+    const naBanda = runs.filter((r) => r.m >= b.de && r.m < b.ate);
+    const porCausa = {};
+    for (const c of CAUSAS_CONHECIDAS) porCausa[c] = naBanda.filter((r) => r.c === c).length;
+    const semCausa = naBanda.filter((r) => !r.c || !CAUSAS_CONHECIDAS.includes(r.c)).length;
+    const top = sortEntries(porCausa)[0];
+    return {
+      faixa: b.rot, n: naBanda.length, porCausa, semCausa,
+      topCausa: top && top[1] > 0 ? top[0] : null,
+      topPart: (top && naBanda.length) ? top[1] / naBanda.length : null,
+      // o mesmo recorte, só nas corridas da versão corrente (a leitura por `v`)
+      nDepois: fatiaCorte(naBanda).depois.length,
+      dartDepois: fatiaCorte(naBanda).depois.filter((r) => r.c === 'dart').length,
+    };
+  });
+
+  // ----------------------------------------- 18. Fricção pós-morte (UI)
+  // Duas leituras: a RECONSTRUÍDA (pares consecutivos de runs[] do mesmo
+  // aparelho — funciona no passado inteiro, mas mistura pausa longa com
+  // "foi embora") e a MEDIDA (letras rs/rt da v1.12.1, que só existem daqui
+  // para frente e sabem se veio do botão).
+  const paresLatencia = [];
+  for (const [, lista] of [...porAparelho.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1))) {
+    const ord = lista.slice().sort((a, b) => a.t - b.t);
+    for (let i = 1; i < ord.length; i++) {
+      const fim = ord[i - 1].t;
+      const largada = ord[i].t - ord[i].s;
+      const dt = largada - fim;
+      // Só conta o par quando os DOIS relógios existem: sem `s` (corridas
+      // pré-1.6) a largada é indeterminável, e aceitar isso encheria a série
+      // de zeros falsos. dt < 0 = timestamps sintéticos/embaralhados; > 1 h
+      // não é "só mais uma", é outra sessão.
+      if (fim > 0 && ord[i].t > 0 && ord[i].s > 0 && dt >= 0 && dt < 3600) {
+        paresLatencia.push({ dt, v: ord[i].v });
+      }
+    }
+  }
+  const comRs = runs.filter((r) => r.rs > 0);
+  const friccao = {
+    pares: paresLatencia.length,
+    medianaS: mediana(paresLatencia.map((p) => p.dt)),
+    ate60s: paresLatencia.length
+      ? paresLatencia.filter((p) => p.dt <= 60).length / paresLatencia.length : null,
+    medido: {
+      n: comRs.length,
+      viaBotao: runs.filter((r) => r.rs & 1).length,
+      comShare: runs.filter((r) => r.rs & 2).length,
+      rolouExtras: runs.filter((r) => r.rs & 4).length,
+      medianaRtS: mediana(runs.filter((r) => r.rt > 0).map((r) => r.rt)),
+    },
+    // Classe de viewport: o overflow do fim de corrida estoura em lado curto
+    // ≤ 520 px CSS — é a população que o F3 conserta. O `screen` do cliente
+    // vem como "402x874@3" (o @dpr faz parte do formato desde a v1.6.1).
+    telaCurta: stats.filter((d) => {
+      const m = /^(\d+)[x×](\d+)/.exec(str(d.client && d.client.screen));
+      return m ? Math.min(+m[1], +m[2]) <= 520 : false;
+    }).length,
+    telaConhecida: stats.filter((d) => /^\d+[x×]\d+/.test(str(d.client && d.client.screen))).length,
+  };
+
+  // --------------------------------------------- 19. Atribuição (origem)
+  const atribuicao = { porSrc: {}, semSrc: 0, novos7d: { link: 0, org: 0, sem: 0 } };
+  for (const d of stats) {
+    const src = (d.history && str(d.history.src)) || '';
+    if (src) atribuicao.porSrc[src] = (atribuicao.porSrc[src] || 0) + 1;
+    else atribuicao.semSrc++;
+    if (num(d.history && d.history.firstSeenS) >= nowS - 7 * 86400) {
+      const balde = src === 'link' ? 'link' : (src ? 'org' : 'sem');
+      atribuicao.novos7d[balde]++;
+    }
+  }
+
   const metricas = {
     totais, funil, aquisicao, retencao, curva, mecanicas, investida, pausas,
     bosses, pontuacao, skins, desafios, mortes, base, cobertura,
+    escola, streaks, causaLugar, friccao, atribuicao,
   };
 
-  const insights = buildInsights(metricas, { B, anterior: opts.anterior || null, versaoJogo });
+  const insights = buildInsights(metricas, { B, anterior: opts.anterior || null, versaoJogo, corte });
   const meta = {
     geradoEmS: nowS,
     dia: hoje,
-    versaoScript: '1.0.0',
+    versaoScript: '1.1.0',
     versaoJogo,
     baseline: B.quando,
+    // v1.12.1: a segunda baseline (o "antes" da revisão geral) e o corte de
+    // versão que TODA seção nova respeita
+    baseline2: BASELINE_20260905.quando,
+    corte,
     origem: opts.origem || 'cli',
     // Mesmos Σ do buildDigest — a linha de conferência do §3
     conferenciaDigest: { jogadores: totais.jogadores, execucoes: totais.execucoes, fugas: totais.fugas },
@@ -965,6 +1259,85 @@ function buildInsights(M, { B, anterior, versaoJogo }) {
     };
   });
 
+  // ---------------------------------------- v1.12.1: as regras da revisão
+  // R-18 o dardo do Subúrbio — a assinatura numérica do feedback F1
+  // ("cenário confunde com inimigo"): na cidade noturna o dardo passa de 7%
+  // para 27% das mortes. A régua vale para a faixa 1000–1400 m.
+  const bandaSub = (M.causaLugar || []).find((b) => b.faixa.startsWith('1000–1400')) || { n: 0, porCausa: {} };
+  add('R-18', 'Legibilidade da cidade: o dardo no Subúrbio', 15, bandaSub.n, () => {
+    const part = bandaSub.n ? (bandaSub.porCausa.dart || 0) / bandaSub.n : 0;
+    if (part < 0.2) {
+      return {
+        sev: 'vitoria',
+        dado: `Dardo em ${fmtPct(part)} das mortes de 1000–1400 m (n=${bandaSub.n}; em 05/09 eram 27%).`,
+        problema: 'A torre voltou a ser lida na cidade escura.',
+        sugestao: 'Registrar a versão que fez isso — e conferir se o resto da faixa não piorou no lugar.',
+      };
+    }
+    return {
+      sev: 'atencao',
+      dado: `Dardo responde por ${fmtPct(part)} das mortes de 1000–1400 m (n=${bandaSub.n}) — no zoo inteiro é ~7%.`,
+      problema: 'É a assinatura do F1: torre de dardo como poste entre postes, inimigo escuro sobre fundo escuro tintado pela noite.',
+      sugestao: 'Passe de legibilidade (rim claro nos inimigos, reserva de matiz, torre com assinatura própria) — e comparar por `v`.',
+    };
+  });
+
+  // R-19 fricção pós-morte — a tela de fim de corrida como funil
+  add('R-19', 'Fricção pós-morte (o fim de corrida como funil)', 100, M.friccao.pares, () => {
+    const med = M.friccao.medianaS;
+    const p60 = M.friccao.ate60s;
+    if (p60 !== null && p60 >= 0.6 && med <= 30) {
+      return {
+        sev: 'vitoria',
+        dado: `Mediana de ${fmtInt(med)} s entre uma corrida e a seguinte · ${fmtPct(p60)} recorrem em ≤60 s (n=${fmtInt(M.friccao.pares)} pares).`,
+        problema: 'O "só mais uma" está funcionando: quem morre volta rápido.',
+        sugestao: 'Guardar como régua — qualquer mudança no fim de corrida se julga contra este número.',
+      };
+    }
+    return {
+      sev: 'atencao',
+      dado: `Mediana de ${fmtInt(med)} s até a próxima corrida · ${p60 === null ? '—' : fmtPct(p60)} recorrem em ≤60 s (n=${fmtInt(M.friccao.pares)} pares reconstruídos).`,
+      problema: `A tela de fim de corrida é onde a sessão decide continuar — e ${fmtInt(M.friccao.telaCurta)} de ${fmtInt(M.friccao.telaConhecida)} aparelhos conhecidos têm lado curto ≤520 px, onde o overlay transborda.`,
+      sugestao: 'Resultado + 1 CTA grande acima da dobra; medir depois pelas letras `rs`/`rt` (que dizem se veio do botão).',
+    };
+  });
+
+  // R-20 atribuição — de onde vem gente nova (a pergunta de 05/09)
+  add('R-20', 'Atribuição: de onde vêm os jogadores novos', 1, 1, () => {
+    const n7 = M.atribuicao.novos7d;
+    const totalNovos = n7.link + n7.org + n7.sem;
+    if (totalNovos === 0) {
+      return {
+        sev: 'atencao',
+        dado: `Nenhum aparelho novo nos últimos 7 dias (aparelhos com origem carimbada: ${fmtInt(M.totais.jogadores - M.atribuicao.semSrc)}/${fmtInt(M.totais.jogadores)}).`,
+        problema: 'A entrada secou — e retenção só se mede sobre quem entra.',
+        sugestao: 'A alavanca registrada é o desafio por link (ideia G): 1 link por jogador é a única porta que não depende do dono.',
+      };
+    }
+    return {
+      sev: n7.link > 0 ? 'vitoria' : 'observar',
+      dado: `Novos em 7 dias: ${n7.link} por link · ${n7.org} orgânicos · ${n7.sem} sem carimbo (aparelhos anteriores à v1.12.1).`,
+      problema: n7.link > 0 ? 'O link está trazendo gente — é a primeira aquisição não-boca-a-boca do jogo.' : 'Todos os novos chegaram sem link: o canal viral ainda não existe na prática.',
+      sugestao: 'n≥5 dá existência; n≥20 dá direção de D7 por origem.',
+    };
+  });
+
+  // R-21 cota de leitura do Firestore — o teto que ninguém está olhando
+  add('R-21', 'Cota de leitura do Firestore (plano gratuito)', 1, 1, () => {
+    // Cada boot lê o pódio + o rank + rivais; o /?stats e o diretório leem a
+    // coleção INTEIRA (O(N) por chamada). Estimativa grosseira e conservadora.
+    const docs = M.totais.jogadores;
+    const visitasDia = Math.max(M.base.ativos7d, 1) * 3;
+    const leiturasDia = visitasDia * 12 + docs * 2;
+    if (leiturasDia < 10000) return null;
+    return {
+      sev: 'atencao',
+      dado: `Estimativa de ~${fmtInt(leiturasDia)} leituras/dia (${docs} docs × varreduras + ${visitasDia} visitas).`,
+      problema: 'As varreduras de coleção inteira (checkName, diretório, /?stats) são O(N) — crescem com a base, não com o uso.',
+      sugestao: 'Antes de qualquer canal de tráfego novo, paginar ou cachear as varreduras.',
+    };
+  });
+
   // R-17 Δ vs última execução salva (aba passa `anterior`; CLI é stateless)
   if (anterior && typeof anterior === 'object') {
     add('R-17', 'O que mudou desde a última análise', 1, 1, () => {
@@ -1192,6 +1565,85 @@ function buildMarkdown(meta, M, insights) {
   push(`Aparelhos: ${sortEntries(M.base.aparelhos).map(([k, v]) => `${k}×${v}`).join(' · ') || '—'} · PWA instalado (standalone): ${M.base.standalone} · corridas com teclado: ${fmtInt(M.base.teclado)}.`);
   push(`Países: ${sortEntries(M.base.paises).map(([k, v]) => `${k}×${v}`).join(' · ') || '—'} (geo tem TTL de 12 h e pode estar velho).`);
   push(`Ativos (por \`updatedAt\`): ${M.base.ativos7d} nos últimos 7 dias · ${M.base.ativos30d} nos últimos 30.`);
+  push();
+
+  // ======================= v1.12.1 "Régua" — as seções da leitura por versão
+  const B2 = BASELINE_20260905;
+  const cmp = (n, min) => (n < min ? ` ⚪ (n=${n}, mínimo ${min})` : '');
+  const pctOu = (v, d = 0) => (v === null || v === undefined ? '—' : fmtPct(v, d));
+  const intOu = (v) => (v === null || v === undefined ? '—' : fmtInt(v));
+
+  // ---- Escola do Rino (pré-registro)
+  push(`### Leituras pré-registradas — Escola do Rino (corte \`v ≥ ${M.escola.corte}\`)`);
+  push();
+  push('> As cinco métricas foram escritas ANTES da v1.10 sair (IDEIAS-FUTURAS §Escola)');
+  push('> e não mudam. O corte é sempre por `v` da CORRIDA — nunca por data de');
+  push('> primeiro acesso: metade dos aparelhos roda versão velha. Onde o n não');
+  push('> alcança o mínimo pré-registrado a célula sai ⚪ — o silêncio também é');
+  push('> resultado, e fica registrado.');
+  push();
+  const eA = M.escola.antes;
+  const eD = M.escola.depois;
+  push(`| Métrica | Antes (\`v < ${M.escola.corte}\`) | Depois (\`v ≥ ${M.escola.corte}\`) | Alvo |`);
+  push('|---|---|---|---|');
+  push(`| **PRIMÁRIA** — novatos que passam de 400 m em ≤10 tentativas | ${pctOu(eA.primaria.taxa)} (${eA.primaria.passaram}/${eA.primaria.aparelhos})${cmp(eA.primaria.aparelhos, M.escola.minimos.primaria)} | ${pctOu(eD.primaria.taxa)} (${eD.primaria.passaram}/${eD.primaria.aparelhos})${cmp(eD.primaria.aparelhos, M.escola.minimos.primaria)} | subir claramente |`);
+  push(`| Curva: mediana tent. 16–30 vs 1–5 | ${intOu(eA.curva.medianaM1630)} m vs ${intOu(eA.curva.medianaM15)} m${cmp(Math.min(eA.curva.n15, eA.curva.n1630), M.escola.minimos.curva)} | ${intOu(eD.curva.medianaM1630)} m vs ${intOu(eD.curva.medianaM15)} m${cmp(Math.min(eD.curva.n15, eD.curva.n1630), M.escola.minimos.curva)} | desinverter (16–30 ≥ 1–5) |`);
+  push(`| Negação do dash em 0–200 m | ${pctOu(eA.dash0a200.taxa)}${cmp(eA.dash0a200.n, M.escola.minimos.dash)} | ${pctOu(eD.dash0a200.taxa)}${cmp(eD.dash0a200.n, M.escola.minimos.dash)} | < 30% |`);
+  push(`| Vidas com \`j=0\` nas 5 primeiras corridas | ${pctOu(eA.semPular.taxa)} (${eA.semPular.comJ0}/${eA.semPular.vidas})${cmp(eA.semPular.vidas, M.escola.minimos.semPular)} | ${pctOu(eD.semPular.taxa)} (${eD.semPular.comJ0}/${eD.semPular.vidas})${cmp(eD.semPular.vidas, M.escola.minimos.semPular)} | < 20% |`);
+  push(`| **GUARDA-CORPO** — corridas sem \`fc\` (veterano) | mediana ${intOu(eA.guardaCorpo.medianaM)} m · p90 ${intOu(eA.guardaCorpo.p90M)} m (n=${eA.guardaCorpo.n}) | mediana ${intOu(eD.guardaCorpo.medianaM)} m · p90 ${intOu(eD.guardaCorpo.p90M)} m (n=${eD.guardaCorpo.n}) | distribuição INALTERADA |`);
+  push();
+  push(`Corridas sem lado definido (sem \`v\` e histórico ambíguo): ${M.escola.indefinidas}.`);
+  push();
+
+  // ---- Streaks
+  push('### Streaks (v1.11) — recomputados do `history.days`');
+  push();
+  push(`Aparelhos mensuráveis: ${M.streaks.mensuraveis} · com melhor streak ≥3: **${M.streaks.melhor3}** · ≥7: ${M.streaks.melhor7} · ≥30: ${M.streaks.melhor30} · maior de todos: ${M.streaks.maiorMelhor} dias.`);
+  push(`Chama acesa entre os ativos (7d): ${M.streaks.ativosComChama}/${M.streaks.ativos}. `
+    + `Sequência corrente: 1 dia ${M.streaks.atualDist.um} · 2–3 ${M.streaks.atualDist.doisTres} · 4–6 ${M.streaks.atualDist.quatroSeis} · 7+ ${M.streaks.atualDist.seteMais}.`);
+  push(`Coorte da v1.11 (primeiro acesso ≥ 30/08): ${M.streaks.coorte.novosVoltaram}/${M.streaks.coorte.novos} voltaram a um 2º dia · anteriores: ${M.streaks.coorte.antigosVoltaram}/${M.streaks.coorte.antigos}.`);
+  push();
+  push('> O streak nunca sobe ao servidor (é local por decisão) — estes números são');
+  push('> **reconstruídos** do `history.days` com a mesma regra do cliente ("ontem');
+  push('> mantém a chama"). Servem para a leitura pré-registrada dos 57% de um-dia-só.');
+  push();
+
+  // ---- causa × lugar
+  push('### Causa da morte × lugar (janela; as fronteiras que importam)');
+  push();
+  push('| Faixa | n | 1ª causa | parede | espinho | animal | dardo | torre | chefes |');
+  push('|---|---|---|---|---|---|---|---|---|');
+  for (const b of M.causaLugar) {
+    const c = b.porCausa;
+    const chefes = (c.boss || 0) + (c.boss2 || 0) + (c.cerco || 0) + (c.farao || 0) + (c.boss3 || 0);
+    const top = b.topCausa ? `\`${b.topCausa}\` ${pctOu(b.topPart)}` : '—';
+    push(`| ${b.faixa} m | ${b.n} | ${top} | ${c.wall || 0} | ${c.spike || 0} | ${c.animal || 0} | ${c.dart || 0} | ${c.tower || 0} | ${chefes} |`);
+  }
+  push();
+  push(`> O mapa \`deaths\` é vitalício e sem distância; o heatmap do painel para em`);
+  push(`> "1000m+". Esta tabela é a única que enxerga o Subúrbio separado do deserto —`);
+  push(`> em 05/09 o dardo respondia por ${fmtPct(B2.dardo1000a1400.participacao)} das mortes de 1000–1400 m (n=${B2.dardo1000a1400.n}),`);
+  push('> contra ~7% no zoo: a assinatura numérica do feedback de contraste da cidade.');
+  push();
+
+  // ---- fricção pós-morte
+  push('### Fricção pós-morte (a tela de fim de corrida como funil)');
+  push();
+  push(`Reconstruída de \`runs[]\` (pares consecutivos do mesmo aparelho, ≤1 h): n=${fmtInt(M.friccao.pares)} · `
+    + `mediana **${intOu(M.friccao.medianaS)} s** até a próxima corrida · ${pctOu(M.friccao.ate60s)} recorrem em ≤60 s.`);
+  push(`Medida pelas letras \`rs\`/\`rt\` (v1.12.1+): ${fmtInt(M.friccao.medido.n)} corridas com origem · `
+    + `via botão ${fmtInt(M.friccao.medido.viaBotao)} · com share antes ${fmtInt(M.friccao.medido.comShare)} · `
+    + `rolaram os extras ${fmtInt(M.friccao.medido.rolouExtras)} · mediana \`rt\` ${intOu(M.friccao.medido.medianaRtS)} s.`);
+  push(`Aparelhos com tela de lado curto ≤520 px (onde o fim de corrida transbordava antes da v1.12.1): `
+    + `**${fmtInt(M.friccao.telaCurta)}** de ${fmtInt(M.friccao.telaConhecida)} com resolução conhecida.`);
+  push();
+
+  // ---- atribuição
+  push('### Atribuição — de onde vêm os aparelhos');
+  push();
+  const srcList = sortEntries(M.atribuicao.porSrc).map(([k, v]) => `\`${k}\` ${v}`).join(' · ') || '(nenhum carimbado ainda)';
+  push(`Origem carimbada: ${srcList} · sem carimbo (anteriores à v1.12.1): ${M.atribuicao.semSrc}.`);
+  push(`Novos nos últimos 7 dias: ${M.atribuicao.novos7d.link} por link · ${M.atribuicao.novos7d.org} orgânicos · ${M.atribuicao.novos7d.sem} sem carimbo.`);
   push();
 
   // ---- ressalvas (regeradas com os n do dia)

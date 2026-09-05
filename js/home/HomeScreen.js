@@ -397,6 +397,14 @@ export class HomeScreen {
   // A home inteira, só de localStorage: zero rede, zero Phaser. É esta que o
   // js/game.js chama antes de o motor existir.
   static paintFromCache() {
+    // v1.12.1: a origem do aparelho é carimbada UMA vez, no primeiro boot da
+    // vida (markSource ignora as chamadas seguintes). Sem ela, "novos por
+    // semana" nunca separa quem veio de um link de quem chegou pelo ícone —
+    // e o desafio por link (v1.12.2) nasceria sem forma de ser julgado.
+    this.safeTelemetry(() => {
+      const veioDeLink = new URLSearchParams(location.search).has('desafio');
+      StorageManager.markSource(veioDeLink ? 'link' : 'org');
+    });
     this.safeTelemetry(() => this.paintCampanha());
     this.safeTelemetry(() => this.renderPodium());
     this.safeTelemetry(() => this.showRank(StorageManager.getLastRank()));

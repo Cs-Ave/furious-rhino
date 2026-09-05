@@ -73,12 +73,44 @@ if (process.argv[1] && process.argv[1].endsWith('radiografia.mjs')) {
     fetchCollection('challenges'),
   ]);
   const nowS = Math.floor(Date.now() / 1000);
-  const r = radiografia({ stats, scores, challenges }, { nowS, origem: 'cli' });
+  // v1.12.1: cortes por versão e comparação com um snapshot datado —
+  //   node tools/radiografia.mjs --corte=1.12.1 --anterior=tools/snapshots/radiografia-2026-09-05.json
+  // A R-17 (o "o que mudou desde a última análise") só existia na aba, que
+  // guarda a leitura anterior em localStorage; no CLI ela era impossível.
+  const arg = (nome) => {
+    const hit = process.argv.find((a) => a.startsWith(`--${nome}=`));
+    return hit ? hit.slice(nome.length + 3) : '';
+  };
+  let anterior = null;
+  const caminho = arg('anterior');
+  if (caminho) {
+    try {
+      const prev = JSON.parse(readFileSync(caminho, 'utf8'));
+      const t = prev.metricas && prev.metricas.totais;
+      if (t) {
+        anterior = {
+          dia: (prev.meta && prev.meta.dia) || caminho,
+          jogadores: t.jogadores, execucoes: t.execucoes, fugas: t.fugas,
+        };
+      } else {
+        console.error(`⚠️ ${caminho}: sem metricas.totais — snapshot ignorado.`);
+      }
+    } catch (e) {
+      console.error(`⚠️ não consegui ler ${caminho}: ${e.message} — seguindo sem Δ.`);
+    }
+  }
+  const r = radiografia({ stats, scores, challenges }, {
+    nowS, origem: 'cli', anterior,
+    corte: arg('corte') || undefined,
+    corteEscola: arg('corte-escola') || undefined,
+  });
   if (process.argv.includes('--json')) {
     console.log(JSON.stringify({ meta: r.meta, metricas: r.metricas, insights: r.insights }, null, 2));
   } else {
     console.log(r.markdown);
     const c = r.meta.conferenciaDigest;
     console.error(`\n✔ conferência (vs npm run digest do mesmo momento): ${c.jogadores} jogadores · ${c.execucoes} execuções · ${c.fugas} fugas`);
+    console.error(`  corte de versão: v ≥ ${r.meta.corte} · corte da Escola: v ≥ ${r.metricas.escola.corte}`
+      + `${anterior ? ` · Δ vs ${anterior.dia}` : ' (sem --anterior: relatório sem coluna Δ do snapshot)'}`);
   }
 }

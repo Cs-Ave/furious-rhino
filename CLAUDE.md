@@ -17,7 +17,7 @@ Auto-runner de ação para web mobile (paisagem): um rinoceronte foge do zoológ
 ## Regras que não se negociam
 
 1. **Telemetria e ranking são acessórios** — erro de rede/rules jamais derruba o jogo (`safeTelemetry`).
-2. **Nenhum campo novo de primeiro nível em `stats`** no Firestore — o orçamento das rules estoura (19 passavam, 20 falhavam) e os writes são negados em silêncio. Campo novo entra nos mapas existentes ou nos elementos de `runs[]`.
+2. **Nenhum campo novo de primeiro nível em `stats`** no Firestore — o orçamento das rules estoura (19 passavam, 20 falhavam) e os writes são negados em silêncio. Campo novo entra nos mapas existentes ou nos elementos de `runs[]`. **Desde a v1.12.1 o mapa `history` também está FECHADO em 6/6** (`clients, geos, versions, days, firstSeenS, src` — as rules validam `history.size() <= 6`): dali em diante, só dentro de um balde existente ou em `runs[]` (chaves de 1-2 chars são livres, custam bytes). E **toda chave de `history` precisa aparecer no normalizador do `StorageManager.getHistory()`** — o que ele não copia some no ciclo seguinte de leitura-escrita. Letra nova em `runs[]` exige leitor em DOIS lugares (`RadiografiaCore.RUN_LETTER_KEYS` e `StatsDashboard.allRuns`); o guarda bidirecional do `test-stats` já pegou isso duas vezes.
 3. **Ordem de release:** publicar `firestore.rules` no console ANTES do deploy do código.
 4. **A versão vive em 4 lugares** que têm de bater: `js/utils/Constants.js` (`VERSION`), `index.html` (`#game-version`), `package.json`, `sw.js` (`CACHE`). Todo `.js` novo entra em `ASSETS` do `sw.js` + bump do `CACHE`.
 5. **Ambiente de teste não grava no Firestore por padrão** (`StorageManager.allowsRemoteWrite`) — e desde a v1.9.6 "ambiente de teste" é localhost/127.0.0.1/IP de rede local **OU `?debug=1`**. O painel de tuning é público (basta o parâmetro na URL) e tem teleporte de chefe e modo invencível: em 25-26/08 um jogador de produção usou isso e três marcas sem luta subiram ao ranking mundial. Ferramenta de desenvolvimento não escreve no placar de todo mundo. Só grava quando o teste semeia explicitamente `furious_rhino_allow_local_write = '1'` no `localStorage`, ANTES da página carregar — o mesmo opt-in que o painel expõe como "📡 Escrita local". Testes Playwright que precisam validar a escrita real (ex.: `e2e-stats.mjs`) usam esse opt-in + `player_id` de sonda `claude-*`; os que não precisam (`e2e-boss.mjs`, `e2e-ramp.mjs`, `e2e-special.mjs`) simplesmente não gravam nada. Sempre com `furious_rhino_notify_off = '1'` também — já houve produção suja e celular do dono inundado.
@@ -30,13 +30,17 @@ Auto-runner de ação para web mobile (paisagem): um rinoceronte foge do zoológ
 ```bash
 python -m http.server 3000   # servir o jogo (os e2e dependem da :3000)
 npm run sprite-gen           # OU: servidor unificado — jogo na :3000 + gerador na :3210 (cede a 3000 ao python com aviso)
-npm run test-stats           # 69 asserts, sem navegador
-npm run test-ramp            # 30 asserts e2e (Chromium)
+npm run test-stats           # 157 asserts, sem navegador
+npm run test-ramp            # 54 asserts e2e (Chromium)
+npm run test-overlays        # 94 asserts e2e dos overlays em 7 viewports (Chromium)
 npm run test-e2e-stats       # 69 asserts e2e (Chromium, escreve com sonda claude-*)
 npm run digest               # resumo diário sem enviar
 npm run radiografia          # análise de usabilidade completa (leitura pública, zero writes) — markdown p/ IDEIAS-FUTURAS
 npm run investiga            # varre a base com os detectores e compara com a coleta anterior
-npm run test-radiografia     # 62 asserts do núcleo/CLI/aba, sem rede
+npm run test-radiografia     # 91 asserts do núcleo/CLI/aba, sem rede
+# snapshot datado (o "antes" de qualquer leitura futura):
+#   node tools/radiografia.mjs --json > tools/snapshots/radiografia-AAAA-MM-DD.json
+#   node tools/radiografia.mjs --anterior=tools/snapshots/radiografia-2026-09-05.json
 ```
 
 URLs úteis: `/?debug=1` (painel de tuning), `/?stats` (painel público, chave `0929` para o detalhado), `/?setup=0929` (estúdio de skins do dono — upload/desbloqueio/aplicar; a escrita exige o gerador no ar; o `iniciar-estudio.bat` da raiz sobe tudo e abre direto), `/?ntfy=test|off|on`.

@@ -380,6 +380,7 @@ export class GameScene extends Phaser.Scene {
     passo('tela-inicio');
     this.setupStartScreen();
     this.setupShareButtons();
+    this.setupRestartButtons();
 
     // Manual-emission wind streaks trailing the rhino during a dash
     passo('particulas-vento');
@@ -1000,22 +1001,34 @@ export class GameScene extends Phaser.Scene {
     // v1.8: há quantos dias cada um está com a marca exibida
     const days = LeaderboardSystem.holdDays(data.entries);
     data.entries.forEach((entry, i) => {
+      // v1.12.1: a linha virou GRADE de colunas fixas (posição · nome ·
+      // pontos · idade da marca · espadinha). Antes cada <li> era um flex
+      // independente com `space-between`: como o bloco da direita mudava de
+      // largura linha a linha (o "há 12d" é opcional, a espadinha não existe
+      // na sua própria linha), a coluna dos pontos começava num x diferente
+      // em cada uma — e nome comprido ainda quebrava em duas linhas.
       const li = document.createElement('li');
       if (entry.id === myId) li.classList.add('me');
+      const pos = document.createElement('span');
+      pos.className = 'rank-pos';
+      pos.textContent = `${i + 1}.`;
       const name = document.createElement('span');
-      name.textContent = `${i + 1}. ${entry.name}`; // textContent: nome vem de terceiros
-      const right = document.createElement('span');
-      right.className = 'rank-right';
+      name.className = 'rank-name';
+      name.textContent = entry.name; // textContent: nome vem de terceiros
+      name.title = entry.name;       // o nome truncado ainda pode ser lido
       const score = document.createElement('span');
+      score.className = 'rank-score';
       score.textContent = ScoreSystem.fmtScore(entry); // pontos · metros (v1.8.4)
-      right.append(score);
+      // SEMPRE anexado, mesmo vazio: célula ausente empurraria as seguintes
+      const hold = document.createElement('span');
+      hold.className = 'rank-days';
       if (days[i] !== null) {
-        const hold = document.createElement('span');
-        hold.className = 'rank-days';
         hold.textContent = days[i] === 0 ? 'hoje' : `há ${days[i]}d`;
         hold.title = 'há quanto tempo com esta marca';
-        right.append(hold);
       }
+      // a 5ª coluna: espadinha para os outros, vão reservado para você
+      const acao = document.createElement('span');
+      acao.className = 'rank-gapcell';
       // v1.8.6: cada OUTRO jogador ganha a espadinha de desafio — o clique
       // alterna a seleção e acende a barra "⚔️ Desafiar (N)" do rodapé
       if (entry.id && entry.id !== myId) {
@@ -1032,9 +1045,9 @@ export class GameScene extends Phaser.Scene {
           ev.stopPropagation();
           this.toggleChallengeSel(entry.id, entry.name, chBtn);
         });
-        right.append(chBtn);
+        acao.append(chBtn);
       }
-      li.append(name, right);
+      li.append(pos, name, score, hold, acao);
       list.appendChild(li);
     });
 
@@ -1409,9 +1422,48 @@ export class GameScene extends Phaser.Scene {
       if (!supported) {
         btn.style.display = 'none';
       } else {
-        btn.addEventListener('click', () => this.shareResult());
+        btn.addEventListener('click', () => {
+          this.marcarReinicio(2); // "tocou compartilhar antes de sair"
+          this.shareResult();
+        });
       }
     }
+  }
+
+  // v1.12.1 — o "JOGAR DE NOVO" deixou de ser um `onclick="location.reload()"`
+  // no HTML para poder deixar RASTRO: o jogo nunca soube se quem morreu
+  // voltou. O recarregamento continua sendo o caminho (o gesto de áudio do
+  // WebKit exige um toque novo na home; largar sozinho depois do reload
+  // produziria corridas com `j=0` e envenenaria a métrica da Escola).
+  // Regra da casa para botão novo: pointerdown com stopPropagation + click.
+  setupRestartButtons() {
+    for (const id of ['restart-btn', 'win-restart-btn']) {
+      const btn = document.getElementById(id);
+      if (!btn) continue;
+      btn.addEventListener('pointerdown', (e) => e.stopPropagation());
+      btn.addEventListener('click', () => {
+        this.marcarReinicio(1);
+        location.reload();
+      });
+    }
+    // "rolou os extras" (bit 4): diz se o que está abaixo da dobra é lido.
+    for (const box of document.querySelectorAll('.go-extra')) {
+      box.addEventListener('scroll', () => {
+        if (box.scrollTop > 0) this.marcarReinicio(4);
+      }, { passive: true });
+    }
+  }
+
+  // Guarda no sessionStorage (que SOBREVIVE ao reload, ao contrário da cena)
+  // o que aconteceu neste fim de corrida. A corrida SEGUINTE lê isso na
+  // largada e grava nas letras `rs`/`rt` — zero write extra, zero campo novo.
+  marcarReinicio(bit) {
+    try {
+      const bruto = sessionStorage.getItem('fr_replay');
+      const prev = bruto ? JSON.parse(bruto) : null;
+      const bits = ((prev && Number(prev.bits)) || 0) | bit;
+      sessionStorage.setItem('fr_replay', JSON.stringify({ at: Date.now(), bits }));
+    } catch (e) { /* modo privado/sem sessionStorage: a origem é acessória */ }
   }
 
   showShareStatus(msg) {
@@ -1665,6 +1717,27 @@ export class GameScene extends Phaser.Scene {
       this.safeTelemetry(() => NotifySystem.sessionStarted());
     }
     this.runStartedAt = Date.now();
+    // v1.12.1 — consome o rastro deixado pelo fim da corrida ANTERIOR (o
+    // sessionStorage atravessa o reload; a cena, não). Vira `rs`/`rt` no
+    // addRun lá embaixo: é o que responde "quem morreu voltou, e quão
+    // rápido?" — pergunta que o jogo nunca soube responder.
+    this.replayInfo = null;
+    try {
+      const bruto = sessionStorage.getItem('fr_replay');
+      if (bruto) {
+        const info = JSON.parse(bruto);
+        const bits = Number(info && info.bits) || 0;
+        const at = Number(info && info.at) || 0;
+        // só vale para a PRÓXIMA corrida: consumido de uma vez
+        sessionStorage.removeItem('fr_replay');
+        if (bits > 0) {
+          this.replayInfo = {
+            bits,
+            latenciaS: (bits & 1) && at ? Math.round((this.runStartedAt - at) / 1000) : 0,
+          };
+        }
+      }
+    } catch (e) { /* sem sessionStorage: a corrida nasce "home fria" */ }
     const overlay = document.getElementById('start-screen');
     if (overlay) overlay.style.display = 'none';
     document.body.classList.add('started');
@@ -3794,6 +3867,11 @@ export class GameScene extends Phaser.Scene {
     // v1.6.1 — as MECÂNICAS usadas. Os quatro primeiros contadores já eram
     // mantidos para julgar medalha e eram jogados fora aqui.
     StorageManager.addRun(distance, runS, won ? 'win' : (cause || 'wall'), {
+      // v1.12.1: como ESTA corrida começou (bitmask) e quanto tempo passou
+      // desde a morte anterior. Zero é omitido pelo addRun, então a corrida
+      // que nasceu de home fria não carrega byte nenhum.
+      restartSource: this.replayInfo ? this.replayInfo.bits : 0,
+      replayLatencyS: this.replayInfo ? this.replayInfo.latenciaS : 0,
       wallsBroken: this.runWallsBroken,
       rampsSmashed: this.runRampsSmashed,
       towersDowned: this.runTowersDowned,
@@ -3893,10 +3971,15 @@ export class GameScene extends Phaser.Scene {
     // um addScore ao lado), mas quem manda é o que foi para o ranking. O
     // bônus exibido é o que sobreviveu ao teto (total − metros), para a
     // linha fechar a conta na tela mesmo quando o SCORE_BONUS_CAP corta.
-    document.getElementById(ptsId).textContent =
-      `🏆 ${ScoreSystem.fmtPts(total)} — ${distance} m + ${Math.max(0, total - distance)} de bônus`;
-    document.getElementById(brkId).textContent =
-      detail.lines.map((l) => `${l.label} +${l.pts}`).join('\n');
+    // v1.12.1: o número grande da caixa passou a ser os METROS (a façanha
+    // física), e a pontuação anda ao lado, menor. A conta "m + bônus" desce
+    // para a 1ª posição do detalhamento, que agora é UMA linha corrida (em
+    // 402 px de altura, sete linhas empurravam o botão para fora da tela).
+    document.getElementById(ptsId).textContent = `🏆 ${ScoreSystem.fmtPts(total)}`;
+    document.getElementById(brkId).textContent = [
+      `${distance} m + ${Math.max(0, total - distance)} de bônus`,
+      ...detail.lines.map((l) => `${l.label} +${l.pts}`),
+    ].join(' · ');
 
     // Overlays são só PREENCHIDOS aqui; a exibição fica no showEndOverlay
     // (o fim por dardo espera o rino adormecer; a vitória, a cutscene)
@@ -3919,11 +4002,19 @@ export class GameScene extends Phaser.Scene {
             : cause === 'farao' ? 'DETIDO PELO FARAÓ! 🏺'
               : tranqCause ? 'TRANQUILIZADO! 💤' : 'GAME OVER';
       document.getElementById('final-score').textContent = distance;
+      // v1.12.1: o slot do "delta" é UMA frase — a que estiver mais perto do
+      // jogador. O "faltaram X m" saiu da dica de morte (que é insumo da
+      // Escola e não pode mudar de texto durante a medição) e passou a viver
+      // aqui, onde o olho já procura o resultado. A copy nova por causa/ala
+      // é da v1.13 "Jornada" — aqui só o lugar mudou.
+      const recAtual = StorageManager.getRecord();
       if (isNewRecord) {
         document.getElementById('record-message').textContent = '🎉 NOVO RECORDE!';
+      } else if (recAtual > 0 && distance < recAtual) {
+        document.getElementById('record-message').textContent =
+          `⭐ Faltaram ${recAtual - distance} m para o seu recorde (${recAtual} m)`;
       } else {
-        const record = StorageManager.getRecord();
-        document.getElementById('record-message').textContent = `Recorde: ${record}m`;
+        document.getElementById('record-message').textContent = `Recorde: ${recAtual}m`;
       }
       // Morreu no modo infinito: a fuga em si já estava garantida
       document.getElementById('gate-escape-message').textContent =
@@ -3932,6 +4023,8 @@ export class GameScene extends Phaser.Scene {
       // v1.10 "ESCOLA DO RINO": a morte vira aula — 1 linha por causa (máx.
       // 3× por causa na vida, padrão do BOSS_HINT) + a meta concreta da
       // próxima corrida. É a única superfície com atenção total do jogador.
+      // (v1.12.1: a meta do recorde mudou de lugar — subiu para o slot do
+      // delta, acima. Aqui fica só a AULA, que é a variável em medição.)
       const tipEl = document.getElementById('death-tip');
       if (tipEl) {
         let linha = '';
@@ -3939,10 +4032,6 @@ export class GameScene extends Phaser.Scene {
         if (dica && StorageManager.getDeathTipCount(cause) < 3) {
           StorageManager.addDeathTipCount(cause);
           linha = dica;
-        }
-        const rec = StorageManager.getRecord();
-        if (!isNewRecord && rec > 0 && distance < rec) {
-          linha += (linha ? ' · ' : '') + `Faltaram ${rec - distance}m para o seu recorde.`;
         }
         tipEl.textContent = linha;
       }
@@ -4125,6 +4214,9 @@ export class GameScene extends Phaser.Scene {
 
   showEndOverlay() {
     document.getElementById(this.won ? 'game-win' : 'game-over').style.display = 'block';
+    // v1.12.1: com o fim de corrida na tela, os guias de toque e o botão de
+    // pausa (que vivia POR CIMA da caixa, em z 250) saem da frente.
+    document.body.classList.add('ended');
   }
 
   // O rino apaga: tint azulado e tomba devagar antes do overlay.

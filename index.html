@@ -212,115 +212,16 @@
         /* v1.8.10-fix (pedido do dono): overlay MENOR e mais compacto — o
            translate(-50%,-50%) ja centra; a altura menor e o que devolve o
            equilibrio vertical. Vao entre o Recorde e os botoes apertado. */
-        #game-over {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
-            padding: 22px 30px;
-            border-radius: 10px;
-            color: white;
-            text-align: center;
-            z-index: 200;
-            display: none;
-            min-width: 280px;
-            max-height: 88vh;
-            overflow-y: auto;
-        }
-
-        #game-over h1 {
-            font-size: 26px;
-            margin-bottom: 10px;
-            color: #ff6b6b;
-        }
-
-        #game-over p {
-            font-size: 15px;
-            margin: 5px 0;
-        }
-
-        #game-over .final-score {
-            color: #4ecdc4;
-            font-size: 20px;
-            margin: 6px 0;
-            font-weight: bold;
-        }
-
-        #game-over #record-message { margin-bottom: 2px; }
-        #game-over #death-tip { color: #ffd166; font-size: 14px; max-width: 520px; margin: 4px auto 0; }
-        #game-over .btn-row { margin-top: 8px; }
-
-        #game-over .record-beat {
-            color: #ffcc00;
-            font-size: 20px;
-            margin-top: 15px;
-        }
-
-        #game-over button {
-            margin-top: 20px;
-            padding: 12px 30px;
-            font-size: 16px;
-            background: #4ecdc4;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        #game-over button:hover {
-            background: #45b8af;
-        }
-
-        #game-win {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
-            padding: 40px;
-            border-radius: 10px;
-            color: white;
-            text-align: center;
-            z-index: 200;
-            display: none;
-            min-width: 300px;
-        }
-
-        #game-win h1 {
-            font-size: 32px;
-            margin-bottom: 20px;
-            color: #4ecdc4;
-        }
-
-        #game-win p {
-            font-size: 18px;
-            margin: 10px 0;
-        }
-
-        #game-win .final-score {
-            color: #ffcc00;
-            font-size: 24px;
-            margin: 15px 0;
-            font-weight: bold;
-        }
-
-        #game-win button {
-            margin-top: 20px;
-            padding: 12px 30px;
-            font-size: 16px;
-            background: #4ecdc4;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        #game-win button:hover {
-            background: #45b8af;
-        }
+        /* v1.12.1 — o fim de corrida (derrota e vitória) mora na mesma caixa;
+           o desenho completo fica no bloco "Fim de corrida" no FIM desta folha,
+           pelo mesmo motivo do #crash-overlay: última regra de mesma
+           especificidade vence, e assim a compactação por altura não briga com
+           o que está aqui em cima. Aqui ficam só as cores herdadas. */
+        #game-over h1 { color: #ff6b6b; }
+        #game-win h1 { color: #4ecdc4; }
+        #game-over .final-score { color: #4ecdc4; }
+        #game-win .final-score { color: #ffcc00; }
+        #game-over .record-beat { color: #ffcc00; font-size: 20px; margin-top: 15px; }
 
         .touch-guides {
             position: fixed;
@@ -2437,6 +2338,243 @@
         @media (max-width: 560px) {
             .bar-row { grid-template-columns: 110px 1fr 48px; }
         }
+
+        /* ============================================================
+           FIM DE CORRIDA (v1.12.1 "Régua") — uma caixa só para derrota e
+           vitória, em três faixas: HERÓI (fixo, o que decide se você corre de
+           novo), EXTRAS (rolam, com fade) e RODAPÉ FIXO com o botão grande.
+
+           Por que aqui no fim: o #crash-overlay já usava esta posição pelo
+           mesmo motivo — regra de mesma especificidade escrita depois vence,
+           então a compactação por altura não briga com o CSS do topo.
+
+           Medida que motivou: em 874×402 (iPhone 17 Pro em paisagem) a caixa
+           tinha 354 px úteis para ~440 px de conteúdo e o botão nascia fora da
+           tela. 48 dos 75 aparelhos da base têm lado curto ≤520 px.
+           ============================================================ */
+        #game-over, #game-win {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 450;   /* acima do #rotate-overlay (400): quem girar o
+                               aparelho continua vendo o resultado; abaixo dos
+                               .modal (500), que seguem por cima */
+            display: none;  /* o showEndOverlay continua usando display:block */
+            width: min(560px, calc(100vw - 2 * max(16px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px))));
+            min-width: 0;
+            max-height: calc(100vh - 24px);
+            max-height: calc(100dvh - 12px - max(12px, env(safe-area-inset-bottom, 0px)));
+            padding: 0;
+            overflow: hidden;   /* quem rola é a faixa .go-extra */
+            background: rgba(0, 0, 0, 0.95);
+            border-radius: 12px;
+            color: #fff;
+            text-align: center;
+        }
+        /* No PWA instalado o 100dvh nasce errado no cold start (bug conhecido
+           do WebKit em standalone) — ali o vh é o confiável. */
+        @media (display-mode: standalone) {
+            #game-over, #game-win {
+                max-height: calc(100vh - 12px - max(12px, env(safe-area-inset-bottom, 0px)));
+            }
+        }
+
+        .go-body { display: flex; flex-direction: column; max-height: inherit; }
+        .go-hero { flex: 0 0 auto; padding: 14px 22px 6px; }
+        .go-extra {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding: 0 22px 18px;
+            /* o fade é o SINAL de que há mais coisa abaixo (a rolagem sem
+               sinal era metade da queixa) */
+            -webkit-mask-image: linear-gradient(#000 calc(100% - 18px), transparent);
+                    mask-image: linear-gradient(#000 calc(100% - 18px), transparent);
+        }
+        .go-actions {
+            flex: 0 0 auto;
+            display: flex;
+            gap: 10px;
+            margin: 0;
+            padding: 8px 22px max(12px, env(safe-area-inset-bottom, 0px));
+            background: rgba(0, 0, 0, 0.95);
+        }
+
+        #game-over h1, #game-win h1 {
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin: 0;
+        }
+        .go-headline {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 14px;
+            margin: 2px 0 4px;
+        }
+        .go-headline .final-score { font-size: 34px; font-weight: 900; }
+        .go-headline .final-points { font-size: 15px; font-weight: 700; color: #ffd700; margin: 0; }
+
+        /* Slot da barra das alas — a v1.13 "Jornada" tira o hidden */
+        .go-track {
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.15);
+            margin: 4px 8px 14px;
+            position: relative;
+        }
+        .go-track[hidden] { display: none; }
+
+        /* Os quatro <p> com min-height reservavam ~80px de ar MESMO VAZIOS */
+        #game-over p, #game-win p { min-height: 0; margin: 3px 0; font-size: 14px; }
+        #game-over p:empty, #game-win p:empty { display: none; }
+        #game-over #record-message, #game-win #win-record-message { color: #ffd166; font-weight: 700; }
+        #game-over #death-tip {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 13px;
+            line-height: 1.35;
+            max-width: none;
+            margin: 4px auto 0;
+        }
+        .final-breakdown { font-size: 12.5px; line-height: 1.4; opacity: 0.7; white-space: normal; }
+
+        #game-over .btn-primary, #game-win .btn-primary {
+            flex: 1 1 auto;
+            min-height: 52px;
+            margin: 0;
+            padding: 0 16px;
+            font-size: 18px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            background: #4ecdc4;
+            color: #06312d;
+            border: 0;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        #game-over .btn-primary:hover, #game-win .btn-primary:hover { background: #6fe0d8; }
+        #game-over .btn-share, #game-win .btn-share {
+            flex: 0 0 52px;
+            min-height: 52px;
+            margin: 0;
+            padding: 0;
+            font-size: 22px;
+            border-radius: 10px;
+        }
+
+        /* Celular em paisagem — o molde é o do #crash-overlay */
+        @media (max-height: 500px) {
+            .go-hero { padding: 10px 16px 4px; }
+            .go-extra { padding: 0 16px 16px; }
+            .go-actions { padding: 6px 16px max(10px, env(safe-area-inset-bottom, 0px)); }
+            #game-over h1, #game-win h1 { font-size: 11px; letter-spacing: 1.5px; }
+            .go-headline .final-score { font-size: 28px; }
+            #game-over p, #game-win p { margin: 2px 0; font-size: 13px; }
+            #game-over .btn-primary, #game-win .btn-primary { min-height: 46px; font-size: 16px; }
+            #game-over .btn-share, #game-win .btn-share { flex-basis: 46px; min-height: 46px; }
+        }
+        /* 640×304-360: Chrome Android com a barra, iPhone SE deitado */
+        @media (max-height: 360px) {
+            .go-headline .final-score { font-size: 24px; }
+            #game-over p, #game-win p { font-size: 12px; }
+            #game-over #death-tip { font-size: 12px; }
+            #game-over .btn-primary, #game-win .btn-primary { min-height: 44px; font-size: 15px; }
+            #game-over .btn-share, #game-win .btn-share { flex-basis: 44px; min-height: 44px; }
+        }
+
+        /* Com o fim de corrida na tela, os guias de toque e a pausa saem da
+           frente (o botão de pausa vivia POR CIMA da caixa, em z 250) */
+        body.ended .touch-guides, body.ended #pause-btn { display: none; }
+
+        /* ---------- TOP 10: uma GRADE, não 10 flex independentes ----------
+           Cada <li> era um flex com space-between, então a coluna dos pontos
+           começava num x diferente em cada linha (conforme o bloco da direita
+           tivesse "há 12d" e ⚔️ ou não), e nome longo quebrava em duas linhas.
+           Com grid as colunas são compartilhadas pelas 10 linhas. */
+        /* A grade vive no <ol>, não em cada <li>: colunas só são
+           compartilhadas DENTRO de um mesmo container de grid — com
+           `display:grid` por linha (o caminho óbvio) cada linha teria as
+           suas, e os pontos continuariam começando num x diferente. Os
+           <li> viram `display:contents` e as CÉLULAS carregam o fundo da
+           linha "VOCÊ" (o li deixa de ter caixa própria). */
+        #ranking-list {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+            align-items: baseline;
+            gap: 2px 8px;
+        }
+        #ranking-list li {
+            display: contents;
+            font-size: 15px;
+        }
+        #ranking-list li > * { padding: 3px 0; }
+        #ranking-list li > *:first-child { padding-left: 10px; border-radius: 6px 0 0 6px; }
+        #ranking-list li > *:last-child { padding-right: 10px; border-radius: 0 6px 6px 0; }
+        #ranking-list li.me > * { background: rgba(255, 204, 0, 0.15); color: #ffcc00; }
+        #ranking-list li .rank-pos { opacity: 0.6; font-variant-numeric: tabular-nums; }
+        #ranking-list li .rank-name {
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: left;
+        }
+        #ranking-list li .rank-score {
+            font-variant-numeric: tabular-nums;   /* dígitos de largura fixa */
+            white-space: nowrap;
+            font-weight: 700;
+            /* alinhado à ESQUERDA da coluna: o fmtScore tem dois formatos
+               ("987 pts" e "1.234 pts · 987 m") e é o primeiro número que o
+               olho compara linha a linha */
+            text-align: left;
+        }
+        #ranking-list li .rank-days { font-size: 11px; opacity: 0.55; white-space: nowrap; }
+        #ranking-list li .challenge-btn { margin: 0; padding: 2px 8px; }
+        /* A linha "VOCÊ" não tem espadinha — o vão reservado impede que a
+           coluna dos pontos pule justamente nela */
+        #ranking-list li.me .rank-gapcell { display: inline-block; min-width: 30px; }
+        @media (max-height: 500px) {
+            #ranking-list li { padding: 2px 8px; font-size: 14px; }
+            #ranking-list li .rank-days { font-size: 10px; }
+        }
+
+        /* ---------- Modais genéricos em tela curta ----------
+           Tem de vir DEPOIS da .modal original (mesma especificidade). */
+        .modal {
+            max-width: min(92vw, calc(100vw - 2 * max(12px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px))));
+            max-height: calc(100vh - 24px);
+            max-height: calc(100dvh - 12px - max(12px, env(safe-area-inset-bottom, 0px)));
+        }
+        @media (display-mode: standalone) {
+            .modal { max-height: calc(100vh - 12px - max(12px, env(safe-area-inset-bottom, 0px))); }
+        }
+        @media (max-height: 500px) {
+            .modal { padding: 12px 16px; }
+            .modal h2 { font-size: 18px; margin-bottom: 6px; }
+            .modal p { font-size: 14px; margin: 4px 0; }
+            .modal button { margin-top: 8px; padding: 9px 18px; font-size: 14px; }
+            /* Grade de skins: 3 linhas de 150px não cabiam em 342px */
+            #skins-grid { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 6px; }
+            .skin-cell img { width: 96px; height: 64px; }
+            /* Diretório do desafio: a lista rouba a altura dos botões */
+            #challenge-directory { max-height: 96px; }
+            #pwa-modal p { font-size: 13.5px; }
+        }
+        /* 30 medalhas numa coluna passavam de 1.000px */
+        @media (max-height: 500px) and (min-width: 700px) {
+            #medals-list { columns: 2; column-gap: 16px; }
+        }
+
+        /* Em retrato o #rotate-overlay (400) cobre o jogo, mas os modais (500)
+           ficam por cima — "Continuar" retomava a corrida às cegas. */
+        @media (orientation: portrait) {
+            #pause-resume { display: none; }
+            #pause-modal .pause-portrait-hint { display: block; }
+        }
+        .pause-portrait-hint { display: none; color: #ffd166; font-weight: 700; }
     </style>
     <script>window.__frVoo('v1-css');</script>
 </head>
@@ -2462,40 +2600,66 @@
         <span id="progress-infinity" hidden>∞ modo infinito</span>
     </div>
 
-    <div id="game-over">
-        <h1 id="game-over-title">GAME OVER</h1>
-        <p>Distância: <span class="final-score" id="final-score">0</span>m</p>
-        <!-- v1.8.4: a distância acima continua sendo a façanha física; a
-             pontuação composta entra ABAIXO, com o detalhamento -->
-        <p id="final-points" class="final-points"></p>
-        <p id="final-breakdown" class="final-breakdown"></p>
-        <p id="attempt-message" class="attempt-line"></p>
-        <p id="gate-escape-message"></p>
-        <p id="record-message"></p>
-        <!-- v1.10: a morte que ensina — dica por causa + meta do recorde -->
-        <p id="death-tip"></p>
-        <p id="online-status"></p>
-        <p id="medal-message"></p>
-        <p id="share-status"></p>
-        <div class="btn-row">
-            <button onclick="location.reload()">Jogar Novamente</button>
-            <button id="share-btn" class="btn-share">📤 Compartilhar</button>
+    <!-- v1.12.1 "Régua": os dois fins de corrida passam a ter a MESMA caixa,
+         em três faixas — herói (o que decide se você corre de novo), extras
+         (rolam, com fade) e rodapé FIXO com o botão grande. Motivo medido: em
+         874×402 (iPhone 17 Pro em paisagem, e 48 dos 75 aparelhos da base têm
+         lado curto ≤520 px) o conteúdo pedia ~440 px numa caixa de 354 — os
+         botões ficavam ABAIXO da dobra e era preciso rolar para achá-los.
+         Os IDs são os mesmos de sempre: o JS e as 5 suítes que leem
+         #game-over-title / display:block continuam valendo. -->
+    <div id="game-over" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
+        <div class="go-body">
+            <div class="go-hero">
+                <h1 id="game-over-title">GAME OVER</h1>
+                <div class="go-headline">
+                    <span><span class="final-score" id="final-score">0</span> m</span>
+                    <!-- v1.8.4: a distância é a façanha física; a pontuação
+                         composta anda ao lado, menor -->
+                    <span id="final-points" class="final-points"></span>
+                </div>
+                <!-- slot da barra das alas (v1.13 "Jornada" preenche) -->
+                <div id="go-track" class="go-track" hidden></div>
+                <p id="record-message"></p>
+                <p id="gate-escape-message"></p>
+                <!-- v1.10: a morte que ensina — dica por causa -->
+                <p id="death-tip"></p>
+                <p id="medal-message"></p>
+            </div>
+            <div class="go-extra">
+                <p id="final-breakdown" class="final-breakdown"></p>
+                <p id="online-status"></p>
+                <p id="attempt-message" class="attempt-line"></p>
+                <p id="share-status"></p>
+            </div>
+            <div class="btn-row go-actions">
+                <button id="restart-btn" class="btn-primary" type="button">▶ JOGAR DE NOVO</button>
+                <button id="share-btn" class="btn-share" type="button" aria-label="Compartilhar">📤</button>
+            </div>
         </div>
     </div>
 
-    <div id="game-win">
-        <h1>VOCÊ ESCAPOU!</h1>
-        <p>Distância: <span class="final-score" id="win-final-score">0</span>m</p>
-        <p id="win-final-points" class="final-points"></p>
-        <p id="win-final-breakdown" class="final-breakdown"></p>
-        <p id="win-attempt-message" class="attempt-line"></p>
-        <p id="win-record-message"></p>
-        <p id="win-online-status"></p>
-        <p id="win-medal-message"></p>
-        <p id="win-share-status"></p>
-        <div class="btn-row">
-            <button onclick="location.reload()">Jogar Novamente</button>
-            <button id="win-share-btn" class="btn-share">📤 Compartilhar</button>
+    <div id="game-win" role="dialog" aria-modal="true" aria-labelledby="game-win-title">
+        <div class="go-body">
+            <div class="go-hero">
+                <h1 id="game-win-title">VOCÊ ESCAPOU!</h1>
+                <div class="go-headline">
+                    <span><span class="final-score" id="win-final-score">0</span> m</span>
+                    <span id="win-final-points" class="final-points"></span>
+                </div>
+                <p id="win-record-message"></p>
+                <p id="win-medal-message"></p>
+            </div>
+            <div class="go-extra">
+                <p id="win-final-breakdown" class="final-breakdown"></p>
+                <p id="win-online-status"></p>
+                <p id="win-attempt-message" class="attempt-line"></p>
+                <p id="win-share-status"></p>
+            </div>
+            <div class="btn-row go-actions">
+                <button id="win-restart-btn" class="btn-primary" type="button">▶ JOGAR DE NOVO</button>
+                <button id="win-share-btn" class="btn-share" type="button" aria-label="Compartilhar">📤</button>
+            </div>
         </div>
     </div>
 
@@ -2615,7 +2779,7 @@
 
         <span class="start-footer footer-left">by Thomas Avelino</span>
         <span class="start-footer footer-center">Estatísticas anônimas são coletadas · <a href="./?stats">/?stats</a></span>
-        <span class="start-footer footer-right" id="game-version">v1.12.0</span>
+        <span class="start-footer footer-right" id="game-version">v1.12.1</span>
     </div>
 
     <div id="ranking-modal" class="modal">
@@ -2717,6 +2881,11 @@
         <h2>⏸️ Pausado</h2>
         <p>A corrida está congelada — o tempo parado não conta.</p>
         <p class="pause-keys">Teclado: ← ou ESPAÇO pula &nbsp;|&nbsp; → ou ENTER investe &nbsp;|&nbsp; P ou ESC pausa</p>
+        <!-- v1.12.1: em retrato o modal de pausa (z 500) fica POR CIMA do
+             "Gire o celular" (z 400) e o "Continuar" retomava a corrida às
+             cegas, com o aviso tapando a tela. Em retrato o botão some e
+             sobra esta linha. -->
+        <p class="pause-portrait-hint">📱↔️ Gire o celular para continuar</p>
         <div class="btn-row">
             <button id="pause-resume">▶️ Continuar</button>
             <button id="pause-quit" class="btn-secondary">🏳️ Desistir da corrida</button>

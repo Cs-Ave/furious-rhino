@@ -503,6 +503,19 @@ export class StorageManager {
     //      lição 4 do currículo ensinou o verbo que 47% nunca usaram.
     fc: 'fatorCurva',
     cj: 'chargedJumps',
+    // v1.12.1 "Régua" — a fricção entre uma corrida e a seguinte. O jogo
+    // nunca soube se a pessoa que morreu VOLTOU: não há evento de UI em
+    // lugar nenhum (a leitura de 05/09 registrou a cegueira). Estas duas
+    // contam a corrida a partir do fim da ANTERIOR, sem write extra (viajam
+    // no mesmo `addRun` de sempre — o contrato "um write por fim de corrida"
+    // fica intacto) e sem campo novo de 1º nível.
+    // rs = bitmask de como ESTA corrida começou: 1 = veio do botão JOGAR DE
+    //      NOVO · 2 = tocou compartilhar antes de sair · 4 = rolou os extras
+    //      do fim de corrida. Ausente = home fria (aba nova, ícone, desistiu).
+    // rt = segundos entre o fim da corrida anterior e a largada desta (só
+    //      quando rs&1; cap 9999) — a "latência pós-morte" do §5 da doutrina.
+    rs: 'restartSource',
+    rt: 'replayLatencyS',
   };
 
   // Até a v1.6.1 a fúria não entrava aqui por ser posicional (contida no
@@ -612,11 +625,16 @@ export class StorageManager {
   // pequeno (60 × ~35 bytes ≈ 2 KB no doc)
   static HISTORY_CAPS = { clients: 12, geos: 10, versions: 10, days: 60 };
 
+  // ATENÇÃO (v1.12.1): com o `src` abaixo o mapa `history` fica FECHADO em
+  // 6/6 chaves — as rules validam `history.size() <= 6`. Campo novo daqui em
+  // diante entra DENTRO de um dos baldes existentes ou em runs[], nunca aqui.
+  // E toda chave precisa estar neste normalizador: o que ele não copia some
+  // no próximo ciclo de leitura-escrita.
   static getHistory() {
     const empty = { clients: {}, geos: {}, versions: {}, days: {}, firstSeenS: 0 };
     try {
       const h = JSON.parse(localStorage.getItem(this.HISTORY_KEY)) || {};
-      return {
+      const out = {
         clients: (h.clients && typeof h.clients === 'object') ? h.clients : {},
         geos: (h.geos && typeof h.geos === 'object') ? h.geos : {},
         versions: (h.versions && typeof h.versions === 'object') ? h.versions : {},
@@ -624,9 +642,31 @@ export class StorageManager {
         days: (h.days && typeof h.days === 'object') ? h.days : {},
         firstSeenS: typeof h.firstSeenS === 'number' && h.firstSeenS > 0 ? h.firstSeenS : 0,
       };
+      // v1.12.1: origem do aparelho, gravada UMA vez (no primeiro boot) e
+      // nunca reescrita — é o que separa "voltou gente" de "o jogo melhorou"
+      // em toda leitura seguinte. Omitida quando ausente (docs velhos não
+      // ganham chave, e o mapa continua cabendo no orçamento das rules).
+      if (typeof h.src === 'string' && h.src) out.src = h.src.slice(0, 12);
+      return out;
     } catch (e) {
       return empty; // JSON corrompido — recomeça sem travar o jogo
     }
+  }
+
+  // v1.12.1 — carimba a ORIGEM do aparelho no primeiro boot da vida. Só a
+  // primeira chamada vale: quem chegou por link continua sendo "link" para
+  // sempre, mesmo que depois abra o jogo pelo ícone. Chamada do boot da home.
+  static markSource(src) {
+    const valor = String(src || '').slice(0, 12);
+    if (!valor) return null;
+    const h = this.getHistory();
+    if (h.src) return h.src;
+    h.src = valor;
+    if (!h.firstSeenS) h.firstSeenS = Math.floor(Date.now() / 1000);
+    try {
+      localStorage.setItem(this.HISTORY_KEY, JSON.stringify(h));
+    } catch (e) { /* storage cheio/privado: a origem é acessória */ }
+    return valor;
   }
 
   // Data LOCAL do jogador (não UTC): é o "dia" que ele viveu, e é o mesmo
