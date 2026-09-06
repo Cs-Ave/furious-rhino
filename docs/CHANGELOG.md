@@ -5,7 +5,23 @@
 
 ---
 
-## v1.12.2 — 05/09/2026 (versão atual) — 🔦 O FAROL
+## v1.12.3 — 05/09/2026 (versão atual) — 🗣️ CINCO VOZES
+
+**Tema: os cinco chefes deixam de ser o mesmo chefe cinco vezes.**
+
+Resposta ao feedback nº 2 ("boss fight todos muito parecidos, sempre sendo o chefe da muralha"). A queixa estava certa e a causa era literal: os cinco chefes são instâncias da mesma classe, e as cinco definições pediam **o mesmo som de abertura, a mesma cor de mira e a mesma frase de ensino**. O que os diferenciava — a ordem das frestas e o padrão de tiro — o jogador sentia, mas não via nem ouvia.
+
+- **Cada chefe ganhou a própria voz.** O Portão manteve a buzina de zoológico que sempre teve; a Muralha ganhou sirene de patrulha; a Barreira, o klaxon de obra; o Faraó, um **gongo de bronze** (feito com harmônicos "errados" de propósito — é assim que metal soa, e não como um sino); e o Caçador-Mor, **tambores de guerra** que aceleram. Nenhum som é arquivo: tudo sintetizado na hora, como todo o áudio do jogo.
+- **Cada mira tem a sua cor**: dourado no Portão, azul-gelo na Muralha, verde-lima na Barreira, bronze no Faraó, violeta no Caçador-Mor. E todas ganharam **contorno escuro** — a moldura clara sumia contra a placa de aço da Muralha à noite e contra o arenito do Faraó de dia.
+- **A moldura fica BRANCA quando você está na altura certa.** Esta é a mudança que mais muda a luta. Antes, a única forma de descobrir que você estava na altura errada era investir, errar e quicar — meio segundo de castigo, sob fogo, para receber a resposta. Agora a resposta chega **antes** da investida. Nada de mecânica mudou: é a mesma conta que o jogo já fazia no contato, agora desenhada. E é o que faz a ordem das frestas de cada chefe (o Portão sobe, a Muralha abre no alto, o Faraó nunca repete, o Caçador-Mor sobe e volta) virar algo perceptível.
+- **Cada dica agora diz onde a fresta abre naquele chefe** — as cinco repetiam a mesma frase, "INVISTA na fresta que brilha", que não ensinava nada sobre qual deles você estava enfrentando.
+- **Um marco no meio da luta.** Quando falta pouco, o chamado do chefe volta, a moldura pulsa e um farol vermelho pisca no posto do atirador. Antes, quebrar a 2ª de 4 camadas era exatamente igual a quebrar a 1ª.
+- **A luta agora tem relógio — e marca pessoal.** Um cronômetro corre acima do alvo e, a partir da segunda vitória, mostra "melhor 12 s" ao lado. Quem já vencia um chefe não recebia mais nada dele: a 7ª luta era idêntica à 1ª. O veterano também voltou a ser recebido por nome ("🚧 Muralha — 3ª vez · melhor 12 s"), no lugar do silêncio que sobrava depois das duas primeiras visitas. Medalha nova: **💎 Sem Um Arranhão**, vencer o Portão sem quicar nenhuma vez.
+- **Dois nomes errados foram consertados.** A Muralha aparecia como "Cerco" no detalhamento de pontos e como "🕸️ Capturador" na tela de morte — nomes do chefe do deserto, herdados de uma mudança de 2026. Quem morria na Muralha e na Barreira lia praticamente a mesma coisa nas duas telas. (O teste automatizado vinha congelando o nome errado a cada rodada verde; foi corrigido junto.)
+- **Legibilidade na Muralha**: o laser de mira e a zona de pouso do holofote ganharam contorno escuro, e o atirador e o cão-projétil ganharam o halo claro da v1.12.2 — todos lutam de noite, no fundo escuro que o Farol acabou de tratar.
+- Zero mudança em dificuldade, física, spawn, cadência de tiro, tabelas ou ordem de camadas: o congelamento da medição segue intacto até 26/09.
+
+## v1.12.2 — 05/09/2026 — 🔦 O FAROL
 
 **Tema: a cidade à noite volta a ser legível — o inimigo se separa do cenário.**
 

@@ -1,4 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 72" width="64" height="72">
+  <defs>
+  <!-- v1.12.3 "Farol": halo claro por fora da silhueta. O contorno preto
+       dos sprites some contra a cidade noturna (contraste de borda medido:
+       2,3-2,8 · aceite 3,0). Desenhado ATRÁS do conteúdo — a arte original
+       passa intacta pelo feMerge, e a hitbox não muda. -->
+  <filter id="rim" x="-14%" y="-14%" width="128%" height="128%">
+    <feMorphology in="SourceAlpha" operator="dilate" radius="2.6" result="rimD"/>
+    <feFlood flood-color="#e6eef7" flood-opacity="0.85"/>
+    <feComposite in2="rimD" operator="in" result="rimC"/>
+    <feMerge><feMergeNode in="rimC"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  </defs>
+  <g filter="url(#rim)">
   <!-- FURIOUS RHINO - v1.8.7, boss dos 2000m: o COMANDANTE em pose de ORDEM
        (telegraph do tiro/granada). Mesmo personagem do muralha-hunter.svg —
        pernas, tunica, dragonas e quepe identicos. Mudam: MEGAFONE ERGUIDO na
@@ -70,4 +83,5 @@
   <ellipse cx="16" cy="17.4" rx="7.5" ry="2.6" fill="#14181d" stroke="#17171b" stroke-width="1.6"/>
   <path d="M24.5 6.9 L27.1 8.5 L26.3 11.5 L22.7 11.5 L21.9 8.5 Z" fill="#ffd24a" stroke="#17171b" stroke-width="1.1" stroke-linejoin="round"/>
   <path d="M14.5 13.9 Q24.5 10.3 34.5 13.9" fill="none" stroke="#ff4a5e" stroke-width="1.4" stroke-linecap="round"/>
+</g>
 </svg>

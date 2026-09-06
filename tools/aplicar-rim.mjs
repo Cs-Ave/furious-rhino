@@ -52,6 +52,12 @@ export const RIM_TEXTURAS = [
   { base: 'enemy-pipa', raio: 1.6 },
   { base: 'enemy-helinews', raio: 1.6 },
   { base: 'enemy-plane', raio: 1.6 },
+  // v1.12.3 — o ATIRADOR DA MURALHA entra na mesma conta. Ele não é do
+  // elenco de spawn (não passa pelo e2e-legibilidade, que mede espécies),
+  // mas luta no mesmo lugar e na mesma hora: de pé no deck do viaduto, à
+  // noite, silhueta escura contra céu escuro. Os dois quadros — parado e
+  // mirando — são a única coisa que diz de onde o tiro vem.
+  { base: 'muralha-hunter', raio: 2.6 },
 ];
 
 export const RIM_COR = '#e6eef7';

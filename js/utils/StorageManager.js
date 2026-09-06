@@ -409,6 +409,31 @@ export class StorageManager {
     return total;
   }
 
+  // v1.12.3 — melhor tempo de luta POR CHEFE (ms), só localStorage. Uma chave
+  // por id ('gate', 'muralha', 'cerco', 'farao', 'guardiao'): chegar a cada
+  // chefe é raro demais para caber num único número, e a graça é justamente
+  // ter uma marca DAQUELE chefe. Nada disso vai ao Firestore — `stats` está
+  // fechado em 12/12 e `history` em 6/6.
+  static bossBestKey(id) {
+    return `furious_rhino_boss_best_${String(id || '').replace(/[^a-z0-9]/gi, '')}`;
+  }
+
+  static getBossBest(id) {
+    try {
+      return parseInt(localStorage.getItem(this.bossBestKey(id)), 10) || 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  static setBossBest(id, ms) {
+    const n = Math.max(0, Math.round(Number(ms) || 0));
+    if (!n) return;
+    try {
+      localStorage.setItem(this.bossBestKey(id), String(n));
+    } catch (e) { /* modo privado: sem marca, sem drama */ }
+  }
+
   static getGeo() {
     try {
       return JSON.parse(localStorage.getItem(this.GEO_KEY));

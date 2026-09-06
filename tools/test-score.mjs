@@ -234,14 +234,24 @@ eq('b+e+l somam juntos no mesmo peso (e a vitória do Cerco por cima)',
   ScoreSystem.runBonus({ m: 2500, c: 'dart', b: 3, e: 4, l: 2, z: 30 }),
   (3 + 4 + 2) * W.bossLayer + W.boss2 + W.escape);
 
-// breakdown: as linhas novas da tela de fim de corrida
+// breakdown: as linhas novas da tela de fim de corrida.
+// v1.12.3 — os rótulos de `boss2Layers` diziam "Cerco". A chave é da MURALHA
+// desde a v1.8.7 (o Cerco mudou-se para o deserto e virou `cercoLayers`), e
+// este teste vinha congelando o nome errado a cada rodada verde: o jogador
+// que reclamou de "sempre o chefe da muralha" lia "Cerco" nas duas telas.
+// Chave, peso e pontos intocados — só o texto.
 const bd2 = ScoreSystem.breakdown({ meters: 2100, boss2Layers: 4 });
-eq('breakdown: Cerco vencido rende as DUAS linhas (camadas + vitória)',
+eq('breakdown: Muralha derrubada rende as DUAS linhas (camadas + vitória)',
   bd2.lines.map((l) => [l.label, l.pts]),
-  [['🕸️ Camadas do Cerco ×4', 4 * W.bossLayer], ['🕸️ Cerco vencido', W.boss2]]);
-eq('breakdown: Cerco a meio caminho NÃO ganha a linha de vitória',
+  [['🚧 Camadas da Muralha ×4', 4 * W.bossLayer], ['🚧 Muralha derrubada', W.boss2]]);
+eq('breakdown: Muralha a meio caminho NÃO ganha a linha de vitória',
   ScoreSystem.breakdown({ meters: 2050, boss2Layers: 3 }).lines.map((l) => l.label),
-  ['🕸️ Camadas do Cerco ×3']);
+  ['🚧 Camadas da Muralha ×3']);
+// E os dois nunca mais podem colidir: a Barreira do deserto tem rótulo próprio
+eq('breakdown: Muralha e Barreira não partilham rótulo (a raiz do F2)',
+  ScoreSystem.breakdown({ meters: 3700, boss2Layers: 4, cercoLayers: 4 })
+    .lines.map((l) => l.label).filter((l) => /Camadas/.test(l)),
+  ['🚧 Camadas da Muralha ×4', '🕸️ Camadas da Barreira ×4']);
 eq('breakdown: as 5 camadas do Guardião viram linha própria',
   ScoreSystem.breakdown({ meters: 9995, boss3Layers: 5 }).lines.map((l) => [l.label, l.pts]),
   [['🏹 Camadas do Guardião ×5', 5 * W.bossLayer]]);

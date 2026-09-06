@@ -1,4 +1,114 @@
-# Handoff — FURIOUS RHINO v1.12.2 — 🔦 O FAROL
+# Handoff — FURIOUS RHINO v1.12.3 — 🗣️ CINCO VOZES
+
+**Data:** 05/09/2026 · **Status:** implementada e testada; nos portões.
+A outra metade do Farol (o "pacote P" do plano), agora com número próprio —
+fecha o terceiro e último dos feedbacks de 05/09.
+
+## 0. O que é
+
+Resposta ao F2: *"boss fight todos muito parecidos, sempre sendo o chefe da
+muralha"*. Tudo é apresentação e leitura: **zero mecânica**. Cadência,
+tabelas de tiro, ordem de camadas, hitbox, enrage e âncoras ficam byte a
+byte — o congelamento até 26/09 vale integralmente.
+
+## 1. O diagnóstico (por que a queixa estava certa)
+
+Os cinco chefes são instâncias da mesma classe paramétrica (`BossFight`), o
+que é a arquitetura correta. O problema é que as cinco **definições** pediam
+a mesma coisa em tudo que o jogador percebe:
+
+| | antes | depois |
+|---|---|---|
+| som de abertura | `playBossHorn` nos 5 | horn · siren · klaxon · gong · drums |
+| cor da mira | `0xffd24a` nos 5 | dourado · azul-gelo · lima · bronze · violeta |
+| dica de "como lutar" | `'💥 INVISTA na fresta que brilha!'` nos 5 | uma por chefe, nomeando a ordem dele |
+| marco no meio da luta | nenhum | `midpoint` cosmético por def |
+| leitura de altura | só por tentativa e erro | moldura BRANCA quando alinhado |
+
+A diferença real entre eles — a ordem das frestas e o padrão de tiro — o
+jogador **sentia**, mas não via nem ouvia. Somando dois rótulos herdados
+errados (abaixo), a Muralha e a Barreira chegavam a se chamar quase igual.
+
+## 2. O que entrou
+
+| Camada | O quê |
+|---|---|
+| **Voz** | `callSfx` por def → `CALL_SFX` no `BossFight`. Três métodos novos no `AudioSystem`, todos sintetizados: `playBossSiren` (patrulha dupla + cama grave), `playBossGong` (parciais INARMÔNICAS 1 / 1,52 / 2,41 / 3,17 / 4,63 / 6,11 — série harmônica soaria sino, não bronze) e `playBossDrums` (4 batidas em aceleração). Método ausente cai na buzina: som jamais derruba luta. |
+| **Cor** | `glowColor` por def + `glowOutline` (traço `0x12151c` de 12 px atrás da moldura). A moldura clara em ADD sumia sobre a placa de aço da Muralha à noite e sobre o arenito do Faraó de dia — mesmo diagnóstico do rim da v1.12.2. As cores evitam o `#ff4a5e`/`#4ad1ff` reservados pela v1.12.2 a quem atira: a mira é ALVO, não ameaça. |
+| **Moldura branca** | `updateAim()` por frame (pinta só na TROCA). É a MESMA conta de `aligned` do contato, lida para desenhar — nenhuma tolerância nova, nenhuma folga de hitbox. É o item de maior impacto: antes, a resposta a "estou na altura certa?" só chegava depois de investir, errar e quicar (450 ms + knockback, sob fogo). |
+| **Ponto médio** | `midpoint: { left, sfx, toast }` por def: chamado + pulso de escala 1,2× na moldura + farol vermelho efêmero no deck + toast. Uma vez por luta (`midpointDone`). |
+| **Relógio e marca** | `timerText` de mundo (só reescrito quando o segundo vira) + `StorageManager.getBossBest/setBossBest` por id, em localStorage. Grava só quando MELHORA e **nunca em `?debug=1`** (o painel teleporta e invencibiliza). Veterano passou a ser recebido por nome + marca no lugar do silêncio pós-2 encontros. |
+| **Medalha** | `gate_clean` 💎 "Sem Um Arranhão" — vencer o portão sem quicar. As flags `${id}Clean` existem para os cinco; só a do portão vira medalha hoje. |
+| **Rótulos** | `boss2` é a MURALHA desde a v1.8.7 mas dizia "Cerco" no detalhamento e "🕸️ Capturador" na tela de morte — nomes do chefe do deserto. Chaves e pesos intocados (série histórica), só o texto. O `test-score` vinha CONGELANDO o nome errado a cada rodada verde. |
+| **Legibilidade** | laser do telegraph com traço escuro de 5 px por baixo; elipse de pouso do holo com anel escuro por fora; rim (v1.12.2) no `muralha-hunter`/`-aim` e halo claro no `k9-projectile` do gerador. |
+| **Constante** | `CERCO_ENRAGE_MS` (o literal 45000 solto na def da Barreira, cópia do valor da Muralha). Valor idêntico, nome e slider próprios. |
+
+## 3. Verificação
+
+Bateria completa verde — **1237 asserts em 24 suítes**: test-stats **170**
+(+9: os guardas da voz) · score 102 · skins 98 · bossproof 29 · radiografia
+91 · investiga 31 · crash 76 · caixapreta 37 · challenge 104 · reassign 61 ·
+sprites 31 · fix-ranking 32 · integrate 49 · boss 18 · boss2 14 · boss3 10 ·
+**boss-voz 24 (nova)** · deserto 14 · ramp 54 · overlays 94 · special 25 ·
+legibilidade 30 · home 10 · crash-e2e 15.
+
+Dois guardas contra a recaída do F2:
+- **`test-stats`, no FONTE**: nenhuma def pode repetir chamado, cor, nome ou
+  dica; todo `callSfx` tem método real no `AudioSystem` (typo cairia no
+  fallback da buzina EM SILÊNCIO — recriando o bug com os testes verdes); a
+  virada cai dentro da luta.
+- **`e2e-boss-voz`, no COMPORTAMENTO**: cada chefe toca SÓ o próprio
+  chamado, a moldura vira branca na altura da fresta e volta ao sair, a
+  virada dispara uma vez e na camada certa, o relógio corre, a marca não é
+  gravada em debug e tempo pior não sobrescreve.
+
+Fotos dos 5 chefes (fora da fresta × alinhado) em
+`tools/snapshots/chefes-1.12.3/` — `node tools/fotos-chefes.mjs`.
+
+### Três armadilhas de sonda que ficam registradas
+
+Custaram três rodadas vermelhas e valem para qualquer e2e de chefe futuro:
+1. **A geografia é de mão única.** Andar para a frente passa a âncora do
+   chefe anterior e o `isBypassed` (em debug basta `x >= âncora`) o recolhe:
+   as leituras seguintes eram de uma luta MORTA. Visitar em ordem crescente
+   e medir tudo de cada chefe enquanto se está nele.
+2. **O rino precisa CONGELAR** (`body.moves = false`), senão ele corre
+   durante as esperas e cai na armadilha 1 sozinho.
+3. **Congelado, ele morre.** Alvo parado sob fogo: o `gameOver` faz o
+   `GameScene.update` early-returnar e TODOS os chefes seguintes ficam
+   `dormant` sem nada de errado com eles. A sonda liga o invencível — e é
+   por isso que o `BossFight.update` lê moldura e relógio ANTES da guarda de
+   invencível.
+
+## 4. Não entrou (e por quê)
+
+- **Holofote ambiente frio varrendo a arena da Muralha** (estava no plano).
+  Acabei de passar uma release inteira tornando a cidade noturna legível e
+  medindo o resultado; pôr uma fonte de luz em movimento por cima da luta
+  mais difícil, sem régua que meça esse efeito, é desfazer o próprio
+  trabalho por palpite. Fica no banco até haver como medir.
+- Tabela/enrage/ordem/shutter/RIFLE_B/hazard por chefe: esperam n ≥ 15 na
+  Muralha com gate de era, como o plano já dizia.
+
+## 5. Segue de pé
+
+- **v1.12.3 "Desafio"** do plano vira **v1.12.4**: o link de aquisição
+  (`/?desafio=<m>&de=<nome>`), a estaca do amigo na pista, "devolver o
+  desafio", cards de novidades. É o item de AQUISIÇÃO — e a aquisição é o
+  que os dados de 05/09 mostraram em colapso (1 novo/semana).
+- Leituras pré-registradas **12/09 e 26/09**, por `v`. Broadcast do dono só
+  depois do snapshot de 26/09.
+- `#medals-modal` tem markup e CSS mas nenhum JS que o abra ou preencha —
+  ligar ou remover.
+- Dívida #2 (preload ~6 s na primeira visita) fica crítica quando o link do
+  Desafio existir; dívida #4 (`document.write` do Phaser) no mesmo pacote.
+
+> ⚠️ Outra sessão trabalha neste repositório — conferir dono de arquivo
+> antes de commitar; nunca git add -A.
+
+---
+
+# Handoff anterior — FURIOUS RHINO v1.12.2 — 🔦 O FAROL
 
 **Data:** 05/09/2026 · **Status:** implementada e testada; nos portões.
 Segunda release da revisão geral (o dono trocou a ordem: o Farol veio antes

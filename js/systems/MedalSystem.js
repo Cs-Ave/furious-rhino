@@ -51,6 +51,12 @@ export const MEDALS = [
   { id: 'streak_3', emoji: '🔥', name: 'Chama Acesa', desc: 'Jogue 3 dias seguidos', test: (s) => (s.streakBest || 0) >= 3 },
   { id: 'streak_7', emoji: '🕯️', name: 'Semana em Chamas', desc: 'Jogue 7 dias seguidos', test: (s) => (s.streakBest || 0) >= 7 },
   { id: 'streak_30', emoji: '🌋', name: 'Mês Incendiado', desc: 'Jogue 30 dias seguidos', test: (s) => (s.streakBest || 0) >= 30 },
+  // v1.12.3 — a única medalha de PERÍCIA numa luta de chefe: derrubar as três
+  // camadas do portão sem quicar uma vez. Existe porque o portão é o chefe
+  // que quase todo jogador revê (36 de 51 full-clears na leitura de 05/09) e
+  // não tinha nada a oferecer a quem já o vencia — o que fazia a 7ª luta ser
+  // idêntica à 1ª. 100% local, zero rede.
+  { id: 'gate_clean', emoji: '💎', name: 'Sem Um Arranhão', desc: 'Vença o portão sem quicar nenhuma vez', test: (s) => Boolean(s.gateClean) },
 ];
 
 export class MedalSystem {

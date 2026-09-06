@@ -147,9 +147,19 @@ export class HunterSniper extends Phaser.GameObjects.Sprite {
     g.clear();
     // Pisca acelerando perto do disparo (mesma linguagem do telegraph da torre)
     const blink = Math.floor(time / 90) % 2 === 0;
-    g.lineStyle(2, 0xff3b30, blink ? 0.75 : 0.35);
+    // v1.12.3 — LASER DUPLO. O fio vermelho de 2px sobre a cidade à noite era
+    // o mesmo problema do elenco urbano da v1.12.2: cor saturada sem contorno
+    // sobre fundo escuro de luminância parecida. Um traço escuro de 5px por
+    // baixo dá borda ao aviso — e o aviso que não se lê não é aviso.
+    // Vale para os cinco chefes: sobre a placa de aço clara do portão o
+    // contorno escuro também engrossa a leitura.
+    g.lineStyle(5, 0x12151c, blink ? 0.6 : 0.28);
     g.lineBetween(m.x, m.y, rhino.x, rhino.y - 30);
-    g.fillStyle(0xff3b30, 0.9);
+    g.lineStyle(2, 0xff3b30, blink ? 0.9 : 0.4);
+    g.lineBetween(m.x, m.y, rhino.x, rhino.y - 30);
+    g.fillStyle(0x12151c, 0.8);
+    g.fillCircle(m.x, m.y, 5);
+    g.fillStyle(0xff3b30, 0.95);
     g.fillCircle(m.x, m.y, 3);
   }
 
@@ -175,10 +185,15 @@ export class HunterSniper extends Phaser.GameObjects.Sprite {
     }
     g.lineStyle(2, 0xfff0a8, 0.3 + 0.4 * pulse);
     g.lineBetween(m.x, m.y, tx, ty);
-    // A zona de pouso no chão — o coração do aviso
+    // A zona de pouso no chão — o coração do aviso. v1.12.3: contorno DUPLO
+    // (anel escuro por fora, âmbar por dentro). O anel âmbar sozinho sumia no
+    // asfalto molhado do Subúrbio à noite, que é exatamente onde a Muralha
+    // luta — e essa elipse é a única coisa que separa "saia daqui" de "morra".
     g.fillStyle(0xfff0a8, 0.18 + 0.22 * pulse);
     g.fillEllipse(tx, ty, 150, 26);
-    g.lineStyle(3, 0xffd24a, 0.45 + 0.4 * pulse);
+    g.lineStyle(7, 0x12151c, 0.5 + 0.3 * pulse);
+    g.strokeEllipse(tx, ty, 150, 26);
+    g.lineStyle(3, 0xffd24a, 0.55 + 0.4 * pulse);
     g.strokeEllipse(tx, ty, 150, 26);
   }
 

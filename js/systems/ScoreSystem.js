@@ -136,14 +136,19 @@ export class ScoreSystem {
     add('🏰 Torres', towers, 'tower');
     add('🦁 Animais', animals, 'animal');
     add('🎯 Camadas do portão', bossLayers, 'bossLayer');
-    add('🕸️ Camadas do Cerco', boss2Layers, 'bossLayer');
+    // v1.12.3 — `boss2Layers` é a MURALHA desde a v1.8.7, quando o Cerco foi
+    // realocado para o deserto; o rótulo ficou para trás e o fim de corrida
+    // chamava a Muralha de "Cerco". O jogador que dizia "sempre o chefe da
+    // muralha" lia esse nome nas DUAS lutas da cidade e do deserto. Contador
+    // e id intocados (telemetria histórica): só o texto muda.
+    add('🚧 Camadas da Muralha', boss2Layers, 'bossLayer');
     add('🏹 Camadas do Guardião', boss3Layers, 'bossLayer');
     // v1.8.10 — os dois combates do deserto, mesmo peso bossLayer
     add('🕸️ Camadas da Barreira', cercoLayers, 'bossLayer');
     add('🏺 Camadas do Faraó', faraoLayers, 'bossLayer');
     const W = Constants.SCORE_WEIGHTS;
     if ((Number(boss2Layers) || 0) >= Constants.BOSS2_LAYERS.length) {
-      lines.push({ label: '🕸️ Cerco vencido', pts: this.pointsFor('boss2') });
+      lines.push({ label: '🚧 Muralha derrubada', pts: this.pointsFor('boss2') });
     }
     if ((Number(cercoLayers) || 0) >= Constants.CERCO_LAYERS.length) {
       lines.push({ label: '🕸️ Barreira derrubada', pts: this.pointsFor('cerco') });

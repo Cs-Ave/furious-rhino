@@ -1,6 +1,6 @@
 # FURIOUS RHINO — Documento de Design
 
-> Estado atual do jogo (v1.12.2). Este documento descreve o que **é**, não o que
+> Estado atual do jogo (v1.12.3). Este documento descreve o que **é**, não o que
 > se imaginou no começo — as decisões de v1.1 em diante estão registradas aqui
 > com o motivo, e várias delas foram tomadas a partir dos dados reais de
 > telemetria (ver "Decisões orientadas por dados" no fim).
@@ -183,6 +183,29 @@ definição, e os cinco chefes são **5 instâncias da mesma classe** — com o
 idêntica. Sem isso, B e C seriam cópia-e-cola do portão — o caminho mais
 rápido para um soft-lock. A zona sem spawn foi unificada no mesmo passo
 (`noSpawnZones()` como dados; a arena nova entrou com UMA entrada).
+
+**...e o preço que isso cobrou (v1.12.3):** parametrizar foi a decisão certa,
+mas a def virou o único lugar onde a identidade de um chefe pode morar — e
+ninguém a preencheu. Um jogador escreveu, em 05/09: *"boss fight todos muito
+parecidos, sempre sendo o chefe da muralha"*. Estava certo: as cinco defs
+pediam o mesmo `playBossHorn`, a mesma mira `0xffd24a` e a mesma frase
+`'💥 INVISTA na fresta que brilha!'`. A diferença real — a ordem das frestas
+e o padrão de tiro — o jogador **sentia**, mas não via nem ouvia. A v1.12.3
+preencheu a def: `callSfx`, `glowColor`, `nome`, `emoji`, `midpoint` e um
+`hints.how` que diz onde a fresta DAQUELE chefe abre. A lição que fica é a
+regra 8 do CLAUDE.md: **classe compartilhada exige identidade declarada** —
+o que a arquitetura não obriga a preencher, ninguém preenche.
+
+**A moldura branca (v1.12.3)** é a outra metade do conserto, e é de design,
+não de arte: a luta era cega. A única forma de descobrir que se estava na
+altura errada era investir, errar e quicar — 450 ms de cooldown mais o
+knockback, sob fogo, para receber a resposta. Agora a moldura da fresta fica
+BRANCA enquanto o corpo do rino cruza a banda: a resposta chega ANTES da
+investida. É a mesma conta de `aligned` que o contato já fazia, apenas
+desenhada — zero tolerância nova, hitbox intocada. Só com ela a ordem de
+camadas de cada chefe (o Portão sobe; a Muralha abre no alto; o Faraó nunca
+repete altura; o Caçador-Mor sobe e volta) passa a ser algo que se percebe
+jogando, e não uma estatística escondida na tabela.
 
 ## 📊 Progressão
 

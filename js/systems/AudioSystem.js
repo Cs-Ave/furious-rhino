@@ -530,6 +530,110 @@ export class AudioSystem {
     }
   }
 
+  // ------------------------------------------- v1.12.3 — a voz dos chefes
+  // O feedback de 05/09 ("boss fight todos muito parecidos, sempre sendo o
+  // chefe da muralha") tem causa auditiva: os CINCO chefes abriam com o
+  // MESMO playBossHorn. Cada um passa a ter o próprio chamado, escolhido
+  // por `callSfx` na def. O portão fica com a buzina de sempre (é a memória
+  // de quem já jogou), a Muralha ganha a sirene, a Barreira o klaxon que já
+  // existia, e os dois do fim do mundo ganham voz nova aqui embaixo.
+  // Tudo no relógio do ctx — nada de scene.time, que a pausa congelaria.
+
+  // Sirene de patrulha da Operação Muralha: a mesma gramática hi-lo do
+  // playSirenShort, mas DUAS passadas e com cauda grave — chamado de chefe,
+  // não presságio. ~1,9s.
+  playBossSiren() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    for (const off of [0, 0.95]) {
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 2600;
+      const g = this.envGain(this.sfxGain);
+      filter.connect(g);
+      const o = this.osc('sawtooth', 620, filter);
+      [[900, 0.08], [900, 0.24], [620, 0.32], [620, 0.5],
+       [900, 0.56], [900, 0.72], [620, 0.8], [620, 0.9]]
+        .forEach(([f, dt]) => o.frequency.linearRampToValueAtTime(f, t + off + dt));
+      g.gain.linearRampToValueAtTime(0.19, t + off + 0.04);
+      g.gain.setValueAtTime(0.19, t + off + 0.76);
+      g.gain.exponentialRampToValueAtTime(0.001, t + off + 0.94);
+      o.start(t + off);
+      o.stop(t + off + 0.96);
+    }
+    // Cama grave por baixo das duas passadas: é o que dá porte de chefe
+    const bed = this.envGain(this.sfxGain);
+    for (const freq of [55, 82.5]) {
+      const o = this.osc('sawtooth', freq, bed);
+      o.detune.value = freq === 55 ? -8 : 8;
+      o.start(t);
+      o.stop(t + 1.9);
+    }
+    bed.gain.linearRampToValueAtTime(0.12, t + 0.2);
+    bed.gain.setValueAtTime(0.12, t + 1.5);
+    bed.gain.exponentialRampToValueAtTime(0.001, t + 1.88);
+  }
+
+  // Gongo de BRONZE do Faraó: parciais INARMÔNICAS (a assinatura do metal —
+  // um gongo não é uma série harmônica) com decaimento longo e um ataque de
+  // ruído filtrado no lugar da baqueta. ~2,4s.
+  playBossGong() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const f0 = 92;
+    // Razões colhidas de gongos reais: nada de 2x/3x, senão vira sino de igreja
+    [1, 1.52, 2.41, 3.17, 4.63, 6.11].forEach((ratio, i) => {
+      const g = this.envGain(this.sfxGain);
+      const o = this.osc(i < 2 ? 'triangle' : 'sine', f0 * ratio, g);
+      // Parcial aguda morre antes — é assim que o metal escurece ao decair
+      const dur = 2.3 / (1 + i * 0.55);
+      const peak = 0.22 / (1 + i * 0.7);
+      g.gain.linearRampToValueAtTime(peak, t + 0.008 + i * 0.004);
+      g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.start(t);
+      o.stop(t + dur + 0.05);
+    });
+    const strike = this.ctx.createBiquadFilter();
+    strike.type = 'bandpass';
+    strike.frequency.value = 1500;
+    strike.Q.value = 0.8;
+    const gS = this.envGain(this.sfxGain);
+    strike.connect(gS);
+    gS.gain.linearRampToValueAtTime(0.3, t + 0.006);
+    gS.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+    const n = this.noise(strike);
+    n.start(t);
+    n.stop(t + 0.25);
+  }
+
+  // Tambores de guerra do Caçador-Mor: quatro batidas graves em aceleração
+  // (o coração antes da última cerca). Cada batida = seno descendente
+  // 120→48Hz + estalo de ruído. ~1,7s.
+  playBossDrums() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    [0, 0.52, 0.94, 1.24, 1.46].forEach((off, i) => {
+      const g = this.envGain(this.sfxGain);
+      const o = this.osc('sine', 120, g);
+      o.frequency.exponentialRampToValueAtTime(48, t + off + 0.28);
+      g.gain.linearRampToValueAtTime(0.34 - i * 0.02, t + off + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.001, t + off + 0.34);
+      o.start(t + off);
+      o.stop(t + off + 0.36);
+
+      const skin = this.ctx.createBiquadFilter();
+      skin.type = 'lowpass';
+      skin.frequency.value = 900;
+      const gK = this.envGain(this.sfxGain);
+      skin.connect(gK);
+      gK.gain.linearRampToValueAtTime(0.16, t + off + 0.005);
+      gK.gain.exponentialRampToValueAtTime(0.001, t + off + 0.09);
+      const n = this.noise(skin);
+      n.start(t + off);
+      n.stop(t + off + 0.1);
+    });
+  }
+
   // --------------------------------------------------------------- music
   // Lookahead scheduler ("Tale of Two Clocks"): the interval only schedules;
   // audio timing runs on ctx.currentTime so a busy tab never stutters.

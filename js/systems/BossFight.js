@@ -1,5 +1,27 @@
 import { Constants } from '../utils/Constants.js';
+import { StorageManager } from '../utils/StorageManager.js';
 import { HunterSniper } from '../entities/HunterSniper.js';
+
+// v1.12.3 — A VOZ DE CADA CHEFE. Feedback de 05/09: "boss fight todos muito
+// parecidos, sempre sendo o chefe da muralha". A queixa estava certa e a
+// causa era estrutural: os cinco chefes dividiam o MESMO chamado
+// (playBossHorn), a MESMA cor de mira (0xffd24a), a MESMA dica ("INVISTA na
+// fresta que brilha") e nenhum marco no meio da luta. Eram cinco instâncias
+// visualmente idênticas de uma classe paramétrica — e o jogador leu isso.
+// A def de cada um agora declara `callSfx`, `glowColor`, `hints.how` própria
+// e um `midpoint` cosmético. Zero mecânica muda: cadência, tabelas, camadas,
+// hitbox e ordem de quebra ficam exatamente como estavam (o congelamento até
+// 26/09 vale, e a Muralha só podia receber cosmético/legibilidade).
+//
+// Chamado → método do AudioSystem. Método ausente cai na buzina de sempre:
+// áudio jamais derruba a luta.
+const CALL_SFX = {
+  horn: 'playBossHorn',
+  siren: 'playBossSiren',
+  klaxon: 'playKlaxon',
+  gong: 'playBossGong',
+  drums: 'playBossDrums',
+};
 
 // BOSSFIGHT genérico (v1.7 no portão-fortaleza, parametrizado desde então):
 // um alvo BLINDADO plantado numa âncora de x, com um atirador na plataforma
@@ -37,6 +59,10 @@ import { HunterSniper } from '../entities/HunterSniper.js';
 //                 `hintStorageKey` (localStorage cru) e, sem os dois, ensina sempre
 //   isBypassed(scene)  true = o gatilho legado já resolveu → standDown()
 //   onDefeat(fight)    a festa da vitória
+//   callSfx       (v1.12.3) chave de CALL_SFX — o chamado de abertura
+//   glowColor     (v1.12.3) cor da mira/moldura (default: o dourado do portão)
+//   midpoint      (v1.12.3) { left, sfx, toast } — o beat COSMÉTICO que marca
+//                 a virada da luta quando restam `left` camadas
 export class BossFight {
   constructor(scene, targetSprite, def) {
     this.scene = scene;
@@ -49,8 +75,15 @@ export class BossFight {
     this.cameraLocked = false;
     this.hintsOn = false;
     this.bounceHintShown = false;
+    this.midpointDone = false;
+    this.aimOn = null;      // moldura branca acesa? (null = ainda não pintada)
+    this.timerShownS = -1;  // último segundo já escrito no cronômetro
+    this.bestMs = 0;        // melhor tempo da vida NESTE chefe (lido em startFight)
 
     const ax = def.anchorX;
+    // A cor da mira é a identidade visual do chefe. O portão fica com o
+    // dourado histórico; os outros quatro têm a sua.
+    this.glowColor = def.glowColor ?? 0xffd24a;
 
     // O atirador já está de pé na plataforma quando o alvo entra em cena —
     // parte do cenário na aproximação, boss quando a luta começa.
@@ -63,18 +96,35 @@ export class BossFight {
     // Glow pulsante na fresta da camada atual: é a MIRA da luta (permanente,
     // não dica). Cobre a largura do vão do alvo na banda da camada.
     this.glow = scene.add.rectangle(
-      ax, 0, 152, Constants.CRACK_BAND_HALF * 2, 0xffd24a, 0.3
+      ax, 0, 152, Constants.CRACK_BAND_HALF * 2, this.glowColor, 0.3
     ).setDepth(-0.5).setVisible(false);
     // ADD: sobre a placa de aço clara, alpha puro quase não aparece
     this.glow.setBlendMode(Phaser.BlendModes.ADD);
-    // Moldura dourada pulsante em volta da banda-alvo: o preenchimento
-    // sozinho lia suave demais — a MIRA da luta tem de gritar
+    // v1.12.3 — CONTORNO ESCURO sob a moldura. A moldura clara em modo ADD
+    // sobre placa de aço clara (Muralha à noite, Faraó no bronze) sumia: o
+    // mesmo diagnóstico do rim do elenco urbano na v1.12.2, mesma resposta.
+    // Vem ANTES da moldura na ordem de criação = fica atrás dentro do depth.
+    this.glowOutline = scene.add.rectangle(
+      ax, 0, 164, Constants.CRACK_BAND_HALF * 2 + 12
+    ).setDepth(-0.5).setVisible(false);
+    this.glowOutline.setFillStyle();
+    this.glowOutline.setStrokeStyle(12, 0x12151c, 0.85);
+    // Moldura pulsante em volta da banda-alvo: o preenchimento sozinho lia
+    // suave demais — a MIRA da luta tem de gritar
     this.glowFrame = scene.add.rectangle(
       ax, 0, 164, Constants.CRACK_BAND_HALF * 2 + 12
     ).setDepth(-0.5).setVisible(false);
     this.glowFrame.setFillStyle();
-    this.glowFrame.setStrokeStyle(6, 0xffd24a, 1);
+    this.glowFrame.setStrokeStyle(6, this.glowColor, 1);
     this.glowTween = null;
+
+    // Cronômetro de mundo da luta (v1.12.3): a mesma luta repetida vira uma
+    // marca pessoal a bater. Fica ACIMA dos pips, no mundo — nada de HUD de
+    // tela novo, que teria de caber nos 7 viewports da Régua.
+    this.timerText = scene.add.text(ax, 66, '', {
+      fontSize: '22px', fontFamily: 'monospace', color: '#e6eef7',
+      stroke: '#12151c', strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(-0.5).setVisible(false);
 
     // Um escudo por camada sobre o alvo = camadas restantes (HUD de mundo,
     // não de tela). Apagam da esquerda para a direita, na ordem de quebra —
@@ -149,6 +199,11 @@ export class BossFight {
     this.fightMs += delta;
     if (this.contactCdMs > 0) this.contactCdMs -= delta;
     this.hunter.updateFight(time, delta, this.layersLeft(), this.fightMs);
+    // Leitura pura (não mexe em nada): a moldura responde à altura do rino e
+    // o cronômetro corre. Antes da guarda de invencível de propósito — em
+    // debug a moldura também tem de ser conferível.
+    this.updateAim(sprite);
+    this.updateTimer();
 
     // Debug invencível: atravessa sem clamp — o gatilho legado assume
     if (scene.invincible) return;
@@ -195,6 +250,37 @@ export class BossFight {
     }
   }
 
+  // v1.12.3 — A MOLDURA BRANCA. A luta era cega: o jogador só descobria que
+  // estava na altura errada DEPOIS de investir e quicar (450ms de cooldown +
+  // knockback, sob fogo). Agora a moldura fica BRANCA enquanto o corpo do
+  // rino cruza a banda da fresta — a resposta chega antes da investida, não
+  // depois. É a MESMA conta de `aligned` do contato, só que lida para
+  // desenhar: nenhuma tolerância nova, nenhuma folga de hitbox, nada de
+  // mecânica. E é o que faz a ORDEM DE CAMADAS de cada chefe (chão→alto no
+  // portão, alto→chão→meio na Muralha, os cinco degraus do Faraó) virar algo
+  // que o jogador percebe — a raiz do "todos muito parecidos".
+  updateAim(sprite) {
+    if (this.state !== 'fight') return;
+    const rb = sprite.body;
+    if (!rb) return;
+    const b = this.layerBounds();
+    const on = rb.bottom > b.top && rb.y < b.bottom;
+    if (on === this.aimOn) return; // só pinta na TROCA — nada por frame
+    this.aimOn = on;
+    this.glowFrame.setStrokeStyle(on ? 8 : 6, on ? 0xffffff : this.glowColor, 1);
+    this.glow.setFillStyle(on ? 0xffffff : this.glowColor, 0.3);
+  }
+
+  // Cronômetro da luta, em segundos inteiros (o texto só é reescrito quando o
+  // segundo vira — setText por frame recria a textura do canvas).
+  updateTimer() {
+    if (this.state !== 'fight') return;
+    const s = Math.floor(this.fightMs / 1000);
+    if (s === this.timerShownS) return;
+    this.timerShownS = s;
+    this.timerText.setText(this.bestMs > 0 ? `${s}s · melhor ${Math.round(this.bestMs / 1000)}s` : `${s}s`);
+  }
+
   startFight() {
     this.state = 'fight';
     const scene = this.scene;
@@ -230,9 +316,21 @@ export class BossFight {
 
     this.positionGlow();
     this.glow.setVisible(true);
+    this.glowOutline.setVisible(true);
     this.glowFrame.setVisible(true);
-    scene.audio.playBossHorn();
+
+    // O CHAMADO. Método ausente (áudio antigo em cache do PWA, mock de teste)
+    // cai na buzina — e se nem ela existir, silêncio: som não derruba luta.
+    const audio = scene.audio;
+    const call = CALL_SFX[def.callSfx] || 'playBossHorn';
+    if (typeof audio[call] === 'function') audio[call]();
+    else if (typeof audio.playBossHorn === 'function') audio.playBossHorn();
+
     this.hunter.engage();
+
+    this.bestMs = StorageManager.getBossBest(def.id);
+    this.timerText.setVisible(true);
+    this.timerShownS = -1;
 
     const seen = this.getEncounters();
     this.addEncounter();
@@ -244,16 +342,28 @@ export class BossFight {
           scene.showToast(def.hints.how, { y: 260, size: 28, duration: 2000, color: '#ffe9a8' });
         }
       });
+    } else if (seen >= 2) {
+      // O VETERANO também merece uma frase. Passados os dois encontros de
+      // ensino, o chefe virava silêncio — e silêncio é exatamente o que faz
+      // cinco lutas parecerem uma só. A placa diz de quem é a luta, quantas
+      // vezes já foi e qual é a marca a bater.
+      const marca = this.bestMs > 0 ? ` · melhor ${Math.round(this.bestMs / 1000)} s` : '';
+      scene.showToast(`${def.emoji || '⚔️'} ${def.nome || def.id} — ${seen + 1}ª vez${marca}`,
+        { y: 200, size: 26, duration: 1800, color: '#cfd8e6' });
     }
   }
 
   positionGlow() {
     const bounds = this.layerBounds();
     this.glow.setPosition(this.def.anchorX, bounds.center);
+    this.glowOutline.setPosition(this.def.anchorX, bounds.center);
     this.glowFrame.setPosition(this.def.anchorX, bounds.center);
+    // A fresta mudou de altura: a moldura branca tem de reavaliar do zero
+    this.aimOn = null;
     if (this.glowTween) this.glowTween.stop();
     this.glow.setAlpha(0.45);
     this.glowFrame.setAlpha(1);
+    this.glowOutline.setAlpha(0.9);
     this.glowTween = this.scene.tweens.add({
       targets: [this.glow, this.glowFrame],
       alpha: { from: 0.35, to: 0.9 },
@@ -262,6 +372,46 @@ export class BossFight {
       repeat: -1,
       ease: 'Sine.easeInOut',
     });
+  }
+
+  // v1.12.3 — O BEAT DA VIRADA. Cosmético, uma vez por luta, quando restam
+  // `def.midpoint.left` camadas: o chamado do chefe volta, a moldura dá um
+  // pulso de 1,2× e um farol pisca no deck. Antes disso a luta era uma reta
+  // sem marco — quebrar a 2ª de 4 camadas era igual a quebrar a 1ª.
+  fireMidpoint() {
+    const def = this.def;
+    const mid = def.midpoint;
+    if (!mid || this.midpointDone || this.layersLeft() !== mid.left) return;
+    this.midpointDone = true;
+    const scene = this.scene;
+
+    const audio = scene.audio;
+    const call = CALL_SFX[mid.sfx] || CALL_SFX[def.callSfx] || 'playBossHorn';
+    if (typeof audio[call] === 'function') audio[call]();
+
+    // Pulso da moldura: escala, não cor — a cor está reservada para a leitura
+    // de altura (branco = alinhado) e não pode ser gasta em festa.
+    scene.tweens.add({
+      targets: [this.glowFrame, this.glowOutline],
+      scaleX: 1.2, scaleY: 1.2,
+      duration: 220, yoyo: true, repeat: 2, ease: 'Sine.easeInOut',
+    });
+
+    // Farol no deck do atirador: elipse vermelha estroboscópica, ADD, some
+    // sozinha. Objeto próprio e efêmero — nada de tint em sprite de gameplay.
+    const beacon = scene.add.ellipse(
+      def.anchorX + (def.hunterOffsetX ?? 58), (def.hunterY ?? 96) - 78, 54, 20, 0xff4a5e, 0.9
+    ).setDepth(-0.45).setBlendMode(Phaser.BlendModes.ADD);
+    scene.tweens.add({
+      targets: beacon,
+      alpha: { from: 0.9, to: 0.1 },
+      duration: 180, yoyo: true, repeat: 7, ease: 'Sine.easeInOut',
+      onComplete: () => beacon.destroy(),
+    });
+
+    if (mid.toast) {
+      scene.showToast(mid.toast, { y: 250, size: 30, duration: 1600, color: '#ffd0d6' });
+    }
   }
 
   breakLayer() {
@@ -275,6 +425,9 @@ export class BossFight {
     scene.audio.playBreak();
     scene.createExplosion(gx - 80, bounds.center);
     scene.createBreakParticles(gx - 80, bounds.center);
+    // Peso na quebra: curto e fraco de propósito (120ms/0,006) — o suficiente
+    // para o acerto ter corpo sem embaralhar a leitura da próxima fresta.
+    scene.cameras.main.shake(120, 0.006);
 
     // Pip da camada que caiu apaga
     const pip = this.pips[this.layerIdx];
@@ -288,6 +441,7 @@ export class BossFight {
     this.gate.setTexture(`${def.texturePrefix}-${this.layersLeft()}`);
     scene.audio.playSectorPass();
     this.positionGlow();
+    this.fireMidpoint();
     // Quique REDUZIDO no acerto: o recuo é o ritmo da luta, não o castigo
     this.bounce(0.6);
     if (this.hintsOn) {
@@ -308,10 +462,30 @@ export class BossFight {
   // legado do update não redispara.
   defeat() {
     this.state = 'defeated';
+    const scene = this.scene;
+    const def = this.def;
+
+    // Marca pessoal por chefe (local, sem rede): é o que transforma a mesma
+    // luta repetida em algo com que valha a pena voltar a se medir. Só grava
+    // quando MELHORA — e nunca em debug, que teleporta e invencibiliza.
+    const ms = Math.round(this.fightMs);
+    if (ms > 0 && !scene.registry.get('debug')
+      && (this.bestMs <= 0 || ms < this.bestMs)) {
+      const anterior = this.bestMs;
+      StorageManager.setBossBest(def.id, ms);
+      if (anterior > 0) {
+        scene.showToast(`⏱️ NOVA MARCA — ${Math.round(ms / 1000)} s`,
+          { y: 300, size: 28, duration: 1600, color: '#9be89b' });
+      }
+    }
+    // "Sem um arranhão": venceu o portão sem quicar uma vez. Lido pelo
+    // MedalSystem no fim da corrida (o bouncesProp já era contado).
+    if (def.bouncesProp && scene[def.bouncesProp] === 0) scene[`${def.id}Clean`] = true;
+
     this.hideFightUi();
     this.hunter.defeat();
     this.restoreCamera();
-    if (this.def.onDefeat) this.def.onDefeat(this);
+    if (def.onDefeat) def.onDefeat(this);
   }
 
   // Bypass de debug/teleporte: recolhe a luta sem festa própria
@@ -325,7 +499,9 @@ export class BossFight {
   hideFightUi() {
     if (this.glowTween) this.glowTween.stop();
     this.glow.setVisible(false);
+    this.glowOutline.setVisible(false);
     this.glowFrame.setVisible(false);
+    this.timerText.setVisible(false);
     this.pips.forEach((p) => p.setAlpha(0.25));
   }
 

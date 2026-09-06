@@ -3,7 +3,7 @@ import { SPRITE_PARAMS } from '../art/SpriteParams.js';
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
-  VERSION: '1.12.2',
+  VERSION: '1.12.3',
 
   // Rótulo humano de cada desfecho de corrida. Fonte única para o painel, o
   // resumo do jogador e os pushes — os três diziam a mesma coisa com palavras
@@ -33,8 +33,13 @@ export const Constants = {
     dart: '💉 Dardo',
     tower: '🏰 Torre',
     boss: '🎯 Caçador',
-    boss2: '🕸️ Capturador',   // v1.8.5 — o canhão de redes do Cerco (2000m)
-    boss3: '🏹 Caçador-Mor',  // v1.8.5 — o Guardião do Fim (9995m)
+    // v1.12.3 — a chave `boss2` é a MURALHA desde a v1.8.7 (o Cerco mudou-se
+    // para o deserto e ficou com a chave `cerco`), mas o rótulo continuou
+    // "🕸️ Capturador": duas causas de chefe com a MESMA aranha e quase a
+    // mesma palavra, impressas na tela de morte. Chave intocada — a série
+    // histórica do funil não pode piscar —, só o texto.
+    boss2: '🚧 Operação Muralha', // o bloqueio do viaduto (2000m)
+    boss3: '🏹 Caçador-Mor',  // v1.8.5 — o Guardião do Fim (10000m)
     fall: '🕳️ Anomalia de física',
     win: '🗽 Fuga',
     // v1.8.10 "As Areias do Tempo" — os dois combates do deserto
@@ -183,8 +188,12 @@ export const Constants = {
   },
   // Enrage suave da Muralha (filosofia da casa: desce UM degrau de cadência,
   // nunca muro de morte).
-  // (agente B) migra — depois um dos dois morre.
   MURALHA_ENRAGE_MS: 45000,
+  // v1.12.3 — a Barreira tinha o MESMO 45000, mas escrito como literal solto
+  // dentro da def dela ("um dos dois morre depois"; nenhum morreu). Valor
+  // idêntico, nome próprio: dois chefes podem partilhar um número sem
+  // partilhar a constante — é a def que diz quem é quem.
+  CERCO_ENRAGE_MS: 45000,
 
   // --------------------- O CERCO: a Barreira da Escavação (3650m, VIVO)
   // v1.8.10 "As Areias do Tempo": o wiring CHEGOU. Depois de duas versões

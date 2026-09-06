@@ -111,7 +111,15 @@ export class GameScene extends Phaser.Scene {
       layersProp: 'runBossLayers',
       bouncesProp: 'runBossBounces',
       enrageMs: 0, // o portão nunca enfureceu — e continua assim
-      hints: { intro: '⚔️ O PORTÃO ESTÁ BLINDADO!', how: '💥 INVISTA na fresta que brilha!' },
+      // v1.12.3 — a VOZ do portão: buzina de zoológico e o dourado histórico
+      // (é a memória de quem já jogou; os outros quatro é que mudam de cor).
+      // A dica nomeia a ORDEM DELE: chão → meio → alto.
+      callSfx: 'horn',
+      glowColor: 0xffd24a,
+      emoji: '⚔️',
+      nome: 'Portão',
+      midpoint: { left: 1, sfx: 'klaxon', toast: '🚨 ÚLTIMA — NO ALTO!' },
+      hints: { intro: '⚔️ O PORTÃO ESTÁ BLINDADO!', how: '💥 Comece RASTEIRO — a fresta SOBE a cada camada!' },
       hintStorageKey: null, // o portão usa o contador legado abaixo
       encounters: {
         get: () => StorageManager.getBossEncounters(),
@@ -153,7 +161,16 @@ export class GameScene extends Phaser.Scene {
       bouncesProp: 'runBoss2Bounces',
       enrageMs: Constants.MURALHA_ENRAGE_MS, // luta arrastada desce UM degrau de cadência
       rasanteStyle: 'k9', // o rasante anti-camping é um dardo-cão (k9-projectile)
-      hints: { intro: '🚧 A MURALHA! A CIDADE FECHOU O VIADUTO!', how: '💥 INVISTA na fresta que brilha!' },
+      // v1.12.3 — a VOZ da Muralha: sirene de patrulha e mira AZUL-GELO (o
+      // holofote frio da operação). O azul é pálido de propósito: o ciano
+      // saturado #4ad1ff está reservado a quem atira, pela regra de matiz da
+      // v1.12.2, e a mira é o alvo do jogador, não uma ameaça.
+      callSfx: 'siren',
+      glowColor: 0xa8e8ff,
+      emoji: '🚧',
+      nome: 'Muralha',
+      midpoint: { left: 2, sfx: 'siren', toast: '🚨 REFORÇO! O CANIL ABRIU!' },
+      hints: { intro: '🚧 A MURALHA! A CIDADE FECHOU O VIADUTO!', how: '💥 A fresta abre no ALTO — pule e invista!' },
       hintStorageKey: 'furious_rhino_muralha_seen',
       deathCause: 'boss2', // herda a POSIÇÃO dos 2000m — a série do funil continua
       // Rino já além da âncora sem a luta ter acontecido: só possível em
@@ -184,11 +201,21 @@ export class GameScene extends Phaser.Scene {
       camLockOffsetPx: 1040,
       layersProp: 'runCercoLayers',
       bouncesProp: 'runCercoBounces',
-      // 45s = o enrage padrão da casa. LITERAL de propósito: MURALHA_ENRAGE_MS
-      // é da Muralha (o agente B migra a constante — depois um dos dois morre)
-      enrageMs: 45000,
+      // v1.12.3: o literal 45000 virou CERCO_ENRAGE_MS. Nasceu como cópia do
+      // valor da Muralha ("um dos dois morre depois"), mas nenhum dos dois
+      // morreu — e um número mágico no meio de uma def é exatamente o que faz
+      // dois chefes parecerem o mesmo chefe. Valor IDÊNTICO, agora com nome
+      // e slider próprios.
+      enrageMs: Constants.CERCO_ENRAGE_MS,
       rasanteStyle: 'k9', // o rasante anti-camping segue sendo o cão de choque
-      hints: { intro: '🕸️ A BARREIRA DA ESCAVAÇÃO!', how: '💥 INVISTA na fresta que brilha!' },
+      // v1.12.3 — a VOZ da Barreira: klaxon de obra e mira LIMA (a fita de
+      // sinalização do sítio de escavação).
+      callSfx: 'klaxon',
+      glowColor: 0xc8ff6a,
+      emoji: '🕸️',
+      nome: 'Barreira',
+      midpoint: { left: 1, sfx: 'klaxon', toast: '🕸️ A ÚLTIMA REDE — NO MEIO!' },
+      hints: { intro: '🕸️ A BARREIRA DA ESCAVAÇÃO!', how: '💥 A fresta abre no MEIO — invista no salto curto!' },
       hintStorageKey: 'furious_rhino_cerco_seen',
       deathCause: 'cerco', // causa PRÓPRIA (rules já com 17 chaves — agente B)
       // v1.9.4: só em DEBUG — ver o comentário do portão acima
@@ -217,7 +244,15 @@ export class GameScene extends Phaser.Scene {
       bouncesProp: 'runFaraoBounces',
       enrageMs: Constants.FARAO_ENRAGE_MS, // 30s — quem chegou aqui executa rápido
       rasanteStyle: 'falcao', // Mergulho de Hórus: projétil-falcão rente ao chão
-      hints: { intro: '🏺 O FARAÓ DE BRONZE GUARDA A MURALHA!', how: '💥 INVISTA na fresta que brilha!' },
+      // v1.12.3 — a VOZ do Faraó: GONGO de bronze (parciais inarmônicas, o
+      // som do metal) e mira cor de bronze. Cinco camadas que nunca repetem
+      // altura já eram a assinatura mecânica dele; faltava a sonora.
+      callSfx: 'gong',
+      glowColor: 0xffa03c,
+      emoji: '🏺',
+      nome: 'Faraó',
+      midpoint: { left: 2, sfx: 'gong', toast: '🏺 O BRONZE RACHOU!' },
+      hints: { intro: '🏺 O FARAÓ DE BRONZE GUARDA A MURALHA!', how: '💥 Cinco camadas — e ele NUNCA repete a altura!' },
       hintStorageKey: 'furious_rhino_farao_seen',
       deathCause: 'farao',
       // v1.9.4: só em DEBUG — ver o comentário do portão acima
@@ -245,7 +280,15 @@ export class GameScene extends Phaser.Scene {
       layersProp: 'runBoss3Layers',
       bouncesProp: 'runBoss3Bounces',
       enrageMs: 0, // 5 camadas já são a prova — sem relógio por cima
-      hints: { intro: '🏹 A ÚLTIMA CERCA DO MUNDO!', how: '💥 INVISTA na fresta que brilha!' },
+      // v1.12.3 — a VOZ do Caçador-Mor: TAMBORES de guerra em aceleração e
+      // mira violeta. A ordem dele sobe e volta (chão→alto→chão), a única
+      // palindrômica do jogo — a dica agora diz isso.
+      callSfx: 'drums',
+      glowColor: 0xe0a8ff,
+      emoji: '🏹',
+      nome: 'Caçador-Mor',
+      midpoint: { left: 1, sfx: 'drums', toast: '🏹 A ÚLTIMA CERCA — RASTEIRO!' },
+      hints: { intro: '🏹 A ÚLTIMA CERCA DO MUNDO!', how: '💥 A fresta sobe e VOLTA: chão, meio, alto, meio, chão!' },
       hintStorageKey: 'furious_rhino_boss3_seen',
       deathCause: 'boss3', // o Caçador-Mor também usa tranquilizante
       // v1.9.4: só em DEBUG — ver o comentário do portão acima
@@ -325,6 +368,14 @@ export class GameScene extends Phaser.Scene {
     // v1.7: a luta do portão — camadas quebradas (b) e quiques (q)
     this.runBossLayers = 0;
     this.runBossBounces = 0;
+    // v1.12.3: "venceu sem quicar" por chefe (`${id}Clean`, posto pelo
+    // BossFight.defeat). Só o do portão vira medalha hoje; os outros quatro
+    // ficam de pé para quando houver n para julgá-los. Local, nunca enviado.
+    this.gateClean = false;
+    this.muralhaClean = false;
+    this.cercoClean = false;
+    this.faraoClean = false;
+    this.guardiaoClean = false;
     // v1.8.5: os bosses novos — camadas do Cerco (letra `e` do runs[], com a
     // duração em `h`) e do Guardião (`l`). Os quiques deles são contados mas
     // NÃO persistidos: `q` segue exclusivo do portão (baseline da v1.8).
@@ -3480,6 +3531,15 @@ export class GameScene extends Phaser.Scene {
     this.createBreakParticles(gx + 70, Constants.GROUND_TOP - 70);
     this.cameras.main.shake(320, 0.014);
     this.audio.playBreak();
+    // v1.12.3 — A CIDADE VEM ATRÁS. Dois segundos depois da festa da fuga,
+    // uma sirene ao longe: a passagem zoo→cidade era um corte seco e a
+    // Muralha, 1000 m à frente, aparecia sem ninguém a ter anunciado. O som
+    // é o mesmo presságio do Viaduto (playSirenShort, deliberadamente mais
+    // baixo que qualquer SFX de perigo real) — não avisa nada agora, prepara
+    // quem está por vir.
+    this.time.delayedCall(2000, () => {
+      if (!this.gameOver && this.audio) this.audio.playSirenShort();
+    });
     this.audio.playFanfare();
 
     const flash = this.add.rectangle(640, 360, 1280, 720, 0xffffff)
@@ -4065,6 +4125,9 @@ export class GameScene extends Phaser.Scene {
       // v1.8.10: a Barreira (boss2_win re-batizada: cercoLayers >= 4) e o
       // Quebra-Faraó (faraoLayers >= 5) — critérios no MedalSystem
       cercoLayers: this.runCercoLayers, faraoLayers: this.runFaraoLayers,
+      // v1.12.3: "Sem Um Arranhão" — venceu o portão sem quicar nenhuma vez.
+      // A flag é posta pelo BossFight.defeat (bouncesProp === 0).
+      gateClean: Boolean(this.gateClean),
     });
     if (newMedals.length) {
       const id = won ? 'win-medal-message' : 'medal-message';

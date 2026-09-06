@@ -24,7 +24,8 @@ Auto-runner de ação para web mobile (paisagem): um rinoceronte foge do zoológ
 5. **Ambiente de teste não grava no Firestore por padrão** (`StorageManager.allowsRemoteWrite`) — e desde a v1.9.6 "ambiente de teste" é localhost/127.0.0.1/IP de rede local **OU `?debug=1`**. O painel de tuning é público (basta o parâmetro na URL) e tem teleporte de chefe e modo invencível: em 25-26/08 um jogador de produção usou isso e três marcas sem luta subiram ao ranking mundial. Ferramenta de desenvolvimento não escreve no placar de todo mundo. Só grava quando o teste semeia explicitamente `furious_rhino_allow_local_write = '1'` no `localStorage`, ANTES da página carregar — o mesmo opt-in que o painel expõe como "📡 Escrita local". Testes Playwright que precisam validar a escrita real (ex.: `e2e-stats.mjs`) usam esse opt-in + `player_id` de sonda `claude-*`; os que não precisam (`e2e-boss.mjs`, `e2e-ramp.mjs`, `e2e-special.mjs`) simplesmente não gravam nada. Sempre com `furious_rhino_notify_off = '1'` também — já houve produção suja e celular do dono inundado.
 6. **Rampas são terreno, não corpo de física** (Arcade não tem superfície inclinada — corpo estático causa soft-lock). Ver `js/entities/Ramp.js` + `GameScene.updateTerrain()`.
 7. **Nunca rodar `npm run export-art -- --force`** — sobrescreve a arte retocada à mão.
-8. Mais armadilhas (WebGL, SVG, `setDoc` sem merge...): `docs/04-referencia-tecnica.md` §13.
+8. **Chefe novo não herda a voz do vizinho.** Os cinco são instâncias da mesma `BossFight`, e foi copiar def que produziu o feedback de 05/09 ("boss fight todos muito parecidos"): os cinco pediam o mesmo `playBossHorn`, a mesma `0xffd24a` e a mesma frase de dica. Uma def precisa de `callSfx`, `glowColor`, `nome`, `emoji`, `midpoint` e um `hints.how` que diga onde A FRESTA DELE abre — o `test-stats` reprova repetição e o `e2e-boss-voz` confere no navegador. Sonda de chefe: ver as três armadilhas no `HANDOFF.md` §3 (a geografia é de mão única).
+9. Mais armadilhas (WebGL, SVG, `setDoc` sem merge...): `docs/04-referencia-tecnica.md` §13.
 
 ## Comandos
 
@@ -35,7 +36,9 @@ npm run test-stats           # 161 asserts, sem navegador
 npm run test-ramp            # 54 asserts e2e (Chromium)
 npm run test-overlays        # 94 asserts e2e dos overlays em 7 viewports (Chromium)
 npm run test-legibilidade    # 30 asserts: mede o contraste de cada inimigo da cidade contra o fundo
-npm run aplicar-rim          # (re)aplica o halo claro nos SVGs do elenco urbano — idempotente
+npm run test-boss-voz        # 24 asserts e2e: cada chefe toca o PRÓPRIO chamado, moldura branca no alinhamento, virada, relógio, marca
+npm run aplicar-rim          # (re)aplica o halo claro nos SVGs do elenco urbano + atirador da Muralha — idempotente
+node tools/fotos-chefes.mjs  # 10 fotos dos 5 chefes (fora da fresta × alinhado) em tools/snapshots/chefes-<v>/
 npm run test-e2e-stats       # 69 asserts e2e (Chromium, escreve com sonda claude-*)
 npm run digest               # resumo diário sem enviar
 npm run radiografia          # análise de usabilidade completa (leitura pública, zero writes) — markdown p/ IDEIAS-FUTURAS

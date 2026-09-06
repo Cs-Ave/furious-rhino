@@ -1616,11 +1616,11 @@ indistinguível a 400 px/s).
 |---|---|
 | **v1.12.1 "Régua"** ✅ 05/09 | fim de corrida/top 10/modais em tela curta; instrumento com corte por `v` + 5 seções; `rs`/`rt`/`history.src` |
 | **v1.12.2 "Farol"** ✅ 05/09 | passe de legibilidade da cidade (N.1) + a suíte que o mede. O dono trocou a ordem: o Farol veio antes do Desafio |
+| **v1.12.3 "Cinco Vozes"** ✅ 05/09 | a outra metade do Farol (o pacote P, N.2): voz/cor/dica/virada por chefe, moldura branca no alinhamento, relógio e marca pessoal, rótulos herdados consertados |
 
 ### Aprovado, ainda não executado
 
-- **v1.12.3 "Desafio"** (a próxima) — a ideia **G** (§766) sai do banco: `/?desafio=<m>&de=<nome>` com sanitização estrita (clamp 1..10000, `de` 3-12 chars whitelist, `textContent`, banner nunca é link), estaca do amigo na pista via `createTrackMarks`, "devolver o desafio" no fim de corrida (sem apelido abre o `#nickname-modal` — é onde o visitante vira jogador), persistência local 7 dias, letra `md:1`. Mais: cards **"novidades desde a sua última visita"** (tabela `CHANGELOG_CARDS` em código + `NewsSystem.push`, zero rede) e **"alguém passou você"** (estende o `podium:in/out` para qualquer rank cacheado). Carona: skins alcançáveis (`meters 300/600`, `escaped`, `streakBest 3`) se o dono fizer a arte.
-- **Boss pacote P (F2)** — era a outra metade do Farol; ficou para a release seguinte. Detalhe em §N.2.
+- **v1.12.4 "Desafio"** (a próxima; era v1.12.3 antes de o pacote P virar release própria) — a ideia **G** (§766) sai do banco: `/?desafio=<m>&de=<nome>` com sanitização estrita (clamp 1..10000, `de` 3-12 chars whitelist, `textContent`, banner nunca é link), estaca do amigo na pista via `createTrackMarks`, "devolver o desafio" no fim de corrida (sem apelido abre o `#nickname-modal` — é onde o visitante vira jogador), persistência local 7 dias, letra `md:1`. Mais: cards **"novidades desde a sua última visita"** (tabela `CHANGELOG_CARDS` em código + `NewsSystem.push`, zero rede) e **"alguém passou você"** (estende o `podium:in/out` para qualquer rank cacheado). Carona: skins alcançáveis (`meters 300/600`, `escaped`, `streakBest 3`) se o dono fizer a arte.
 - **v1.13 "Jornada"** e **v1.14 "Mata e Água"** — o programa Zoo, com a ordem INVERTIDA em relação à aprovação de 30/08 (a Jornada é apresentação e carrega a copy do fim de corrida; Mata e Água toca spawn e precisa de baseline limpa).
 
 ### N.1 — O passe de legibilidade da cidade (F1) ✅ **v1.12.2 "O Farol"** (05/09)
@@ -1648,7 +1648,29 @@ indistinguível a 400 px/s).
 
 **Verificação**: `tools/e2e-legibilidade.mjs` (molde do `e2e-boss`; `jimp` já é devDependency) em 4 pontos — D1 x=55800 limpo, **D2 x=58000 na chuva (o mais escuro)**, D2-dia x=66000, D3 x=82000. Por espécie: screenshot A (sprite visível) e B (`setVisible(false)`, cena pausada), máscara |A−B|, borda = máscara − erosão, anel de fundo = dilatação. **Aceite: contraste de borda ≥3,0 (WCAG 1.4.11) E |ΔL*| ≥30**; fundo com P95 de L* ≤45 à noite. Rodar ANTES (baseline) e depois. Modo cinza no `TuningPanel` (`canvas.style.filter='grayscale(1)'`, só sob `?debug=1`). **KPI de campo**: participação de `dart` em 1000–1400 m por `v` (15/braço = direção, 40 = veredito).
 
-### N.2 — Chefes: o pacote P (F2) 📐
+### N.2 — Chefes: o pacote P (F2) ✅ **v1.12.3 "Cinco Vozes"** (05/09)
+
+> **Executado.** Os cinco chefes deixaram de partilhar chamado, cor de mira e
+> dica; a moldura passa a ficar BRANCA quando o rino está na altura da
+> fresta (a resposta que só vinha depois de investir, errar e quicar); a luta
+> tem relógio e marca pessoal; e os dois rótulos herdados errados
+> (`boss2` = Muralha dizendo "Cerco"/"Capturador") foram consertados — o
+> `test-score` vinha congelando o nome errado a cada rodada verde.
+>
+> **Ficou de fora, por decisão:** o **holofote ambiente azul-frio varrendo a
+> arena da Muralha**, que o texto abaixo pedia. A v1.12.2 acabara de tornar a
+> cidade noturna legível *com medição*; acrescentar uma fonte de luz em
+> movimento por cima da luta mais difícil, sem régua que meça esse efeito, é
+> desfazer o trabalho por palpite. Volta quando houver como medir.
+>
+> Dois guardas novos impedem a recaída: o `test-stats` reprova repetição de
+> voz no FONTE (e exige que todo `callSfx` tenha método real — um typo cairia
+> no fallback da buzina em silêncio, recriando o bug com os testes verdes) e
+> o `e2e-boss-voz` confere o comportamento no navegador. As três armadilhas
+> de sonda de chefe estão no `HANDOFF.md` §3.
+>
+> O texto abaixo é o desenho ORIGINAL do painel, preservado como estava.
+
 
 **A queixa**: "boss fights todos muito parecidos, sempre sendo o chefe da muralha". **O achado**: os 5 SÃO a mesma muralha 240×620 com bandas nas MESMAS 3 alturas, mesmo glow, mesmos pips, câmera igual, atirador no MESMO ponto (`ax+58, y96` — `def.hunterOffsetX`/`hunterY` existem e **ninguém usa**), mesma buzina e a **mesma frase** `'💥 INVISTA na fresta que brilha!'` nos cinco. O que muda: pele, ordem das camadas e uma coluna de milissegundos. **A audiência da queixa é ≤5 aparelhos** (Portão: 18-25; Muralha 5; Barreira 4; Faraó 1; Guardião 0) e a Muralha tem cobertura ZERO das letras `e`/`h`.
 

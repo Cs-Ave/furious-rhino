@@ -5528,6 +5528,19 @@ export class TextureFactory {
   // SILHUETA + colete vermelho (voa da direita para a esquerda).
   static generateK9Projectile(scene) {
     const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    // v1.12.3 — HALO CLARO por baixo, o mesmo remédio do elenco urbano na
+    // v1.12.2. Este projétil é uma silhueta 0x2b2620 cruzando o Subúrbio à
+    // noite: corpo escuro sobre fundo escuro, contraste ~1,1. As formas
+    // claras vêm PRIMEIRO (ficam atrás), inchadas o bastante para sobrar
+    // borda e ainda caber nos 24x12 — nada de mudar o tamanho da textura,
+    // que o pool de dardos reusa com corpo próprio.
+    g.fillStyle(0xe6eef7, 0.85);
+    g.fillEllipse(11, 6, 20, 11);
+    g.fillCircle(4, 5, 5);
+    g.fillTriangle(2, 1, 7, -0.5, 6, 5);
+    g.fillTriangle(17, 4, 24, 0.5, 23, 9.5);
+    g.fillRect(6, 8, 5, 4);
+    g.fillRect(13, 8, 5, 4);
     g.fillStyle(0x2b2620, 1);
     g.fillEllipse(11, 6, 16, 7);                    // corpo esticado
     g.fillCircle(4, 5, 3.5);                        // cabeça (vai à frente)

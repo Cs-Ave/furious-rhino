@@ -101,6 +101,27 @@ O `.bat` abre `http://localhost:3210/` porque essa é a **página avulsa antiga*
 
 ## 🛡️ Bosses — os guardiões da estrada
 
+### 05/09/2026 — Um jogador disse que "os boss fights são todos muito parecidos, sempre sendo o chefe da muralha". Isso é impressão dele ou é verdade?
+
+**Resposta curta:** era verdade, e literal. Os cinco chefes tocavam **o mesmo som de abertura**, acendiam **a mesma mira dourada** e diziam **a mesma frase de ensino** — *"💥 INVISTA na fresta que brilha!"*, palavra por palavra nos cinco. Some a isso dois nomes herdados errados (a Muralha aparecia como "Cerco" no detalhamento de pontos e como "🕸️ Capturador" na tela de morte — nomes do chefe do deserto) e o jogador tinha razão até no detalhe: ele estava lendo o nome do chefe errado. Consertado na v1.12.3 "Cinco Vozes".
+
+**Como funciona por dentro:** os cinco chefes são **instâncias da mesma classe** (`BossFight`), decisão de arquitetura tomada na v1.8.5 e correta — copiar-e-colar o portão para criar um chefe novo é o caminho mais curto para um soft-lock. O que muda de um para outro vive num objeto de **definição**: a âncora no mundo, a ordem das frestas, a tabela de tiro, as texturas. O problema é que a definição era o único lugar onde a *identidade* podia morar, e ninguém a tinha preenchido: tudo que o jogador **vê e ouve** estava fixo dentro da classe. A diferença real entre eles — a ordem das frestas e o padrão de tiro — existia, mas só era percebida pelo corpo, nunca pelos olhos nem pelos ouvidos.
+
+O conserto foi preencher a definição:
+
+| | antes (v1.12.2) | depois (v1.12.3) |
+|---|---|---|
+| som de abertura | buzina nos cinco | buzina · sirene · klaxon · gongo de bronze · tambores |
+| cor da mira | dourado nos cinco | dourado · azul-gelo · lima · bronze · violeta |
+| dica de como lutar | a mesma frase nos cinco | uma por chefe, dizendo onde a fresta DELE abre |
+| meio da luta | nada | chamado + pulso na moldura + farol vermelho no posto |
+| "estou na altura certa?" | só investindo e errando | **a moldura fica BRANCA quando você está alinhado** |
+
+A moldura branca é a mudança de maior efeito e não é enfeite: antes, a única forma de descobrir que se estava na altura errada era investir, errar e quicar — quase meio segundo de castigo, sob fogo, só para receber a resposta. Agora a resposta chega **antes** da investida. Nada de mecânica mudou (é a mesma conta que o jogo já fazia no momento do contato, agora desenhada), mas é ela que faz a ordem de camadas de cada chefe virar algo perceptível — que é, no fim, a coisa que realmente os distingue.
+
+Dois testes automáticos passaram a impedir a recaída: um lê o código-fonte e **reprova qualquer chefe que repita som, cor, nome ou dica de outro**; o outro abre o jogo num navegador e confere que cada chefe toca de fato o próprio som. Sem o segundo, um erro de digitação no nome do som cairia silenciosamente na buzina padrão — e a queixa voltaria idêntica, com todos os testes verdes.
+
+
 ### 23/08/2026 — Quantos bosses temos, quando aparecem, quais os poderes de cada um e como passar? Quais estão no jogo e quais estão fora?
 
 **Resposta curta:** **cinco lutas, TODAS vivas no jogo desde a v1.8.10** — Caçador do Portão (1000 m), a Muralha (2000 m), a Barreira da Escavação (3650 m), o Faraó de Bronze (4700 m) e o Caçador-Mor (9995 m). **Nenhum boss está fora do jogo hoje**: o único que passou um período "na geladeira" foi o Cerco (declarado sem luta da v1.8.5 à v1.8.9), e ele voltou na v1.8.10 retematizado como a Barreira da Escavação.

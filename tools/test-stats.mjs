@@ -687,8 +687,69 @@ eq('rules têm o bloco challenges com leitura pública',
   eq('rim: o raio de cada espécie é o calibrado pela medição', raioErrado, []);
   eq('rim: a cor do halo é única (uma família, uma linguagem)',
     RIM_COR, '#e6eef7');
+  // O elenco urbano são as 18 espécies `enemy-*` que o e2e-legibilidade mede
+  // (camionete usa a arte da pickup). O que não começa com `enemy-` entrou
+  // pelo mesmo motivo mas não é medível por lá — hoje só o atirador da
+  // Muralha (v1.12.3), que luta de noite no viaduto. Contados separados para
+  // que acrescentar um chefe não afrouxe o guarda do elenco.
+  const especies = RIM_TEXTURAS.filter((t) => t.base.startsWith('enemy-'));
   eq('rim: 18 texturas urbanas cobertas (camionete usa a arte da pickup)',
-    RIM_TEXTURAS.length, 18);
+    especies.length, 18);
+  eq('rim: o atirador da Muralha também tem halo (luta à noite, no mesmo fundo)',
+    RIM_TEXTURAS.some((t) => t.base === 'muralha-hunter'), true);
+}
+
+// ------------------------------------------------ v1.12.3 — a voz dos chefes
+// O feedback de 05/09 foi "boss fight todos muito parecidos, sempre sendo o
+// chefe da muralha", e a causa era literal: cinco defs com o MESMO chamado, a
+// MESMA cor de mira e a MESMA dica. O conserto vive em dados (campos da def),
+// então o guarda também: se alguém acrescentar um sexto chefe copiando a def
+// do vizinho — que é exatamente como a duplicação nasceu —, isto acusa.
+// A leitura é do FONTE porque o GameScene importa Phaser e não roda sem DOM.
+{
+  const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const cena = readFileSync(join(RAIZ, 'js', 'scenes', 'GameScene.js'), 'utf8');
+  const todos = (re) => [...cena.matchAll(re)].map((m) => m[1]);
+  const unicos = (xs) => new Set(xs).size;
+
+  const chamados = todos(/^\s*callSfx: '([^']+)'/gm);
+  const cores = todos(/^\s*glowColor: (0x[0-9a-f]+)/gm);
+  const comos = todos(/^\s*hints: \{ intro: '[^']*', how: '([^']*)'/gm);
+  const nomes = todos(/^\s*nome: '([^']+)'/gm);
+  const viradas = todos(/^\s*midpoint: \{ left: (\d+)/gm);
+
+  eq('voz: os 5 chefes declaram chamado, cor, nome e virada', {
+    chamados: chamados.length, cores: cores.length,
+    nomes: nomes.length, viradas: viradas.length,
+  }, { chamados: 5, cores: 5, nomes: 5, viradas: 5 });
+  eq('voz: nenhum chefe repete o CHAMADO de outro', unicos(chamados), 5);
+  eq('voz: nenhum chefe repete a COR da mira', unicos(cores), 5);
+  eq('voz: nenhum chefe repete o NOME', unicos(nomes), 5);
+  eq('voz: nenhum chefe repete a DICA de como lutar (era a mesma frase nos 5)',
+    unicos(comos), 5);
+  eq('voz: as 5 dicas continuam sendo 5 (nenhum chefe ficou sem)',
+    comos.length, 5);
+
+  // Chamado sem método no AudioSystem cai no fallback da buzina — em
+  // silêncio, que é como os cinco viraram um só. O mapa CALL_SFX e o
+  // AudioSystem têm de fechar.
+  const bf = readFileSync(join(RAIZ, 'js', 'systems', 'BossFight.js'), 'utf8');
+  const audio = readFileSync(join(RAIZ, 'js', 'systems', 'AudioSystem.js'), 'utf8');
+  const mapa = Object.fromEntries(
+    [...bf.matchAll(/^\s{2}(\w+): '(play\w+)',$/gm)].map((m) => [m[1], m[2]])
+  );
+  const semMetodo = chamados
+    .filter((c) => !mapa[c] || !audio.includes(`\n  ${mapa[c]}(`));
+  eq('voz: todo chamado tem método real no AudioSystem (sem fallback mudo)',
+    semMetodo, []);
+
+  // A virada tem de cair DENTRO da luta: 1 <= left < nº de camadas. Com
+  // left === nº de camadas ela dispararia antes da primeira quebra; com 0,
+  // depois da vitória — nos dois casos ninguém veria.
+  const camadas = { gate: 3, muralha: 4, cerco: 4, farao: 5, guardiao: 5 };
+  const totais = Object.values(camadas).sort();
+  eq('voz: as viradas caem dentro da luta (1 <= left < camadas)',
+    viradas.every((v, i) => Number(v) >= 1 && Number(v) < totais[i]), true);
 }
 
 console.log(`\n${pass} PASS, ${fail} FAIL`);
