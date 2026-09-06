@@ -752,5 +752,25 @@ eq('rules têm o bloco challenges com leitura pública',
     viradas.every((v, i) => Number(v) >= 1 && Number(v) < totais[i]), true);
 }
 
+// ------------------------------------------ painel × constantes de enrage
+// A v1.12.3 documentou "nome e slider próprios" para o CERCO_ENRAGE_MS e o
+// slider não existia — a chave nem estava em ROOT_KEYS, então um ajuste no
+// painel nem seria exportado. Ninguém pegou porque nada conferia o painel
+// contra Constants. Agora confere: toda constante *_ENRAGE_MS precisa de
+// slider (`.add(Constants, 'X_ENRAGE_MS'`) E de vaga na lista do exportador.
+{
+  const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
+  const consts = readFileSync(join(RAIZ, 'js', 'utils', 'Constants.js'), 'utf8');
+  const painel = readFileSync(join(RAIZ, 'js', 'systems', 'TuningPanel.js'), 'utf8');
+  const enrages = [...consts.matchAll(/^\s{2}(\w+_ENRAGE_MS):/gm)].map((m) => m[1]);
+  const rootKeys = (/const ROOT_KEYS = \[([\s\S]*?)\];/.exec(painel) || ['', ''])[1];
+  eq('painel: há constantes de enrage para conferir (Muralha, Barreira, Faraó)',
+    enrages.length >= 3, true);
+  eq('painel: toda constante *_ENRAGE_MS tem slider no TuningPanel',
+    enrages.filter((k) => !painel.includes(`.add(Constants, '${k}'`)), []);
+  eq('painel: toda constante *_ENRAGE_MS está em ROOT_KEYS (senão o ajuste não exporta)',
+    enrages.filter((k) => !rootKeys.includes(`'${k}'`)), []);
+}
+
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

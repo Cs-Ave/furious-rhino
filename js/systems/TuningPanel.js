@@ -214,6 +214,16 @@ export async function initTuningPanel(scene) {
     cercoF.add(Constants.CERCO_NET[layers], 'intervalMs', 400, 4000, 50)
       .name(`rede: cadência ${layers} camada${layers > 1 ? 's' : ''}`);
   }
+  // v1.12.3: o enrage da Barreira ganhou constante própria (CERCO_ENRAGE_MS,
+  // antes um 45000 literal na def) — e o slider que a doc prometeu. Mesmo
+  // molde do Faraó: a def copia o número no create, o onChange espelha na
+  // luta viva para valer na hora.
+  cercoF.add(Constants, 'CERCO_ENRAGE_MS', 0, 120000, 1000)
+    .name('enrage: ms de luta')
+    .onChange((v) => {
+      const f = (scene.bossFights || []).find((b) => b.def.anchorX === Constants.CERCO_ANCHOR_PX);
+      if (f) f.def.enrageMs = v;
+    });
   cercoF.add({ ir: () => pularParaBoss(Constants.CERCO_ANCHOR_PX) }, 'ir')
     .name('⚔️ Pular p/ 50m antes');
   cercoF.close();
@@ -344,7 +354,7 @@ const ROOT_KEYS = [
   'MIN_SAFE_GAP', 'SPAWN_LOOKAHEAD_PX', 'FURY_FULL_DISTANCE_PX',
   'SPECIAL_DURATION_MS', 'SPECIAL_SPEED_MULT',
   'BOSS_KNOCKBACK_VX', 'BOSS_KNOCKBACK_VY', 'BOSS_KNOCKBACK_MS', 'BOSS_SHOT_SPEED',
-  'MURALHA_ENRAGE_MS', 'FARAO_ENRAGE_MS',
+  'MURALHA_ENRAGE_MS', 'CERCO_ENRAGE_MS', 'FARAO_ENRAGE_MS',
   'ANIMAL_KB_VX_MIN', 'ANIMAL_KB_VX_MAX', 'ANIMAL_KB_VY_MIN', 'ANIMAL_KB_VY_MAX',
 ];
 
