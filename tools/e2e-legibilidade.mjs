@@ -205,7 +205,13 @@ await page.addInitScript(() => {
   sessionStorage.setItem('furious_rhino_pwa_prompted', '1');
 });
 await page.goto(`${ALVO}?debug=1`, { waitUntil: 'domcontentloaded' });
-await page.waitForFunction(() => window.game && window.game.scene.getScene('GameScene'), null, { timeout: 40000 });
+// Esperar a CENA existir não basta: o `startRun` usa `this.audio`, que só
+// nasce quando o create() termina. Contra a produção (boot de rede, não de
+// cache) a diferença aparece — a suíte quebrava com "audio is undefined".
+await page.waitForFunction(() => {
+  const s = window.game && window.game.scene.getScene('GameScene');
+  return Boolean(s && s.audio && s.rhino && s.spawnManager);
+}, null, { timeout: 60000 });
 await page.waitForTimeout(900);
 await page.evaluate(() => {
   document.querySelectorAll('.lil-gui, #pwa-modal').forEach((e) => e.remove());
