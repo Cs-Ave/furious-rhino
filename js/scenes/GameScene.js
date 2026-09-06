@@ -1868,8 +1868,13 @@ export class GameScene extends Phaser.Scene {
     this.rain.setScrollFactor(0).setDepth(-17.4);
     this.rain.stop();
 
+    // v1.12.3 "Farol": o clarão desce para ATRÁS do plano de jogo. Em depth
+    // 50 ele passava por cima do rino e dos obstáculos e colapsava o
+    // contraste da cena inteira por 140 ms — justamente na tempestade dos
+    // 1000-1200 m, onde a mediana pós-portão morre. Atrás da chuva (−17,4)
+    // ele continua sendo o relâmpago: o céu é que acende, não a tela.
     this.lightning = this.add.rectangle(640, 360, 1280, 720, 0xffffff)
-      .setScrollFactor(0).setDepth(50).setAlpha(0);
+      .setScrollFactor(0).setDepth(-17.3).setAlpha(0);
 
     this.weather = 'limpo';
     this.nextThunderAt = 0;
@@ -2487,10 +2492,17 @@ export class GameScene extends Phaser.Scene {
     this.applySkyLife((area && area.skyLife) || biome);
     // Tráfego só existe na cidade — e some quando a área diz cars:false
     // (não há carros na areia); religa sozinho ao voltar a uma área com cars
+    // v1.12.3: o alvo de alpha passa a ser POR ÁREA (`carsAlpha`). O tráfego
+    // fica — é a identidade da cidade —, mas recua onde o fundo já compete
+    // com o inimigo. Ausente = 1 (comportamento de sempre); `cars:false`
+    // continua zerando, como no deserto.
     const carsOn = city && !(area && area.cars === false);
+    const alvoCars = carsOn
+      ? (area && typeof area.carsAlpha === 'number' ? area.carsAlpha : 1)
+      : 0;
     this.tweens.killTweensOf(this.bgCars);
     this.tweens.add({
-      targets: this.bgCars, alpha: carsOn ? 1 : 0, duration: 500,
+      targets: this.bgCars, alpha: alvoCars, duration: 500,
     });
   }
 

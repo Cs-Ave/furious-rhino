@@ -1,4 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 46" width="64" height="46">
+  <defs>
+  <!-- v1.12.3 "Farol": halo claro por fora da silhueta. O contorno preto
+       dos sprites some contra a cidade noturna (contraste de borda medido:
+       2,3-2,8 · aceite 3,0). Desenhado ATRÁS do conteúdo — a arte original
+       passa intacta pelo feMerge, e a hitbox não muda. -->
+  <filter id="rim" x="-14%" y="-14%" width="128%" height="128%">
+    <feMorphology in="SourceAlpha" operator="dilate" radius="2" result="rimD"/>
+    <feFlood flood-color="#e6eef7" flood-opacity="0.85"/>
+    <feComposite in2="rimD" operator="in" result="rimC"/>
+    <feMerge><feMergeNode in="rimC"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  </defs>
+  <g filter="url(#rim)">
   <!-- FURIOUS RHINO - v1.8.7 D2-D3. K9 DE CHOQUE: pastor com colete tatico
        "K9", orelhas em pe, postura de avanco (e o pulador tatico da
        contencao). Flat: preto-marrom + colete vermelho-escuro, contorno.
@@ -45,4 +58,5 @@
   <circle cx="56.5" cy="13" r="1.1" fill="#17171b"/>
   <path d="M52.5 10.5 L58 11.5" fill="none" stroke="#17171b" stroke-width="1.6" stroke-linecap="round"/>
   </g>
+</g>
 </svg>

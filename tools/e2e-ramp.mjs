@@ -603,9 +603,13 @@ async function traverse({ variant, rampX, startX, dash = false, fps = null, anim
 
   ok('18. todas as texturas dos 6 biomas e dos 2 skins de parede existem',
     gate.missing.length === 0, gate.missing.slice(0, 4).join(', '));
+  // v1.12.2 "Farol": o tráfego ACENDE na cidade, mas o alvo de alpha passou
+  // a ser por distrito (`carsAlpha`) — no Subúrbio ele fica em 0,45, porque
+  // ali a noite já come o contraste e o elenco é quase todo escuro. O que o
+  // teste tranca é "ligou" (era 0 no zoo), não o valor cheio.
   ok('19. o portão explode e o bioma vira cidade',
     gate.gateTex === 'zoo-gate-broken' && gate.biome === 5 && gate.escaped &&
-    gate.cars > 0.5 && gate.confete,
+    gate.cars > 0.2 && gate.confete,
     `tex=${gate.gateTex} bioma=${gate.biome} carros=${gate.cars.toFixed(2)}`);
   ok('20. a fuga NÃO pausa a física (a corrida não para)',
     gate.pausedNoInstante === false && gate.pausedDepois === false,

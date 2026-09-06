@@ -3,7 +3,7 @@ import { SPRITE_PARAMS } from '../art/SpriteParams.js';
 export const Constants = {
   // Fonte única da versão para a telemetria (manter igual ao #game-version
   // do index.html e ao package.json a cada release)
-  VERSION: '1.12.1',
+  VERSION: '1.12.2',
 
   // Rótulo humano de cada desfecho de corrida. Fonte única para o painel, o
   // resumo do jogador e os pushes — os três diziam a mesma coisa com palavras
@@ -875,12 +875,20 @@ export const Constants = {
   CITY_DISTRICTS: [
     { from: 40000, key: 'suburbio',  label: '🌙 SUBÚRBIO SONOLENTO', wallSkin: '-suburbio',
       cast: ['person', 'suit', 'scooter', 'viralata', 'gatobeco', 'pombo', 'reporter'],
+      // v1.12.3: o tráfego recua onde a noite já come o contraste (o elenco
+      // daqui é quase todo escuro). Campo opcional — ausente vale 1.
+      carsAlpha: 0.45,
       weights: { towerW: 0.16 }, breach: false },
     { from: 56000, key: 'vidro',     label: '📡 O DESPERTAR', wallSkin: '-vidro',
       cast: ['car', 'police', 'drone', 'reporter', 'pipa', 'helinews', 'camionete', 'k9'],
+      // O Despertar amanhece no meio do trecho: o fundo clareia sozinho e o
+      // trânsito pode ficar cheio (é o distrito da cidade acordando).
+      carsAlpha: 1,
       weights: {}, breach: false },
     { from: 72000, key: 'contencao', label: '🚨 ZONA DE CONTENÇÃO', wallSkin: '-contencao',
       cast: ['plane', 'pickup', 'camionete', 'k9', 'tropa', 'dronezig', 'dronesent'],
+      // Blecaute tático + 4 dos 7 do elenco escuros: o trânsito recua.
+      carsAlpha: 0.6,
       weights: {}, breach: false },
     { from: 81000, key: 'brecha',    label: '🌅 A BRECHA', wallSkin: '-contencao',
       cast: ['pombo'], weights: {}, breach: true },

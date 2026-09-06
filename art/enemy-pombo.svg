@@ -1,4 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 34" width="48" height="34">
+  <defs>
+  <!-- v1.12.3 "Farol": halo claro por fora da silhueta. O contorno preto
+       dos sprites some contra a cidade noturna (contraste de borda medido:
+       2,3-2,8 · aceite 3,0). Desenhado ATRÁS do conteúdo — a arte original
+       passa intacta pelo feMerge, e a hitbox não muda. -->
+  <filter id="rim" x="-14%" y="-14%" width="128%" height="128%">
+    <feMorphology in="SourceAlpha" operator="dilate" radius="2.4" result="rimD"/>
+    <feFlood flood-color="#e6eef7" flood-opacity="0.85"/>
+    <feComposite in2="rimD" operator="in" result="rimC"/>
+    <feMerge><feMergeNode in="rimC"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  </defs>
+  <g filter="url(#rim)">
   <!-- FURIOUS RHINO - v1.8.7 D1 (suburbio). Pombo-de-Praca GORDO em voo:
        papo estufado, asa em fase BAIXA. Flat: cinza + cinza-escuro + laranja,
        contorno. Voa para a DIREITA (o jogo espelha com setFlipX).
@@ -24,4 +37,5 @@
   <!-- patinhas recolhidas -->
   <path d="M20 30 L18 34 M24 31 L23 35" fill="none" stroke="#f2a33c" stroke-width="1.8" stroke-linecap="round"/>
   </g>
+</g>
 </svg>

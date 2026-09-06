@@ -1,4 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 48" width="110" height="48">
+  <defs>
+  <!-- v1.12.3 "Farol": halo claro por fora da silhueta. O contorno preto
+       dos sprites some contra a cidade noturna (contraste de borda medido:
+       2,3-2,8 · aceite 3,0). Desenhado ATRÁS do conteúdo — a arte original
+       passa intacta pelo feMerge, e a hitbox não muda. -->
+  <filter id="rim" x="-14%" y="-14%" width="128%" height="128%">
+    <feMorphology in="SourceAlpha" operator="dilate" radius="1.6" result="rimD"/>
+    <feFlood flood-color="#e6eef7" flood-opacity="0.85"/>
+    <feComposite in2="rimD" operator="in" result="rimC"/>
+    <feMerge><feMergeNode in="rimC"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  </defs>
+  <g filter="url(#rim)">
   <!-- FURIOUS RHINO - v1.8.7 D2 (vidro). HELICOPTERO DE NOTICIAS: bolha de
        vidro com o piloto, cauda fina, camera ventral e rotor em 2 fases
        (12 fps no jogo). Flat: azul-escuro + vidro + vermelho, contorno.
@@ -41,4 +54,5 @@
   <!-- luz vermelha acesa -->
   <circle cx="99" cy="21" r="2.2" fill="#ff4a5e"/>
   </g>
+</g>
 </svg>

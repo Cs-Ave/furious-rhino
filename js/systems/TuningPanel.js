@@ -257,8 +257,22 @@ export async function initTuningPanel(scene) {
   pontos.close();
 
   const debug = gui.addFolder('Debug');
-  const state = { hitboxes: false, pausado: false, invencivel: false };
+  const state = { hitboxes: false, pausado: false, invencivel: false, cinza: false };
   debug.add(state, 'hitboxes').name('Hitboxes').onChange((on) => setHitboxes(scene, on));
+
+  // v1.12.3 "Farol" — MODO CINZA: tira a cor da tela inteira. O teste de
+  // valor é a régua mais antiga da direção de arte: se o inimigo some em
+  // preto e branco, ele some no jogo, e nenhuma paleta conserta isso.
+  // É um filtro CSS no canvas (do compositor, não do WebGL) — funciona
+  // igual em `?canvas=1` e custa zero no jogo publicado, porque o painel
+  // inteiro só existe sob `?debug=1`.
+  debug.add(state, 'cinza').name('🎞️ Modo cinza (valor)').onChange((on) => {
+    setCinza(scene, on);
+  });
+  if (new URLSearchParams(location.search).get('cinza') === '1') {
+    state.cinza = true;
+    setCinza(scene, true);
+  }
 
   // Testar mecânica sem morrer: mortes ignoradas; queda teleporta de volta
   debug.add(state, 'invencivel').name('🛡️ Invencível').onChange((on) => {
@@ -426,6 +440,18 @@ function exportTuning(baseline) {
   a.download = 'furious-rhino-tuning.txt';
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+// v1.12.3 — o teste de valor, ligado por um checkbox. `grayscale(1)` sozinho
+// mostra a separação de LUMINÂNCIA; com `contrast(1.4)` a comparação fica
+// brutal — se a silhueta sumir aqui, ela some para o jogador cansado no
+// celular no sol. O filtro é do compositor do navegador: WebGL e Canvas
+// respondem igual, e nada disso entra no caminho de render do jogo.
+function setCinza(scene, on) {
+  try {
+    const canvas = scene.game.canvas;
+    if (canvas) canvas.style.filter = on ? 'grayscale(1) contrast(1.15)' : '';
+  } catch (e) { /* sem canvas (modo headless de teste): silêncio */ }
 }
 
 function setHitboxes(scene, on) {

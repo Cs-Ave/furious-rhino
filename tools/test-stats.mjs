@@ -2,7 +2,7 @@
 //   npm run test-stats
 // Sem navegador: valida a cadeia morte -> localStorage -> campos -> agregação,
 // e a consistência entre StorageManager, StatsDashboard e firestore.rules.
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -658,6 +658,37 @@ eq('rules têm o bloco challenges com leitura pública',
       s.x >= 8000 - Constants.ARCH_CLEAR_BEFORE_PX &&
       s.x < 8000 + Constants.ARCH_CLEAR_AFTER_PX).map((s) => s.x),
     [7800, 7980]);
+}
+
+// ------------------------- v1.12.2 "Farol": o rim da cidade não some ---------
+// O halo claro dos inimigos urbanos é a correção do feedback de contraste, e
+// ele vive DENTRO dos SVGs. Um `export-art --force` (proibido pela regra 7,
+// mas o proibido acontece) regeneraria a arte e apagaria os 36 filtros em
+// silêncio — o jogo voltaria a ficar ilegível à noite sem ninguém notar até
+// alguém reclamar de novo. Este assert é o alarme.
+{
+  const { RIM_TEXTURAS, RIM_COR } = await import('./aplicar-rim.mjs');
+  const ART = join(dirname(fileURLToPath(import.meta.url)), '..', 'art');
+  const semRim = [];
+  const raioErrado = [];
+  for (const { base, raio } of RIM_TEXTURAS) {
+    for (const nome of readdirSync(ART)) {
+      if (!nome.endsWith('.svg')) continue;
+      if (nome !== `${base}.svg` && !nome.startsWith(`${base}-`)) continue;
+      // `enemy-drone` não pode arrastar `enemy-dronezig`/`-dronesent`
+      if (RIM_TEXTURAS.some((t) => t.base !== base
+        && (nome === `${t.base}.svg` || nome.startsWith(`${t.base}-`)))) continue;
+      const svg = readFileSync(join(ART, nome), 'utf8');
+      if (!svg.includes('id="rim"') || !svg.includes('filter="url(#rim)"')) semRim.push(nome);
+      else if (!svg.includes(`radius="${raio}"`)) raioErrado.push(`${nome}≠${raio}`);
+    }
+  }
+  eq('rim: TODO sprite do elenco urbano tem o halo aplicado', semRim, []);
+  eq('rim: o raio de cada espécie é o calibrado pela medição', raioErrado, []);
+  eq('rim: a cor do halo é única (uma família, uma linguagem)',
+    RIM_COR, '#e6eef7');
+  eq('rim: 18 texturas urbanas cobertas (camionete usa a arte da pickup)',
+    RIM_TEXTURAS.length, 18);
 }
 
 console.log(`\n${pass} PASS, ${fail} FAIL`);

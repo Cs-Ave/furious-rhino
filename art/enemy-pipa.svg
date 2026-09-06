@@ -1,4 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" width="56" height="56">
+  <defs>
+  <!-- v1.12.3 "Farol": halo claro por fora da silhueta. O contorno preto
+       dos sprites some contra a cidade noturna (contraste de borda medido:
+       2,3-2,8 · aceite 3,0). Desenhado ATRÁS do conteúdo — a arte original
+       passa intacta pelo feMerge, e a hitbox não muda. -->
+  <filter id="rim" x="-14%" y="-14%" width="128%" height="128%">
+    <feMorphology in="SourceAlpha" operator="dilate" radius="1.6" result="rimD"/>
+    <feFlood flood-color="#e6eef7" flood-opacity="0.85"/>
+    <feComposite in2="rimD" operator="in" result="rimC"/>
+    <feMerge><feMergeNode in="rimC"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  </defs>
+  <g filter="url(#rim)">
   <!-- FURIOUS RHINO - v1.8.7 D2 (vidro). PIPA CORTANTE: losango vermelho com
        varetas, rabiola de lacos e linha com cerol. O voador ZIG-ZAG do
        distrito — barata e memoravel (decisao de painel). "Frente" = DIREITA.
@@ -30,4 +43,5 @@
   <path d="M23.5 27 Q28 29.6 32.5 27" fill="none" stroke="#17171b" stroke-width="1.8" stroke-linecap="round"/>
   <!-- brilho de CORTE na quina direita (o "cortante") -->
   <path d="M45 16 L50 21 L45 26" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" opacity="0.85"/>
+</g>
 </svg>

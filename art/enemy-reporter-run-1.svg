@@ -1,4 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 64" width="44" height="64">
+  <defs>
+  <!-- v1.12.3 "Farol": halo claro por fora da silhueta. O contorno preto
+       dos sprites some contra a cidade noturna (contraste de borda medido:
+       2,3-2,8 · aceite 3,0). Desenhado ATRÁS do conteúdo — a arte original
+       passa intacta pelo feMerge, e a hitbox não muda. -->
+  <filter id="rim" x="-14%" y="-14%" width="128%" height="128%">
+    <feMorphology in="SourceAlpha" operator="dilate" radius="2" result="rimD"/>
+    <feFlood flood-color="#e6eef7" flood-opacity="0.85"/>
+    <feComposite in2="rimD" operator="in" result="rimC"/>
+    <feMerge><feMergeNode in="rimC"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  </defs>
+  <g filter="url(#rim)">
   <!-- FURIOUS RHINO - v1.8.7 D1-D2. Reporter afobada, frame 2: pernas em
        fase TROCADA e o cabelo chicoteando; tronco, bracos, microfone e
        rosto identicos ao enemy-reporter.svg. -->
@@ -36,4 +49,5 @@
   <path d="M14.5 10.5 L20 10" fill="none" stroke="#17171b" stroke-width="1.4" stroke-linecap="round"/>
   <ellipse cx="20" cy="19" rx="2.6" ry="2" fill="#611e29" stroke="#17171b" stroke-width="1.2"/>
   <circle cx="10.5" cy="18" r="1.4" fill="#ffd24a" stroke="#17171b" stroke-width="0.9"/>
+</g>
 </svg>

@@ -1615,14 +1615,26 @@ indistinguível a 400 px/s).
 | Release | O quê |
 |---|---|
 | **v1.12.1 "Régua"** ✅ 05/09 | fim de corrida/top 10/modais em tela curta; instrumento com corte por `v` + 5 seções; `rs`/`rt`/`history.src` |
+| **v1.12.2 "Farol"** ✅ 05/09 | passe de legibilidade da cidade (N.1) + a suíte que o mede. O dono trocou a ordem: o Farol veio antes do Desafio |
 
 ### Aprovado, ainda não executado
 
-- **v1.12.2 "Desafio"** (12→19/09) — a ideia **G** (§766) sai do banco: `/?desafio=<m>&de=<nome>` com sanitização estrita (clamp 1..10000, `de` 3-12 chars whitelist, `textContent`, banner nunca é link), estaca do amigo na pista via `createTrackMarks`, "devolver o desafio" no fim de corrida (sem apelido abre o `#nickname-modal` — é onde o visitante vira jogador), persistência local 7 dias, letra `md:1`. Mais: cards **"novidades desde a sua última visita"** (tabela `CHANGELOG_CARDS` em código + `NewsSystem.push`, zero rede) e **"alguém passou você"** (estende o `podium:in/out` para qualquer rank cacheado). Carona: skins alcançáveis (`meters 300/600`, `escaped`, `streakBest 3`) se o dono fizer a arte.
-- **v1.12.3 "Farol"** (19/09→03/10) — o passe de legibilidade da cidade (F1) e o pacote P dos chefes (F2). Detalhe em §N.1 e §N.2.
+- **v1.12.3 "Desafio"** (a próxima) — a ideia **G** (§766) sai do banco: `/?desafio=<m>&de=<nome>` com sanitização estrita (clamp 1..10000, `de` 3-12 chars whitelist, `textContent`, banner nunca é link), estaca do amigo na pista via `createTrackMarks`, "devolver o desafio" no fim de corrida (sem apelido abre o `#nickname-modal` — é onde o visitante vira jogador), persistência local 7 dias, letra `md:1`. Mais: cards **"novidades desde a sua última visita"** (tabela `CHANGELOG_CARDS` em código + `NewsSystem.push`, zero rede) e **"alguém passou você"** (estende o `podium:in/out` para qualquer rank cacheado). Carona: skins alcançáveis (`meters 300/600`, `escaped`, `streakBest 3`) se o dono fizer a arte.
+- **Boss pacote P (F2)** — era a outra metade do Farol; ficou para a release seguinte. Detalhe em §N.2.
 - **v1.13 "Jornada"** e **v1.14 "Mata e Água"** — o programa Zoo, com a ordem INVERTIDA em relação à aprovação de 30/08 (a Jornada é apresentação e carrega a copy do fim de corrida; Mata e Água toca spawn e precisa de baseline limpa).
 
-### N.1 — O passe de legibilidade da cidade (F1) 📐
+### N.1 — O passe de legibilidade da cidade (F1) ✅ **v1.12.2 "O Farol"** (05/09)
+
+> **Executado.** Medido antes e depois com a régua nova
+> (`npm run test-legibilidade`): **16 de 19 espécies reprovadas → 0**, ganho
+> médio de **+2,46** no contraste de borda; o pior caso saiu de 1,60
+> (helinews, praticamente invisível) para 3,25. O L3 (fórmula global de luz e
+> skyline dessaturado) **não foi necessário** — só o corpo do `suit` clareou.
+> Duas armadilhas da medição ficam registradas no HANDOFF: o service worker
+> servindo arte do cache, e a cena precisando estar CONGELADA durante o laço
+> (a câmera derivava e o confete do `crossGate` inflava o contraste).
+>
+> O texto abaixo é o desenho ORIGINAL do painel, preservado como estava.
 
 **A queixa**: "o contraste da fase da cidade não está bom, o cenário está confundindo com os inimigos". **A assinatura no dado**: na faixa 1000–1400 m o dardo responde por **27% das mortes** (n=37) contra ~7% no zoo.
 

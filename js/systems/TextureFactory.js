@@ -124,7 +124,9 @@ export class TextureFactory {
       slab: 0x8a96ad, slabShade: 0x2b3342,
       pillar: 0x39424f, pillarLight: 0x8a96ad,
       winOn: 0x7a8ba8, winOff: 0x475369, frame: 0x1f2531,
-      ledA: 0xff4a5e, ledB: 0x4ad1ff,
+      // v1.12.3: os LEDs da fachada perdem o vermelho/ciano puros —
+      // eles agora significam SO ameaca (inimigo, torre, telegraph)
+      ledA: 0xb86068, ledB: 0x6f9fb5,
       metal: 0x8a939f, metalDark: 0x59616b,
       band: 0x9aa4b5, bandLight: 0xb9c2d1, bandLine: 0x39424f,
     },
@@ -1243,6 +1245,13 @@ export class TextureFactory {
     g.fillStyle(K.slab, 0.9);
     g.fillRect(0, 110, 120, 2);
 
+    // v1.12.3 "Farol": um filete claro na tampa, para a fileira de espinhos
+    // recortar contra o fundo escuro. Depois da reserva de matiz (a jersey
+    // perdeu a tarja, a banca perdeu o toldo) esta é a ÚNICA caixa
+    // amarelo/preta na linha dos pés — e ela mata.
+    g.fillStyle(0xcfd4da, 1);
+    g.fillRect(6, 54, 108, 4);
+
     // bloco de concreto com marcas de fôrma
     g.fillStyle(K.body, 1);
     g.fillRect(8, 58, 104, 54);
@@ -1984,15 +1993,21 @@ export class TextureFactory {
     g.fillStyle(K.pillar, 1);                      // sapata
     g.fillRect(12, 112, 60, 8);
 
-    // Caixa d'água cilíndrica no topo
-    g.fillStyle(K.metal, 1);
+    // Caixa d'água cilíndrica no topo.
+    // v1.12.3 "Farol": ela CLAREIA e ganha duas cintas VERMELHAS. Motivo: a
+    // torre atira, e o poste de luz, o orelhão e a banca ao lado dela são
+    // cinza igual — o dado de 05/09 mostra o dardo respondendo por 27% das
+    // mortes na cidade contra ~7% no zoo. Quem mata ganha uma assinatura;
+    // o mobiliário perde a dele (streetLamp/orelhão escurecem abaixo).
+    // A silhueta não muda: mesmo canvas, mesma seteira em (36,70).
+    g.fillStyle(0xb9c2d1, 1);
     g.fillRect(14, 16, 56, 34);
-    g.fillStyle(K.metalDark, 1);
+    g.fillStyle(0x8e97a6, 1);
     g.fillRect(56, 16, 14, 34);                    // lado em sombra
     g.fillEllipse(42, 16, 56, 12);
-    g.fillStyle(K.slab, 1);
+    g.fillStyle(0xd6dde7, 1);
     g.fillEllipse(42, 14, 48, 9);
-    g.fillStyle(K.metalDark, 1);                   // cintas
+    g.fillStyle(0xff4a5e, 1);                      // cintas da família letal
     g.fillRect(14, 26, 56, 3);
     g.fillRect(14, 40, 56, 3);
 
@@ -2001,16 +2016,24 @@ export class TextureFactory {
     g.fillRect(26, 56, 32, 46);
     g.fillStyle(K.pillar, 1);
     g.fillRect(26, 56, 32, 5);
+    // A seteira ganha brasa e um filete claro em volta: lê como BOCA DE
+    // TIRO, não como janela. O pixel de saída do dardo é o mesmo.
+    g.fillStyle(0xcfd4da, 1);
+    g.fillRect(34, 68, 14, 36);
     g.fillStyle(slit, 1);
     g.fillRect(36, 70, 10, 32);
     g.fillCircle(41, 70, 5);
+    g.fillStyle(0x6e1420, 1);                      // brasa no fundo da seteira
+    g.fillRect(38, 84, 6, 16);
     g.fillStyle(K.metal, 0.8);                     // trilho da abertura
     g.fillRect(33, 66, 16, 2);
 
-    // Luz de alerta piscando no topo
+    // Luz de alerta no topo — unificada com o vermelho da família
     g.fillStyle(K.metalDark, 1);
     g.fillRect(39, 2, 6, 8);
-    g.fillStyle(0xff5a4a, 1);
+    g.fillStyle(0xff4a5e, 0.25);                   // halo
+    g.fillCircle(42, 3, 9);
+    g.fillStyle(0xff4a5e, 1);
     g.fillCircle(42, 3, 5);
     g.fillStyle(0xffd0c8, 0.8);
     g.fillCircle(41, 2, 2);
@@ -3346,11 +3369,14 @@ export class TextureFactory {
       g.fillStyle(0x7f858b, 1);
       g.fillRect(0, 236, 640, 5);
       for (let x = 0; x < 640; x += 64) g.fillRect(x, 241, 3, 19); // juntas
-      g.fillStyle(0xf2c14e, 1);                    // meio-fio pintado
+      g.fillStyle(0xcfd4da, 0.6);                  // meio-fio (sem amarelo)
       g.fillRect(0, 232, 640, 5);
     };
+    // v1.12.3: o poste ESCURECE. Ele é a coisa mais parecida com a torre de
+    // dardo na calçada — mesma altura, mesma cor cinza, mesma silhueta
+    // vertical. A luz quente fica (é o que um poste faz); o corpo some.
     const streetLamp = (g, x) => {
-      g.fillStyle(0x555b62, 1);
+      g.fillStyle(0x3d434a, 1);
       g.fillRect(x, 60, 9, 178);
       g.fillRect(x, 60, 46, 8);
       g.fillStyle(0xffe9a8, 1);
@@ -3695,12 +3721,16 @@ export class TextureFactory {
       busStop(g, 60);
       streetLamp(g, 300);
       streetLamp(g, 560);
-      pedestrian(g, 232, 0x3a4152);
-      pedestrian(g, 254, 0x6a4f7a);
-      pedestrian(g, 470, 0x2f5a6a);
+      // v1.12.3: os três pedestres saem pelo mesmo motivo dos runners do
+      // Despertar — humano no plano próximo onde humano mata. (Este backdrop
+      // é o genérico da cidade; os distritos têm os seus.)
       g.fillStyle(0x6b7078, 1);           // lixeira
       g.fillRoundedRect(400, 190, 34, 48, 5);
       g.fillRect(396, 184, 42, 8);
+      g.fillStyle(0x8a7a58, 1);           // mala esquecida no ponto de ônibus
+      g.fillRoundedRect(232, 214, 30, 22, 4);
+      g.fillStyle(0x6b5f42, 1);
+      g.fillRect(242, 208, 10, 8);
     });
 
     // ========== v1.8.7 — Estado de Alerta: um par far/near por distrito =====
@@ -3775,7 +3805,7 @@ export class TextureFactory {
       sidewalk(g);
       // Banca de jornal FECHADA: porta de enrolar riscada + telhadinho
       const banca = (x) => {
-        g.fillStyle(0x4a5058, 1);
+        g.fillStyle(0x3a4046, 1);   // v1.12.3: mobiliário perde assinatura
         g.fillRect(x, 148, 96, 88);
         g.fillStyle(0x39404a, 1);                // porta de enrolar
         g.fillRect(x + 8, 162, 80, 74);
@@ -3783,7 +3813,7 @@ export class TextureFactory {
         for (let yy = 166; yy < 234; yy += 8) g.fillRect(x + 8, yy, 80, 3);
         g.fillStyle(0x8a5a2e, 1);                // telhadinho
         g.fillTriangle(x - 10, 150, x + 106, 150, x + 48, 124);
-        g.fillStyle(0xd6453c, 1);                // listras do toldo
+        g.fillStyle(0x7a4f52, 1);                // listras do toldo (dessaturado)
         for (let i = 0; i < 4; i++) g.fillRect(x - 6 + i * 27, 144, 14, 8);
         g.fillStyle(0xf3e2b8, 1);
         for (let i = 0; i < 4; i++) g.fillRect(x + 8 + i * 27, 144, 13, 8);
@@ -3792,9 +3822,9 @@ export class TextureFactory {
       banca(420);
       // Orelhão: concha acrílica num poste
       const orelhao = (x) => {
-        g.fillStyle(0x8a939f, 1);
+        g.fillStyle(0x59616b, 1);                // v1.12.3: poste dessaturado
         g.fillRect(x + 16, 168, 8, 68);
-        g.fillStyle(0x3f7ad6, 1);                // concha
+        g.fillStyle(0x35507a, 1);                // concha
         g.beginPath();
         g.arc(x + 20, 152, 26, Math.PI * 0.9, Math.PI * 2.1);
         g.fillPath();
@@ -3825,12 +3855,13 @@ export class TextureFactory {
         g.fillRect(x, y, 64, 42);
         g.fillStyle(0x101720, 1);
         g.fillRect(x + 3, y + 3, 58, 36);
-        g.fillStyle(0xff4a5e, 0.95);            // a silhueta do rino
+        g.fillStyle(0xb86068, 0.95);            // a silhueta do rino (rosa-tijolo:
+        // v1.12.3 o vermelho puro fica reservado ao que atira)
         g.fillRect(x + 8, y + 16, 22, 14);
         g.fillTriangle(x + 30, y + 20, x + 37, y + 20, x + 30, y + 27);
-        g.fillStyle(0xff4a5e, 1);               // tarja "PROCURADO"
+        g.fillStyle(0xb86068, 1);               // tarja "PROCURADO"
         g.fillRect(x + 8, y + 7, 30, 5);
-        g.fillStyle(0x4ad1ff, 0.9);             // legenda
+        g.fillStyle(0x6f9fb5, 0.9);             // legenda (ciano-poeira)
         g.fillRect(x + 40, y + 18, 16, 3);
         g.fillRect(x + 40, y + 25, 13, 3);
         g.fillStyle(0xffffff, 0.08);            // brilho do vidro do telão
@@ -3854,17 +3885,51 @@ export class TextureFactory {
         g.fillRect(x + 12, 128, 20, 104);
         g.fillStyle(0x1f2531, 1);               // pilastra
         g.fillRect(x + 72, 116, 8, 120);
-        g.fillStyle(0x4ad1ff, 0.9);             // letreiro de LED
+        g.fillStyle(0xffd9a0, 0.7);             // letreiro de vitrine (era ciano
+        // a cada 80 px — a mesma cor do holofote do sentinela e da viseira
+        // da tropa; o ambar quente e a lingua do cenario)
         g.fillRect(x + 14, 108, 44, 6);
       }
-      // Multidão em silhueta FUGINDO (todos para a direita — para longe
-      // do rino, que vem da esquerda)
-      runner(g, 120, 0x232c38, 1);
-      runner(g, 168, 0x2c2434, 0.9);
-      runner(g, 320, 0x1f3038, 1.05);
-      runner(g, 372, 0x232c38, 0.85);
-      runner(g, 540, 0x2c2434, 1);
+      // v1.12.3 "Farol": aqui havia CINCO silhuetas humanas fugindo, na
+      // linha dos pés e com a anatomia do `enemy-person` — que é elenco
+      // LETAL deste distrito. A foto de 05/09 mostra o inimigo dividindo a
+      // calçada com oito figuras iguais a ele; a única coisa que o separava
+      // era o rim. É o mesmo veto que o programa do zoo escreveu na v1.12:
+      // figurante da espécie do elenco letal jamais no plano próximo.
+      // A debandada continua sendo contada — por OBJETOS, não por gente.
       trashCan(g, 470, 196);
+      g.save();                                   // lixeira TOMBADA
+      g.translateCanvas(190, 236);
+      g.rotateCanvas(-1.35);
+      trashCan(g, 0, 0);
+      g.restore();
+      g.fillStyle(0x8a7a58, 1);                   // bolsa caída
+      g.fillRoundedRect(96, 216, 26, 18, 4);
+      g.fillStyle(0x6b5f42, 1);
+      g.fillRect(104, 210, 10, 8);
+      g.fillStyle(0xb9bec6, 0.75);                // jornais no chão
+      [[140, 232], [162, 236], [352, 230], [370, 234], [560, 232]].forEach(([jx, jy]) => {
+        g.save();
+        g.translateCanvas(jx, jy);
+        g.rotateCanvas(((jx * 7) % 9) / 12 - 0.35);
+        g.fillRect(0, 0, 22, 14);
+        g.restore();
+      });
+      g.fillStyle(0x2b3138, 1);                   // sapato perdido
+      g.fillRoundedRect(322, 226, 18, 9, 3);
+      // placa "FECHADO" pendurada torta numa vitrine
+      g.save();
+      g.translateCanvas(408, 126);
+      g.rotateCanvas(0.22);
+      g.fillStyle(0xb9bec6, 0.9);
+      g.fillRect(0, 0, 42, 20);
+      g.fillStyle(0x39424f, 1);
+      g.fillRect(5, 6, 32, 4);
+      g.fillRect(5, 13, 22, 3);
+      g.restore();
+      g.lineStyle(2, 0x1f2531, 0.9);              // vitrine rachada
+      g.strokePoints([{ x: 250, y: 128 }, { x: 262, y: 168 }, { x: 252, y: 196 },
+        { x: 268, y: 232 }], false);
     });
 
     // ============ 1801–2200m: ZONA DE CONTENÇÃO — blecaute e holofotes ======
@@ -3879,7 +3944,7 @@ export class TextureFactory {
           for (let wy = y + 16; wy < 380; wy += 46) {
             for (let wx = x + 10; wx + 8 < x + w2 - 6; wx += 34) {
               if (((wx * 7 + wy * 13) % 23) < 2) {
-                g.fillStyle(0xff4a5e, 0.5);
+                g.fillStyle(0xb0503c, 0.4);
                 g.fillRect(wx, wy, 8, 10);
               }
             }
@@ -3909,7 +3974,8 @@ export class TextureFactory {
         ], true);
         g.fillStyle(0x59616b, 1);
         g.fillRect(x + 12, 192, 40, 5);
-        g.fillStyle(0xffd24a, 1);               // tarja
+        g.fillStyle(0xcfd4da, 1);               // faixa refletiva (v1.12.3: o
+        // amarelo/preto passa a ser exclusivo do que MATA por contato)
         g.fillRect(x + 8, 210, 48, 12);
         g.fillStyle(0x1f2531, 1);
         for (let i = 0; i < 3; i++) g.fillTriangle(x + 10 + i * 16, 222, x + 18 + i * 16, 222, x + 26 + i * 16, 210);
@@ -3939,7 +4005,8 @@ export class TextureFactory {
       g.fillRect(334, 152, 22, 8);
       g.fillStyle(0xfff3c4, 0.14);
       g.fillTriangle(334, 152, 356, 152, 384, 0);
-      g.fillStyle(0xff4a5e, 0.9);               // strobe na base
+      g.fillStyle(0xffd9a0, 0.85);              // luz-piloto (o strobe
+      // vermelho/ciano daqui era a MESMA cor do dronezig e do dronesent)
       g.fillRect(336, 180, 8, 5);
       g.fillStyle(0x4ad1ff, 0.9);
       g.fillRect(346, 180, 8, 5);
@@ -4344,7 +4411,13 @@ export class TextureFactory {
   static generateCars(scene) {
     const w = 640, h = 120;
     const g = scene.make.graphics({ x: 0, y: 0, add: false });
-    const body = [0xe4573f, 0x3f7ad6, 0xf2c14e, 0x5aa469, 0xd8d8d8, 0x8a5fc0];
+    // v1.12.3 "Farol": a paleta do tráfego DESSATURA e escurece. Ela era
+    // vermelho/azul/amarelo/branco vivos — as mesmas cores do enemy-car
+    // (#d9402f), da police (branca) e da scooter (#e04a35), a 30 px de
+    // altura deles e no mesmo sentido aparente. Aqui todo carro é um carro
+    // NOTURNO visto de longe: L* abaixo de 40, sem matiz de ameaça. Só os
+    // faróis ficam quentes — são a única coisa que um carro emite à noite.
+    const body = [0x7a4b42, 0x3d5170, 0x8a7a4a, 0x466051, 0x8f949c, 0x5f5470];
 
     const car = (x, y, s, c) => {
       g.fillStyle(c, 1);

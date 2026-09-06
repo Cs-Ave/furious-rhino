@@ -18,7 +18,18 @@
       <stop offset="0" stop-color="#ffd9ae"/>
       <stop offset="1" stop-color="#f2b884"/>
     </radialGradient>
+    <!-- v1.12.3 "Farol": halo claro por fora da silhueta. O contorno preto
+       dos sprites some contra a cidade noturna (contraste de borda medido:
+       2,3-2,8 · aceite 3,0). Desenhado ATRÁS do conteúdo — a arte original
+       passa intacta pelo feMerge, e a hitbox não muda. -->
+  <filter id="rim" x="-14%" y="-14%" width="128%" height="128%">
+    <feMorphology in="SourceAlpha" operator="dilate" radius="2.8" result="rimD"/>
+    <feFlood flood-color="#e6eef7" flood-opacity="0.85"/>
+    <feComposite in2="rimD" operator="in" result="rimC"/>
+    <feMerge><feMergeNode in="rimC"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
   </defs>
+  <g filter="url(#rim)">
   <!-- gotas de suor -->
   <path d="M4.2 2.6 Q5.8 5.4 4.2 6.9 Q2.6 5.4 4.2 2.6 Z" fill="#6cc7ec" stroke="#2b7fae" stroke-width="1"/>
   <path d="M36 3.4 Q37.5 6 36 7.4 Q34.5 6 36 3.4 Z" fill="#6cc7ec" stroke="#2b7fae" stroke-width="1"/>
@@ -76,4 +87,5 @@
   <ellipse cx="23.5" cy="24.4" rx="2.1" ry="1.1" fill="#d3606a"/>
   <!-- bochecha -->
   <path d="M13.2 19.4 Q14.6 20 15.8 19.6" fill="none" stroke="#e6a06c" stroke-width="1.1" stroke-linecap="round"/>
+</g>
 </svg>

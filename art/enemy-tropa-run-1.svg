@@ -1,4 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 68" width="48" height="68">
+  <defs>
+  <!-- v1.12.3 "Farol": halo claro por fora da silhueta. O contorno preto
+       dos sprites some contra a cidade noturna (contraste de borda medido:
+       2,3-2,8 · aceite 3,0). Desenhado ATRÁS do conteúdo — a arte original
+       passa intacta pelo feMerge, e a hitbox não muda. -->
+  <filter id="rim" x="-14%" y="-14%" width="128%" height="128%">
+    <feMorphology in="SourceAlpha" operator="dilate" radius="2" result="rimD"/>
+    <feFlood flood-color="#e6eef7" flood-opacity="0.85"/>
+    <feComposite in2="rimD" operator="in" result="rimC"/>
+    <feMerge><feMergeNode in="rimC"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  </defs>
+  <g filter="url(#rim)">
   <!-- FURIOUS RHINO - v1.8.7 D3. Tropa de Escudos, frame 2 da marcha: so as
        pernas trocam de fase atras do escudo; silhueta, escudo e viseira
        identicos ao enemy-tropa.svg. -->
@@ -26,4 +39,5 @@
   <rect x="32" y="44" width="9" height="4.5" rx="2" fill="#39444f" stroke="#17171b" stroke-width="1.4"/>
   <rect x="10" y="10" width="11" height="4.6" rx="2" fill="#4ad1ff" fill-opacity="0.9" stroke="#17171b" stroke-width="1.2"/>
   </g>
+</g>
 </svg>

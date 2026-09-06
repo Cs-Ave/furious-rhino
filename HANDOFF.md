@@ -1,4 +1,79 @@
-# Handoff — FURIOUS RHINO v1.12.1 — 📏 A RÉGUA
+# Handoff — FURIOUS RHINO v1.12.2 — 🔦 O FAROL
+
+**Data:** 05/09/2026 · **Status:** implementada e testada; nos portões.
+Segunda release da revisão geral (o dono trocou a ordem: o Farol veio antes
+do Desafio, que passa a ser a v1.12.3).
+
+## 0. O que é
+
+O passe de legibilidade da cidade — resposta ao feedback F1. Tudo é
+apresentação: zero spawn, zero física, zero densidade.
+
+## 1. A régua (o que torna esta release verificável)
+
+`tools/e2e-legibilidade.mjs` (`npm run test-legibilidade`) mede o contraste
+de borda de cada espécie contra o fundo REAL, em 4 pontos da cidade:
+foto COM o inimigo → foto sem ele (`setVisible`) → máscara pela diferença →
+borda (máscara menos sua erosão) × anel de fundo (dilatações subtraídas) →
+razão WCAG entre a luminância da borda e a do fundo local.
+**Aceite: contraste ≥ 3,0 E |ΔL*| ≥ 30.**
+
+| | antes | depois |
+|---|---|---|
+| espécies reprovadas | **16 de 19** | **0 de 19** |
+| pior caso | 1,60 (helinews — praticamente invisível) | 3,25 (pipa) |
+| ganho médio | — | **+2,46** |
+
+Duas armadilhas da régua, que custaram caro e ficam registradas:
+- **O service worker servia a arte do cache** (SWR de `art/*`, v1.9.7): a
+  medição lia os SVGs da visita anterior e o número oscilava. O contexto do
+  Playwright agora usa `serviceWorkers: 'block'`.
+- **A cena precisa estar CONGELADA durante o laço.** Com ela rodando entre
+  uma espécie e a seguinte, a câmera segue o rino (~660 px por espera) e o
+  confete do `crossGate` — disparado pelo teleporte para além dos 1000 m —
+  sobrevoa o fundo e ENTRA na borda medida, inflando o contraste. Sem isso
+  a régua dava 2,4 e 4,9 para a mesma espécie em rodadas seguidas.
+
+## 2. O que entrou
+
+| Camada | O quê |
+|---|---|
+| **Rim (L1)** | halo `#e6eef7` @0,85 via `feMorphology dilate` + `feFlood` atrás do `SourceGraphic`, em 36 arquivos (18 texturas × 2 quadros). Raio CALIBRADO pela medição, não escolhido: 2 na maioria, 2,4 nos voadores finos, 2,8-3,4 nas de corpo escuro. Script idempotente `tools/aplicar-rim.mjs` (que também REAJUSTA o raio); assert no `test-stats` para um `export-art --force` não apagar tudo em silêncio. |
+| **Reserva de matiz (L2)** | vermelho `#ff4a5e` e ciano `#4ad1ff` só em quem se move contra você ou atira; amarelo/preto só no que mata por contato. Trocas: telão PROCURADO, legenda, LED das lojas (era ciano a cada 80 px), janelas de emergência, tarja das jersey, meio-fio, toldo da banca, concha do orelhão, `FACADES['-vidro'].ledA/B`. |
+| **Figurantes** | 5 `runner` fora do `makeNear('vidro')` e 3 `pedestrian` fora do `makeNear('cidade')` → rastro de objetos. O veto que o programa Zoo escreveu na v1.12 ("figurante do elenco letal jamais no plano próximo") passa a valer também na cidade, que é anterior a ele. |
+| **Torre × mobiliário** | `tranq-tower-city` com caixa clara + cintas vermelhas + brasa na seteira (o pixel de saída do dardo é o mesmo); `streetLamp`, orelhão e banca escurecem. Filete claro na tampa do `spike-tower-city`. |
+| **Tráfego** | paleta dessaturada (L* ≤ 40) + campo `carsAlpha` por distrito (0,45 / 1 / 0,6) no molde do `cars:false`. |
+| **Relâmpago** | de depth 50 para −17,3: atrás do plano de jogo. Ele apagava o contraste da cena inteira por 140 ms na tempestade dos 1000-1200 m, onde a mediana pós-portão morre. |
+| **Modo cinza** | checkbox no `?debug=1` (e `?debug=1&cinza=1`): filtro CSS no canvas. Se a silhueta some em preto e branco, some no jogo. |
+
+L3 (fórmula global de luz, skyline dessaturado) **não foi preciso** — só o
+corpo do `suit` clareou, que era a única espécie que a medição ainda acusava
+depois do rim e da reserva de matiz.
+
+## 3. Verificação
+
+Bateria completa verde: test-stats **161** · radiografia 91 · caixapreta 37 ·
+score 101 · crash 76 · skins 98 · bossproof 29 · e2e-ramp 54 · overlays 94 ·
+home 11 · crash 15 · boss 18 · special 25 · deserto 14 · boss2 14 · boss3 10 ·
+skins 15 · setup 28 · stats · **legibilidade 30 (nova)**.
+Um assert do `e2e-ramp` mudou de contrato: o tráfego pós-portão agora acende
+em 0,45 (Subúrbio), não em 1 — o teste tranca "ligou", não o valor cheio.
+
+## 4. Segue de pé
+
+- **v1.12.3 "Desafio"** é a próxima (o link de aquisição) — trocou de lugar
+  com esta a pedido do dono.
+- Boss pacote P (rótulos, voz por chefe, ponto médio cosmético, cronômetro,
+  `gate_clean`) era a outra metade desta release no plano; ficou para a
+  seguinte.
+- Leituras pré-registradas **12/09 e 26/09**, por `v`.
+
+> ⚠️ Outra sessão trabalha neste repositório — conferir dono de arquivo
+> antes de commitar; nunca git add -A.
+
+---
+
+# Handoff anterior — FURIOUS RHINO v1.12.1 — 📏 A RÉGUA
 
 **Data:** 05/09/2026 · **Status:** implementada e testada; nos portões.
 Primeira das três releases da **revisão geral de 05/09** (ver §5).

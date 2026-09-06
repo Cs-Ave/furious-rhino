@@ -28,7 +28,18 @@
       <stop offset="0" stop-color="#f8cfa4"/>
       <stop offset="1" stop-color="#eaa96f"/>
     </radialGradient>
+    <!-- v1.12.3 "Farol": halo claro por fora da silhueta. O contorno preto
+       dos sprites some contra a cidade noturna (contraste de borda medido:
+       2,3-2,8 · aceite 3,0). Desenhado ATRÁS do conteúdo — a arte original
+       passa intacta pelo feMerge, e a hitbox não muda. -->
+  <filter id="rim" x="-14%" y="-14%" width="128%" height="128%">
+    <feMorphology in="SourceAlpha" operator="dilate" radius="2" result="rimD"/>
+    <feFlood flood-color="#e6eef7" flood-opacity="0.85"/>
+    <feComposite in2="rimD" operator="in" result="rimC"/>
+    <feMerge><feMergeNode in="rimC"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
   </defs>
+  <g filter="url(#rim)">
   <!-- sombra -->
   <ellipse cx="66" cy="53.9" rx="58" ry="2" fill="#14161a" opacity="0.5"/>
   <!-- carroceria: cacamba baixa na esquerda, cabine alta na direita -->
@@ -145,4 +156,5 @@
   <!-- para-lamas -->
   <path d="M19.2 47 A8.8 8.8 0 0 1 36.8 47" fill="none" stroke="#14161a" stroke-width="2.6"/>
   <path d="M97.2 47 A8.8 8.8 0 0 1 114.8 47" fill="none" stroke="#14161a" stroke-width="2.6"/>
+</g>
 </svg>

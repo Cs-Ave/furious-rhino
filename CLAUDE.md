@@ -31,9 +31,11 @@ Auto-runner de ação para web mobile (paisagem): um rinoceronte foge do zoológ
 ```bash
 python -m http.server 3000   # servir o jogo (os e2e dependem da :3000)
 npm run sprite-gen           # OU: servidor unificado — jogo na :3000 + gerador na :3210 (cede a 3000 ao python com aviso)
-npm run test-stats           # 157 asserts, sem navegador
+npm run test-stats           # 161 asserts, sem navegador
 npm run test-ramp            # 54 asserts e2e (Chromium)
 npm run test-overlays        # 94 asserts e2e dos overlays em 7 viewports (Chromium)
+npm run test-legibilidade    # 30 asserts: mede o contraste de cada inimigo da cidade contra o fundo
+npm run aplicar-rim          # (re)aplica o halo claro nos SVGs do elenco urbano — idempotente
 npm run test-e2e-stats       # 69 asserts e2e (Chromium, escreve com sonda claude-*)
 npm run digest               # resumo diário sem enviar
 npm run radiografia          # análise de usabilidade completa (leitura pública, zero writes) — markdown p/ IDEIAS-FUTURAS

@@ -5,7 +5,21 @@
 
 ---
 
-## v1.12.1 — 05/09/2026 (versão atual) — 📏 A RÉGUA
+## v1.12.2 — 05/09/2026 (versão atual) — 🔦 O FAROL
+
+**Tema: a cidade à noite volta a ser legível — o inimigo se separa do cenário.**
+
+Resposta ao feedback nº 1 ("o contraste da fase da cidade não está bom, o cenário está confundindo com os inimigos"). A queixa tinha número: na faixa de 1.000 a 1.400 m o dardo responde por **27% das mortes**, contra ~7% no zoo.
+
+- **Todo inimigo da cidade ganhou um halo claro por fora.** O contorno dos personagens sempre foi preto — de dia isso os separa do fundo claro; à noite, com o cenário escuro, preto sobre preto não separa nada. Agora há uma borda clara em volta da silhueta, desenhada por trás do desenho. **A área de colisão não mudou em um pixel** — é a mesma regra do dardo da v1.8.3: folga visual só a favor de quem joga.
+- **As cores voltaram a significar uma coisa só.** Vermelho e ciano agora aparecem apenas no que se move contra você ou atira; amarelo-e-preto, só no que mata por contato. O telão, os letreiros das lojas, o strobe do holofote, a tarja das barreiras e o meio-fio perderam essas cores — eram as mesmas do drone, da tropa e do espinho.
+- **As silhuetas humanas saíram do fundo.** Havia cinco pessoas correndo no plano de trás do Despertar, na mesma linha e com a mesma anatomia dos inimigos — em certas telas o inimigo dividia a calçada com oito figuras iguais a ele. A debandada continua sendo contada, agora por objetos: lixeira tombada, bolsa caída, jornais no chão, placa "FECHADO", vitrine rachada.
+- **A torre de dardo deixou de ser um poste entre postes**: caixa clara com duas cintas vermelhas e uma brasa na seteira — lê como boca de tiro. Em troca, o poste de luz, o orelhão e a banca escureceram. Quem mata ganha assinatura; o cenário perde a dele.
+- **O trânsito de fundo dessaturou** e recua onde a noite já pesa (45% no Subúrbio, 60% na Contenção); os carros decorativos tinham exatamente as cores dos carros que matam. E o **clarão do relâmpago desceu para trás do plano de jogo** — ele apagava o contraste da tela inteira por um instante, justamente na tempestade dos 1.000 m.
+- **Uma régua nova mede tudo isso** (`npm run test-legibilidade`): o jogo fotografa cada inimigo na cena, apaga o sprite, fotografa de novo e compara a luminosidade da silhueta com a do fundo em volta, em quatro pontos da cidade. **Resultado: de 16 espécies reprovadas para zero**, com o contraste médio subindo 2,46 pontos — o pior caso agora (3,25) é melhor que o melhor caso de antes (2,85). E no painel de tuning há um **modo cinza**: se o inimigo some em preto e branco, some no jogo.
+- Zero mudança em dificuldade, física, spawn ou elencos: o congelamento da medição segue intacto.
+
+## v1.12.1 — 05/09/2026 — 📏 A RÉGUA
 
 **Tema: o fim de corrida cabe na tela, o top 10 alinha, e o jogo passa a medir o que estava cego.**
 
