@@ -15,6 +15,7 @@ import { SkinSystem, SKINS } from '../systems/SkinSystem.js';
 import { StatsSystem } from '../systems/StatsSystem.js';
 import { NotifySystem } from '../systems/NotifySystem.js';
 import { NewsSystem } from '../systems/NewsSystem.js';
+import { LinkChallenge } from '../systems/LinkChallenge.js';
 import { ChallengeSystem } from '../systems/ChallengeSystem.js';
 import { HomeScreen } from '../home/HomeScreen.js';
 import { ReassignSystem } from '../systems/ReassignSystem.js';
@@ -307,6 +308,9 @@ export class GameScene extends Phaser.Scene {
       this.cercoFight, this.faraoFight, this.boss3Fight];
     passo('arcos-e-marcas');
     this.createSectorArches();
+    // v1.12.4: o desafio por link é lido UMA vez por cena — a estaca, o
+    // toast e o fim de corrida usam o mesmo objeto, mesmo depois de limpar()
+    this.desafioLink = LinkChallenge.ativo();
     this.createTrackMarks();
 
     // v1.8.7 — armadilhas dos distritos: pool de 4 TimedHazard num ARRAY
@@ -711,8 +715,11 @@ export class GameScene extends Phaser.Scene {
   // Convite para amigos — pensado para colar no WhatsApp: gancho, o que é
   // o jogo, provocação com o recorde (quando existe) e o link.
   async shareInvite() {
-    const url = location.origin + location.pathname;
     const record = StorageManager.getRecord();
+    // v1.12.4: o convite carrega o desafio — quem abre vê a sua marca fincada
+    // na pista. Sem recorde, é o link limpo de sempre.
+    const url = LinkChallenge.linkPara(location.origin + location.pathname,
+      record, StorageManager.getPlayerName());
     const brag = record > 0
       ? `Meu recorde: *${record}m*. Duvido você passar disso 😏`
       : 'Ainda estou treinando — vem tentar antes de mim 😏';
@@ -786,7 +793,10 @@ export class GameScene extends Phaser.Scene {
       document.getElementById('pwa-install').hidden = true;
     });
 
-    if (installed || seen) return;
+    // v1.12.4: quem chegou por um link de desafio tem um único primeiro
+    // toque a dar — o banner "ACEITAR E CORRER", não "Continuar sem
+    // instalar". Sem gravar SEEN: o prompt volta na visita seguinte.
+    if (installed || seen || LinkChallenge.ativo()) return;
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     if (isIOS) {
@@ -980,6 +990,19 @@ export class GameScene extends Phaser.Scene {
     } else if (prev > 0 && prev <= 3 && rank > 3) {
       NewsSystem.push(`podium:out:${prev}>${rank}`,
         `⚠️ Você perdeu o pódio — caiu de #${prev} para #${rank}. Recupere o seu posto!`, 'red');
+      NewsSystem.renderInto(document.getElementById('news-list'));
+    // v1.12.4: o pódio era o único degrau com notícia; o resto do ranking
+    // subia e descia em silêncio. `prev` é o rank cacheado da sessão
+    // anterior, então "piorou" aqui significa que alguém passou você
+    // enquanto esteve fora — o gancho de reengajamento mais barato que há.
+    // "Subiu" só ao ENTRAR no top 10 (cada posição ganha viraria ruído).
+    } else if (prev > 0 && rank > prev) {
+      NewsSystem.push(`rank:down:${prev}>${rank}`,
+        `🏃 Alguém passou você: de #${prev} para #${rank}. Responde?`, 'red');
+      NewsSystem.renderInto(document.getElementById('news-list'));
+    } else if (prev > 10 && rank <= 10) {
+      NewsSystem.push(`rank:top10:${rank}`,
+        `📈 Você entrou no top 10 mundial — #${rank}!`, 'gold');
       NewsSystem.renderInto(document.getElementById('news-list'));
     }
     this.bootRank = rank;
@@ -1389,6 +1412,9 @@ export class GameScene extends Phaser.Scene {
   maybeShowChallengeInvite() {
     try {
       if (document.body.classList.contains('modal-open')) return;
+      // v1.12.4: quem acabou de tocar JOGAR DE NOVO quer correr, não ler um
+      // convite — adia SEM markSeen (o convite volta no boot seguinte)
+      if (StorageManager.replayRecente()) return;
       const invites = ChallengeSystem.unseenInvites() || [];
       if (!invites.length) return;
       const ch = invites[0];
@@ -1475,7 +1501,9 @@ export class GameScene extends Phaser.Scene {
       } else {
         btn.addEventListener('click', () => {
           this.marcarReinicio(2); // "tocou compartilhar antes de sair"
-          this.shareResult();
+          // v1.12.4: passou a marca do amigo → o botão é o DEVOLVER
+          if (this.desafioPassado) this.devolverDesafio();
+          else this.shareResult();
         });
       }
     }
@@ -1538,20 +1566,28 @@ export class GameScene extends Phaser.Scene {
   // `run` = resultado de uma corrida; `null` = o perfil inteiro.
   // Três caminhos, nesta ordem: folha nativa (celular) → wa.me (desktop, que
   // não tem navigator.share) → área de transferência.
-  async shareSummary(run = null, statusId = null) {
-    const url = location.origin + location.pathname; // sem ?debug etc.
+  // v1.12.4: `opts.url`/`opts.text` sobrescrevem (o "devolver o desafio");
+  // sem eles, a url padrão passou a ser o LINK DE DESAFIO com o recorde e o
+  // apelido — é o lado remetente do loop: sem ele o link nunca circularia.
+  // Sem recorde, a base volta intacta (linkPara).
+  async shareSummary(run = null, statusId = null, opts = {}) {
+    const base = location.origin + location.pathname; // sem ?debug etc.
+    const url = opts.url
+      || LinkChallenge.linkPara(base, StorageManager.getRecord(), StorageManager.getPlayerName());
     const show = (msg) => {
       if (statusId) document.getElementById(statusId).textContent = msg;
       else this.showShareStatus(msg);
     };
 
-    let text;
-    try {
-      const mod = this.myStats || (this.myStats = await import('../stats/MyStats.js'));
-      text = mod.shareText(run);
-    } catch (e) {
-      const d = run ? run.distance : StorageManager.getRecord();
-      text = `🦏 *FURIOUS RHINO* — ${d}m! Duvido você passar disso 😏`;
+    let text = opts.text || '';
+    if (!text) {
+      try {
+        const mod = this.myStats || (this.myStats = await import('../stats/MyStats.js'));
+        text = mod.shareText(run);
+      } catch (e) {
+        const d = run ? run.distance : StorageManager.getRecord();
+        text = `🦏 *FURIOUS RHINO* — ${d}m! Duvido você passar disso 😏`;
+      }
     }
     const full = `${text}\n${url}`;
 
@@ -1582,6 +1618,58 @@ export class GameScene extends Phaser.Scene {
         show('Não foi possível copiar.');
       }
     }
+  }
+
+  // v1.12.4 — o desafio por link no fim de corrida. `desafioLink` foi lido
+  // uma vez no create: mesmo depois de limpar(), o overlay sabe de quem era.
+  // Não passou → o slot do delta mostra quanto faltou (SOBREPÕE o delta do
+  // recorde: para quem chegou por link toda corrida é recorde, e a meta da
+  // corrida é a marca do amigo). Passou → o desafio é dado por batido, a
+  // linha comemora e o 📤 vira "DEVOLVER O DESAFIO" (um botão só: o rodapé
+  // fixo da Régua não cresce). A LENDA mantém o próprio título.
+  pintarDesafioFim(won, distance, isNewRecord) {
+    const d = this.desafioLink;
+    if (!d) return;
+    const msg = document.getElementById(won ? 'win-record-message' : 'record-message');
+    const btn = document.getElementById(won ? 'win-share-btn' : 'share-btn');
+    const passou = distance >= d.m;
+    this.desafioPassado = passou;
+    if (!passou) {
+      if (msg) msg.textContent = `🎯 Faltaram ${d.m - distance} m para passar ${d.de}`;
+      return;
+    }
+    if (msg && !this.legend) {
+      msg.textContent = `🎯 Você passou ${d.de} (${ScoreSystem.fmtNum(d.m)} m)!`
+        + (isNewRecord ? ' · 🎉 novo recorde' : '');
+    }
+    LinkChallenge.limpar();
+    if (btn) {
+      btn.textContent = '↩️ DEVOLVER O DESAFIO';
+      btn.classList.add('devolver');
+      btn.setAttribute('aria-label', 'Devolver o desafio');
+    }
+  }
+
+  // "Devolver o desafio": a marca de quem PASSOU volta para quem mandou o
+  // link, pelo mesmo canal do compartilhar (folha nativa → wa.me →
+  // clipboard). Sem apelido, abre o #nickname-modal antes — é aqui que o
+  // visitante vira jogador — e retoma ao salvar ou ao ficar anônimo
+  // ("Agora não" cancela). A marca enviada é o recorde do aparelho (nunca
+  // menor que esta corrida, que acabou de ser gravada).
+  devolverDesafio() {
+    const d = this.desafioLink;
+    if (!d) return this.shareResult();
+    const nome = StorageManager.getPlayerName();
+    if (!nome) {
+      this.devolverPendente = true;
+      this.openNicknameModal(true);
+      return undefined;
+    }
+    const meuM = Math.max(StorageManager.getRecord(), Math.floor(this.finalDistance || 0));
+    return this.shareSummary(null, null, {
+      text: LinkChallenge.textoDevolver({ de: d.de, meuM }),
+      url: LinkChallenge.linkPara(location.origin + location.pathname, meuM, nome),
+    });
   }
 
   // rename=true: troca pela tela inicial (sem score pendente para enviar)
@@ -1681,6 +1769,12 @@ export class GameScene extends Phaser.Scene {
       if (StorageManager.getBestSent() > 0) {
         this.safeTelemetry(() => LeaderboardSystem.rename(name));
       }
+      // v1.12.4: o modal foi aberto pelo DEVOLVER O DESAFIO — agora com
+      // nome, o compartilhamento que ficou esperando segue
+      if (this.devolverPendente) {
+        this.devolverPendente = false;
+        this.devolverDesafio();
+      }
       return;
     }
     this.closeNicknameModal(true);
@@ -1732,6 +1826,7 @@ export class GameScene extends Phaser.Scene {
   nicknameSkip() {
     if (StorageManager.getPlayerName()) {
       StorageManager.setNameAskedAt(StorageManager.getAttempts());
+      this.devolverPendente = false; // "Agora não" também cancela o DEVOLVER
       this.closeNicknameModal(false);
       return;
     }
@@ -1748,6 +1843,12 @@ export class GameScene extends Phaser.Scene {
     StorageManager.setNameAuto(true);
     StorageManager.setNameAskedAt(StorageManager.getAttempts());
     this.updateIdentityLine();
+    // v1.12.4: "Ficar anônimo" também resolve o DEVOLVER pendente — o link
+    // sai como Anonimo_N (o outro lado lê o nome, não "um amigo")
+    if (this.devolverPendente) {
+      this.devolverPendente = false;
+      this.devolverDesafio();
+    }
     if (this.pendingScore) {
       const ok = await LeaderboardSystem.submit(this.pendingScore.total,
         this.pendingScore.meters, this.pendingScore.seconds, this.pendingScore.bosses);
@@ -2007,6 +2108,14 @@ export class GameScene extends Phaser.Scene {
       this.trackMarks.push({ x, msg, fanfare, passed: false });
     };
 
+    // v1.12.4: a marca do amigo que mandou o link — ANTES do recorde de
+    // propósito: o anticolisão de 90 px mantém a primeira registrada, e
+    // para quem chegou por link esta é a estaca que importa. Teal é a cor
+    // do desafio por link em toda a interface (nenhuma outra estaca a usa).
+    if (this.desafioLink) {
+      const d = this.desafioLink;
+      add(d.m, `🎯 ${d.de}\n${d.m}m`, 0x4ecdc4, `🎯 VOCÊ PASSOU ${d.de.toUpperCase()}!`);
+    }
     add(record, `🏅 SEU RECORDE\n${record}m`, 0xffd95e,
       '🏅 SEU RECORDE FICOU PRA TRÁS!');
     // Rival e líder: os metros vêm do campo `m` das entradas (cache velho,
@@ -3944,6 +4053,8 @@ export class GameScene extends Phaser.Scene {
       // que nasceu de home fria não carrega byte nenhum.
       restartSource: this.replayInfo ? this.replayInfo.bits : 0,
       replayLatencyS: this.replayInfo ? this.replayInfo.latenciaS : 0,
+      // v1.12.4: corrida sob desafio por link (letra `md`; 0 é omitido)
+      modoDesafio: this.desafioLink ? 1 : 0,
       wallsBroken: this.runWallsBroken,
       rampsSmashed: this.runRampsSmashed,
       towersDowned: this.runTowersDowned,
@@ -4108,6 +4219,11 @@ export class GameScene extends Phaser.Scene {
         tipEl.textContent = linha;
       }
     }
+
+    // v1.12.4: o desafio por link escreve por cima do slot do delta e pode
+    // transformar o 📤 em DEVOLVER — depois dos dois ramos acima, antes das
+    // medalhas (que escrevem no próprio slot)
+    this.pintarDesafioFim(won, distance, isNewRecord);
 
     // Medalhas: avaliar e anunciar (persistidas — "Jogar Novamente" recarrega)
     const animalsTotal = StorageManager.addAnimalsHit(this.runAnimalsHit);

@@ -52,7 +52,7 @@ export const RUN_LETTER_KEYS = ['w', 'r', 'o', 'a', 'j', 'd', 'x', 'p', 'f', 'n'
   // v1.10 Escola do Rino: o experimento viaja na corrida
   'fc', 'cj',
   // v1.12.1 Régua: a fricção entre uma corrida e a seguinte
-  'rs', 'rt'];
+  'rs', 'rt', 'md'];
 
 // Significado curto de cada letra (imprime na cobertura do relatório)
 export const RUN_LETTER_DESC = {
@@ -79,6 +79,7 @@ export const RUN_LETTER_DESC = {
   // v1.12.1 — como a corrida COMECOU (o jogo era cego para isso)
   rs: 'origem do reinicio (bitmask: 1 botao, 2 share, 4 rolou extras)',
   rt: 'segundos entre a morte anterior e esta largada (so com rs&1)',
+  md: 'corrida sob desafio por link (1 = sim; v1.12.4)',
 };
 
 const num = (v) => (typeof v === 'number' && isFinite(v) ? v : 0);
@@ -511,6 +512,12 @@ export function radiografia({ stats = [], scores = [], challenges = [] } = {}, o
 
   // ------------------------------------------------------------ 8. bosses
   const somaDeaths = (causa) => stats.reduce((a, d) => a + num(d.deaths && d.deaths[causa]), 0);
+  // `deaths[causa]` e contador de VIDA INTEIRA do aparelho; `lutas`/`chegadas`
+  // saem de runs[] (so a janela). Dividir vida por janela inflava a razao de
+  // R-06/R-07 — tanto mais quanto mais estreita a janela. A morte que entra na
+  // razao vem da MESMA fonte do denominador: `r.c`, a causa da morte da corrida.
+  // `mortes` (vida) fica nos objetos: leitores externos ainda podem le-lo.
+  const somaMortesJanela = (causa) => runs.filter((r) => r.c === causa).length;
   const distDe = (letra, max) => {
     const dist = {};
     for (let i = 0; i <= max; i++) dist[i] = 0;
@@ -537,6 +544,7 @@ export function radiografia({ stats = [], scores = [], challenges = [] } = {}, o
       fullClear: lutasB1.filter((r) => r.b >= 3).length,
       medianaS: Math.round(mediana(lutasB1.map((r) => r.z))),
       mortes: somaDeaths('boss'),
+      mortesJanela: somaMortesJanela('boss'),
       fugasJanela: runs.filter((r) => r.c === 'win' || r.m >= 1000).length,
     },
     b2: {
@@ -545,6 +553,7 @@ export function radiografia({ stats = [], scores = [], challenges = [] } = {}, o
       fullClear: chegadasB2.filter((r) => r.e >= 4).length,
       medianaS: Math.round(mediana(chegadasB2.filter((r) => r.h > 0).map((r) => r.h))),
       mortes: somaDeaths('boss2'),
+      mortesJanela: somaMortesJanela('boss2'),
     },
     // v1.9.5: a Barreira e o Farao existiam no jogo desde a v1.8.10 e NAO
     // tinham metrica nenhuma aqui — o relatorio pulava de b2 para b3. Com os
@@ -556,6 +565,7 @@ export function radiografia({ stats = [], scores = [], challenges = [] } = {}, o
       fullClear: chegadasBarreira.filter((r) => r.u >= 4).length,
       medianaS: Math.round(mediana(chegadasBarreira.filter((r) => r.zu > 0).map((r) => r.zu))),
       mortes: somaDeaths('cerco'),
+      mortesJanela: somaMortesJanela('cerco'),
     },
     farao: {
       chegadas: chegadasFarao.length,
@@ -563,6 +573,7 @@ export function radiografia({ stats = [], scores = [], challenges = [] } = {}, o
       fullClear: chegadasFarao.filter((r) => r.y >= 5).length,
       medianaS: Math.round(mediana(chegadasFarao.filter((r) => r.zy > 0).map((r) => r.zy))),
       mortes: somaDeaths('farao'),
+      mortesJanela: somaMortesJanela('farao'),
     },
     b3: {
       corridasComCamada: runs.filter((r) => r.l > 0).length,
@@ -1074,12 +1085,12 @@ function buildInsights(M, { B, anterior, versaoJogo }) {
   add('R-06', 'Boss do portão: pedágio ou clímax?', 20, M.bosses.b1.lutas, () => {
     const b1 = M.bosses.b1;
     const full = b1.lutas ? b1.fullClear / b1.lutas : 0;
-    const mortesRatio = b1.lutas ? b1.mortes / b1.lutas : 0;
+    const mortesRatio = b1.lutas ? b1.mortesJanela / b1.lutas : 0;
     if (full >= 0.8 && b1.medianaS <= 8 && mortesRatio <= 0.15) {
       const piorou = full > 41 / 48 && b1.medianaS <= 4;
       return {
         sev: piorou ? 'atencao' : 'observar',
-        dado: `${b1.fullClear} de ${b1.lutas} lutas com full-clear (${fmtPct(full)}), mediana ${b1.medianaS} s, ${b1.mortes} mortes.`,
+        dado: `${b1.fullClear} de ${b1.lutas} lutas com full-clear (${fmtPct(full)}), mediana ${b1.medianaS} s, ${b1.mortesJanela} mortes na janela (${b1.mortes} na vida).`,
         problema: 'Diagnóstico conhecido (§4.4): o portão é pedágio, não clímax.',
         sugestao: 'Qualquer redesenho de boss novo (ideia J) deve mirar mortes > 6 e mediana de luta > 8 s.',
       };
@@ -1087,31 +1098,32 @@ function buildInsights(M, { B, anterior, versaoJogo }) {
     return null;
   });
 
-  // R-07 boss dos 2000m: pedágio OU muro
-  add('R-07', 'Boss dos 2000 m (letras e/h)', 15, M.bosses.b2.chegadas, () => {
+  // R-07 Muralha (2000 m): pedagio OU muro. A razao de muro divide mortes DA
+  // JANELA por chegadas DA JANELA — mesma fonte (runs[]), senao a razao infla.
+  add('R-07', 'Muralha (2000 m, letras e/h)', 15, M.bosses.b2.chegadas, () => {
     const b2 = M.bosses.b2;
     const full = b2.chegadas ? b2.fullClear / b2.chegadas : 0;
     if (full >= 0.8 && b2.medianaS <= 8) {
       return {
         sev: 'atencao',
-        dado: `${b2.fullClear} de ${b2.chegadas} chegadas com as 4 camadas (mediana ${b2.medianaS} s, ${b2.mortes} mortes).`,
-        problema: 'O segundo boss está repetindo o destino do portão: pedágio.',
+        dado: `${b2.fullClear} de ${b2.chegadas} chegadas com as 4 camadas (mediana ${b2.medianaS} s, ${b2.mortesJanela} mortes na janela, ${b2.mortes} na vida).`,
+        problema: 'A Muralha está repetindo o destino do portão: pedágio.',
         sugestao: 'Rever cadência/telegraphs da def antes de investir no 3º boss; meta da ideia J: mortes > 6.',
       };
     }
-    if (b2.chegadas && b2.mortes / b2.chegadas >= 0.7) {
+    if (b2.chegadas && b2.mortesJanela / b2.chegadas >= 0.7) {
       return {
         sev: 'atencao',
-        dado: `${b2.mortes} mortes em ${b2.chegadas} chegadas (${fmtPct(b2.mortes / b2.chegadas)}).`,
-        problema: 'O boss dos 2000 m está operando como MURO — filosofia da casa é "justo, telegrafado, nunca muro de morte".',
+        dado: `${b2.mortesJanela} mortes na janela em ${b2.chegadas} chegadas (${fmtPct(b2.mortesJanela / b2.chegadas)}; ${b2.mortes} na vida).`,
+        problema: 'A Muralha está operando como MURO — filosofia da casa é "justo, telegrafado, nunca muro de morte".',
         sugestao: 'Aliviar a última camada ou o enrage; validar com o funil fino (ideia H).',
       };
     }
     return {
       sev: 'vitoria',
-      dado: `${b2.chegadas} chegadas · full-clear ${fmtPct(full)} · mediana ${b2.medianaS} s · ${b2.mortes} mortes.`,
-      problema: 'Nem pedágio nem muro: o boss dos 2000 m está no meio-termo que o portão nunca teve.',
-      sugestao: 'Registrar estes números como baseline do segundo boss.',
+      dado: `${b2.chegadas} chegadas · full-clear ${fmtPct(full)} · mediana ${b2.medianaS} s · ${b2.mortesJanela} mortes na janela (${b2.mortes} na vida).`,
+      problema: 'Nem pedágio nem muro: a Muralha está no meio-termo que o portão nunca teve.',
+      sugestao: 'Registrar estes números como baseline da Muralha.',
     };
   });
 
@@ -1502,13 +1514,21 @@ function buildMarkdown(meta, M, insights) {
   push();
   const b1 = M.bosses.b1;
   const b2 = M.bosses.b2;
+  const bb = M.bosses.barreira;
+  const bf = M.bosses.farao;
   const b3 = M.bosses.b3;
   push(`**Portão (1000 m):** ${b1.lutas} lutas na janela · fugas na janela: ${b1.fugasJanela} · camadas (0/1/2/3): `
-    + `${b1.dist[0]} / ${b1.dist[1]} / ${b1.dist[2]} / ${b1.dist[3]} · mediana ${b1.medianaS} s · mortes por \`boss\`: ${b1.mortes} `
+    + `${b1.dist[0]} / ${b1.dist[1]} / ${b1.dist[2]} / ${b1.dist[3]} · mediana ${b1.medianaS} s · mortes por \`boss\`: ${b1.mortesJanela} na janela (${b1.mortes} na vida) `
     + `(16/08: ${B.boss1.lutas} lutas, ${B.boss1.fullClear} full, ${B.boss1.medianaS} s, ${B.boss1.mortes} mortes).`);
   push();
-  push(`**Boss dos 2000 m (letras \`e\`/\`h\`, lidas pela primeira vez):** ${b2.chegadas} chegadas · camadas (0/1/2/3/4): `
-    + `${b2.dist[0]} / ${b2.dist[1]} / ${b2.dist[2]} / ${b2.dist[3]} / ${b2.dist[4]} · mediana ${b2.medianaS} s · mortes por \`boss2\`: ${b2.mortes}.`);
+  push(`**Muralha (2000 m, letras \`e\`/\`h\`):** ${b2.chegadas} chegadas · camadas (0/1/2/3/4): `
+    + `${b2.dist[0]} / ${b2.dist[1]} / ${b2.dist[2]} / ${b2.dist[3]} / ${b2.dist[4]} · mediana ${b2.medianaS} s · mortes por \`boss2\`: ${b2.mortesJanela} na janela (${b2.mortes} na vida).`);
+  push();
+  push(`**Barreira da Escavação (3650 m, letras \`u\`/\`zu\`):** ${bb.chegadas} chegadas · camadas (0/1/2/3/4): `
+    + `${bb.dist[0]} / ${bb.dist[1]} / ${bb.dist[2]} / ${bb.dist[3]} / ${bb.dist[4]} · mediana ${bb.medianaS} s · mortes por \`cerco\`: ${bb.mortesJanela} na janela (${bb.mortes} na vida).`);
+  push();
+  push(`**Faraó de Bronze (4700 m, letras \`y\`/\`zy\`):** ${bf.chegadas} chegadas · camadas (0/1/2/3/4/5): `
+    + `${bf.dist[0]} / ${bf.dist[1]} / ${bf.dist[2]} / ${bf.dist[3]} / ${bf.dist[4]} / ${bf.dist[5]} · mediana ${bf.medianaS} s · mortes por \`farao\`: ${bf.mortesJanela} na janela (${bf.mortes} na vida).`);
   push();
   push(`**Guardião do Fim (letra \`l\`):** ${b3.corridasComCamada} corridas com camada quebrada · mortes: ${b3.mortes} · LENDAS: ${b3.lendas} — existência, nunca taxa (recorde ${fmtInt(M.totais.maiorBestM)} m).`);
   push();

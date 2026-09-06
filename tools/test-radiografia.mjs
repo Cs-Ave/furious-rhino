@@ -291,6 +291,72 @@ ok('markdown: nunca vaza NaN/undefined', !/NaN|undefined/.test(r1.markdown));
   ok('motor: R-21 (cota do Firestore) fica calada com a base pequena', !ids.includes('R-21'));
 }
 
+// ---------- 10c. Bosses: mortes NA JANELA vs NA VIDA; Barreira/Farao/Muralha ----------
+{
+  // `deaths.boss` e contador de vida inteira do aparelho; `lutas`/`chegadas`
+  // vem de runs[] (so a janela). Um aparelho com 50 mortes na vida e 2 na
+  // janela e o caso que inflava a razao de R-06/R-07.
+  const vet = radiografia({
+    stats: [{
+      id: 'v1', attempts: 60, wins: 0, playTimeS: 6000, bestM: 1100,
+      deaths: { boss: 50, wall: 8 },
+      runs: [
+        { t: D(1), m: 1000, s: 60, c: 'boss', b: 1, z: 6, v: '1.12.3' },
+        { t: D(1) + 600, m: 1000, s: 70, c: 'boss', b: 2, z: 9, v: '1.12.3' },
+        { t: D(0), m: 400, s: 30, c: 'wall', v: '1.12.3' },
+      ],
+      gameVersion: '1.12.3', updatedAt: D(0),
+    }],
+  }, { nowS: NOW, versaoJogo: '1.12.3' }).metricas.bosses.b1;
+  eq('bosses: mortesJanela conta runs[].c (2); mortes segue o contador de vida (50)',
+    [vet.mortesJanela, vet.mortes], [2, 50]);
+  ok('bosses: na janela, mortes <= lutas (mesma fonte)', vet.mortesJanela <= vet.lutas);
+
+  // Fixture padrao: so a corrida de 2100 m morreu de chefe (`boss2`)
+  eq('bosses: mortesJanela por chefe na fixture (b1/b2/barreira/farao)',
+    [M.bosses.b1.mortesJanela, M.bosses.b2.mortesJanela, M.bosses.barreira.mortesJanela, M.bosses.farao.mortesJanela],
+    [0, 1, 0, 0]);
+  ok('bosses: mortesJanela nunca excede o denominador da regra',
+    M.bosses.b1.mortesJanela <= M.bosses.b1.lutas
+    && M.bosses.b2.mortesJanela <= M.bosses.b2.chegadas
+    && M.bosses.barreira.mortesJanela <= M.bosses.barreira.chegadas
+    && M.bosses.farao.mortesJanela <= M.bosses.farao.chegadas);
+
+  // Markdown: os dois chefes do deserto imprimem; o slot b2 e a Muralha
+  ok('markdown: Barreira da Escavação impressa (3650 m)',
+    r1.markdown.includes('**Barreira da Escavação (3650 m, letras `u`/`zu`):**'));
+  ok('markdown: Faraó de Bronze impresso (4700 m)',
+    r1.markdown.includes('**Faraó de Bronze (4700 m, letras `y`/`zy`):**'));
+  ok('markdown: slot b2 rotulado Muralha, "Boss dos 2000 m" extinto',
+    r1.markdown.includes('**Muralha (2000 m, letras `e`/`h`):**') && !r1.markdown.includes('Boss dos 2000 m'));
+  ok('markdown: mortes de chefe saem como "janela (vida)"',
+    r1.markdown.includes('mortes por `boss2`: 1 na janela (1 na vida)'));
+
+  // R-07 na fixture padrao segue ⚪ (1 chegada < 15) — como antes.
+  eq('R-07 na fixture padrao: sem-amostra (como antes)', insightIds['R-07'], 'sem-amostra');
+  // 15 chegadas a Muralha com mediana de luta 12 s (fora do ramo "pedagio").
+  // `vida` e o contador deaths.boss2; `janela` e quantas dessas 15 corridas
+  // morreram de `boss2`.
+  const r07 = (vida, janela) => radiografia({
+    stats: [{
+      id: 'm1', attempts: 80, wins: 0, playTimeS: 9000, bestM: 2600,
+      deaths: { boss2: vida, wall: 10 },
+      runs: Array.from({ length: 15 }, (_, i) => (i < janela
+        ? { t: D(1) + i * 600, m: 2000, s: 90, c: 'boss2', b: 3, z: 8, e: 2, h: 12, v: '1.12.3' }
+        : { t: D(1) + i * 600, m: 2600, s: 120, c: 'wall', b: 3, z: 8, e: 4, h: 12, v: '1.12.3' })),
+      gameVersion: '1.12.3', updatedAt: D(0),
+    }],
+  }, { nowS: NOW, versaoJogo: '1.12.3' }).insights.find((i) => i.id === 'R-07');
+  // 50 mortes na vida / 15 chegadas daria 333% (MURO) — mas so 5 das 15
+  // corridas da janela morreram ali (33%): nao e muro.
+  const meio = r07(50, 5);
+  eq('R-07: 50 mortes na vida e 5 na janela em 15 chegadas NAO e muro', meio.sev, 'vitoria');
+  ok('R-07: o dado imprime janela e vida lado a lado', meio.dado.includes('5 mortes na janela (50 na vida)'));
+  eq('R-07: titulo renomeado para Muralha', meio.titulo, 'Muralha (2000 m, letras e/h)');
+  const muro = r07(50, 11);
+  ok('R-07: 11 de 15 chegadas mortas na janela (73%) e muro', muro.sev === 'atencao' && muro.problema.includes('MURO'));
+}
+
 // ---------- 11. Higiene dos fetchers (text-asserts, molde do test-stats) ----------
 const cliSrc = readFileSync(join(ROOT, 'tools', 'radiografia.mjs'), 'utf8');
 ok('CLI: filtro ^claude- presente', cliSrc.includes('^claude-'));

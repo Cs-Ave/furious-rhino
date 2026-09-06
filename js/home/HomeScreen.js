@@ -26,6 +26,7 @@ import { ScoreSystem } from '../systems/ScoreSystem.js';
 import { SkinSystem } from '../systems/SkinSystem.js';
 import { NewsSystem } from '../systems/NewsSystem.js';
 import { ChallengeSystem } from '../systems/ChallengeSystem.js';
+import { LinkChallenge } from '../systems/LinkChallenge.js';
 
 export class HomeScreen {
   // Toque dado antes de o motor do jogo existir (ver armStart/ready)
@@ -405,10 +406,16 @@ export class HomeScreen {
       const veioDeLink = new URLSearchParams(location.search).has('desafio');
       StorageManager.markSource(veioDeLink ? 'link' : 'org');
     });
+    // v1.12.4: DEPOIS do markSource — o paintDesafio consome a URL e apaga
+    // o `?desafio=`; a origem tem de ser lida antes disso.
+    this.safeTelemetry(() => this.paintDesafio());
     this.safeTelemetry(() => this.paintCampanha());
     this.safeTelemetry(() => this.renderPodium());
     this.safeTelemetry(() => this.showRank(StorageManager.getLastRank()));
+    // v1.12.4: os cards de novidades entram ANTES de o feed ser pintado
+    this.safeTelemetry(() => this.pushNovidades());
     this.safeTelemetry(() => NewsSystem.renderInto(document.getElementById('news-list')));
+    this.safeTelemetry(() => this.paintReplayHint());
     this.safeTelemetry(() => this.paintChallengesFromCache());
     try { performance.mark('home-pintada'); } catch (e) { /* sem timeline */ }
   }
@@ -459,6 +466,67 @@ export class HomeScreen {
     try { this.paintChallenges(box); } catch (e) { box.hidden = true; }
   }
 
+  // v1.12.4 — o banner do desafio por LINK. Consome a URL (uma vez), lê o
+  // desafio vigente e pinta o banner; sem desafio, esconde. O texto entra
+  // por textContent (o nome veio da URL) e o banner/botão param a propagação
+  // — o overlay inteiro é "toque para começar" e o CTA tem de ser o único
+  // caminho aqui. Os ouvintes são armados UMA vez (paintFromCache pode
+  // rodar de novo).
+  static paintDesafio() {
+    LinkChallenge.consumeUrl();
+    const d = LinkChallenge.ativo();
+    const banner = document.getElementById('desafio-banner');
+    const text = document.getElementById('desafio-text');
+    const btn = document.getElementById('desafio-aceitar');
+    if (!banner || !text || !btn) return;
+    if (!d) {
+      banner.hidden = true;
+      document.body.classList.remove('desafio');
+      return;
+    }
+    text.textContent = LinkChallenge.textoBanner(d);
+    banner.hidden = false;
+    document.body.classList.add('desafio');
+    if (this._desafioArmado) return;
+    this._desafioArmado = true;
+    const stop = (ev) => ev.stopPropagation();
+    banner.addEventListener('pointerdown', stop);
+    banner.addEventListener('click', stop);
+    btn.addEventListener('pointerdown', stop);
+    btn.addEventListener('click', (ev) => {
+      stop(ev);
+      this.tentarIniciar();
+    });
+  }
+
+  // v1.12.4 — "novidades desde a sua última visita". A versão vista por
+  // último vem da chave própria; quem nunca a teve (todo aparelho anterior a
+  // esta versão) é resolvido pela maior versão JOGADA em history.versions —
+  // é o que faz os 55 jogadores que sumiram verem cards ao voltar. Aparelho
+  // novo de verdade não tem nenhuma das duas → nada a contar.
+  static pushNovidades() {
+    const atual = Constants.VERSION;
+    let prev = StorageManager.getLastVersion();
+    if (!prev) {
+      const jogadas = Object.keys(StorageManager.getHistory().versions || {})
+        .filter((v) => v !== atual)
+        .sort(NewsSystem.cmpVersao);
+      prev = jogadas.pop() || '';
+    }
+    if (prev && prev !== atual) NewsSystem.pushChangelog(prev, atual);
+    StorageManager.setLastVersion(atual);
+  }
+
+  // v1.12.4 — veio do JOGAR DE NOVO há menos de um minuto: o CTA diz isso.
+  // Só texto e classe; o toque continua sendo o gesto (sem autoStart).
+  static paintReplayHint() {
+    if (!StorageManager.replayRecente()) return;
+    const cta = document.querySelector('.start-cta');
+    if (!cta) return;
+    cta.textContent = 'TOQUE PARA CORRER DE NOVO';
+    cta.classList.add('replay');
+  }
+
   // O toque para começar, registrado ANTES de o motor existir. Se o jogador
   // toca numa home já pintada com o Phaser ainda carregando, o toque é
   // GUARDADO e a corrida começa sozinha quando a cena chega — ninguém toca
@@ -467,21 +535,32 @@ export class HomeScreen {
     const overlay = document.getElementById('start-screen');
     if (!overlay) return;
     if (typeof iniciar === 'function') this.iniciarCorrida = iniciar;
-    const disparar = (ev) => {
-      if (ev && (ev.key === 'p' || ev.key === 'P' || ev.key === 'Escape')) return;
-      if (document.body.classList.contains('modal-open')) return;
-      if (this.iniciarCorrida) {
-        overlay.removeEventListener('pointerdown', disparar);
-        window.removeEventListener('keydown', disparar);
-        this.iniciarCorrida();
-        return;
-      }
-      this.toquePendente = true;
-      const cta = document.querySelector('.start-cta');
-      if (cta) cta.textContent = 'preparando a fuga...';
-    };
-    overlay.addEventListener('pointerdown', disparar);
-    window.addEventListener('keydown', disparar);
+    // v1.12.4: o corpo do disparo virou `tentarIniciar` para o CTA do
+    // desafio (um <button>, que para a propagação e por isso nunca chega
+    // aqui) poder iniciar a corrida pela MESMA porta — mesmas guardas, mesmo
+    // toque pendente. A referência fica guardada para a remoção.
+    this._disparar = (ev) => this.tentarIniciar(ev);
+    overlay.addEventListener('pointerdown', this._disparar);
+    window.addEventListener('keydown', this._disparar);
+  }
+
+  // A porta única de início: pelo toque no overlay, pela tecla ou pelo CTA
+  // do desafio. Com o motor pronto, dispara e desarma os ouvintes; sem ele,
+  // guarda o toque (ver `ready`). Nunca `autoStart`: o gesto é o que libera
+  // o áudio no WebKit e o que separa uma corrida real de um reload.
+  static tentarIniciar(ev) {
+    if (ev && (ev.key === 'p' || ev.key === 'P' || ev.key === 'Escape')) return;
+    if (document.body.classList.contains('modal-open')) return;
+    if (this.iniciarCorrida) {
+      const overlay = document.getElementById('start-screen');
+      if (overlay && this._disparar) overlay.removeEventListener('pointerdown', this._disparar);
+      if (this._disparar) window.removeEventListener('keydown', this._disparar);
+      this.iniciarCorrida();
+      return;
+    }
+    this.toquePendente = true;
+    const cta = document.querySelector('.start-cta');
+    if (cta) cta.textContent = 'preparando a fuga...';
   }
 
   // A cena ficou pronta: assume o início da corrida e, se o jogador já tinha

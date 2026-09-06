@@ -18,6 +18,21 @@ const REMOTE_KEY = 'furious_rhino_news_cfg';   // {at, items: [string]}
 const REMOTE_TTL_MS = 60 * 60 * 1000;          // mesmo TTL do config/notify
 const LOCAL_CAP = 10;
 
+// v1.12.4 — "novidades desde a sua última visita". Uma linha por versão, da
+// mais nova para a mais antiga; o boot da home compara a versão vista por
+// último com a atual e empurra as que ficaram no meio (até o teto do
+// pushChangelog). Copy do dono. Versão nova = linha nova AQUI, ou o card
+// não existe (o test-stats exige o card da versão corrente).
+export const CHANGELOG_CARDS = [
+  { v: '1.12.4', x: '🎯 Novo: desafie um amigo por link — o seu recorde vira uma estaca na pista dele.' },
+  { v: '1.12.3', x: '🗣️ Os cinco chefes ganharam voz, cor e ritmo próprios.' },
+  { v: '1.12.2', x: '🔦 A cidade à noite ficou legível: todo inimigo ganhou contorno claro.' },
+  { v: '1.12.1', x: '📏 O fim de corrida cabe na tela e o top 10 alinha.' },
+  { v: '1.12.0', x: '🦁 O zoológico foi redesenhado: alas com identidade e portais de verdade.' },
+  { v: '1.11.0', x: '🔥 Streaks: dias seguidos viram chama na home.' },
+  { v: '1.10.0', x: '🎓 Escola do Rino: a estrada ensina antes de cobrar.' },
+];
+
 export class NewsSystem {
   // Evento local. `key` deduplica para sempre (ex.: 'skin:catisquick' não
   // vira notícia duas vezes); cor: 'gold' conquista, 'red' alerta, '' info.
@@ -27,6 +42,35 @@ export class NewsSystem {
     items.unshift({ k: key, t: Date.now(), x: String(text).slice(0, 140), c: color });
     localStorage.setItem(LOCAL_KEY, JSON.stringify(items.slice(0, LOCAL_CAP)));
     return true;
+  }
+
+  // Compara versões "a.b.c" numericamente por segmento (falta = 0):
+  // '1.12.4' > '1.9.11' > '1.9.2' — comparação de string erraria as três.
+  static cmpVersao(a, b) {
+    const pa = String(a || '').split('.').map((n) => parseInt(n, 10) || 0);
+    const pb = String(b || '').split('.').map((n) => parseInt(n, 10) || 0);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      const d = (pa[i] || 0) - (pb[i] || 0);
+      if (d) return d < 0 ? -1 : 1;
+    }
+    return 0;
+  }
+
+  // Empurra os cards das versões em (prev, cur], no máximo `cap` — o feed
+  // mostra 3, e mais que 2 novidades enterrariam o recorde da pessoa. Chave
+  // `nv:<versão>` deduplica para sempre. Devolve quantos cards NOVOS
+  // entraram (a segunda chamada devolve 0).
+  static pushChangelog(prev, cur, cap = 2) {
+    const fila = CHANGELOG_CARDS
+      .filter((c) => this.cmpVersao(c.v, prev) > 0 && this.cmpVersao(c.v, cur) <= 0)
+      .slice(0, cap);
+    let novos = 0;
+    // do mais antigo para o mais novo: o push é unshift, e a versão mais
+    // nova tem de ficar no topo do feed
+    for (const card of fila.reverse()) {
+      if (this.push(`nv:${card.v}`, card.x, 'gold')) novos++;
+    }
+    return novos;
   }
 
   static localItems() {

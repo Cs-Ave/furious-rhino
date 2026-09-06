@@ -780,6 +780,42 @@
         .chal-pts { color: #4ecdc4; white-space: nowrap; }
         .chal-more { font-size: 11px; color: rgba(255, 255, 255, 0.55); text-align: center; }
 
+        /* v1.12.4: desafio por LINK — o banner de quem chegou por
+           /?desafio=<m>&de=<nome>. No topo do fluxo, longe da faixa do toque
+           (.home-bottom); o botão é o ÚNICO CTA e para a propagação. Teal é a
+           cor do JOGAR DE NOVO: o mesmo verbo, a mesma cor. */
+        .desafio-banner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px 14px;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 8px 16px;
+            border-radius: 12px;
+            background: rgba(78, 205, 196, 0.10);
+            border: 1px solid rgba(78, 205, 196, 0.55);
+            font-size: 14px;
+        }
+        .desafio-banner[hidden] { display: none; }
+        .desafio-tag { color: #4ecdc4; letter-spacing: 2px; font-size: 11px; }
+        #desafio-aceitar {
+            font-family: inherit;
+            background: #4ecdc4;
+            color: #06312d;
+            font-weight: 900;
+            letter-spacing: 1px;
+            border: none;
+            border-radius: 999px;
+            padding: 8px 18px;
+            min-height: 44px;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #1f7a74;
+        }
+        #desafio-aceitar:active { transform: translateY(2px); box-shadow: 0 1px 0 #1f7a74; }
+
         /* Modal de criação: chips dos escolhidos + pílulas de duração */
         #challenge-players {
             display: flex;
@@ -1067,35 +1103,7 @@
             font-size: 12px;
         }
 
-        #medals-list {
-            list-style: none;
-            margin: 0 0 6px;
-            padding: 0;
-            text-align: left;
-        }
-
-        #medals-list li {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            padding: 5px 8px;
-            font-size: 15px;
-        }
-
-        #medals-list li.locked {
-            opacity: 0.45;
-        }
-
-        #medals-list .m-emoji {
-            font-size: 24px;
-        }
-
-        #medals-list .m-desc {
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 13px;
-        }
-
-        /* Hub de skins (v1.8) — mesmo idioma visual das medalhas */
+        /* Hub de skins (v1.8) */
         #skins-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -1179,6 +1187,9 @@
 
             .home-title { font-size: clamp(24px, 8.5vh, 40px); letter-spacing: 3px; }
             .home-sub { display: none; }
+            /* v1.12.4: o banner do desafio numa linha só */
+            .desafio-banner { padding: 4px 10px; gap: 4px 8px; font-size: 12px; }
+            #desafio-aceitar { min-height: 36px; padding: 4px 12px; font-size: 12px; }
 
             .home-headrow { margin-bottom: 3px; font-size: 11px; }
 
@@ -1292,6 +1303,9 @@
             color: #ffd23f;
             animation: ctapop 1.1s ease-in-out infinite;
         }
+        /* v1.12.4: veio do JOGAR DE NOVO há menos de um minuto — o CTA diz
+           "corra de novo" e pulsa mais rápido. Texto e cor, nenhum autoStart. */
+        .start-cta.replay { color: #4ecdc4; animation-duration: 0.7s; }
 
         @keyframes ctapop {
             0%, 100% { transform: scale(1); text-shadow: 0 0 10px rgba(255, 210, 63, 0.35); }
@@ -2464,6 +2478,21 @@
             font-size: 22px;
             border-radius: 10px;
         }
+        /* v1.12.4: passou a marca do amigo — o 📤 vira "DEVOLVER O DESAFIO".
+           Um botão só (o rodapé fixo da Régua não cresce): estica ao lado do
+           JOGAR DE NOVO, que mantém os seus 52/46/44 px. */
+        #game-over .btn-share.devolver, #game-win .btn-share.devolver {
+            flex: 1 1 auto;
+            padding: 0 12px;
+            font-size: 15px;
+            font-weight: 900;
+            white-space: nowrap;
+            background: #ff9944;
+            color: #2a1500;
+        }
+        @media (max-height: 360px) {
+            #game-over .btn-share.devolver, #game-win .btn-share.devolver { font-size: 13px; }
+        }
 
         /* Celular em paisagem — o molde é o do #crash-overlay */
         @media (max-height: 500px) {
@@ -2563,11 +2592,6 @@
             #challenge-directory { max-height: 96px; }
             #pwa-modal p { font-size: 13.5px; }
         }
-        /* 30 medalhas numa coluna passavam de 1.000px */
-        @media (max-height: 500px) and (min-width: 700px) {
-            #medals-list { columns: 2; column-gap: 16px; }
-        }
-
         /* Em retrato o #rotate-overlay (400) cobre o jogo, mas os modais (500)
            ficam por cima — "Continuar" retomava a corrida às cegas. */
         @media (orientation: portrait) {
@@ -2690,6 +2714,15 @@
             <p class="home-sub">quão longe você chega hoje?</p>
         </div>
 
+        <!-- v1.12.4: desafio por LINK (/?desafio=<m>&de=<nome>). Nunca um <a>;
+             o texto entra por textContent; o botão para a propagação — o
+             overlay inteiro é "toque para começar". -->
+        <div id="desafio-banner" class="desafio-banner" hidden>
+            <b class="desafio-tag">🎯 DESAFIO</b>
+            <span id="desafio-text"></span>
+            <button id="desafio-aceitar" type="button">ACEITAR E CORRER</button>
+        </div>
+
         <div class="home-middle">
             <section class="home-col-podium">
                 <div class="home-headrow">
@@ -2779,7 +2812,7 @@
 
         <span class="start-footer footer-left">by Thomas Avelino</span>
         <span class="start-footer footer-center">Estatísticas anônimas são coletadas · <a href="./?stats">/?stats</a></span>
-        <span class="start-footer footer-right" id="game-version">v1.12.3</span>
+        <span class="start-footer footer-right" id="game-version">v1.12.4</span>
     </div>
 
     <div id="ranking-modal" class="modal">
@@ -2842,12 +2875,6 @@
             <button id="mystats-close" class="btn-secondary">Fechar</button>
         </div>
         <p id="mystats-status"></p>
-    </div>
-
-    <div id="medals-modal" class="modal">
-        <h2>🏅 MEDALHAS</h2>
-        <ul id="medals-list"></ul>
-        <button id="medals-close">Fechar</button>
     </div>
 
     <div id="skins-modal" class="modal modal-wide">

@@ -752,6 +752,106 @@ eq('rules têm o bloco challenges com leitura pública',
     viradas.every((v, i) => Number(v) >= 1 && Number(v) < totais[i]), true);
 }
 
+// ------------------------------------------ v1.12.4 — desafio por link
+// A URL é entrada hostil e o sanitizador é a única porta. Cada caso aqui é
+// um jeito de alguém quebrar o banner (XSS, nome gigante, metros absurdos)
+// ou de um link legítimo ser recusado (acento, espaço duplo, NFD).
+{
+  const { LinkChallenge: LC } = await import('../js/systems/LinkChallenge.js');
+  const { NewsSystem, CHANGELOG_CARDS } = await import('../js/systems/NewsSystem.js');
+
+  eq('desafio: link válido', LC.parseDesafio('?desafio=1198&de=Thomas'), { m: 1198, de: 'Thomas' });
+  eq('desafio: sem `de` cai em "um amigo"', LC.parseDesafio('?desafio=1198'), { m: 1198, de: 'um amigo' });
+  eq('desafio: <script> no nome cai em "um amigo" (o desafio continua)',
+    LC.parseDesafio('?desafio=1198&de=%3Cscript%3E'), { m: 1198, de: 'um amigo' });
+  eq('desafio: acento e sublinhado passam', LC.parseDesafio('?desafio=500&de=Jo%C3%A3o_2').de, 'João_2');
+  eq('desafio: emoji não é nome',
+    LC.parseDesafio('?desafio=500&de=%F0%9F%A6%8F%F0%9F%A6%8F%F0%9F%A6%8F').de, 'um amigo');
+  eq('desafio: 13 caracteres estoura, 12 passam',
+    [LC.sanitizeNome('abcdefghijklm'), LC.sanitizeNome('abcdefghijkl')], ['', 'abcdefghijkl']);
+  eq('desafio: 2 caracteres é curto demais', LC.sanitizeNome('Jo'), '');
+  eq('desafio: espaços duplos viram um, pontas cortadas', LC.sanitizeNome('  Ana   Luísa '), 'Ana Luísa');
+  eq('desafio: só pontuação não é nome', LC.sanitizeNome('...'), '');
+  eq('desafio: nome decomposto (NFD) conta o que se vê (5 code points viram 4; saída NFC)',
+    [LC.sanitizeNome('João Silva'), LC.sanitizeNome('João Silva').length], ['João Silva', 10]);
+  eq('desafio: metros inválidos → sem desafio',
+    ['0', '-5', 'abc', 'NaN', '1e3', '1198.7', ''].map((v) => LC.parseDesafio(`?desafio=${v}&de=Thomas`)),
+    [null, null, null, null, null, null, null]);
+  eq('desafio: sem o parâmetro → null', LC.parseDesafio(''), null);
+  eq('desafio: acima do teto clampa em 10000', LC.parseDesafio('?desafio=99999').m, 10000);
+  eq('desafio: linkPara monta a URL e codifica o nome',
+    LC.linkPara('https://x.test/furious-rhino/', 1198, 'Sonda'), 'https://x.test/furious-rhino/?desafio=1198&de=Sonda');
+  eq('desafio: linkPara sem metros devolve a base intacta', LC.linkPara('https://x.test/', 0, 'Sonda'), 'https://x.test/');
+  eq('desafio: linkPara omite nome inválido', LC.linkPara('https://x.test/', 300, '<b>'), 'https://x.test/?desafio=300');
+  eq('desafio: linkPara respeita base com query', LC.linkPara('https://x.test/?debug=1', 300, ''), 'https://x.test/?debug=1&desafio=300');
+  eq('desafio: texto do banner com milhar pt-BR', LC.textoBanner({ m: 1198, de: 'Thomas' }), 'Thomas correu 1.198 m. Passa?');
+  eq('desafio: devolver nomeia quem mandou',
+    LC.textoDevolver({ de: 'Thomas', meuM: 1300 }).startsWith('🦏 Thomas, passei'), true);
+  eq('desafio: devolver sem nome não diz "um amigo, passei"',
+    LC.textoDevolver({ de: 'um amigo', meuM: 1300 }).startsWith('🦏 Passei'), true);
+
+  // persistência: forma, validade de 7 dias, revalidação do conteúdo
+  localStorage.removeItem(StorageManager.DESAFIO_KEY);
+  eq('desafio: sem chave → null', LC.ativo(), null);
+  StorageManager.setDesafio({ m: 1198, de: 'Thomas' });
+  const guardado = LC.ativo();
+  eq('desafio: set→ativo devolve m/de', [guardado.m, guardado.de], [1198, 'Thomas']);
+  localStorage.setItem(StorageManager.DESAFIO_KEY, JSON.stringify({ m: 1198, de: 'Thomas', at: Date.now() - 8 * 86400000 }));
+  eq('desafio: 8 dias → expirado', LC.ativo(), null);
+  localStorage.setItem(StorageManager.DESAFIO_KEY, JSON.stringify({ m: 1198, de: 'Thomas', at: Date.now() - 6 * 86400000 }));
+  eq('desafio: 6 dias → vale', LC.ativo().m, 1198);
+  localStorage.setItem(StorageManager.DESAFIO_KEY, JSON.stringify({ m: 1198, de: '<img onerror=x>', at: Date.now() }));
+  eq('desafio: storage editado à mão não injeta nome', LC.ativo().de, 'um amigo');
+  localStorage.setItem(StorageManager.DESAFIO_KEY, JSON.stringify({ m: 999999, de: 'Thomas', at: Date.now() }));
+  eq('desafio: storage editado à mão não injeta metros', LC.ativo(), null);
+  localStorage.setItem(StorageManager.DESAFIO_KEY, '{corrompido');
+  eq('desafio: JSON corrompido → null', LC.ativo(), null);
+  LC.limpar();
+  eq('desafio: limpar apaga', StorageManager.getDesafio(), null);
+
+  // última versão vista
+  eq('novidades: sem chave → ""', StorageManager.getLastVersion(), '');
+  StorageManager.setLastVersion('1.12.4');
+  eq('novidades: set→get', StorageManager.getLastVersion(), '1.12.4');
+
+  // rastro do JOGAR DE NOVO, lido sem consumir. O shim vive SÓ neste bloco:
+  // o resto da suíte conta com "Node não tem sessionStorage" (beginSession)
+  globalThis.sessionStorage = {
+    _m: new Map(),
+    getItem(k) { return this._m.has(k) ? this._m.get(k) : null; },
+    setItem(k, v) { this._m.set(k, String(v)); },
+    removeItem(k) { this._m.delete(k); },
+  };
+  eq('re-jogo: sem rastro → não', StorageManager.replayRecente(), false);
+  sessionStorage.setItem('fr_replay', JSON.stringify({ at: Date.now() - 10000, bits: 1 }));
+  eq('re-jogo: 10 s atrás, bit 1 → recente', StorageManager.replayRecente(), true);
+  eq('re-jogo: espiar não consome', sessionStorage.getItem('fr_replay') !== null, true);
+  sessionStorage.setItem('fr_replay', JSON.stringify({ at: Date.now() - 120000, bits: 1 }));
+  eq('re-jogo: 120 s atrás → não', StorageManager.replayRecente(), false);
+  sessionStorage.setItem('fr_replay', JSON.stringify({ at: Date.now() - 5000, bits: 4 }));
+  eq('re-jogo: só rolou os extras (bit 4), sem o botão → não', StorageManager.replayRecente(), false);
+  sessionStorage.removeItem('fr_replay');
+  delete globalThis.sessionStorage;
+  eq('re-jogo: sem sessionStorage (Node) → não, sem lançar', StorageManager.replayRecente(), false);
+
+  // cards de novidades
+  eq('novidades: cmpVersao numérico por segmento',
+    [NewsSystem.cmpVersao('1.12.4', '1.9.11'), NewsSystem.cmpVersao('1.9.2', '1.9.11'), NewsSystem.cmpVersao('1.12.0', '1.12')],
+    [1, -1, 0]);
+  eq('novidades: a versão corrente tem card (release nova = linha nova na tabela)',
+    CHANGELOG_CARDS.some((c) => c.v === Constants.VERSION), true);
+  eq('novidades: a tabela está em ordem decrescente',
+    CHANGELOG_CARDS.every((c, i) => i === 0 || NewsSystem.cmpVersao(CHANGELOG_CARDS[i - 1].v, c.v) > 0), true);
+  eq('novidades: todo card cabe em 140 chars', CHANGELOG_CARDS.every((c) => c.x.length <= 140), true);
+  localStorage.removeItem('furious_rhino_news');
+  eq('novidades: de 1.11.0 para 1.12.4 entram 2 cards (o teto), a mais nova no topo',
+    [NewsSystem.pushChangelog('1.11.0', '1.12.4'), NewsSystem.localItems().map((i) => i.k)],
+    [2, ['nv:1.12.4', 'nv:1.12.3']]);
+  eq('novidades: segunda chamada é idempotente', NewsSystem.pushChangelog('1.11.0', '1.12.4'), 0);
+  eq('novidades: mesma versão → nada', NewsSystem.pushChangelog('1.12.4', '1.12.4'), 0);
+  localStorage.removeItem('furious_rhino_news');
+}
+
 // ------------------------------------------ painel × constantes de enrage
 // A v1.12.3 documentou "nome e slider próprios" para o CERCO_ENRAGE_MS e o
 // slider não existia — a chave nem estava em ROOT_KEYS, então um ajuste no

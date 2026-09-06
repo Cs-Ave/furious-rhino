@@ -209,7 +209,7 @@ export function allRuns(docs, sinceS = since()) {
         fc: num(r.fc), cj: num(r.cj),
         // v1.12.1: como a corrida começou (rs = bitmask do fim de corrida
         // anterior) e quanto tempo levou para recomeçar (rt, em segundos)
-        rs: num(r.rs), rt: num(r.rt),
+        rs: num(r.rs), rt: num(r.rt), md: num(r.md),
         g: str(r.g) || null, v: str(r.v) || null,
         attemptIndex: base + i + 1,
       });

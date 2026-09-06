@@ -317,6 +317,80 @@ export class StorageManager {
     } catch (e) { /* quota cheia: seguir sem cache é aceitável */ }
   }
 
+  // --- Desafio por LINK (v1.12.4) ---
+  // O que o link `/?desafio=<m>&de=<nome>` trouxe, guardado por 7 dias ou
+  // até ser batido. Só localStorage: o desafio por link não tem doc, não
+  // tem write, não entra em `stats` (12/12) nem em `history` (6/6). Aqui se
+  // valida a FORMA (m inteiro em 1..10000, nome curto, carimbo de data); o
+  // conteúdo do nome passa pelos filtros do LinkChallenge ao ser lido — o
+  // storage não importa o módulo para não fechar um ciclo de imports.
+  static DESAFIO_KEY = 'furious_rhino_desafio';
+  static DESAFIO_TTL_MS = 7 * 86400000;
+
+  static getDesafio() {
+    try {
+      const d = JSON.parse(localStorage.getItem(this.DESAFIO_KEY));
+      if (!d || typeof d !== 'object') return null;
+      const m = Math.floor(Number(d.m));
+      const at = Number(d.at);
+      if (!(m >= 1 && m <= 10000) || !(at > 0)) return null;
+      if (Date.now() - at > this.DESAFIO_TTL_MS) return null;
+      return { m, de: String(d.de || '').slice(0, 12), at };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static setDesafio({ m, de }) {
+    try {
+      localStorage.setItem(this.DESAFIO_KEY, JSON.stringify({
+        m: Math.floor(Number(m)) || 0, de: String(de || '').slice(0, 12), at: Date.now(),
+      }));
+    } catch (e) { /* modo privado: sem desafio guardado, o banner some no reload */ }
+  }
+
+  static clearDesafio() {
+    try { localStorage.removeItem(this.DESAFIO_KEY); } catch (e) { /* idem */ }
+  }
+
+  // --- Última versão vista (v1.12.4) ---
+  // Para os cards "novidades desde a sua última visita". Quem nunca teve a
+  // chave (todo aparelho anterior a esta versão) é resolvido pelo
+  // `history.versions`, que registra cada versão já jogada.
+  static LAST_VERSION_KEY = 'furious_rhino_last_version';
+
+  static getLastVersion() {
+    try { return localStorage.getItem(this.LAST_VERSION_KEY) || ''; } catch (e) { return ''; }
+  }
+
+  static setLastVersion(v) {
+    try { localStorage.setItem(this.LAST_VERSION_KEY, String(v || '').slice(0, 12)); } catch (e) { /* acessório */ }
+  }
+
+  // --- Rastro do JOGAR DE NOVO (v1.12.1), lido SEM consumir (v1.12.4) ---
+  // O GameScene grava `fr_replay = {at, bits}` no sessionStorage ao sair do
+  // fim de corrida e CONSOME na largada (vira `rs`/`rt`). A home precisa
+  // espiar antes disso — para pulsar "TOQUE PARA CORRER DE NOVO" e adiar o
+  // convite da Arena — sem apagar o que a largada vai ler.
+  static REPLAY_RECENTE_MS = 60000;
+
+  static peekReplay() {
+    try {
+      const r = JSON.parse(sessionStorage.getItem('fr_replay'));
+      return r && typeof r === 'object' ? r : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // true = a pessoa veio do botão JOGAR DE NOVO (bit 1) há menos de `maxMs`
+  static replayRecente(maxMs = this.REPLAY_RECENTE_MS) {
+    const r = this.peekReplay();
+    if (!r || !(Number(r.bits) & 1)) return false;
+    const idade = Date.now() - Number(r.at);
+    return idade >= 0 && idade < maxMs;
+  }
+
   // --- Telemetria local (v1.3.0): totais acumulados por aparelho ---
   // Persistidos NA HORA do evento: "Jogar Novamente" recarrega a página,
   // então nada pode ficar só em memória.
@@ -541,6 +615,9 @@ export class StorageManager {
     //      quando rs&1; cap 9999) — a "latência pós-morte" do §5 da doutrina.
     rs: 'restartSource',
     rt: 'replayLatencyS',
+    // v1.12.4: 1 = corrida sob desafio por link (0 omitido). Leitores em
+    // RadiografiaCore.RUN_LETTER_KEYS e StatsDashboard.allRuns.
+    md: 'modoDesafio',
   };
 
   // Até a v1.6.1 a fúria não entrava aqui por ser posicional (contida no

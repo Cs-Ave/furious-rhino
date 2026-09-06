@@ -25,25 +25,27 @@ Auto-runner de ação para web mobile (paisagem): um rinoceronte foge do zoológ
 6. **Rampas são terreno, não corpo de física** (Arcade não tem superfície inclinada — corpo estático causa soft-lock). Ver `js/entities/Ramp.js` + `GameScene.updateTerrain()`.
 7. **Nunca rodar `npm run export-art -- --force`** — sobrescreve a arte retocada à mão.
 8. **Chefe novo não herda a voz do vizinho.** Os cinco são instâncias da mesma `BossFight`, e foi copiar def que produziu o feedback de 05/09 ("boss fight todos muito parecidos"): os cinco pediam o mesmo `playBossHorn`, a mesma `0xffd24a` e a mesma frase de dica. Uma def precisa de `callSfx`, `glowColor`, `nome`, `emoji`, `midpoint` e um `hints.how` que diga onde A FRESTA DELE abre — o `test-stats` reprova repetição e o `e2e-boss-voz` confere no navegador. Sonda de chefe: ver as três armadilhas no `HANDOFF.md` §3 (a geografia é de mão única).
-9. Mais armadilhas (WebGL, SVG, `setDoc` sem merge...): `docs/04-referencia-tecnica.md` §13.
+9. **A URL é entrada hostil.** `?desafio=<m>&de=<nome>` só entra no jogo pelo `LinkChallenge` (metros clampados em 1..10000; nome de 3-12 chars em `[\p{L}\p{N} _.-]` ou "um amigo"); render SEMPRE por `textContent`; o banner nunca é `<a>`. O `test-stats` cobre os casos (XSS, emoji, 13 chars, NFD, storage editado à mão) e o `e2e-desafio` confere no navegador. **Botão novo na home**: `stopPropagation` em `pointerdown` E `click` — o overlay inteiro é "toque para começar" — e o início entra pela mesma porta do toque (`HomeScreen.tentarIniciar`), nunca por `autoStart`.
+10. Mais armadilhas (WebGL, SVG, `setDoc` sem merge...): `docs/04-referencia-tecnica.md` §13.
 
 ## Comandos
 
 ```bash
 python -m http.server 3000   # servir o jogo (os e2e dependem da :3000)
 npm run sprite-gen           # OU: servidor unificado — jogo na :3000 + gerador na :3210 (cede a 3000 ao python com aviso)
-npm run test-stats           # 161 asserts, sem navegador
+npm run test-stats           # 216 asserts, sem navegador (inclui o sanitizador do desafio por link)
 npm run test-ramp            # 54 asserts e2e (Chromium)
 npm run test-overlays        # 94 asserts e2e dos overlays em 7 viewports (Chromium)
 npm run test-legibilidade    # 30 asserts: mede o contraste de cada inimigo da cidade contra o fundo
 npm run test-boss-voz        # 24 asserts e2e: cada chefe toca o PRÓPRIO chamado, moldura branca no alinhamento, virada, relógio, marca
+npm run test-e2e-desafio     # 42 asserts e2e: link hostil → banner seguro (3 viewports), estaca, DEVOLVER, apelido, expiração, re-jogo, novidades
 npm run aplicar-rim          # (re)aplica o halo claro nos SVGs do elenco urbano + atirador da Muralha — idempotente
 node tools/fotos-chefes.mjs  # 10 fotos dos 5 chefes (fora da fresta × alinhado) em tools/snapshots/chefes-<v>/
 npm run test-e2e-stats       # 69 asserts e2e (Chromium, escreve com sonda claude-*)
 npm run digest               # resumo diário sem enviar
 npm run radiografia          # análise de usabilidade completa (leitura pública, zero writes) — markdown p/ IDEIAS-FUTURAS
 npm run investiga            # varre a base com os detectores e compara com a coleta anterior
-npm run test-radiografia     # 91 asserts do núcleo/CLI/aba, sem rede
+npm run test-radiografia     # 104 asserts do núcleo/CLI/aba, sem rede
 # snapshot datado (o "antes" de qualquer leitura futura):
 #   node tools/radiografia.mjs --json > tools/snapshots/radiografia-AAAA-MM-DD.json
 #   node tools/radiografia.mjs --anterior=tools/snapshots/radiografia-2026-09-05.json

@@ -1,4 +1,85 @@
-# Handoff — FURIOUS RHINO v1.12.3 — 🗣️ CINCO VOZES
+# Handoff — FURIOUS RHINO v1.12.4 — 🎯 O DESAFIO
+
+**Data:** 06/09/2026 · **Status:** implementada e testada; nos portões.
+A release de AQUISIÇÃO da revisão de 05/09 — o gargalo real (1 novo/semana).
+Leva junto as sobras da Régua que o plano mandou para o mesmo bump.
+
+## 0. O que é
+
+O convite vira um link que carrega a marca de quem convida: `/?desafio=<m>&de=<nome>`.
+Banner na home com um único CTA, estaca do amigo na pista, "DEVOLVER O
+DESAFIO" no fim de corrida (com a porta do apelido para quem não tem), 7 dias
+de validade, zero servidor. Mais: "novidades desde a sua última visita",
+"alguém passou você", modo re-jogo, e a radiografia corrigida. **Zero
+mecânica**: spawn, física, cadência e copy de dica intactos (congelamento até
+26/09). Design: `GAME_DESIGN.md` §"Desafio por link".
+
+## 1. O que entrou
+
+| Camada | O quê |
+|---|---|
+| **`js/systems/LinkChallenge.js`** (novo; em `ASSETS`) | classe estática, zero Phaser/DOM no import. Puras: `sanitizeNome` (NFC, `/^(?=.*[\p{L}\p{N}])[\p{L}\p{N} _.\-]{3,12}$/u`), `clampMetros` (`/^\d{1,7}$/` → 1..10000), `parseDesafio`, `linkPara`, `textoBanner`, `textoDevolver`. Com efeito: `consumeUrl` (guarda e APAGA `desafio`/`de` da URL via `replaceState` — senão o `location.reload()` do JOGAR DE NOVO re-semearia o desafio), `ativo` (REVALIDA o storage), `limpar`. |
+| **`StorageManager`** | `DESAFIO_KEY` (`{m, de, at}`, TTL 7 d, valida a FORMA; o conteúdo é do LinkChallenge — sem import circular), `LAST_VERSION_KEY`, `peekReplay`/`replayRecente` (lê `fr_replay` SEM consumir; `REPLAY_RECENTE_MS = 60000` como estático — o arquivo não importa Constants), `RUN_COUNTERS.md`. |
+| **`HomeScreen`** | `paintDesafio` (DEPOIS do `markSource`, que lê `.has('desafio')` antes de a URL ser limpa; ouvintes armados uma vez; `stopPropagation` em `pointerdown` E `click`), `pushNovidades` (prev = `last_version` ou a maior versão em `history.versions` ≠ atual — aparelho novo não recebe nada), `paintReplayHint`. **`armStart` → `tentarIniciar`**: o corpo do disparo virou método para o CTA entrar pela mesma porta (mesmas guardas P/ESC/`modal-open`/toque pendente). `test-e2e-home` 10/10 e `test-ramp` 54/54 foram a rede. |
+| **`GameScene`** | `desafioLink` lido uma vez no create; estaca do amigo ANTES do recorde em `createTrackMarks` (o anticolisão de 90 px mantém a primeira; teal 0x4ecdc4); `pintarDesafioFim` (após os dois ramos do overlay, antes das medalhas; LENDA mantém o título); `devolverDesafio` (+ `devolverPendente` retomado em `saveNickname`/`stayAnonymous`, cancelado em `nicknameSkip`); `setupShareButtons` ramifica; `shareSummary(run, statusId, opts)` com url default = `linkPara(base, recorde, apelido)`; `shareInvite` idem; `setupPwaPrompt` não abre com desafio ativo (sem gravar SEEN); `maybeShowChallengeInvite` adia por `replayRecente()`; `onRankRefreshed` ganha `rank:down` (qualquer queda) e `rank:top10`; `modoDesafio` no `addRun`. |
+| **`NewsSystem`** | `CHANGELOG_CARDS` (mais nova primeiro; **release nova = linha nova, o test-stats exige o card da versão corrente**), `cmpVersao`, `pushChangelog(prev, cur, cap=2)` — empurra do mais antigo para o mais novo (o push é unshift) e é idempotente. |
+| **`index.html`** | `#desafio-banner` entre `.home-top` e `.home-middle` (fora da faixa do toque; `min-height:44px`, compactado em `max-height:500px`), `.start-cta.replay`, `.btn-share.devolver` (flex 1, uma linha, o restart mantém 52/46/44), **`#medals-modal` removido** (markup + CSS; nenhum JS o abria), versão. |
+| **Letra `md`** | `RUN_COUNTERS` + `RUN_LETTER_KEYS`/`_DESC` + `StatsDashboard.allRuns` — os dois guardas bidirecionais verdes. Zero campo no Firestore, zero rules. |
+| **Radiografia** (agente, arquivos disjuntos) | **R-06/R-07 com unidades misturadas**: `mortes` era vitalício (`stats[].deaths`) dividido por `lutas`/`chegadas` da janela (`runs`). Entrou `mortesJanela` (mesma fonte dos denominadores) e as regras dividem por ele; o texto imprime "N na janela (M na vida)". No dado real de 06/09 a razão do Portão dizia 38% e é 27%; a Muralha 18% → 0%. **Barreira e Faraó impressos** (calculados desde a v1.9.5, nunca lidos); rótulo do b2 vira "Muralha (2000 m)". |
+| **Painel** | slider `CERCO_ENRAGE_MS` (a doc da v1.12.3 o prometia) + guarda no `test-stats`: toda `*_ENRAGE_MS` tem `.add(Constants, …)` e vaga em `ROOT_KEYS` — rodado contra o painel de ontem, acusa exatamente a falta. |
+
+## 2. Decisões de projeto (vetáveis)
+
+1. O 📤 **morfa** em DEVOLVER (um botão; 3º botão daria rodapé de duas linhas).
+2. **Todo share carrega o link** — é o lado remetente; sem ele o link nunca circularia. Sem recorde, a base volta intacta.
+3. Prompt do PWA suprimido no boot por link, sem gravar SEEN (volta na visita seguinte).
+4. 🎯/metros vs ⚔️/pontos como divisa com a Arena.
+5. og estático (prévia genérica no WhatsApp; `og:image` 1200×630 fica no banco).
+6. `rank:up` só ao ENTRAR no top 10 (cada posição ganha viraria ruído no Diário).
+
+## 3. Verificação
+
+Bateria completa verde — **test-stats 216** (+43: sanitizador, storage, cards,
+re-jogo, painel) · **test-radiografia 104** (+13) · score 102 · investiga 31 ·
+challenge 104 · **e2e-desafio 42 (nova)** · e2e-home 10 · overlays 94 · ramp
+54 · boss-voz 24 · special 25 · e2e-crash 15 · e2e-stats (sem doc de
+produção criado).
+
+O `e2e-desafio` prova, em 1280×720 / 874×402 / 640×304: nome `<script>` vira
+"um amigo" e não há `<script>`/`<a>` no banner; a URL perde `desafio`/`de` e
+mantém `debug=1`; `history.src='link'`; o toque (640,650) nunca cai no banner;
+ACEITAR inicia a corrida e a estaca está aos 1198 m; passar provoca; passou →
+DEVOLVER, storage limpo, `md=1`, restart ≥44 px na tela; não passou →
+"faltaram 698 m", 📤 intacto, storage mantido; DEVOLVER sem apelido →
+`#nickname-modal` → link `?desafio=344&de=Sonda`; 8 d expira / 6 d vale;
+`fr_replay` 5 s → "TOQUE PARA CORRER DE NOVO"; `last_version=1.11.0` → card
+da 1.12.4 no Diário; aparelho novo sem cards; zero erro de JS.
+
+Duas armadilhas de sonda registradas: o `#nickname-modal` **já abre sozinho**
+no fim de corrida de quem não tem apelido (`submitScore`) — o DEVOLVER fica
+atrás dele, e o cenário 8 cobre os dois caminhos; e o rino precisa ser
+congelado no teleporte (`body.moves=false`), senão "faltaram X m" sai com X
+errado por 4 m.
+
+## 4. Segue de pé
+
+- **Portão 2**: no celular, abrir `http://192.168.1.69:3000/?desafio=1198&de=Thomas`
+  (o banner; o toque no CTA; a estaca aos 1198 m; morrer antes → "faltaram";
+  passar → DEVOLVER → a folha nativa com o link). E a home normal: CTA
+  "TOQUE PARA CORRER DE NOVO" depois de um JOGAR DE NOVO; os cards de
+  novidades num aparelho que jogou a 1.12.3.
+- Leitura 1 em **12/09**; leitura 2 + **broadcast do dono** em **26/09**.
+- Banco: `og:image` do desafio; `#nickname-modal` em tela baixa; vizinhos do
+  top 10 (gatilho); holofote da Muralha (sem régua); spike de boot — que sobe
+  de prioridade AGORA: o link traz a primeira visita a frio, e o `?voo=1`
+  mede o toque→corrida antes de decidir.
+
+> ⚠️ Outra sessão trabalha neste repositório — conferir dono de arquivo
+> antes de commitar; nunca git add -A.
+
+---
+
+# Handoff anterior — FURIOUS RHINO v1.12.3 — 🗣️ CINCO VOZES
 
 **Data:** 05/09/2026 · **Status:** implementada e testada; nos portões.
 A outra metade do Farol (o "pacote P" do plano), agora com número próprio —

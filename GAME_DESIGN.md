@@ -1,6 +1,6 @@
 # FURIOUS RHINO — Documento de Design
 
-> Estado atual do jogo (v1.12.3). Este documento descreve o que **é**, não o que
+> Estado atual do jogo (v1.12.4). Este documento descreve o que **é**, não o que
 > se imaginou no começo — as decisões de v1.1 em diante estão registradas aqui
 > com o motivo, e várias delas foram tomadas a partir dos dados reais de
 > telemetria (ver "Decisões orientadas por dados" no fim).
@@ -434,6 +434,50 @@ mesma régua que já desligava as dicas na tela, então lição e dica acendem e
 apagam juntas. Para o veterano, a roleta normal assume aos 60 m, com par e
 escolta de animais desde o começo. É a primeira vez que o jogo trata estreante
 e veterano de formas diferentes.
+
+## 🎯 Desafio por link (v1.12.4) — o convite que carrega a marca
+
+A leitura de 05/09 separou dois números que costumam andar juntos: a
+retenção **melhorou** (57% de um-dia-só, era 69%) e a entrada **secou** (1
+jogador novo por semana; 44 execuções em 7 dias contra 235). A base é um
+círculo de conhecidos que parou de convidar — e convidar custava explicar o
+jogo. A resposta não é conteúdo: é fazer do convite um toque que já traz a
+razão de abrir.
+
+**Como funciona.** Todo compartilhamento (o "Chamar galera" da home e o 📤 do
+fim de corrida) leva `/?desafio=<recorde>&de=<apelido>`. Quem abre vê na home
+um banner — "Fulano correu 1.198 m. Passa?" — com um único botão, ACEITAR E
+CORRER; a marca do amigo é fincada na pista como estaca (teal, a cor deste
+desafio em toda a interface), e passar por ela provoca. No fim da corrida,
+passou → o 📤 vira **DEVOLVER O DESAFIO** e a própria marca volta pelo mesmo
+canal; não passou → "faltaram 42 m para passar Fulano" no slot do delta
+(sobrepondo o delta do recorde: para quem chegou por link, toda corrida é
+recorde e a meta é a marca do amigo). O desafio vive no aparelho por 7 dias
+ou até ser batido. **Zero servidor**: a URL é o desafio, e o loop A → B → A
+não precisa de conta, doc nem write.
+
+**A porta do apelido.** DEVOLVER sem apelido abre o `#nickname-modal` antes de
+compartilhar — é o momento em que o visitante vira jogador com nome, e o
+único ponto do fluxo que pede algo em troca.
+
+**A URL é entrada hostil, por regra.** Tudo o que vem dela passa pelo
+`LinkChallenge` e por mais nada: metros viram inteiro em 1..10000 ou o
+desafio não existe; o nome aceita 3-12 caracteres de letra/dígito/espaço/
+`_ . -` (unicode, NFC) ou vira "um amigo"; a tela recebe texto, nunca HTML; o
+banner nunca é um `<a>`. O storage é revalidado ao ler (editar o
+localStorage à mão não injeta nada). Um `<script>` no nome está nos testes.
+
+**O que se separa da Arena.** A Arena de Desafios (abaixo) é outra coisa:
+vive em Firestore, mede PONTOS, tem prazo e nome. Para as duas nunca se
+confundirem, o vocabulário é disjunto em toda a interface — 🎯 e metros aqui;
+⚔️ e pontos lá.
+
+**Pré-registro.** `history.src = 'link'` (já carimbado desde a v1.12.1)
+separa quem chegou pelo link; a letra `md` marca as corridas sob desafio. O
+que a leitura de 26/09 procura: ≥5 aparelhos com `src=link` (existência),
+≥20 para julgar direção de D7; corridas `md=1`; o loop A → B → A acontecendo.
+O broadcast do dono só depois do snapshot de 26/09 — a baseline do
+congelamento vem primeiro.
 
 ## ⚔️ Arena de Desafios (v1.8.6) — competição com prazo e com nome
 

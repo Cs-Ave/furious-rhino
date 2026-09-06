@@ -5,7 +5,22 @@
 
 ---
 
-## v1.12.3 — 05/09/2026 (versão atual) — 🗣️ CINCO VOZES
+## v1.12.4 — 06/09/2026 (versão atual) — 🎯 O DESAFIO
+
+**Tema: convidar um amigo virou um toque — e o convite chega com a sua marca fincada na pista dele.**
+
+A leitura de 05/09 mostrou que a retenção melhorou e a **entrada secou** (1 jogador novo por semana; a base é um círculo de conhecidos que parou de convidar). Esta release faz do convite um link que carrega o seu recorde.
+
+- **Desafio por link.** Todo compartilhamento (o "Chamar galera" da home e o 📤 do fim de corrida) passa a levar `?desafio=<seu recorde>&de=<seu apelido>`. Quem abre vê na home "Fulano correu 1.198 m. Passa?" com um único botão, **ACEITAR E CORRER**; a marca do amigo aparece como estaca na pista, e passar por ela provoca ("VOCÊ PASSOU FULANO!"). No fim da corrida: passou → o botão de compartilhar vira **↩️ DEVOLVER O DESAFIO** (manda a sua marca de volta; sem apelido, o jogo pede um antes — é aí que o visitante vira jogador); não passou → "faltaram 42 m para passar Fulano" no lugar do delta do recorde. O desafio vale 7 dias ou até ser batido. Nada disso passa por servidor: é só a URL e o aparelho.
+- **A URL é tratada como hostil.** Metros viram inteiro entre 1 e 10.000 ou o desafio não existe; o nome aceita 3-12 caracteres de letra/dígito/espaço/`_ . -` (com acentos) ou vira "um amigo"; tudo entra na tela como texto, nunca como HTML, e o banner nunca é um link. Um `<script>` no nome vira "um amigo" — testado.
+- **Novidades desde a sua última visita.** Quem volta depois de uma versão antiga vê no Diário da Fuga até dois cards com o que mudou. A versão vista por último é lembrada; quem nunca a teve é resolvido pelo histórico de versões jogadas — é assim que os 55 jogadores que sumiram verão algo ao voltar. Aparelho novo não recebe nada.
+- **"Alguém passou você."** O pódio já virava notícia; agora qualquer queda de posição entre uma visita e outra também ("de #7 para #9. Responde?"), e entrar no top 10 é comemorado.
+- **"Toque para correr de novo."** Quem acaba de tocar JOGAR DE NOVO vê o CTA da home dizer isso, pulsando mais rápido, e o convite da Arena de Desafios não interrompe — volta no boot seguinte. Nenhum início automático: o toque continua sendo o gesto.
+- **Medição.** Corridas sob desafio levam a letra `md` (zero rede extra). A radiografia corrigiu um bug nas regras dos chefes — mortes de toda a vida divididas por lutas da janela; a razão do Portão dizia 38% e é 27% — e passou a imprimir a Barreira e o Faraó, que calculava desde a v1.9.5 e escondia.
+- **Faxina.** O modal de medalhas, que existia no HTML sem nenhum código que o abrisse, foi removido; a Barreira ganhou o slider de enrage que a documentação da v1.12.3 prometia sem existir (e um guarda para painel e constantes não divergirem de novo).
+- Zero mudança em dificuldade, física, spawn ou dicas: o congelamento até 26/09 segue intacto. O broadcast do link é do dono e só depois do snapshot de 26/09, como combinado.
+
+## v1.12.3 — 05/09/2026 — 🗣️ CINCO VOZES
 
 **Tema: os cinco chefes deixam de ser o mesmo chefe cinco vezes.**
 
